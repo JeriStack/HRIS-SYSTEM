@@ -1,2 +1,0 @@
-# HRIS-SYSTEM
-School Project
