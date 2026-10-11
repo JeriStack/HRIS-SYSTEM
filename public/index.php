@@ -8,23 +8,45 @@
 require_once __DIR__ . '/../core/bootstrap.php';
 
 use Core\Router;
+use Core\AuthMiddleware;
+use Core\RoleMiddleware;
+use Core\GuestMiddleware;
+use Core\CsrfMiddleware;
 use App\Controllers\HomeController;
+use App\Controllers\AuthController;
+use App\Controllers\DashboardController;
 
 try {
     // 2. Initialize Core Router
     $router = new Router();
 
-    // 3. Register Application Foundation Routes
+    // 3. Application Public Routes
     $router->get('/', [HomeController::class, 'index']);
     $router->get('/health', [HomeController::class, 'health']);
     $router->get('/status', [HomeController::class, 'health']);
 
-    // Foundation convenience redirects to Prototype views
+    // Authentication Routes
+    $router->get('/login', [AuthController::class, 'showLoginForm']);
+    $router->post('/login', [AuthController::class, 'login'], [CsrfMiddleware::class]);
+    $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->get('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]);
+
+    // Role-Directed Dashboard Entry Point
+    $router->get('/dashboard', [AuthController::class, 'dashboard'], [AuthMiddleware::class]);
+
+    // Protected Administrator & HR Routes
+    $router->get('/hr/dashboard', [DashboardController::class, 'hrDashboard'], [AuthMiddleware::class, new RoleMiddleware(['admin', 'hr'])]);
+    $router->get('/hr/employees', [DashboardController::class, 'hrEmployees'], [AuthMiddleware::class, new RoleMiddleware(['admin', 'hr'])]);
+
+    // Protected Employee Self-Service Routes (Enforces Ownership & Role)
+    $router->get('/employee/dashboard', [DashboardController::class, 'employeeDashboard'], [AuthMiddleware::class, new RoleMiddleware(['employee'])]);
+    $router->get('/employee/profile', [DashboardController::class, 'employeeProfile'], [AuthMiddleware::class, new RoleMiddleware(['employee'])]);
+    $router->get('/employee/leave-balances', [DashboardController::class, 'employeeLeaveBalances'], [AuthMiddleware::class, new RoleMiddleware(['employee'])]);
+    $router->get('/employee/leave-requests', [DashboardController::class, 'employeeLeaveRequests'], [AuthMiddleware::class, new RoleMiddleware(['employee'])]);
+
+    // Static Prototype Reference
     $router->get('/prototype', function () {
         redirect('prototype/index.html');
-    });
-    $router->get('/login', function () {
-        redirect('prototype/login.html');
     });
 
     // 4. Dispatch Request through the Router
