@@ -15,6 +15,9 @@ use Core\CsrfMiddleware;
 use App\Controllers\HomeController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
+use App\Controllers\EmployeeController;
+use App\Controllers\DepartmentController;
+use App\Controllers\PositionController;
 
 try {
     // 2. Initialize Core Router
@@ -34,9 +37,34 @@ try {
     // Role-Directed Dashboard Entry Point
     $router->get('/dashboard', [AuthController::class, 'dashboard'], [AuthMiddleware::class]);
 
-    // Protected Administrator & HR Routes
-    $router->get('/hr/dashboard', [DashboardController::class, 'hrDashboard'], [AuthMiddleware::class, new RoleMiddleware(['admin', 'hr'])]);
-    $router->get('/hr/employees', [DashboardController::class, 'hrEmployees'], [AuthMiddleware::class, new RoleMiddleware(['admin', 'hr'])]);
+    // Protected Administrator & HR Middleware Instance
+    $hrRole = new RoleMiddleware(['admin', 'hr']);
+
+    $router->get('/hr/dashboard', [DashboardController::class, 'hrDashboard'], [AuthMiddleware::class, $hrRole]);
+
+    // Phase 7: Employee Management Routes
+    $router->get('/hr/employees', [EmployeeController::class, 'index'], [AuthMiddleware::class, $hrRole]);
+    $router->get('/hr/employees/create', [EmployeeController::class, 'create'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/employees', [EmployeeController::class, 'store'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+    $router->get('/hr/employees/{id}', [EmployeeController::class, 'show'], [AuthMiddleware::class, $hrRole]);
+    $router->get('/hr/employees/{id}/edit', [EmployeeController::class, 'edit'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/employees/{id}/edit', [EmployeeController::class, 'update'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+    $router->post('/hr/employees/{id}/deactivate', [EmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+
+    // Phase 7: Department Management Routes
+    $router->get('/hr/departments', [DepartmentController::class, 'index'], [AuthMiddleware::class, $hrRole]);
+    $router->get('/hr/departments/create', [DepartmentController::class, 'create'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/departments', [DepartmentController::class, 'store'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+    $router->get('/hr/departments/{id}/edit', [DepartmentController::class, 'edit'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/departments/{id}/edit', [DepartmentController::class, 'update'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+
+    // Phase 7: Position Management Routes
+    $router->get('/hr/positions', [PositionController::class, 'index'], [AuthMiddleware::class, $hrRole]);
+    $router->get('/hr/positions/create', [PositionController::class, 'create'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/positions', [PositionController::class, 'store'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+    $router->get('/hr/positions/{id}/edit', [PositionController::class, 'edit'], [AuthMiddleware::class, $hrRole]);
+    $router->post('/hr/positions/{id}/edit', [PositionController::class, 'update'], [AuthMiddleware::class, $hrRole, CsrfMiddleware::class]);
+    $router->get('/hr/api/positions-by-department/{id}', [PositionController::class, 'getByDepartment'], [AuthMiddleware::class, $hrRole]);
 
     // Protected Employee Self-Service Routes (Enforces Ownership & Role)
     $router->get('/employee/dashboard', [DashboardController::class, 'employeeDashboard'], [AuthMiddleware::class, new RoleMiddleware(['employee'])]);

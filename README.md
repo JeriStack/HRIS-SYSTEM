@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Phases%201%20through%206%20Complete-success.svg)]()
+[![Status](https://img.shields.io/badge/Status-Phases%201%20through%207%20Complete-success.svg)]()
 
 ## 1. Project Overview
 
@@ -93,6 +93,14 @@ All software specifications, database designs, wireframes, and architectural doc
 * **[System Authorization Matrix](docs/phase-6-authentication/authorization-matrix.md):** Administrator/HR vs Employee permissions, route gating, ownership verification, and fail-closed policies.
 * **[Session Security & CSRF Guidelines](docs/phase-6-authentication/session-security.md):** Cookie hardening (`HttpOnly`, `SameSite=Lax`), inactivity timeout, and timing-safe CSRF validation.
 * **[Security Test & Verification Report](docs/phase-6-authentication/authentication-test-report.md):** Empirical results from automated HTTP test suite (`11 / 11 tests passed`).
+
+### Phase 7 — Core HRIS Development
+* **[Employee Management Specification](docs/phase-7-core-hris/employee-management.md):** Workforce registry, directory, profile layouts, registration, updates, and soft-deactivation.
+* **[Department Management Specification](docs/phase-7-core-hris/department-management.md):** Organizational unit hierarchy, global case-insensitive uniqueness, and position/staff aggregations.
+* **[Position Management Specification](docs/phase-7-core-hris/position-management.md):** Department-scoped job classification titles, dynamic cascade filtering, and API endpoint.
+* **[Server-Side Validation Rules Matrix](docs/phase-7-core-hris/validation-rules.md):** Comprehensive validation constraints, sanitize pipelines, and error response standards.
+* **[Authorization & Routing Architecture](docs/phase-7-core-hris/authorization-and-routing.md):** Complete catalog of protected HR routes, middleware stacks, and parameterized matching rules.
+* **[CRUD & Integration Test Report](docs/phase-7-core-hris/crud-test-report.md):** Full empirical report of 91 automated unit, model, and live HTTP tests (`91 / 91 passed`).
 
 ### Cross-Phase Tracking
 * **[Decision & Assumptions Log](docs/decision-log.md):** Registry of 11 architectural baseline decisions and open items.
@@ -210,18 +218,28 @@ Employee-HRIS-Leave-Management-System/
 │   ├── controllers/               # MVC Controllers
 │   │   ├── AuthController.php     # Login, logout, session lifecycle, dashboard router
 │   │   ├── DashboardController.php# Protected HR and Employee dashboard actions
-│   │   └── HomeController.php     # Public landing & health check controller
+│   │   ├── DepartmentController.php # Phase 7: Department directory, creation, and updates
+│   │   ├── EmployeeController.php # Phase 7: Workforce directory, registration, profile, deactivation
+│   │   ├── HomeController.php     # Public landing & health check controller
+│   │   └── PositionController.php # Phase 7: Job position directory, department linking, dynamic API
 │   ├── models/                    # Domain entity models
+│   │   ├── Department.php         # Phase 7: Department CRUD, uniqueness, headcount aggregations
+│   │   ├── Employee.php           # Phase 7: Workforce CRUD, search, soft deactivation, metrics
+│   │   ├── Position.php           # Phase 7: Job positions, dept-scoped uniqueness, department API
 │   │   └── User.php               # User credentials, BCRYPT verification, audit logging
 │   ├── dsa/                       # Custom In-Memory DSA Engine
 │   │   ├── algorithms/            # Linear/Binary Search, Bubble/Merge/QuickSort
 │   │   └── structures/            # ArrayWrapper, Stack, Queue, LinkedList, HashTable, BST
 │   └── views/                     # Layouts, partials, and view templates
 │       ├── auth/login.php         # Phase 6 authentication screen (SCR-01)
+│       ├── departments/           # Phase 7 Department views (index, create, edit)
+│       ├── employees/             # Phase 7 Employee views (index, create, edit, show)
 │       ├── errors/403.php         # 403 Forbidden Access Denied view
 │       ├── dashboard/             # Role-specific dashboard views
 │       ├── home/index.php         # Public landing page template
-│       └── layouts/main.php       # Base application layout wrapper
+│       ├── layouts/               # Master layouts (main.php, hr.php)
+│       ├── partials/              # Reusable partials (sidebar.php, navbar.php, alerts.php)
+│       └── positions/             # Phase 7 Position views (index, create, edit)
 ├── database/                      # Database scripts
 │   ├── README.md                  # Database setup instructions
 │   ├── schema.sql                 # DDL schema definitions (9 tables, InnoDB)
@@ -234,7 +252,8 @@ Employee-HRIS-Leave-Management-System/
 │   ├── phase-2-system-design/     # Phase 2 specifications & diagrams
 │   ├── phase-3-database/          # Phase 3 database specifications & ERD
 │   ├── phase-4-ui-ux/             # Phase 4 design system & wireframes
-│   └── phase-6-authentication/    # Phase 6 authentication & security specifications
+│   ├── phase-6-authentication/    # Phase 6 authentication & security specifications
+│   └── phase-7-core-hris/         # Phase 7 employee, department, position, validation, test reports
 ├── public/                        # Public document root
 │   ├── assets/                    # CSS, JS, images
 │   ├── uploads/                   # Upload storage (.gitkeep)
@@ -260,11 +279,14 @@ The database (`database/seed.sql`) includes pre-hashed development accounts conf
 | `emp005` | `Employee@123` | `employee` | Maria Santos | Employee Self-Service Only (`/employee/*`) |
 | `emp006` | `Employee@123` | `employee` | Juan Dela Cruz | Employee Self-Service Only (`/employee/*`) |
 
-### Verification of Role Separation:
+### Verification of Role Separation & Core HRIS:
 1. **Login as HR Admin:** Sign in with `admin` / `Admin@123` $\rightarrow$ automatically redirected to `/hr/dashboard`.
-2. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
-3. **Test Boundary Check:** While logged in as `emp004`, manually navigate to `http://localhost/.../public/hr/dashboard` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
-4. **Test Ownership Check:** While logged in as `emp004`, navigate to `http://localhost/.../public/employee/profile?emp_id=1` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
+2. **Access Employee Directory:** Navigate to `http://localhost/.../public/hr/employees` $\rightarrow$ full search, status filters, profile viewing, and soft deactivation controls.
+3. **Manage Departments:** Navigate to `http://localhost/.../public/hr/departments` $\rightarrow$ view and create departments with uniqueness enforcement.
+4. **Manage Job Positions:** Navigate to `http://localhost/.../public/hr/positions` $\rightarrow$ view and create positions associated with parent departments.
+5. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
+6. **Test Boundary Check:** While logged in as `emp004`, manually navigate to `http://localhost/.../public/hr/employees` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
+7. **Test State Mutation Check:** While logged in as `emp004`, submit POST to `/hr/employees/1/deactivate` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
 
 ---
 
@@ -272,9 +294,9 @@ The database (`database/seed.sql`) includes pre-hashed development accounts conf
 
 * **Authentication & Password Hashing:** Native `password_hash()` and `password_verify()` (BCRYPT, cost 12).
 * **Session Protections:** `session_regenerate_id(true)`, `HttpOnly`, `SameSite=Lax`, strict mode, 30-minute inactivity timeout.
-* **Access Control:** Server-side `AuthMiddleware` and `RoleMiddleware` protecting all administrative routes.
+* **Access Control:** Server-side `AuthMiddleware` and `RoleMiddleware` protecting all administrative routes (`/hr/*`).
 * **CSRF Mitigation:** Timing-safe `hash_equals()` validation on state-changing requests (`POST`).
-* **Audit Logging:** Real-time event recording in `activity_logs` without credential leaks.
-* **Phases 1 through 6 Status:** **100% Complete & Verified.**
-* **Next Milestone:** **Phase 7 — Employee Management & Department/Position Administration Modules.**
+* **Audit Logging:** Real-time event recording in `activity_logs` for workforce creations, modifications, deactivations, departments, and positions.
+* **Phases 1 through 7 Status:** **100% Complete & Verified (91/91 automated tests passing).**
+* **Next Milestone:** **Phase 8 — Data Structures and Algorithms (DSA) Implementation & Search/Sort Demonstrations.**
 
