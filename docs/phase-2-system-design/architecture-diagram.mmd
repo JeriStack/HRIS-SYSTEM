@@ -1,0 +1,62 @@
+flowchart TD
+    %% User Layer
+    subgraph UsersLayer [User & Client Layer]
+        HRAdmin[fa:fa-user-tie Administrator / HR]
+        Employee[fa:fa-user-clock Regular Employee]
+    end
+
+    %% Presentation Layer
+    subgraph PresentationLayer [Presentation Layer: app/views & public]
+        Router[fa:fa-route Front Controller & Router<br/>public/index.php & core/Router.php]
+        Views[fa:fa-window-maximize Views & Partials<br/>auth, dashboard, employees, leaves, dsa]
+        Assets[fa:fa-palette Vanilla CSS Design System & JS<br/>public/assets/css, js, img]
+    end
+
+    %% Application Layer
+    subgraph ApplicationLayer [Application Layer: core & app/controllers & app/dsa]
+        subgraph MiddlewarePipeline [Middleware Security Pipeline]
+            AuthMid[Session Authentication Guard]
+            RoleMid[Role-Based Authorization Guard]
+            CsrfMid[CSRF Protection & Token Validator]
+        end
+
+        subgraph Controllers [MVC Domain Controllers]
+            AuthCtrl[AuthController]
+            EmpCtrl[EmployeeController]
+            OrgCtrl[Dept & Position Controllers]
+            LeaveCtrl[LeaveController]
+            RepCtrl[ReportController]
+            LogCtrl[ActivityLogController]
+            DsaCtrl[DsaController]
+        end
+
+        subgraph DsaEngine [Custom In-Memory DSA Engine]
+            DsaStructs[Custom Structures:<br/>ArrayWrapper, Stack, Queue,<br/>LinkedList, HashTable, BST]
+            DsaAlgos[Custom Algorithms:<br/>Linear/Binary Search,<br/>Bubble, Selection, Insertion,<br/>Merge, QuickSort, Recursion]
+            BenchLab[Benchmark Runner:<br/>Timer hrtime, Counters]
+        end
+    end
+
+    %% Data Access Layer
+    subgraph DataAccessLayer [Data Access Layer: core & app/models]
+        DbFactory[fa:fa-plug Centralized PDO Factory<br/>core/Database.php]
+        BaseModel[fa:fa-cubes Base Model & Transactions<br/>core/Model.php]
+        DomainModels[fa:fa-database Domain Models:<br/>User, Employee, Leave,<br/>Department, Position, Log]
+    end
+
+    %% Database Layer
+    subgraph DatabaseLayer [Database Layer: MySQL / MariaDB]
+        MySQL[(fa:fa-server Relational Database<br/>employees, departments, positions,<br/>leave_types, leave_balances,<br/>leave_requests, activity_logs,<br/>notifications, users)]
+    end
+
+    %% Linkages
+    UsersLayer -->|HTTP GET/POST| Router
+    Router --> MiddlewarePipeline
+    MiddlewarePipeline --> Controllers
+    Controllers --> Views
+    Views --> Assets
+    Controllers --> DsaEngine
+    Controllers --> DomainModels
+    DomainModels --> BaseModel
+    BaseModel --> DbFactory
+    DbFactory -->|Prepared SQL Statements & Transactions| MySQL
