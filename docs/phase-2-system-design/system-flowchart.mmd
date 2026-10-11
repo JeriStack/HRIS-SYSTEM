@@ -1,0 +1,56 @@
+flowchart TD
+    Start([User Opens Application]) --> CheckAuth{Is User Authenticated in Session?}
+
+    %% Unauthenticated Flow
+    CheckAuth -- No --> LoginPage[Redirect to /login]
+    LoginPage --> SubmitLogin[User Submits Credentials & CSRF]
+    SubmitLogin --> ValidCreds{Credentials Valid & User Active?}
+    ValidCreds -- No --> LoginError[Display Generic Login Error] --> LoginPage
+    ValidCreds -- Yes --> GenSession[Regenerate Session ID & Store Role]
+    GenSession --> CheckRole{Determine Authorized Role}
+
+    %% Authenticated Flow
+    CheckAuth -- Yes --> CheckRole
+
+    %% Role Routing
+    CheckRole -- "Role = Administrator/HR" --> AdminDash[Render Administrator / HR Dashboard]
+    CheckRole -- "Role = Employee" --> EmpDash[Render Employee Self-Service Dashboard]
+
+    %% Navigation & Action Dispatch
+    AdminDash --> RouteAction[User Selects Navigation Route / Action]
+    EmpDash --> RouteAction
+
+    RouteAction --> CheckPerm{Role Authorized for Target Endpoint?}
+    CheckPerm -- No --> AccessDenied[Log Security Alert & Render 403 Forbidden]
+    AccessDenied --> ReturnDash[Return to Authorized Dashboard]
+
+    CheckPerm -- Yes --> ServerValidate{Server-Side Input & CSRF Valid?}
+    ServerValidate -- No --> ValError[Render User-Friendly Form Validation Errors]
+    ValError --> ReturnDash
+
+    ServerValidate -- Yes --> ExecLogic{Execute Application Logic / DSA}
+
+    %% Logic Paths
+    ExecLogic -- "Core HRIS CRUD / Leave Action" --> DBTrans{Requires Atomic Transaction?}
+    
+    DBTrans -- Yes --> BeginTx[Begin PDO Transaction]
+    BeginTx --> RowLock[Re-check Balance & Status with Row Lock]
+    RowLock --> ChecksPass{Pre-conditions Satisfied?}
+    ChecksPass -- No --> RollbackTx[Rollback Transaction] --> BusinessError[Render Business Failure Feedback] --> ReturnDash
+    ChecksPass -- Yes --> ApplyChanges[Update Status, Balance, Log & Notif]
+    ApplyChanges --> CommitTx[Commit PDO Transaction] --> SuccessNotice[Render Success Notice] --> ReturnDash
+
+    DBTrans -- No --> DirectQuery[Execute Prepared PDO Query]
+    DirectQuery --> QuerySuccess{Query Succeeded?}
+    QuerySuccess -- No --> SysError[Log System Error & Render Generic Alert] --> ReturnDash
+    QuerySuccess -- Yes --> SuccessNotice
+
+    ExecLogic -- "DSA Laboratory Benchmark" --> PreloadData[Preload Test Dataset into Memory]
+    PreloadData --> RunAlgorithm[Execute Custom PHP DSA Algorithm]
+    RunAlgorithm --> CalcMetrics[Track High-Res Time, Comparisons & Memory]
+    CalcMetrics --> RenderBenchmark[Render Tabular & Visual Benchmark Report] --> ReturnDash
+
+    ReturnDash --> ContinueWork{User Logs Out or Session Expires?}
+    ContinueWork -- No --> RouteAction
+    ContinueWork -- Yes --> TermSession[Destroy Session & Clear Cookies]
+    TermSession --> End([Redirect to /login])
