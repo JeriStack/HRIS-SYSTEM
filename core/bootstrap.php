@@ -64,3 +64,7 @@ if ($environment === 'development') {
     error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
     ini_set('log_errors', '1');
 }
+
+// 5. Initialize Secure Session Lifecycle
+\Core\Session::start();
+

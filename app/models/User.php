@@ -1,0 +1,193 @@
+<?php
+/**
+ * User Model
+ * Authentication, identity verification, and role resolution
+ * Employee HRIS & Leave Management System
+ */
+
+namespace App\Models;
+
+use Core\Model;
+
+class User extends Model
+{
+    /**
+     * Find user record by username with joined employee, department, and position data.
+     *
+     * @param string $username Unique login username
+     * @return array|null User record or null if not found
+     */
+    public function findByUsername(string $username): ?array
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.employee_id,
+                u.username,
+                u.password,
+                u.role,
+                u.status,
+                u.created_at,
+                e.employee_no,
+                e.first_name,
+                e.middle_name,
+                e.last_name,
+                e.email,
+                e.employment_status,
+                e.department_id,
+                e.position_id,
+                d.department_name,
+                p.position_name
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE u.username = :username
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['username' => $username]);
+    }
+
+    /**
+     * Find user by primary user ID with profile details.
+     *
+     * @param int $id Primary user ID
+     * @return array|null User record or null
+     */
+    public function findById(int $id): ?array
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.employee_id,
+                u.username,
+                u.role,
+                u.status,
+                u.created_at,
+                e.employee_no,
+                e.first_name,
+                e.middle_name,
+                e.last_name,
+                e.email,
+                e.employment_status,
+                e.department_id,
+                e.position_id,
+                d.department_name,
+                p.position_name
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE u.id = :id
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['id' => $id]);
+    }
+
+    /**
+     * Find user by associated employee ID.
+     *
+     * @param int $employeeId
+     * @return array|null
+     */
+    public function findByEmployeeId(int $employeeId): ?array
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.employee_id,
+                u.username,
+                u.role,
+                u.status,
+                u.created_at,
+                e.employee_no,
+                e.first_name,
+                e.last_name,
+                e.employment_status
+            FROM users u
+            INNER JOIN employees e ON u.employee_id = e.id
+            WHERE u.employee_id = :employee_id
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['employee_id' => $employeeId]);
+    }
+
+    /**
+     * Update user password hash.
+     *
+     * @param int $id
+     * @param string $newHash
+     * @return bool
+     */
+    public function updatePasswordHash(int $id, string $newHash): bool
+    {
+        $sql = "UPDATE users SET password = :password WHERE id = :id";
+        return $this->execute($sql, [
+            'password' => $newHash,
+            'id'       => $id,
+        ]);
+    }
+
+    /**
+     * Verify plaintext password against stored password hash.
+     *
+     * @param string $password
+     * @param string $hash
+     * @return bool
+     */
+    public function verifyPassword(string $password, string $hash): bool
+    {
+        return password_verify($password, $hash);
+    }
+
+    /**
+     * Check if password hash requires algorithmic rehashing.
+     *
+     * @param string $hash
+     * @return bool
+     */
+    public function needsRehash(string $hash): bool
+    {
+        return password_needs_rehash($hash, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Record an audit event in the activity_logs table.
+     * Passwords and sensitive secrets are NEVER written to logs.
+     *
+     * @param int|null $userId
+     * @param string $action Action key (e.g. AUTH_LOGIN, AUTH_LOGOUT, AUTH_FAILED)
+     * @param string $description High-level safe description
+     * @param string|null $entityType
+     * @param string|null $entityId
+     * @return bool
+     */
+    public function logActivity(?int $userId, string $action, string $description, ?string $entityType = null, ?string $entityId = null): bool
+    {
+        try {
+            $sql = "
+                INSERT INTO activity_logs (
+                    user_id, action, description, entity_type, entity_id, ip_address, user_agent, created_at
+                ) VALUES (
+                    :user_id, :action, :description, :entity_type, :entity_id, :ip_address, :user_agent, NOW()
+                )
+            ";
+
+            return $this->execute($sql, [
+                'user_id'     => $userId,
+                'action'      => $action,
+                'description' => $description,
+                'entity_type' => $entityType,
+                'entity_id'   => $entityId,
+                'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+                'user_agent'  => substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255),
+            ]);
+        } catch (\Throwable $e) {
+            error_log("Failed to write to activity_logs: " . $e->getMessage());
+            return false;
+        }
+    }
+}

@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Phases%201%2C%202%2C%203%2C%204%20%26%205%20Complete-success.svg)]()
+[![Status](https://img.shields.io/badge/Status-Phases%201%20through%206%20Complete-success.svg)]()
 
 ## 1. Project Overview
 
@@ -87,6 +87,12 @@ All software specifications, database designs, wireframes, and architectural doc
 * **[Responsive & Accessibility Standards](docs/phase-4-ui-ux/responsive-and-accessibility.md):** Viewport breakpoints, touch target sizing ($\ge 44\text{ px}$), WCAG 2.1 AA.
 * **[Feedback & Confirmation States](docs/phase-4-ui-ux/feedback-and-confirmation-states.md):** Banner alerts and consequential action modals.
 * **[Master Wireframe Index](docs/phase-4-ui-ux/wireframe-index.md):** Cross-reference directory of all 14 screens.
+
+### Phase 6 — Authentication and Authorization
+* **[Authentication Architecture & Design](docs/phase-6-authentication/authentication-design.md):** Complete authentication workflow, native BCRYPT hashing, session regeneration, timeout, and audit logging.
+* **[System Authorization Matrix](docs/phase-6-authentication/authorization-matrix.md):** Administrator/HR vs Employee permissions, route gating, ownership verification, and fail-closed policies.
+* **[Session Security & CSRF Guidelines](docs/phase-6-authentication/session-security.md):** Cookie hardening (`HttpOnly`, `SameSite=Lax`), inactivity timeout, and timing-safe CSRF validation.
+* **[Security Test & Verification Report](docs/phase-6-authentication/authentication-test-report.md):** Empirical results from automated HTTP test suite (`11 / 11 tests passed`).
 
 ### Cross-Phase Tracking
 * **[Decision & Assumptions Log](docs/decision-log.md):** Registry of 11 architectural baseline decisions and open items.
@@ -185,30 +191,41 @@ Requesting `GET /health` returns live framework status:
 Employee-HRIS-Leave-Management-System/
 ├── .github/                       # Workflows and issue templates
 ├── config/                        # Application & database settings
-│   ├── config.php                 # App name, timezone, session lifetime
+│   ├── config.php                 # App name, timezone, session lifetime (1800s)
 │   └── database.php               # PDO database connection settings
-├── core/                          # Framework kernel (Phase 5 Foundation)
-│   ├── bootstrap.php              # PSR-4 autoloader, functions, timezone, error config
+├── core/                          # Framework kernel & security guards
+│   ├── bootstrap.php              # PSR-4 autoloader, functions, timezone, session bootstrap
+│   ├── Session.php                # Hardened session manager (Strict, HttpOnly, SameSite, CSRF)
+│   ├── AuthMiddleware.php         # Authentication gatekeeper middleware
+│   ├── RoleMiddleware.php         # Role-Based Access Control (RBAC) middleware
+│   ├── GuestMiddleware.php        # Guest redirection middleware
+│   ├── CsrfMiddleware.php         # Cross-Site Request Forgery verification middleware
 │   ├── Controller.php             # Base controller with view and json helpers
 │   ├── Database.php               # Centralized PDO database singleton
 │   ├── Middleware.php             # Abstract middleware contract
 │   ├── Model.php                  # Base model with query & transaction helpers
 │   ├── Router.php                 # Native HTTP router (GET/POST, regex, 404/405)
-│   └── functions.php              # Global helper functions (e, url, asset, redirect)
+│   └── functions.php              # Global helper functions (auth, csrf, e, url, asset)
 ├── app/
 │   ├── controllers/               # MVC Controllers
+│   │   ├── AuthController.php     # Login, logout, session lifecycle, dashboard router
+│   │   ├── DashboardController.php# Protected HR and Employee dashboard actions
 │   │   └── HomeController.php     # Public landing & health check controller
 │   ├── models/                    # Domain entity models
+│   │   └── User.php               # User credentials, BCRYPT verification, audit logging
 │   ├── dsa/                       # Custom In-Memory DSA Engine
 │   │   ├── algorithms/            # Linear/Binary Search, Bubble/Merge/QuickSort
 │   │   └── structures/            # ArrayWrapper, Stack, Queue, LinkedList, HashTable, BST
 │   └── views/                     # Layouts, partials, and view templates
+│       ├── auth/login.php         # Phase 6 authentication screen (SCR-01)
+│       ├── errors/403.php         # 403 Forbidden Access Denied view
+│       ├── dashboard/             # Role-specific dashboard views
 │       ├── home/index.php         # Public landing page template
 │       └── layouts/main.php       # Base application layout wrapper
 ├── database/                      # Database scripts
 │   ├── README.md                  # Database setup instructions
 │   ├── schema.sql                 # DDL schema definitions (9 tables, InnoDB)
-│   ├── seed.sql                   # Synthetic demo seed data
+│   ├── seed.sql                   # Synthetic demo seed data with BCRYPT credentials
 │   └── test_data.sql              # Constraint verification tests
 ├── docs/                          # Architectural documentation
 │   ├── decision-log.md            # Decisions & assumptions log
@@ -216,7 +233,8 @@ Employee-HRIS-Leave-Management-System/
 │   ├── phase-1-requirements/      # Phase 1 specifications
 │   ├── phase-2-system-design/     # Phase 2 specifications & diagrams
 │   ├── phase-3-database/          # Phase 3 database specifications & ERD
-│   └── phase-4-ui-ux/             # Phase 4 design system & wireframes
+│   ├── phase-4-ui-ux/             # Phase 4 design system & wireframes
+│   └── phase-6-authentication/    # Phase 6 authentication & security specifications
 ├── public/                        # Public document root
 │   ├── assets/                    # CSS, JS, images
 │   ├── uploads/                   # Upload storage (.gitkeep)
@@ -230,10 +248,33 @@ Employee-HRIS-Leave-Management-System/
 
 ---
 
-## 7. Security Baseline & Milestone Status
+## 7. Demonstration Accounts & Local Testing
 
-> [!NOTE]
-> The framework foundation provides parameterized PDO prepared statements, safe HTML escaping, restricted controller dispatch, and 404/405 error controls. It does not replace completed user authentication, role-based authorization, or CSRF token enforcement, which are implemented in Phase 6.
+The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing:
 
-* **Phases 1, 2, 3, 4 & 5 Status:** **100% Complete & Verified.**
-* **Next Milestone:** **Phase 6 — Authentication Engine, Session Management & Business Logic Integration.**
+| Username | Password | Role | Assigned Employee | Access Permissions |
+| :--- | :--- | :--- | :--- | :--- |
+| `admin` | `Admin@123` | `admin` | Eleanor Vance | Full Administrative HR Access (`/hr/*`) |
+| `hr01` | `Admin@123` | `hr` | Marcus Tan | Full HR Portal Access (`/hr/*`) |
+| `emp004` | `Employee@123` | `employee` | David Cruz | Employee Self-Service Only (`/employee/*`) |
+| `emp005` | `Employee@123` | `employee` | Maria Santos | Employee Self-Service Only (`/employee/*`) |
+| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz | Employee Self-Service Only (`/employee/*`) |
+
+### Verification of Role Separation:
+1. **Login as HR Admin:** Sign in with `admin` / `Admin@123` $\rightarrow$ automatically redirected to `/hr/dashboard`.
+2. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
+3. **Test Boundary Check:** While logged in as `emp004`, manually navigate to `http://localhost/.../public/hr/dashboard` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
+4. **Test Ownership Check:** While logged in as `emp004`, navigate to `http://localhost/.../public/employee/profile?emp_id=1` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
+
+---
+
+## 8. Security Baseline & Milestone Status
+
+* **Authentication & Password Hashing:** Native `password_hash()` and `password_verify()` (BCRYPT, cost 12).
+* **Session Protections:** `session_regenerate_id(true)`, `HttpOnly`, `SameSite=Lax`, strict mode, 30-minute inactivity timeout.
+* **Access Control:** Server-side `AuthMiddleware` and `RoleMiddleware` protecting all administrative routes.
+* **CSRF Mitigation:** Timing-safe `hash_equals()` validation on state-changing requests (`POST`).
+* **Audit Logging:** Real-time event recording in `activity_logs` without credential leaks.
+* **Phases 1 through 6 Status:** **100% Complete & Verified.**
+* **Next Milestone:** **Phase 7 — Employee Management & Department/Position Administration Modules.**
+

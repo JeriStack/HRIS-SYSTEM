@@ -103,3 +103,117 @@ if (!function_exists('json_response')) {
         exit;
     }
 }
+
+if (!function_exists('session')) {
+    /**
+     * Session helper to get or set session values.
+     */
+    function session(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $_SESSION ?? [];
+        }
+        return \Core\Session::get($key, $default);
+    }
+}
+
+if (!function_exists('auth')) {
+    /**
+     * Retrieve authenticated user payload from session.
+     */
+    function auth(): ?array
+    {
+        return \Core\Session::get('user');
+    }
+}
+
+if (!function_exists('isAuthenticated')) {
+    /**
+     * Determine if current visitor is authenticated.
+     */
+    function isAuthenticated(): bool
+    {
+        $user = \Core\Session::get('user');
+        return !empty($user['id']);
+    }
+}
+
+if (!function_exists('currentUser')) {
+    /**
+     * Retrieve the current authenticated user record.
+     */
+    function currentUser(): ?array
+    {
+        return \Core\Session::get('user');
+    }
+}
+
+if (!function_exists('currentUserId')) {
+    /**
+     * Retrieve current user ID.
+     */
+    function currentUserId(): ?int
+    {
+        $user = \Core\Session::get('user');
+        return isset($user['id']) ? (int)$user['id'] : null;
+    }
+}
+
+if (!function_exists('currentUserRole')) {
+    /**
+     * Retrieve current user role ('admin', 'hr', 'employee').
+     */
+    function currentUserRole(): ?string
+    {
+        $user = \Core\Session::get('user');
+        return $user['role'] ?? null;
+    }
+}
+
+if (!function_exists('hasRole')) {
+    /**
+     * Check if authenticated user possesses any of the given roles.
+     */
+    function hasRole(array|string $roles): bool
+    {
+        $currentRole = currentUserRole();
+        if (!$currentRole) {
+            return false;
+        }
+
+        $roles = (array)$roles;
+        $normalized = array_map('strtolower', $roles);
+        return in_array(strtolower($currentRole), $normalized, true);
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    /**
+     * Retrieve current CSRF token from active session.
+     */
+    function csrf_token(): string
+    {
+        return \Core\Session::csrfToken();
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    /**
+     * Generate hidden HTML input tag containing active CSRF token.
+     */
+    function csrf_field(): string
+    {
+        return '<input type="hidden" name="_csrf_token" value="' . e(csrf_token()) . '">';
+    }
+}
+
+if (!function_exists('verify_csrf_token')) {
+    /**
+     * Verify submitted CSRF token against session token.
+     */
+    function verify_csrf_token(?string $token): bool
+    {
+        return \Core\Session::verifyCsrfToken($token);
+    }
+}
+
