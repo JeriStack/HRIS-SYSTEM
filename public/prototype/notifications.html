@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Notifications - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item active">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info" id="notifBadgeCount">3</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / System & Alerts / <span>Notifications</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Notification Center</h1>
+                        <p class="page-subtitle">Real-time alerts, pending approval reminders, and corporate system bulletins.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-secondary" onclick="markAllAsRead()">
+                            <span>✓</span> Mark All as Read
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Database Design Note -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Architecture Note:</strong> The approved 8-table relational MySQL schema does not persist transient user notifications in the database. In accordance with system specifications, notifications are rendered client-side or derived dynamically from live table records (e.g., <code>leave_requests WHERE status='Pending'</code>).
+                </div>
+
+                <!-- Notifications List Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>🔔</span> Recent System Alerts</h2>
+                        <span class="badge badge-warning" id="unreadLabel">3 Unread</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div id="notificationsContainer">
+                            <!-- Item 1 -->
+                            <div class="notif-item unread" style="display: flex; gap: 1rem; padding: 1.25rem; border-bottom: 1px solid var(--color-border); background: #F8FAFC;">
+                                <div style="font-size: 1.5rem;">⏳</div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <strong>New Leave Request Awaiting Review: LR001</strong>
+                                        <small style="color: var(--color-text-secondary);">Today, 09:15 AM</small>
+                                    </div>
+                                    <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--color-text-primary);">
+                                        Maria C. Santos (EMP005) filed a Vacation Leave request for 5 working days (Nov 02 – Nov 06, 2026).
+                                    </p>
+                                    <a href="leave-requests.html" class="btn btn-secondary btn-sm">Process In Queue ➔</a>
+                                </div>
+                            </div>
+
+                            <!-- Item 2 -->
+                            <div class="notif-item unread" style="display: flex; gap: 1rem; padding: 1.25rem; border-bottom: 1px solid var(--color-border); background: #F8FAFC;">
+                                <div style="font-size: 1.5rem;">⏳</div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <strong>New Leave Request Awaiting Review: LR002</strong>
+                                        <small style="color: var(--color-text-secondary);">Yesterday, 11:30 AM</small>
+                                    </div>
+                                    <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--color-text-primary);">
+                                        David J. Cruz (EMP004) filed a Sick Leave request for 2 working days (Nov 09 – Nov 10, 2026).
+                                    </p>
+                                    <a href="leave-requests.html" class="btn btn-secondary btn-sm">Process In Queue ➔</a>
+                                </div>
+                            </div>
+
+                            <!-- Item 3 -->
+                            <div class="notif-item unread" style="display: flex; gap: 1rem; padding: 1.25rem; border-bottom: 1px solid var(--color-border); background: #F8FAFC;">
+                                <div style="font-size: 1.5rem;">👤</div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <strong>New Staff Member Enrolled: EMP008</strong>
+                                        <small style="color: var(--color-text-secondary);">Oct 05, 08:30 AM</small>
+                                    </div>
+                                    <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: var(--color-text-primary);">
+                                        Ricardo Mercado has been added to the master registry under Marketing & Sales department.
+                                    </p>
+                                    <a href="employees.html" class="btn btn-secondary btn-sm">View Directory ➔</a>
+                                </div>
+                            </div>
+
+                            <!-- Item 4 (Read) -->
+                            <div class="notif-item read" style="display: flex; gap: 1rem; padding: 1.25rem; border-bottom: 1px solid var(--color-border);">
+                                <div style="font-size: 1.5rem;">✓</div>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <strong>Leave Request Approved: LR004</strong>
+                                        <small style="color: var(--color-text-secondary);">Aug 01, 10:00 AM</small>
+                                    </div>
+                                    <p style="margin: 0; font-size: 0.875rem; color: var(--color-text-secondary);">
+                                        Marcus Tan approved 3 days Vacation Leave for David Cruz. Balances successfully updated.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function markAllAsRead() {
+            document.querySelectorAll('.notif-item.unread').forEach(item => {
+                item.classList.remove('unread');
+                item.classList.add('read');
+                item.style.background = 'white';
+            });
+            document.getElementById('unreadLabel').textContent = '0 Unread';
+            document.getElementById('unreadLabel').className = 'badge badge-secondary';
+            document.getElementById('notifBadgeCount').textContent = '0';
+            showToast('All notifications marked as read (In-memory simulation).', 'success');
+        }
+    </script>
+</body>
+</html>

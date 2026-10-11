@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Audit Logs - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item active">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Analytics & Audit / <span>Activity Audit Logs</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">System Activity & Security Audit Logs</h1>
+                        <p class="page-subtitle">Immutable audit trail of authentication events, employee modifications, and leave approvals (LIFO Stack).</p>
+                    </div>
+                </div>
+
+                <!-- Academic Stack Explanation Banner -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Academic DSA Mapping (LIFO Stack):</strong> In the application runtime, recent user actions are pushed onto an in-memory Last-In, First-Out (LIFO) Stack. The top of the stack always represents the most recent transaction, enabling immediate chronological inspection and rollback capability.
+                </div>
+
+                <!-- Filter Toolbar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem 1.25rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 0.75rem; flex: 1; min-width: 280px;">
+                                <input type="text" id="logSearchInput" class="form-control" placeholder="🔍 Search description, actor, or entity...">
+                                <select id="logActionFilter" class="form-control" style="width: 200px;">
+                                    <option value="">All Action Types</option>
+                                    <option value="APPROVE_LEAVE">APPROVE_LEAVE</option>
+                                    <option value="REJECT_LEAVE">REJECT_LEAVE</option>
+                                    <option value="EMPLOYEE_CREATE">EMPLOYEE_CREATE</option>
+                                    <option value="EMPLOYEE_UPDATE">EMPLOYEE_UPDATE</option>
+                                    <option value="LOGIN_SUCCESS">LOGIN_SUCCESS</option>
+                                </select>
+                            </div>
+                            <div style="color: var(--color-text-secondary); font-size: 0.875rem;">
+                                Showing <strong id="logCount">5</strong> audit entries
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Table Card -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="auditLogsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp (UTC+8)</th>
+                                        <th>Acting User</th>
+                                        <th>Action Code</th>
+                                        <th>Affected Entity</th>
+                                        <th>Detailed Description</th>
+                                        <th style="text-align: right;">Inspect</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>2026-10-11 09:15:00</code></td>
+                                        <td><strong>hr01 (Marcus Tan)</strong></td>
+                                        <td><span class="badge badge-success">APPROVE_LEAVE</span></td>
+                                        <td><code>leave_requests:4</code></td>
+                                        <td>Approved 3 days Vacation Leave for EMP004 (David Cruz)</td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="inspectLog(5, 'APPROVE_LEAVE', 'hr01 (Marcus Tan)', '2026-10-11 09:15:00', 'Approved 3 days Vacation Leave for EMP004', 'leave_requests:4', '127.0.0.1')">Details</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2026-10-11 08:30:00</code></td>
+                                        <td><strong>admin (Eleanor Vance)</strong></td>
+                                        <td><span class="badge badge-info">EMPLOYEE_CREATE</span></td>
+                                        <td><code>employees:8</code></td>
+                                        <td>Registered new employee record EMP008 (Ricardo Mercado)</td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="inspectLog(4, 'EMPLOYEE_CREATE', 'admin (Eleanor Vance)', '2026-10-11 08:30:00', 'Registered new employee record EMP008', 'employees:8', '127.0.0.1')">Details</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2026-10-05 16:00:00</code></td>
+                                        <td><strong>hr01 (Marcus Tan)</strong></td>
+                                        <td><span class="badge badge-danger">REJECT_LEAVE</span></td>
+                                        <td><code>leave_requests:6</code></td>
+                                        <td>Rejected 5 days Vacation Leave for EMP007 (Beatrice Gomez)</td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="inspectLog(3, 'REJECT_LEAVE', 'hr01 (Marcus Tan)', '2026-10-05 16:00:00', 'Rejected 5 days Vacation Leave for EMP007 (Fiscal audit)', 'leave_requests:6', '127.0.0.1')">Details</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2026-10-01 10:00:00</code></td>
+                                        <td><strong>emp004 (David Cruz)</strong></td>
+                                        <td><span class="badge badge-secondary">CANCEL_LEAVE</span></td>
+                                        <td><code>leave_requests:7</code></td>
+                                        <td>Applicant cancelled Emergency Leave LR007</td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="inspectLog(2, 'CANCEL_LEAVE', 'emp004 (David Cruz)', '2026-10-01 10:00:00', 'Applicant cancelled Emergency Leave LR007', 'leave_requests:7', '192.168.1.45')">Details</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2026-10-01 08:00:00</code></td>
+                                        <td><strong>admin (Eleanor Vance)</strong></td>
+                                        <td><span class="badge badge-info">LOGIN_SUCCESS</span></td>
+                                        <td><code>users:1</code></td>
+                                        <td>Successful administrative authentication session initiated</td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="inspectLog(1, 'LOGIN_SUCCESS', 'admin (Eleanor Vance)', '2026-10-01 08:00:00', 'Successful administrative authentication session initiated', 'users:1', '127.0.0.1')">Details</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Inspect Audit Log Details -->
+    <div id="logDetailModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="logModalTitle" class="modal-title"><span>🔒</span> Audit Event Payload Inspection</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="background: #0F172A; color: #E2E8F0; padding: 1rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.6;">
+                    <div><strong>LOG ID:</strong> <span id="modalLogId">#0</span></div>
+                    <div><strong>ACTION:</strong> <span id="modalLogAction" style="color: #38BDF8;">ACTION_CODE</span></div>
+                    <div><strong>ACTOR:</strong> <span id="modalLogActor">actor</span></div>
+                    <div><strong>TIMESTAMP:</strong> <span id="modalLogTime">YYYY-MM-DD HH:MM:SS</span></div>
+                    <div><strong>IP ADDRESS:</strong> <span id="modalLogIp">127.0.0.1</span></div>
+                    <div><strong>TARGET ENTITY:</strong> <span id="modalLogEntity" style="color: #4ADE80;">entity:id</span></div>
+                    <hr style="border: 0; border-top: 1px solid #334155; margin: 0.5rem 0;">
+                    <div><strong>DESCRIPTION:</strong></div>
+                    <div id="modalLogDesc" style="color: #F8FAFC; margin-top: 0.25rem;">Event description</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initTableSearch('logSearchInput', 'auditLogsTable');
+
+            const actionFilter = document.getElementById('logActionFilter');
+            const table = document.getElementById('auditLogsTable');
+
+            actionFilter.addEventListener('change', () => {
+                const val = actionFilter.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                let count = 0;
+
+                rows.forEach(row => {
+                    const actionText = row.children[2].textContent.toLowerCase();
+                    if (!val || actionText.includes(val)) {
+                        row.style.display = '';
+                        count++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                document.getElementById('logCount').textContent = count;
+            });
+        });
+
+        function inspectLog(id, action, actor, time, desc, entity, ip) {
+            document.getElementById('modalLogId').textContent = `#${id}`;
+            document.getElementById('modalLogAction').textContent = action;
+            document.getElementById('modalLogActor').textContent = actor;
+            document.getElementById('modalLogTime').textContent = time;
+            document.getElementById('modalLogIp').textContent = ip;
+            document.getElementById('modalLogEntity').textContent = entity;
+            document.getElementById('modalLogDesc').textContent = desc;
+            openModal('logDetailModal');
+        }
+    </script>
+</body>
+</html>

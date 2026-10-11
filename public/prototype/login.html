@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Employee HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <style>
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: radial-gradient(circle at top right, #EEF2FF, #F8FAFC);
+        }
+        .login-card {
+            background: #FFFFFF;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            max-width: 440px;
+            width: 100%;
+            padding: 2.25rem;
+        }
+        .login-brand {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-brand-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--color-primary);
+            color: #FFFFFF;
+            border-radius: var(--radius-lg);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+        }
+        .demo-credentials {
+            background: #F8FAFC;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+        }
+        .demo-credentials strong {
+            color: var(--color-text-primary);
+        }
+        .quick-login-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+    </style>
+</head>
+<body class="login-page">
+
+    <main class="login-card" role="main">
+        <div class="login-brand">
+            <div class="login-brand-icon" aria-hidden="true">H</div>
+            <h1>HRIS & Leave System</h1>
+            <p>PHP + MySQL with Data Structures & Algorithms</p>
+        </div>
+
+        <!-- Alert Notice for Validation / Errors -->
+        <div id="loginAlert" class="alert alert-danger" style="display: none;" role="alert">
+            <span>✕</span>
+            <div id="loginAlertText">Invalid username or password. Please try again.</div>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)">
+            <!-- CSRF Token (Mock for Prototype) -->
+            <input type="hidden" name="_csrf_token" value="mock_csrf_token_hris_2026">
+
+            <div class="form-group">
+                <label for="loginUsername" class="form-label required">Username</label>
+                <input type="text" id="loginUsername" name="username" class="form-input" placeholder="e.g. admin or emp004" required autofocus autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="loginPassword" class="form-label required">Password</label>
+                <div style="position: relative;">
+                    <input type="password" id="loginPassword" name="password" class="form-input" style="padding-right: 40px;" placeholder="Enter password" required autocomplete="current-password">
+                    <button type="button" class="password-toggle-btn" data-target="loginPassword" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px;" aria-label="Toggle password visibility">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" id="loginSubmitBtn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;">
+                Sign In to System
+            </button>
+        </form>
+
+        <!-- Simulated Quick Logins for Academic Review -->
+        <div class="demo-credentials">
+            <strong>Prototype Quick Logins:</strong>
+            <div class="quick-login-grid">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('admin', 'Admin@123')">
+                    👑 HR Admin
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="quickFillLogin('emp004', 'Employee@123')">
+                    👤 Employee (David)
+                </button>
+            </div>
+            <div style="margin-top: 0.5rem; text-align: center; color: var(--color-text-muted);">
+                Phase 4 Frontend Prototype • Mock Session
+            </div>
+            <div style="margin-top: 0.75rem; text-align: center;">
+                <a href="../index.php" style="font-size: 0.8125rem; color: var(--color-primary); font-weight: 500; text-decoration: none;">
+                    ← Back to Public Landing Page
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/forms.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function quickFillLogin(user, pass) {
+            document.getElementById('loginUsername').value = user;
+            document.getElementById('loginPassword').value = pass;
+            document.getElementById('loginAlert').style.display = 'none';
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+            const btn = document.getElementById('loginSubmitBtn');
+            const alertBox = document.getElementById('loginAlert');
+            const alertText = document.getElementById('loginAlertText');
+
+            btn.disabled = true;
+            btn.textContent = "Authenticating...";
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = "Sign In to System";
+
+                if (user.toLowerCase() === 'admin' || user.toLowerCase() === 'hr01') {
+                    localStorage.setItem('hris_simulated_role', 'admin');
+                    showToast("Login successful as Administrator/HR", "success");
+                    window.location.href = "hr-dashboard.html";
+                } else if (user.toLowerCase().startsWith('emp')) {
+                    localStorage.setItem('hris_simulated_role', 'employee');
+                    showToast("Login successful as Employee", "success");
+                    window.location.href = "employee-dashboard.html";
+                } else {
+                    alertBox.style.display = 'flex';
+                    alertText.textContent = "Invalid username or password. Please verify credentials.";
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>

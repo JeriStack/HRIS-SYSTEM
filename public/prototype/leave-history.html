@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave History & Filing - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item active">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Leave Operations / <span>Leave History & Filing</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Global Leave Records & Application Center</h1>
+                        <p class="page-subtitle">Historical audit trail of all approved, rejected, cancelled, and pending leave requests.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary" onclick="openModal('fileLeaveModal')">
+                            <span>✍</span> File Leave Application
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Business Rules Notice -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Business Rule Reminder:</strong> Under approved HR policies, rejected or cancelled leave applications never deduct credit from employee balances. Only approved leaves deduct credits.
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem 1.25rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 0.75rem; flex: 1; min-width: 280px;">
+                                <input type="text" id="historySearchInput" class="form-control" placeholder="🔍 Search reference, employee name, or reason...">
+                                <select id="historyStatusFilter" class="form-control" style="width: 160px;">
+                                    <option value="">All Statuses</option>
+                                    <option value="Approved">Approved</option>
+                                    <option value="Rejected">Rejected</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                    <option value="Pending">Pending</option>
+                                </select>
+                                <select id="historyTypeFilter" class="form-control" style="width: 180px;">
+                                    <option value="">All Categories</option>
+                                    <option value="Vacation Leave">Vacation Leave</option>
+                                    <option value="Sick Leave">Sick Leave</option>
+                                    <option value="Emergency Leave">Emergency Leave</option>
+                                </select>
+                            </div>
+                            <div style="color: var(--color-text-secondary); font-size: 0.875rem;">
+                                Showing <strong id="historyCount">7</strong> historical records
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Table Card -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="leaveHistoryTable">
+                                <thead>
+                                    <tr>
+                                        <th>Ref No.</th>
+                                        <th>Applicant Name</th>
+                                        <th>Leave Type</th>
+                                        <th>Date Range</th>
+                                        <th>Work Days</th>
+                                        <th>Reason</th>
+                                        <th>Status</th>
+                                        <th>Decision Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>LR004</code></td>
+                                        <td><strong>David J. Cruz</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP004 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>Aug 10 – Aug 12, 2026</td>
+                                        <td><strong>3 Days</strong></td>
+                                        <td>Annual rest and personal travel</td>
+                                        <td><span class="badge badge-success">Approved</span></td>
+                                        <td><small>Marcus Tan • Aug 01, 2026</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR005</code></td>
+                                        <td><strong>Maria C. Santos</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP005 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>Sep 14 – Sep 18, 2026</td>
+                                        <td><strong>5 Days</strong></td>
+                                        <td>Semester break vacation</td>
+                                        <td><span class="badge badge-success">Approved</span></td>
+                                        <td><small>Marcus Tan • Sep 05, 2026</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR006</code></td>
+                                        <td><strong>Beatrice A. Gomez</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP007 • Finance</div></td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>Sep 21 – Sep 25, 2026</td>
+                                        <td><strong>5 Days</strong></td>
+                                        <td>Annual holiday travel</td>
+                                        <td><span class="badge badge-danger">Rejected</span></td>
+                                        <td><small>Marcus Tan (Audit period blackout)</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR007</code></td>
+                                        <td><strong>David J. Cruz</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP004 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Emergency Leave</span></td>
+                                        <td>Oct 05, 2026</td>
+                                        <td><strong>1 Day</strong></td>
+                                        <td>Personal emergency resolved</td>
+                                        <td><span class="badge badge-secondary">Cancelled</span></td>
+                                        <td><small>Self-cancelled by applicant</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR001</code></td>
+                                        <td><strong>Maria C. Santos</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP005 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>Nov 02 – Nov 06, 2026</td>
+                                        <td><strong>5 Days</strong></td>
+                                        <td>Family vacation trip out of town</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td><small>In Review Queue</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR002</code></td>
+                                        <td><strong>David J. Cruz</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP004 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Sick Leave</span></td>
+                                        <td>Nov 09 – Nov 10, 2026</td>
+                                        <td><strong>2 Days</strong></td>
+                                        <td>Scheduled medical checkup and recovery</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td><small>In Review Queue</small></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>LR003</code></td>
+                                        <td><strong>Juan C. Dela Cruz</strong><div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP006 • IT Dept</div></td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>Nov 16 – Nov 18, 2026</td>
+                                        <td><strong>3 Days</strong></td>
+                                        <td>Attending family reunion event</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td><small>In Review Queue</small></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: File Leave Application -->
+    <div id="fileLeaveModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="fileLeaveTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="fileLeaveTitle" class="modal-title"><span>✍</span> File Official Leave Application</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <strong>Monday–Friday Working Day Calculator:</strong> Saturday and Sunday are automatically excluded from leave deductions.
+                </div>
+                <form id="fileLeaveForm" onsubmit="handleLeaveFiling(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="leaveApplicant">Filing On Behalf Of</label>
+                        <select id="leaveApplicant" class="form-control" onchange="updateApplicantBalance()">
+                            <option value="4" selected>EMP004 - David J. Cruz (IT Dept)</option>
+                            <option value="5">EMP005 - Maria C. Santos (IT Dept)</option>
+                            <option value="6">EMP006 - Juan C. Dela Cruz (IT Dept)</option>
+                            <option value="7">EMP007 - Beatrice A. Gomez (Finance)</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="leaveTypeSelect">Leave Type <span class="required">*</span></label>
+                            <select id="leaveTypeSelect" class="form-control" required onchange="calculateDuration()">
+                                <option value="1" data-bal="12" selected>Vacation Leave (12d Available)</option>
+                                <option value="2" data-bal="9">Sick Leave (9d Available)</option>
+                                <option value="3" data-bal="5">Emergency Leave (5d Available)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Available Balance</label>
+                            <div id="availBalDisplay" style="padding: 0.65rem 0.85rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 6px; font-weight: bold; color: var(--color-success);">
+                                12 Working Days
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="leaveStartDate">Start Date <span class="required">*</span></label>
+                            <input type="date" id="leaveStartDate" class="form-control" value="2026-11-23" required onchange="calculateDuration()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="leaveEndDate">End Date <span class="required">*</span></label>
+                            <input type="date" id="leaveEndDate" class="form-control" value="2026-11-27" required onchange="calculateDuration()">
+                        </div>
+                    </div>
+
+                    <div style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 0.85rem; border-radius: 6px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>Calculated Working Days:</strong>
+                            <div style="font-size: 0.75rem; color: #1E40AF;">Mon–Fri business days only (Weekends excluded)</div>
+                        </div>
+                        <div id="calcDaysDisplay" style="font-size: 1.25rem; font-weight: bold; color: var(--color-primary);">
+                            5 Days
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="leaveReason">Reason / Justification <span class="required">*</span></label>
+                        <textarea id="leaveReason" class="form-control" rows="2" placeholder="State clear operational reason for leave request" required></textarea>
+                    </div>
+
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit Application</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/forms.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initTableSearch('historySearchInput', 'leaveHistoryTable');
+
+            const statusFilter = document.getElementById('historyStatusFilter');
+            const typeFilter = document.getElementById('historyTypeFilter');
+            const table = document.getElementById('leaveHistoryTable');
+
+            function filterHistory() {
+                const sVal = statusFilter.value.toLowerCase();
+                const tVal = typeFilter.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                let count = 0;
+
+                rows.forEach(row => {
+                    const statusText = row.children[6].textContent.toLowerCase();
+                    const typeText = row.children[2].textContent.toLowerCase();
+
+                    const matchesStatus = !sVal || statusText.includes(sVal);
+                    const matchesType = !tVal || typeText.includes(tVal);
+
+                    if (matchesStatus && matchesType) {
+                        row.style.display = '';
+                        count++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                document.getElementById('historyCount').textContent = count;
+            }
+
+            statusFilter.addEventListener('change', filterHistory);
+            typeFilter.addEventListener('change', filterHistory);
+        });
+
+        function calculateDuration() {
+            const startInput = document.getElementById('leaveStartDate').value;
+            const endInput = document.getElementById('leaveEndDate').value;
+            const display = document.getElementById('calcDaysDisplay');
+
+            if (!startInput || !endInput) {
+                display.textContent = '0 Days';
+                return;
+            }
+
+            const start = new Date(startInput);
+            const end = new Date(endInput);
+
+            if (end < start) {
+                display.textContent = 'Invalid Range';
+                display.style.color = 'var(--color-danger)';
+                return;
+            }
+
+            // Calculate business days (Monday to Friday)
+            let count = 0;
+            let cur = new Date(start);
+            while (cur <= end) {
+                const dayOfWeek = cur.getDay(); // 0 is Sunday, 6 is Saturday
+                if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                    count++;
+                }
+                cur.setDate(cur.getDate() + 1);
+            }
+
+            display.style.color = 'var(--color-primary)';
+            display.textContent = `${count} ${count === 1 ? 'Day' : 'Days'}`;
+        }
+
+        function updateApplicantBalance() {
+            const typeSelect = document.getElementById('leaveTypeSelect');
+            const opt = typeSelect.options[typeSelect.selectedIndex];
+            const bal = opt.getAttribute('data-bal') || '10';
+            document.getElementById('availBalDisplay').textContent = `${bal} Working Days`;
+        }
+
+        function handleLeaveFiling(e) {
+            e.preventDefault();
+            const daysText = document.getElementById('calcDaysDisplay').textContent;
+            if (daysText === 'Invalid Range' || daysText === '0 Days') {
+                showToast('Please select a valid Monday–Friday date range.', 'error');
+                return;
+            }
+
+            closeModal('fileLeaveModal');
+            showToast(`Leave application successfully filed! Inserted into FIFO pending queue.`, 'success');
+        }
+    </script>
+</body>
+</html>

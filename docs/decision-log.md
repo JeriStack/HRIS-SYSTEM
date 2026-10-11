@@ -28,6 +28,7 @@ This document records architectural, business, and algorithmic decisions made du
 | `DEC-008` | Benchmark Dataset Scaling | Extreme dataset sizes ($N > 50,000$) cause memory exhaustion or severe execution lag on quadratic sorts ($O(N^2)$). | **Cap benchmark test sizes at $N \in \{10, 100, 500, 1000, 5000, 10000\}$.** Bubble/Selection sorts skip $N=10,000$. | Prevents Apache/PHP timeouts while providing sufficient variance to visually illustrate Big-O curves. | **Approved Baseline** |
 | `DEC-009` | Timing Precision Tool | Standard `microtime(true)` is vulnerable to NTP clock adjustments and operating system jitter. | **Utilize PHP's high-resolution timer `hrtime(true)`.** | Delivers nanosecond precision for accurate micro-benchmarking of in-memory search and sort passes. | **Approved Baseline** |
 | `DEC-010` | Database Transaction Isolation | Race conditions can occur if two HR admins approve leaves concurrently, risking negative balances. | **Use `SELECT ... FOR UPDATE` row locks inside PDO transactions for approval revalidation.** | Guarantees strict ACID isolation and prevents balance overdrafts. | **Approved Baseline** |
+| `DEC-011` | In-System Notification Storage Extension | Approved plan sections 8 & 9 establish eight minimum core tables without a dedicated notifications table, while Section 38 specifies an in-system notification mechanism. | **Implement `notifications` as an approved schema extension table.** | Solves persistent in-system notification delivery (`FR-NOTIF-001`) cleanly without altering or overloading `activity_logs`. Preserves the 8 core tables while accommodating operational alert requirements. | **Approved Baseline Extension** |
 
 ---
 
@@ -35,3 +36,4 @@ This document records architectural, business, and algorithmic decisions made du
 
 1. **Confirmation of Public Holiday Policy:** Does the instructor or client require a formal Philippine / national holiday table in the initial delivery, or is Monday–Friday weekend-only exclusion acceptable?
 2. **Confirmation of Student Team Allocation:** Confirm team member mapping for `ROLE-COORD` through `ROLE-QA` defined in `team-responsibilities.md`.
+

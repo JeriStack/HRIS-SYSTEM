@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Workspace - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="employee-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">E</span>
+                    <span>Self-Service</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">My Workspace</div>
+                <a href="employee-dashboard.html" class="nav-item active">
+                    <span class="icon">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>My Leave Balances</span>
+                </a>
+
+                <div class="nav-section-title">Leave Services</div>
+                <a href="leave-history.html#apply" class="nav-item">
+                    <span class="icon">📝</span>
+                    <span>File Leave Application</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Leave History & Status</span>
+                </a>
+
+                <div class="nav-section-title">Alerts & Session</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>My Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">DC</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">David J. Cruz</div>
+                    <div class="sidebar-user-role user-role-label">Regular Employee</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Application Shell Container -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>Self-Service</strong> / Employee Dashboard
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge" title="Click to toggle between HR and Employee views for academic demonstration">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Regular Employee</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications" aria-label="View notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-content">
+                <!-- Welcome Banner -->
+                <div class="card" style="background: linear-gradient(135deg, #1E293B, #0F172A); color: #FFFFFF; border: none; margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                            <div>
+                                <span class="badge badge-info" style="margin-bottom: 0.5rem; background: rgba(56, 189, 248, 0.2); color: #38BDF8; border-color: rgba(56, 189, 248, 0.4);">
+                                    Active Employee • EMP004
+                                </span>
+                                <h1 style="color: #FFFFFF; font-size: 1.6rem; margin-bottom: 0.25rem;">Welcome, David Cruz</h1>
+                                <p style="color: #94A3B8; margin: 0;">Senior Software Engineer • Information Technology Department</p>
+                            </div>
+                            <a href="leave-history.html#apply" class="btn btn-primary" style="padding: 0.75rem 1.25rem; font-size: 0.95rem;">
+                                <span>➕</span> File Leave Application
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Annual Leave Balances Grid (Fiscal Year 2026) -->
+                <h2 style="font-size: 1.15rem; margin-bottom: 0.75rem; color: var(--color-text-primary);">
+                    Annual Leave Entitlements (Year 2026)
+                </h2>
+                <div class="grid grid-cols-3">
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <strong style="color: var(--color-text-primary); font-size: 1rem;">🏖️ Vacation Leave</strong>
+                                <span class="badge badge-success">80% Available</span>
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #16A34A; margin-bottom: 0.25rem;">
+                                12 Days Remaining
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 0.75rem;">
+                                Allocated: 15 Days &bull; Used: 3 Days
+                            </div>
+                            <!-- Progress Bar -->
+                            <div style="height: 8px; background: #E2E8F0; border-radius: 999px; overflow: hidden;">
+                                <div style="width: 80%; height: 100%; background: #16A34A; border-radius: 999px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <strong style="color: var(--color-text-primary); font-size: 1rem;">🏥 Sick Leave</strong>
+                                <span class="badge badge-info">90% Available</span>
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #0284C7; margin-bottom: 0.25rem;">
+                                9 Days Remaining
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 0.75rem;">
+                                Allocated: 10 Days &bull; Used: 1 Day
+                            </div>
+                            <div style="height: 8px; background: #E2E8F0; border-radius: 999px; overflow: hidden;">
+                                <div style="width: 90%; height: 100%; background: #0284C7; border-radius: 999px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-bottom: 0;">
+                        <div class="card-body">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <strong style="color: var(--color-text-primary); font-size: 1rem;">🚨 Emergency Leave</strong>
+                                <span class="badge badge-success">100% Available</span>
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: 700; color: #64748B; margin-bottom: 0.25rem;">
+                                5 Days Remaining
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 0.75rem;">
+                                Allocated: 5 Days &bull; Used: 0 Days
+                            </div>
+                            <div style="height: 8px; background: #E2E8F0; border-radius: 999px; overflow: hidden;">
+                                <div style="width: 100%; height: 100%; background: #64748B; border-radius: 999px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Leave Applications & Notification Split -->
+                <div class="grid grid-cols-2" style="margin-top: 1.5rem;">
+                    <!-- My Leave Requests -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title"><span>📝</span> My Recent Leave Applications</h2>
+                            <a href="leave-history.html" class="btn btn-secondary btn-sm">Full History</a>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container" style="border: none; box-shadow: none;">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Type</th>
+                                            <th>Dates</th>
+                                            <th>Days</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>Sick Leave</strong></td>
+                                            <td>Nov 09 - Nov 10, 2026</td>
+                                            <td>2 Days</td>
+                                            <td><span class="badge badge-warning"><span class="badge-dot"></span> Pending</span></td>
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm" onclick="openModal('cancelLeaveModal')">Cancel</button>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Vacation Leave</strong></td>
+                                            <td>Aug 10 - Aug 12, 2026</td>
+                                            <td>3 Days</td>
+                                            <td><span class="badge badge-success"><span class="badge-dot"></span> Approved</span></td>
+                                            <td><span style="font-size: 0.75rem; color: var(--color-text-muted);">Deducted</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Emergency Leave</strong></td>
+                                            <td>Oct 05, 2026</td>
+                                            <td>1 Day</td>
+                                            <td><span class="badge badge-neutral">Cancelled</span></td>
+                                            <td><span style="font-size: 0.75rem; color: var(--color-text-muted);">---</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Feed -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title"><span>🔔</span> Recent Updates</h2>
+                            <a href="notifications.html" class="btn btn-secondary btn-sm">All Alerts</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success" style="margin-bottom: 0.75rem;">
+                                <span>✓</span>
+                                <div>
+                                    <strong>Vacation Leave Approved</strong><br>
+                                    Your 3 days Vacation Leave (Aug 10-12) was approved by HR Director Marcus Tan.
+                                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">2 hours ago</div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info" style="margin-bottom: 0;">
+                                <span>ℹ</span>
+                                <div>
+                                    <strong>Application Submitted (Pending)</strong><br>
+                                    Your Sick Leave request for Nov 09-10 (2 days) is queued for HR review.
+                                    <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem;">1 day ago</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Employee Portal</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Self-Service Cancellation Confirmation Modal -->
+    <div id="cancelLeaveModal" class="modal-backdrop">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">⚠️ Withdraw Leave Application</h3>
+                <button type="button" class="modal-close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel your pending <strong>Sick Leave</strong> application (2 working days: Nov 09 - Nov 10, 2026)?</p>
+                <div class="alert alert-info" style="margin-top: 1rem;">
+                    <span>ℹ</span>
+                    <div>Your leave balance is unaffected because pending requests have not deducted days.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Keep Request</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('cancelLeaveModal'); showToast('Leave application was successfully cancelled.', 'info');">Confirm Cancellation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>
