@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Phases%201%2C%202%2C%203%20%26%204%20Complete-success.svg)]()
+[![Status](https://img.shields.io/badge/Status-Phases%201%2C%202%2C%203%2C%204%20%26%205%20Complete-success.svg)]()
 
 ## 1. Project Overview
 
@@ -121,7 +121,65 @@ C:\xampp\mysql\bin\mysql.exe -u root hris_db < database/seed.sql
 
 ---
 
-## 5. Authoritative Project Directory Tree
+## 5. Phase 5 — Project Foundation & Core Framework Setup
+
+The native PHP MVC core framework is active and verified:
+
+### Prerequisites
+* **PHP:** PHP 8.1 or higher (verified on PHP 8.5+ with `pdo_mysql`, `mbstring`, `json` extensions).
+* **Web Server:** Apache HTTP Server with `mod_rewrite` enabled (standard in XAMPP).
+* **Database:** MySQL 8.x or MariaDB with `hris_db` schema imported.
+
+### Step-by-Step Local Setup Instructions
+
+1. **Clone & Location:**
+   Place the project inside your web server root (e.g., `c:\xampp\htdocs\GitHub_Clone_File_Projects\HRIS-SYSTEM`).
+
+2. **Start Services in XAMPP:**
+   Open the XAMPP Control Panel and start **Apache** and **MySQL**.
+
+3. **Initialize Database:**
+   Import the schema and baseline test seed into MySQL:
+   ```bash
+   mysql -u root -p hris_db < database/schema.sql
+   mysql -u root -p hris_db < database/seed.sql
+   ```
+
+4. **Verify Database Configuration:**
+   Inspect `config/database.php` or copy `.env.example` to `.env`. Ensure host (`127.0.0.1`), database (`hris_db`), username (`root`), and password match your environment.
+
+5. **Verify Framework & Foundation Routes in Browser:**
+   Open your browser to:
+   * **Public Landing Page:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/`
+   * **Framework Health Diagnostic (JSON):** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/health`
+   * **Interactive Prototype Suite:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/prototype/index.html`
+
+### Foundation Health Check Response
+Requesting `GET /health` returns live framework status:
+```json
+{
+    "status": "ok",
+    "timestamp": "2026-10-11T11:27:50+08:00",
+    "environment": "development",
+    "php_version": "8.5.9",
+    "framework": "Native PHP MVC Foundation (Phase 5)",
+    "database": {
+        "driver": "mysql",
+        "database": "hris_db",
+        "connected": true,
+        "ping": "success",
+        "latency_ms": 0.22
+    },
+    "routing": {
+        "status": "operational",
+        "router": "Core\\Router"
+    }
+}
+```
+
+---
+
+## 6. Authoritative Project Directory Tree
 
 ```
 Employee-HRIS-Leave-Management-System/
@@ -129,23 +187,27 @@ Employee-HRIS-Leave-Management-System/
 ├── config/                        # Application & database settings
 │   ├── config.php                 # App name, timezone, session lifetime
 │   └── database.php               # PDO database connection settings
-├── core/                          # Framework kernel
-│   ├── Controller.php
-│   ├── Database.php               # Centralized PDO database factory
-│   ├── Middleware.php             # Security & role guards
-│   ├── Model.php                  # Base model & transactions
-│   ├── Router.php                 # Front controller router
-│   └── functions.php              # Global helper functions
+├── core/                          # Framework kernel (Phase 5 Foundation)
+│   ├── bootstrap.php              # PSR-4 autoloader, functions, timezone, error config
+│   ├── Controller.php             # Base controller with view and json helpers
+│   ├── Database.php               # Centralized PDO database singleton
+│   ├── Middleware.php             # Abstract middleware contract
+│   ├── Model.php                  # Base model with query & transaction helpers
+│   ├── Router.php                 # Native HTTP router (GET/POST, regex, 404/405)
+│   └── functions.php              # Global helper functions (e, url, asset, redirect)
 ├── app/
 │   ├── controllers/               # MVC Controllers
+│   │   └── HomeController.php     # Public landing & health check controller
 │   ├── models/                    # Domain entity models
 │   ├── dsa/                       # Custom In-Memory DSA Engine
 │   │   ├── algorithms/            # Linear/Binary Search, Bubble/Merge/QuickSort
 │   │   └── structures/            # ArrayWrapper, Stack, Queue, LinkedList, HashTable, BST
 │   └── views/                     # Layouts, partials, and view templates
+│       ├── home/index.php         # Public landing page template
+│       └── layouts/main.php       # Base application layout wrapper
 ├── database/                      # Database scripts
 │   ├── README.md                  # Database setup instructions
-│   ├── schema.sql                 # DDL schema definitions
+│   ├── schema.sql                 # DDL schema definitions (9 tables, InnoDB)
 │   ├── seed.sql                   # Synthetic demo seed data
 │   └── test_data.sql              # Constraint verification tests
 ├── docs/                          # Architectural documentation
@@ -157,16 +219,21 @@ Employee-HRIS-Leave-Management-System/
 │   └── phase-4-ui-ux/             # Phase 4 design system & wireframes
 ├── public/                        # Public document root
 │   ├── assets/                    # CSS, JS, images
-│   ├── .htaccess
-│   └── index.php                  # Application entry point
-├── .gitignore
+│   ├── uploads/                   # Upload storage (.gitkeep)
+│   ├── .htaccess                  # Apache mod_rewrite & security rules
+│   └── index.php                  # Front controller entry point
+├── .env.example                   # Environment variable template
+├── .gitignore                     # Git exclusion rules
 ├── LICENSE
 └── README.md
 ```
 
 ---
 
-## 6. Next Steps
+## 7. Security Baseline & Milestone Status
 
-With **Phase 1**, **Phase 2**, **Phase 3**, and **Phase 4** verified and complete:
-* **Next Phase:** **Phase 5 — Authentication and Security Engine** (Implementing `core/Database.php`, `core/Router.php`, `core/Middleware.php`, and `AuthController.php`).
+> [!NOTE]
+> The framework foundation provides parameterized PDO prepared statements, safe HTML escaping, restricted controller dispatch, and 404/405 error controls. It does not replace completed user authentication, role-based authorization, or CSRF token enforcement, which are implemented in Phase 6.
+
+* **Phases 1, 2, 3, 4 & 5 Status:** **100% Complete & Verified.**
+* **Next Milestone:** **Phase 6 — Authentication Engine, Session Management & Business Logic Integration.**

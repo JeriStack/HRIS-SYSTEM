@@ -1,0 +1,66 @@
+<?php
+/**
+ * Application Bootstrap & Autoloader
+ * Employee HRIS & Leave Management System
+ */
+
+// 1. PSR-4 Compliant Class Autoloader
+spl_autoload_register(function (string $class) {
+    // Prefix mappings
+    $prefixes = [
+        'Core\\'                => __DIR__ . '/',
+        'App\\Controllers\\'    => __DIR__ . '/../app/controllers/',
+        'App\\Models\\'         => __DIR__ . '/../app/models/',
+        'App\\Dsa\\Algorithms\\' => __DIR__ . '/../app/dsa/algorithms/',
+        'App\\Dsa\\Structures\\' => __DIR__ . '/../app/dsa/structures/',
+        'App\\Dsa\\'            => __DIR__ . '/../app/dsa/',
+        'App\\'                 => __DIR__ . '/../app/',
+    ];
+
+    foreach ($prefixes as $prefix => $baseDir) {
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) === 0) {
+            $relativeClass = substr($class, $len);
+            $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+            if (file_exists($file)) {
+                require $file;
+                return;
+            }
+        }
+    }
+
+    // Non-namespaced fallback
+    $fallbackDirs = [
+        __DIR__ . '/',
+        __DIR__ . '/../app/controllers/',
+        __DIR__ . '/../app/models/',
+    ];
+
+    foreach ($fallbackDirs as $dir) {
+        $file = $dir . $class . '.php';
+        if (file_exists($file)) {
+            require $file;
+            return;
+        }
+    }
+});
+
+// 2. Load Core Functions Helper
+require_once __DIR__ . '/functions.php';
+
+// 3. Set Application Timezone
+$timezone = config('config.timezone', 'Asia/Manila');
+date_default_timezone_set($timezone);
+
+// 4. Configure Development vs. Production Error Reporting
+$environment = config('config.app_env', 'development');
+if ($environment === 'development') {
+    ini_set('display_errors', '1');
+    ini_set('display_startup_errors', '1');
+    error_reporting(E_ALL);
+} else {
+    ini_set('display_errors', '0');
+    ini_set('display_startup_errors', '0');
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    ini_set('log_errors', '1');
+}
