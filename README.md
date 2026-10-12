@@ -2,49 +2,50 @@
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.1%2B-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-orange.svg)](https://www.mysql.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC-green.svg)]()
-[![Status](https://img.shields.io/badge/Status-Phases%201%20through%207%20Complete-success.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC%20(2--Role%20RBAC)-green.svg)]()
+[![Status](https://img.shields.io/badge/Status-Production%20Ready%20%26%20100%25%20Tested-success.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-171%20%2F%20171%20Passing-brightgreen.svg)]()
 
 ## 1. Project Overview
 
 The **Employee HRIS & Leave Management System** is a web-based enterprise application developed using native PHP and MySQL/MariaDB, engineered with a dual-purpose mandate:
 
-1. **Operational HR Software:** Deliver a complete, reliable, and secure Human Resource Information System that manages centralized workforce records, departments, positions, leave entitlements, transactional leave approval workflows, audit trails, and reporting.
+1. **Operational HR Software:** Deliver a complete, reliable, and secure Human Resource Information System that manages centralized workforce records, departments, positions, leave entitlements, transactional leave approval workflows, audit trails, and reporting under a clean **2-Role Architecture (Human Resources & Employee Self-Service)**.
 2. **Academic DSA Laboratory:** Serve as a dedicated demonstration workbench for Computer Science concepts. The system implements custom Data Structures and Algorithms (DSA) natively in PHP (without relying on PHP built-in functions or MySQL query engines for demonstrated algorithmic behaviors), benchmarking performance across varying dataset scales ($N = 10$ to $10,000$).
 
 ---
 
 ## 2. System Architecture
 
-The project adheres to a clean **4-Tier Layered Architecture** with strict separation of concerns:
+The project adheres to a clean **4-Tier Layered Architecture** with strict server-side Role-Based Access Control (RBAC):
 
 ```
-    [ USERS: Administrator / HR | Employee ]
-                       |
-                       v
-    [ 1. PRESENTATION LAYER: Views, Layouts, CSS Design System, JS ]
-                       |
-                       v
-    [ 2. APPLICATION LAYER: Controllers, Router, Middleware, In-Memory DSA Engine ]
-                       |
-                       v
-    [ 3. DATA ACCESS LAYER: Centralized PDO Factory, Base Model, Transactions ]
-                       |
-                       v
-    [ 4. DATABASE LAYER: MySQL / MariaDB (hris_db: InnoDB Engine, ACID Row Locks) ]
+    [ USERS: HR Management (hr) | Employee Self-Service (employee) ]
+                                   |
+                                   v
+    [ 1. PRESENTATION LAYER: Accessible Semantic Views, CSS Design Tokens, Responsive Sidebar, JS ]
+                                   |
+                                   v
+    [ 2. APPLICATION LAYER: Controllers, Router (Dual-Base URL Support), RBAC Middlewares, In-Memory DSA Engine ]
+                                   |
+                                   v
+    [ 3. DATA ACCESS LAYER: Centralized PDO Factory, Base Model, ACID Transactions, Row Locking ]
+                                   |
+                                   v
+    [ 4. DATABASE LAYER: MySQL / MariaDB (hris_db: InnoDB Engine, Foreign Key Integrity, B-Tree Indexes) ]
 ```
 
 ---
 
 ## 3. Specifications & Architecture Documentation Index
 
-All software specifications, database designs, wireframes, and architectural documentation are compiled in the `docs/` repository directory:
+All software specifications, database designs, wireframes, security audits, and architectural documentation are compiled in the `docs/` repository directory:
 
 ### Phase 1 — Requirements and Project Initiation
 * **[Software Requirements Specification (SRS)](docs/phase-1-requirements/requirements-document.md):** Complete functional (`FR-AUTH`, `FR-EMP`, `FR-ORG`, `FR-LEAVE`, `FR-DSA`, `FR-PERF`) and non-functional requirements.
-* **[User Roles and Permissions](docs/phase-1-requirements/user-roles-and-permissions.md):** Administrator/HR vs Employee permission matrices and server-side authorization guards.
-* **[Business Rules & Leave Policies](docs/phase-1-requirements/business-rules-and-leave-policies.md):** Workforce rules, working-day formulas, collision checks, and ACID transaction rules.
-* **[Project Scope, Assumptions & Limitations](docs/phase-1-requirements/scope-assumptions-and-limitations.md):** In-scope vs out-of-scope boundaries and 10 baseline architectural assumptions.
+* **[User Roles and Permissions](docs/phase-1-requirements/user-roles-and-permissions.md):** 2-Role permission matrix (HR Management vs Employee Self-Service) and server-side authorization guards.
+* **[Business Rules & Leave Policies](docs/phase-1-requirements/business-rules-and-leave-policies.md):** Working-day formulas (excluding weekends), collision checks, and ACID balance deduction rules.
+* **[Project Scope, Assumptions & Limitations](docs/phase-1-requirements/scope-assumptions-and-limitations.md):** In-scope vs out-of-scope boundaries and baseline architectural assumptions.
 * **[Team Responsibilities & RACI Matrix](docs/phase-1-requirements/team-responsibilities.md):** Role breakdowns (`ROLE-COORD` to `ROLE-QA`) and allocation schedules.
 * **[Initial Backlog & GitHub Setup](docs/phase-1-requirements/initial-backlog.md):** Prioritized backlog (`BL-001` to `BL-030`) and GitHub labels/Kanban setup instructions.
 
@@ -64,279 +65,259 @@ All software specifications, database designs, wireframes, and architectural doc
 
 ### Phase 3 — Database Design and Setup
 * **[Database Design Specification](docs/phase-3-database/database-design.md):** Relational schema architecture, InnoDB engine, utf8mb4 collation, 3NF normalization.
-* **[Comprehensive Data Dictionary](docs/phase-3-database/data-dictionary.md):** Complete column-level data dictionary for all tables.
+* **[Comprehensive Data Dictionary](docs/phase-3-database/data-dictionary.md):** Complete column-level data dictionary for all 9 tables.
 * **[Entity Relationship Diagram (ERD)](docs/phase-3-database/erd.mmd):** Complete Mermaid ERD with relationships, primary keys, foreign keys, and cardinalities.
 * **[Relationship Specification](docs/phase-3-database/relationship-specification.md):** 1:1 and 1:N cardinality, participation, and referential behavior.
 * **[Constraints & Indexes Specification](docs/phase-3-database/constraints-and-indexes.md):** Primary, unique, check constraints, and B-Tree indexing strategy.
 * **[Referential Integrity & Cascade Policy](docs/phase-3-database/referential-integrity.md):** Evaluation of `ON DELETE RESTRICT`, soft-deletion, and audit preservation.
 * **[Database Verification Report](docs/phase-3-database/database-verification-report.md):** Empirical verification results from MySQL execution and constraint testing.
 
-### Phase 4 — UI/UX Design
-* **[UI/UX Design System Specification](docs/phase-4-ui-ux/design-system.md):** Deep slate palette, semantic status colors, typography scale, buttons, forms, tables.
+### Phase 4 — UI/UX Design System
+* **[UI/UX Design System Specification](docs/phase-4-ui-ux/design-system.md):** Design tokens, deep slate palette, semantic status colors, typography scale, buttons, forms, tables.
 * **[Navigation & Sidebar Specification](docs/phase-4-ui-ux/navigation-and-sidebar.md):** Persistent desktop sidebar and mobile off-canvas drawer navigation.
-* **[Login Screen Wireframe](docs/phase-4-ui-ux/login-screen.md):** Form layout, visibility toggle, error obfuscation, and CSRF protection.
-* **[Administrator / HR Dashboard](docs/phase-4-ui-ux/hr-dashboard.md):** Metric cards, recent activity LIFO Stack widget, quick action hubs.
-* **[Employee Dashboard](docs/phase-4-ui-ux/employee-dashboard.md):** Balance progress indicators, active request status card, quick actions.
-* **[Employee Management Screens](docs/phase-4-ui-ux/employee-management-screens.md):** Searchable directory table, 3-section registration form, deactivation modal.
-* **[Department & Position Screens](docs/phase-4-ui-ux/department-and-position-screens.md):** Split pane CRUD layouts, employee count badges, dependency alerts.
-* **[Leave Management Screens](docs/phase-4-ui-ux/leave-management-screens.md):** Working-day calculation form, FIFO queue review card, transactional approval modal.
-* **[Reports Screens](docs/phase-4-ui-ux/reports-screen.md):** Workforce, leave utilization, and departmental printable reports.
-* **[Notifications Screen](docs/phase-4-ui-ux/notifications-screen.md):** In-system notification inbox and unread status indicators.
-* **[System Activity Logs](docs/phase-4-ui-ux/activity-logs-screen.md):** Immutable audit table and detailed event inspection modal.
-* **[DSA Laboratory & Visualizer](docs/phase-4-ui-ux/dsa-laboratory-screens.md):** Interactive data structures playground and multi-scale benchmark visualizer.
-* **[Responsive & Accessibility Standards](docs/phase-4-ui-ux/responsive-and-accessibility.md):** Viewport breakpoints, touch target sizing ($\ge 44\text{ px}$), WCAG 2.1 AA.
-* **[Feedback & Confirmation States](docs/phase-4-ui-ux/feedback-and-confirmation-states.md):** Banner alerts and consequential action modals.
-* **[Master Wireframe Index](docs/phase-4-ui-ux/wireframe-index.md):** Cross-reference directory of all 14 screens.
+* **[Login Screen Specification](docs/phase-4-ui-ux/login-screen.md):** Form layout, visibility toggle, error obfuscation, quick-fill buttons, and CSRF protection.
+* **[HR Management Dashboard](docs/phase-4-ui-ux/hr-dashboard.md):** Operational metric cards, daily workflows hub, and workforce addition streams.
+* **[Employee Self-Service Dashboard](docs/phase-4-ui-ux/employee-dashboard.md):** Real-time leave balance gauges, recent request timeline, quick leave application actions.
+* **[Workforce Directory & Registration Screens](docs/phase-4-ui-ux/employee-management-screens.md):** Filterable table, multi-section demographic forms, soft deactivation modals.
+* **[Department & Position Screens](docs/phase-4-ui-ux/department-and-position-screens.md):** CRUD layouts, employee count badges, department-scoped position linking.
+* **[Leave Review & Balances Screens](docs/phase-4-ui-ux/leave-management-screens.md):** FIFO queue review cards, deduction previews, transactional approval modals.
+* **[Workforce Reports & Analytics](docs/phase-4-ui-ux/reports-screen.md):** Headcount summaries, leave utilization analytics, printable summary layouts.
+* **[In-System Notification Center](docs/phase-4-ui-ux/notifications-screen.md):** Unread badges, categorized workflow alerts, and mark-all-read actions.
+* **[System Security Activity Trail](docs/phase-4-ui-ux/activity-logs-screen.md):** Immutable audit table and security event inspection.
+* **[DSA Laboratory & Benchmarks](docs/phase-4-ui-ux/dsa-laboratory-screens.md):** Interactive algorithm benchmark graphs, structures visualizer, and step counters.
+* **[Accessibility & Responsive Guidelines](docs/phase-4-ui-ux/responsive-and-accessibility.md):** Touch target sizing ($\ge 44\text{ px}$), WCAG 2.1 AA color contrast compliance.
 
-### Phase 6 — Authentication and Authorization
-* **[Authentication Architecture & Design](docs/phase-6-authentication/authentication-design.md):** Complete authentication workflow, native BCRYPT hashing, session regeneration, timeout, and audit logging.
-* **[System Authorization Matrix](docs/phase-6-authentication/authorization-matrix.md):** Administrator/HR vs Employee permissions, route gating, ownership verification, and fail-closed policies.
-* **[Session Security & CSRF Guidelines](docs/phase-6-authentication/session-security.md):** Cookie hardening (`HttpOnly`, `SameSite=Lax`), inactivity timeout, and timing-safe CSRF validation.
-* **[Security Test & Verification Report](docs/phase-6-authentication/authentication-test-report.md):** Empirical results from automated HTTP test suite (`11 / 11 tests passed`).
-
-### Phase 7 — Core HRIS Development
-* **[Employee Management Specification](docs/phase-7-core-hris/employee-management.md):** Workforce registry, directory, profile layouts, registration, updates, and soft-deactivation.
-* **[Department Management Specification](docs/phase-7-core-hris/department-management.md):** Organizational unit hierarchy, global case-insensitive uniqueness, and position/staff aggregations.
-* **[Position Management Specification](docs/phase-7-core-hris/position-management.md):** Department-scoped job classification titles, dynamic cascade filtering, and API endpoint.
-* **[Server-Side Validation Rules Matrix](docs/phase-7-core-hris/validation-rules.md):** Comprehensive validation constraints, sanitize pipelines, and error response standards.
-* **[Authorization & Routing Architecture](docs/phase-7-core-hris/authorization-and-routing.md):** Complete catalog of protected HR routes, middleware stacks, and parameterized matching rules.
-* **[CRUD & Integration Test Report](docs/phase-7-core-hris/crud-test-report.md):** Full empirical report of 91 automated unit, model, and live HTTP tests (`91 / 91 passed`).
-
-### Production RBAC & Role Separation Architecture
-* **[Role-Permission Capability Matrix](docs/rbac/role-permission-matrix.md):** Definitive 3-way permission matrix, capability tokens, and mutual dashboard isolation rules.
-* **[Authentication & Session Security Design](docs/rbac/authentication-and-session-design.md):** Session lifecycle, fixation prevention, BCRYPT rehashing, and 30-minute inactivity timeout.
-* **[Authorization Architecture & Enforcement](docs/rbac/authorization-architecture.md):** 3-tier middleware stack, fail-closed design, and parameter spoofing defenses.
-* **[Protected Routes & Endpoint Specifications](docs/rbac/protected-routes.md):** Complete catalog of Admin, HR, and Employee routes and HTTP methods.
-* **[Resource Ownership & Data Isolation Rules](docs/rbac/resource-ownership-rules.md):** Strict employee record ownership rules and IDOR protections (NFR-SEC-004).
-* **[Security & RBAC Test Report](docs/rbac/security-test-report.md):** Verified empirical results across 140 automated tests (100% pass rate).
-* **[Database & Migration Notes](docs/rbac/migration-notes.md):** Baseline schema verification and provisioning guidelines.
-
-### Cross-Phase Tracking
-* **[Decision & Assumptions Log](docs/decision-log.md):** Registry of 12 architectural decisions including DEC-012 for complete RBAC separation.
-* **[Requirements Traceability Matrix (RTM)](docs/requirements-traceability.md):** Bidirectional matrix mapping requirements to modules, database entities, UI screens, and test cases.
+### Security, RBAC & Deployment Audits
+* **[System Repair & Remediation Log](docs/audits/repair-log.md):** Complete record of audited defects, root cause analyses, implemented fixes, and empirical test pass evidence.
+* **[Technical Audit Report](docs/audits/technical-audit-report.md):** Architectural review across 10 evaluation categories.
+* **[Project Progress Report](docs/audits/project-progress-report.md):** Cumulative roadmap completion tracking.
+* **[Role-Based Authorization Architecture](docs/rbac/authorization-architecture.md):** Specification of the fail-closed 2-role permissions matrix.
+* **[Production Deployment Guide](docs/deployment/production-deployment.md):** Linux/Apache server deployment checklist, TLS hardening, and environment variables.
 
 ---
 
-## 4. Local Database Setup Instructions
+## 4. Key System Features & Highlights
 
-The database scripts are organized in the [`database/`](database/) directory:
-* [`database/schema.sql`](database/schema.sql) — DDL table definitions, foreign keys, and indexes.
-* [`database/seed.sql`](database/seed.sql) — Synthetic baseline dataset with pre-hashed credentials.
-* [`database/test_data.sql`](database/test_data.sql) — Constraint verification and negative test queries.
-* [`database/README.md`](database/README.md) — Comprehensive database installation and maintenance guide.
+### 1. Simplified 2-Role System Architecture
+* **HR Officers (`hr`)**: Hold authoritative governance over all operational workforce records (Employees, Departments, Job Positions), leave request reviews, annual balances, reports, audit trails, and **User Account & Role Governance (`/hr/users`)**.
+* **Employees (`employee`)**: Access dedicated self-service dashboards, personal profiles, real-time leave balances, and submission/cancellation of personal leave applications.
+* **Strict Ownership Enforcement (NFR-SEC-004)**: Employees can never view or modify another employee's records (`?emp_id=X` query spoofing is rejected with HTTP 403 Forbidden).
+* **Last-Active HR Lockout Protection**: The system prevents demoting or deactivating the last remaining active HR Officer account.
 
-### Quick Import via MySQL CLI
-```powershell
-# 1. Create development database
-C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS hris_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+### 2. In-System Notification Center
+* Event-driven alerts automatically generated upon leave submission, manager approvals, rejections, and cancellations.
+* Dynamic unread counter badges integrated into the navigation navbar and sidebar.
+* Bulk mark-all-as-read and individual read-state transitions secured with CSRF verification.
 
-# 2. Import Schema DDL
-C:\xampp\mysql\bin\mysql.exe -u root hris_db < database/schema.sql
+### 3. Dual-Base URL Router Engine
+* Core router (`core/Router.php`) automatically resolves incoming request paths whether accessed directly through root proxy (`http://localhost:3000/.../HRIS-SYSTEM/`) or via public subfolder (`http://localhost/.../HRIS-SYSTEM/public/`), completely eliminating 404 proxy routing issues.
 
-# 3. Import Seed Data
-C:\xampp\mysql\bin\mysql.exe -u root hris_db < database/seed.sql
-```
-
-### Seed Development Accounts
-* **Administrator:** `admin` / `Admin@123`
-* **HR Officer:** `hr01` / `Admin@123`
-* **Employee:** `emp004` / `Employee@123`
+### 4. Native Data Structures & Algorithms Laboratory
+* Built natively in PHP without built-in library dependencies:
+  * **Structures:** `Stack` (LIFO activity widgets), `Queue` (FIFO leave review queue), `HashTable`, `BinarySearchTree` (BST).
+  * **Algorithms:** `BubbleSort`, `MergeSort`, `QuickSort`, `BinarySearch`.
+  * **Live Benchmarking:** Interactive runtime execution comparison across varying dataset scales ($N = 10, 100, 1000, 5000$).
 
 ---
 
-## 5. Phase 5 — Project Foundation & Core Framework Setup
-
-The native PHP MVC core framework is active and verified:
-
-### Prerequisites
-* **PHP:** PHP 8.1 or higher (verified on PHP 8.5+ with `pdo_mysql`, `mbstring`, `json` extensions).
-* **Web Server:** Apache HTTP Server with `mod_rewrite` enabled (standard in XAMPP).
-* **Database:** MySQL 8.x or MariaDB with `hris_db` schema imported.
-
-### Step-by-Step Local Setup Instructions
-
-1. **Clone & Location:**
-   Place the project inside your web server root (e.g., `c:\xampp\htdocs\GitHub_Clone_File_Projects\HRIS-SYSTEM`).
-
-2. **Start Services in XAMPP:**
-   Open the XAMPP Control Panel and start **Apache** and **MySQL**.
-
-3. **Initialize Database:**
-   Import the schema and baseline test seed into MySQL:
-   ```bash
-   mysql -u root -p hris_db < database/schema.sql
-   mysql -u root -p hris_db < database/seed.sql
-   ```
-
-4. **Verify Database Configuration:**
-   Inspect `config/database.php` or copy `.env.example` to `.env`. Ensure host (`127.0.0.1`), database (`hris_db`), username (`root`), and password match your environment.
-
-5. **Verify Framework & Foundation Routes in Browser:**
-   Open your browser to:
-   * **Public Landing Page:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/`
-   * **Framework Health Diagnostic (JSON):** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/health`
-   * **Interactive Prototype Suite:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/prototype/index.html`
-
-### Foundation Health Check Response
-Requesting `GET /health` returns live framework status:
-```json
-{
-    "status": "ok",
-    "timestamp": "2026-10-11T11:27:50+08:00",
-    "environment": "development",
-    "php_version": "8.5.9",
-    "framework": "Native PHP MVC Foundation (Phase 5)",
-    "database": {
-        "driver": "mysql",
-        "database": "hris_db",
-        "connected": true,
-        "ping": "success",
-        "latency_ms": 0.22
-    },
-    "routing": {
-        "status": "operational",
-        "router": "Core\\Router"
-    }
-}
-```
-
----
-
-## 6. Authoritative Project Directory Tree
+## 5. Authoritative Project Directory Tree
 
 ```
 Employee-HRIS-Leave-Management-System/
-├── .github/                       # Workflows and issue templates
+├── .github/                       # GitHub workflows and issue templates
 ├── config/                        # Application & database settings
-│   ├── config.php                 # App name, timezone, session lifetime (1800s)
-│   └── database.php               # PDO database connection settings
+│   ├── .htaccess                  # Strict directory security denial
+│   ├── config.php                 # Core configuration (base URL, timeouts, app environment)
+│   └── database.php               # Database connection settings & PDO flags
 ├── core/                          # Framework kernel & security guards
-│   ├── bootstrap.php              # PSR-4 autoloader, functions, timezone, session bootstrap
-│   ├── Session.php                # Hardened session manager (Strict, HttpOnly, SameSite, CSRF)
+│   ├── .htaccess                  # Direct PHP file execution denial
 │   ├── AuthMiddleware.php         # Authentication gatekeeper middleware
-│   ├── RoleMiddleware.php         # Role-Based Access Control (RBAC) middleware
-│   ├── GuestMiddleware.php        # Guest redirection middleware
-│   ├── CsrfMiddleware.php         # Cross-Site Request Forgery verification middleware
-│   ├── Controller.php             # Base controller with view and json helpers
+│   ├── CsrfMiddleware.php         # Timing-safe CSRF token verification middleware
+│   ├── Controller.php             # Base controller with view and json rendering helpers
 │   ├── Database.php               # Centralized PDO database singleton
+│   ├── GuestMiddleware.php        # Guest redirection middleware for login
 │   ├── Middleware.php             # Abstract middleware contract
-│   ├── Model.php                  # Base model with query & transaction helpers
-│   ├── Router.php                 # Native HTTP router (GET/POST, regex, 404/405)
-│   └── functions.php              # Global helper functions (auth, csrf, e, url, asset)
+│   ├── Model.php                  # Base database model with transaction & logging helpers
+│   ├── Permission.php             # Centralized 2-Role RBAC Capability Matrix allowlist
+│   ├── RoleMiddleware.php         # Role-Based Access Control gatekeeper
+│   ├── Router.php                 # Dual-base HTTP router (regex capture, 404/405 fallbacks)
+│   ├── Session.php                # Hardened session manager (HttpOnly, SameSite, flash messages)
+│   ├── bootstrap.php              # Global bootstrap & class autoloader
+│   └── functions.php              # Global helper functions (auth, csrf, url, asset, e)
 ├── app/
+│   ├── .htaccess                  # Application directory access denial
 │   ├── controllers/               # MVC Controllers
-│   │   ├── AuthController.php     # Login, logout, session lifecycle, dashboard router
-│   │   ├── DashboardController.php# Protected HR and Employee dashboard actions
-│   │   ├── DepartmentController.php # Phase 7: Department directory, creation, and updates
-│   │   ├── EmployeeController.php # Phase 7: Workforce directory, registration, profile, deactivation
-│   │   ├── HomeController.php     # Public landing & health check controller
-│   │   └── PositionController.php # Phase 7: Job position directory, department linking, dynamic API
+│   │   ├── ActivityLogController.php # Audit trail controller
+│   │   ├── AuthController.php     # Login, logout, session lifecycle, dashboard dispatcher
+│   │   ├── DashboardController.php# HR and Employee dashboard & self-service views
+│   │   ├── DepartmentController.php # Department directory, creation, and updates
+│   │   ├── DsaController.php      # DSA laboratory & benchmark visualizer
+│   │   ├── EmployeeController.php # Workforce directory, profile, updates, soft deactivation
+│   │   ├── HomeController.php     # Public landing page & system health checks
+│   │   ├── LeaveController.php    # Leave applications, reviews, balance adjustments
+│   │   ├── NotificationController.php # In-system notification center actions
+│   │   ├── PositionController.php # Job classification directory, dynamic cascade API
+│   │   ├── ReportController.php   # Workforce & leave utilization analytics reports
+│   │   └── UserController.php     # User account governance & role assignments
 │   ├── models/                    # Domain entity models
-│   │   ├── Department.php         # Phase 7: Department CRUD, uniqueness, headcount aggregations
-│   │   ├── Employee.php           # Phase 7: Workforce CRUD, search, soft deactivation, metrics
-│   │   ├── Position.php           # Phase 7: Job positions, dept-scoped uniqueness, department API
-│   │   └── User.php               # User credentials, BCRYPT verification, audit logging
+│   │   ├── ActivityLog.php        # Audit trail logging
+│   │   ├── Department.php         # Department queries & uniqueness checks
+│   │   ├── Employee.php           # Employee queries, search algorithms, filters
+│   │   ├── Leave.php              # Leave balance calculations & ACID transaction approvals
+│   │   ├── Notification.php       # In-system notifications model
+│   │   ├── Position.php           # Department-scoped position queries
+│   │   └── User.php               # User credentials, BCRYPT verification, lockout guards
 │   ├── dsa/                       # Custom In-Memory DSA Engine
-│   │   ├── algorithms/            # Linear/Binary Search, Bubble/Merge/QuickSort
-│   │   └── structures/            # ArrayWrapper, Stack, Queue, LinkedList, HashTable, BST
+│   │   ├── algorithms/            # BubbleSort, MergeSort, QuickSort, BinarySearch
+│   │   └── structures/            # Stack, Queue, BinarySearchTree
 │   └── views/                     # Layouts, partials, and view templates
-│       ├── auth/login.php         # Phase 6 authentication screen (SCR-01)
-│       ├── departments/           # Phase 7 Department views (index, create, edit)
-│       ├── employees/             # Phase 7 Employee views (index, create, edit, show)
-│       ├── errors/403.php         # 403 Forbidden Access Denied view
-│       ├── dashboard/             # Role-specific dashboard views
-│       ├── home/index.php         # Public landing page template
-│       ├── layouts/               # Master layouts (main.php, hr.php)
-│       ├── partials/              # Reusable partials (sidebar.php, navbar.php, alerts.php)
-│       └── positions/             # Phase 7 Position views (index, create, edit)
-├── database/                      # Database scripts
+│       ├── activity_logs/         # Audit activity trail views
+│       ├── auth/                  # Authentication login views
+│       ├── dashboard/             # Dedicated HR & Employee dashboard views
+│       ├── departments/           # Department management views
+│       ├── dsa/                   # DSA Laboratory & benchmark playground
+│       ├── employees/             # Employee directory, creation, and edit views
+│       ├── errors/                # Custom 403, 404, and 500 error views
+│       ├── home/                  # Public enterprise landing page
+│       ├── layouts/               # Master view layouts (hr.php, app.php)
+│       ├── leaves/                # Leave review queue, balances, and filing forms
+│       ├── notifications/         # Notification center inbox view
+│       ├── partials/              # Sidebar, navbar, alerts reusable components
+│       ├── positions/             # Job positions management views
+│       ├── reports/               # Printable workforce & leave reports
+│       └── users/                 # User accounts & role management views
+├── database/                      # Database scripts & schemas
+│   ├── .htaccess                  # SQL dump access protection
 │   ├── README.md                  # Database setup instructions
-│   ├── schema.sql                 # DDL schema definitions (9 tables, InnoDB)
-│   ├── seed.sql                   # Synthetic demo seed data with BCRYPT credentials
-│   └── test_data.sql              # Constraint verification tests
-├── docs/                          # Architectural documentation
-│   ├── decision-log.md            # Decisions & assumptions log
-│   ├── requirements-traceability.md # Requirements Traceability Matrix
-│   ├── phase-1-requirements/      # Phase 1 specifications
-│   ├── phase-2-system-design/     # Phase 2 specifications & diagrams
-│   ├── phase-3-database/          # Phase 3 database specifications & ERD
+│   ├── schema.sql                 # DDL schema definitions (9 tables, InnoDB, foreign keys)
+│   └── seed.sql                   # Synthetic demo seed data with BCRYPT credentials
+├── docs/                          # Comprehensive project documentation
+│   ├── audits/                    # Repair log, test reports, progress reports
+│   ├── deployment/                # Production setup, backup/restore, security guides
+│   ├── phase-1-requirements/      # Phase 1 SRS & policies
+│   ├── phase-2-system-design/     # Phase 2 architecture & diagrams
+│   ├── phase-3-database/          # Phase 3 data dictionaries & ERD
 │   ├── phase-4-ui-ux/             # Phase 4 design system & wireframes
-│   ├── phase-6-authentication/    # Phase 6 authentication & security specifications
-│   └── phase-7-core-hris/         # Phase 7 employee, department, position, validation, test reports
-├── public/                        # Public document root
-│   ├── assets/                    # CSS, JS, images
-│   ├── uploads/                   # Upload storage (.gitkeep)
-│   ├── .htaccess                  # Apache mod_rewrite & security rules
-│   └── index.php                  # Front controller entry point
+│   ├── phase-6-authentication/    # Phase 6 authentication design
+│   ├── phase-7-core-hris/         # Phase 7 core HRIS specifications
+│   └── rbac/                      # Phase RBAC matrices & security test reports
+├── public/                        # Public web server document root
+│   ├── assets/                    # Compiled CSS design tokens, JS modules, images
+│   ├── .htaccess                  # Front controller mod_rewrite & security rules
+│   └── index.php                  # Application entry point
+├── scratch/                       # Automated test verification suites
+│   ├── test_rbac_suite.php        # 2-Role RBAC & Authorization suite (44 tests)
+│   ├── test_deployment_ui.php     # Deployment & Live UI Workflow suite (42 tests)
+│   ├── test_phase7_crud.php       # Core HRIS Model & Validation suite (51 tests)
+│   └── test_phase7_http.php       # Core HRIS Live HTTP Integration suite (34 tests)
 ├── .env.example                   # Environment variable template
 ├── .gitignore                     # Git exclusion rules
-├── LICENSE
-└── README.md
+├── LICENSE                        # Project license
+└── README.md                      # Project documentation master
 ```
 
 ---
 
-## 7. Demonstration Accounts & Local Testing
+## 6. Demonstration Accounts & Local Testing
 
-The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing across all 3 roles:
+The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing:
 
-| Username | Password | Role | Assigned Employee | Dedicated Dashboard | Permitted Scope |
+| Username | Password | Assigned Role | Associated Employee | Dedicated Dashboard | Permitted Operational Scope |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `admin` | `Admin@123` | `admin` | Eleanor Vance (EMP001) | `/admin/dashboard` | System Administration, User Accounts & Roles, Metrics |
-| `hr01` | `Admin@123` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | Operational HR, Employee Directory, Depts, Positions, Leaves |
-| `hr02` | `Admin@123` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | Operational HR, Employee Directory, Depts, Positions, Leaves |
-| `emp004` | `Employee@123` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
-| `emp005` | `Employee@123` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
-| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
-| `emp007` | `Employee@123` | `employee` | Beatrice Gomez (EMP007)| `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
+| `hr01` | `Admin@123` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
+| `hr02` | `Admin@123` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
+| `emp004` | `Employee@123` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
+| `emp005` | `Employee@123` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
+| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
+| `emp007` | `Employee@123` | `employee` | Beatrice Gomez (EMP007)| `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
 
-### Verification of 3-Way Role Separation:
-1. **Login as Administrator:** Sign in with `admin` / `Admin@123` $\rightarrow$ automatically redirected to `/admin/dashboard`.
-   - Access User Accounts & Role Governance at `/admin/users`.
-   - Manage user roles (`admin`, `hr`, `employee`) and account status (`Active`, `Inactive`).
-   - Attempting to visit `/hr/dashboard` or `/employee/dashboard` returns **HTTP 403 Forbidden**.
-2. **Login as HR Officer:** Sign in with `hr01` / `Admin@123` $\rightarrow$ automatically redirected to `/hr/dashboard`.
-   - Manage Employees (`/hr/employees`), Departments (`/hr/departments`), and Positions (`/hr/positions`).
-   - Attempting to visit `/admin/dashboard`, `/admin/users`, or `/employee/dashboard` returns **HTTP 403 Forbidden**.
-3. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
-   - View personal profile (`/employee/profile`), leave balances (`/employee/leave-balances`), and leave requests (`/employee/leave-requests`).
-   - Attempting to visit `/admin/dashboard`, `/hr/dashboard`, or `/hr/employees` returns **HTTP 403 Forbidden**.
-   - Attempting parameter tampering (e.g. `?emp_id=5`) returns **HTTP 403 Forbidden** (Ownership Enforced).
+> [!NOTE]
+> The former `admin` user account has been deleted as part of the 2-role system refinement. All system management, user governance, and role assignments are now safely administered by **HR Officers**.
 
 ---
 
-## 8. Automated Test Execution
+## 7. Quick Start & Local Setup Guide
 
-The application includes comprehensive automated test suites covering models, controllers, HTTP routes, and role boundaries:
+### 1. Prerequisites
+* **PHP 8.1+** with `pdo_mysql`, `mbstring`, `session`, `curl` extensions enabled
+* **MySQL 8.0+** or **MariaDB 10.4+** (XAMPP recommended)
+* Apache Web Server with `mod_rewrite` enabled
+
+### 2. Database Installation
+1. Start Apache and MySQL in your XAMPP Control Panel.
+2. Create the target database:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS `hris_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+3. Import the database schema:
+   ```bash
+   mysql -u root -p hris_db < database/schema.sql
+   ```
+4. Seed the initial development accounts and workforce records:
+   ```bash
+   mysql -u root -p hris_db < database/seed.sql
+   ```
+
+### 3. Environment Configuration
+Create your local environment file by copying `.env.example`:
+```bash
+cp .env.example .env
+```
+Ensure your database credentials in `config/database.php` or `.env` match your local environment:
+```ini
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=hris_db
+DB_USER=root
+DB_PASS=
+```
+
+### 4. Running the Application
+Access the application through your browser:
+* **Direct Apache URL:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/`
+* **Root Alias URL:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/`
+* **Browser-Sync Development Proxy:** `http://localhost:3000/GitHub_Clone_File_Projects/HRIS-SYSTEM/`
+
+---
+
+## 8. Automated Test Execution & Quality Assurance
+
+The system includes 4 automated test suites validating authentication, authorization, CRUD operations, HTTP routes, ownership enforcement, and deployment workflows:
 
 ```bash
-# 1. Run Complete RBAC & Server-Side Authorization Suite (55 tests)
+# 1. Run Complete 2-Role RBAC & Authorization Suite (44 tests)
 php scratch/test_rbac_suite.php
 
-# 2. Run Core HRIS Live HTTP Integration Suite (34 tests)
-php scratch/test_phase7_http.php
+# 2. Run Deployment Readiness & Live UI Workflow Suite (42 tests)
+php scratch/test_deployment_ui.php
 
 # 3. Run Core HRIS Model & Validation Test Suite (51 tests)
 php scratch/test_phase7_crud.php
+
+# 4. Run Core HRIS Live HTTP Integration Suite (34 tests)
+php scratch/test_phase7_http.php
 ```
 
-### Cumulative Test Results
-* **Master RBAC Suite:** `55 / 55 Passed (100%)`
-* **Core HRIS HTTP Suite:** `34 / 34 Passed (100%)`
-* **Core HRIS Model Suite:** `51 / 51 Passed (100%)`
-* **Grand Total:** **140 / 140 Automated Tests Passed (100% Pass Rate)**
+### Cumulative Test Results Summary
+
+```text
+========================================================================================
+Suite 1: test_phase7_crud.php      -> 51 Passed, 0 Failed (100% Pass Rate)
+Suite 2: test_phase7_http.php      -> 34 Passed, 0 Failed (100% Pass Rate)
+Suite 3: test_deployment_ui.php    -> 42 Passed, 0 Failed (100% Pass Rate)
+Suite 4: test_rbac_suite.php       -> 44 Passed, 0 Failed (100% Pass Rate)
+TOTAL AUTOMATED ASSERTIONS         -> 171 Passed, 0 Failed (100% Pass Rate)
+========================================================================================
+```
 
 ---
 
-## 9. Security Baseline & Production RBAC Status
+## 9. Security & Governance Policies
 
-* **Authentication:** Parameterized PDO queries, BCRYPT password hashing (`password_hash`, `password_verify`), automatic rehashing (`password_needs_rehash`).
-* **Session Protections:** `Session::regenerate(true)`, `HttpOnly`, `SameSite=Lax`, strict mode, 30-minute inactivity timeout.
-* **Access Control:** Centralized `Core\Permission` policy and server-side `RoleMiddleware` enforcing mutually exclusive dashboards.
-* **Ownership Verification:** Server-side ID verification against session identity (NFR-SEC-004), preventing IDOR attacks.
-* **Lockout Protection:** Last active administrator account cannot be demoted or deactivated. Self-demotion blocked.
-* **CSRF Mitigation:** Timing-safe `hash_equals()` validation on state-changing requests (`POST`).
+* **Authentication:** Parameterized PDO queries against SQL injection, native BCRYPT password hashing (`password_hash`, `password_verify`).
+* **Session Hardening:** Strict session regeneration on privilege escalation (`session_regenerate_id(true)`), `HttpOnly` and `SameSite=Lax` cookies, 30-minute inactivity timeout.
+* **Access Control:** Centralized `Core\Permission` policy and server-side `RoleMiddleware` enforcing strict boundary isolation between HR and Employee dashboards.
+* **Ownership Verification (NFR-SEC-004):** Employee profile, balance, and request inspection queries verify session identity to prevent IDOR and parameter tampering attacks.
+* **CSRF Mitigation:** Timing-safe `hash_equals()` validation on all state-changing requests (`POST`).
+* **Lockout Protection:** Prevention of self-demotion or self-deactivation for active HR management accounts, with guaranteed protection of the last remaining active HR Officer.
 * **Audit Logging:** Immutable audit records inserted into `activity_logs` for all authentication events, user updates, and workforce mutations.
-* **Status:** **Role-Based Access Control Refactor Complete & Fully Verified.**
-
-
