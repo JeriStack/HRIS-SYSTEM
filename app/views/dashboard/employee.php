@@ -1,253 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle ?? 'Employee Self-Service Portal') ?></title>
-    <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
-    <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
-    <link rel="stylesheet" href="<?= asset('css/responsive.css') ?>">
-    <style>
-        body {
-            background-color: #F8FAFC;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #0F172A;
-        }
-        .app-header {
-            background: #FFFFFF;
-            border-bottom: 1px solid #E2E8F0;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .app-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            font-weight: 700;
-            font-size: 1.15rem;
-            color: #1E293B;
-        }
-        .app-badge {
-            background: #ECFDF5;
-            color: #059669;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .user-nav {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-        }
-        .user-info {
-            text-align: right;
-            font-size: 0.875rem;
-        }
-        .user-name {
-            font-weight: 600;
-            color: #1E293B;
-        }
-        .user-role {
-            font-size: 0.75rem;
-            color: #64748B;
-            text-transform: uppercase;
-        }
-        .btn-logout {
-            background: #F1F5F9;
-            border: 1px solid #CBD5E1;
-            padding: 0.4rem 0.85rem;
-            border-radius: 0.375rem;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: #475569;
-            cursor: pointer;
-            transition: all 0.15s ease;
-        }
-        .btn-logout:hover {
-            background: #FEE2E2;
-            border-color: #FCA5A5;
-            color: #B91C1C;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-        .balances-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.25rem;
-            margin-bottom: 2rem;
-        }
-        .balance-card {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .balance-title {
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: #64748B;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-        .balance-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1E293B;
-        }
-        .balance-meta {
-            font-size: 0.75rem;
-            color: #94A3B8;
-            margin-top: 0.25rem;
-        }
-        .content-card {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
-        }
-        .content-card h2 {
-            font-size: 1.15rem;
-            margin: 0 0 1rem 0;
-            color: #1E293B;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.875rem;
-        }
-        th, td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid #F1F5F9;
-        }
-        th {
-            background: #F8FAFC;
-            color: #475569;
-            font-weight: 600;
-        }
-        .auth-proof-banner {
-            background: #EFF6FF;
-            border: 1px solid #BFDBFE;
-            color: #1E40AF;
-            padding: 1rem 1.25rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-        .badge-status {
-            padding: 0.2rem 0.5rem;
-            border-radius: 0.25rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .status-Pending { background: #FEF3C7; color: #92400E; }
-        .status-Approved { background: #D1FAE5; color: #065F46; }
-        .status-Rejected { background: #FEE2E2; color: #991B1B; }
-    </style>
-</head>
-<body>
-    <header class="app-header">
-        <div class="app-brand">
-            <span style="font-size: 1.5rem;">👤</span>
-            <span>Employee HRIS & Leave Management System</span>
-            <span class="app-badge">EMPLOYEE SELF-SERVICE</span>
+<?php
+/**
+ * Employee Self-Service Portal Dashboard View
+ * Employee HRIS & Leave Management System
+ */
+
+$userName = $user['name'] ?? $user['username'] ?? 'Employee';
+$empNo = $user['employee_no'] ?? 'EMP-Self';
+?>
+<div class="page-header">
+    <div class="page-title-group">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
+            <h1>Welcome, <?= e($userName) ?></h1>
+            <span class="role-badge emp" style="font-weight: 700; letter-spacing: 0.05em;">EMPLOYEE SELF-SERVICE</span>
         </div>
-        <div class="user-nav">
-            <div class="user-info">
-                <div class="user-name"><?= e($user['name'] ?? $user['username']) ?></div>
-                <div class="user-role">ID: <?= e($user['employee_no'] ?? 'N/A') ?> • <?= e($user['position'] ?? 'Employee') ?></div>
+        <p>Employee Self-Service Portal &bull; Employee ID: <strong style="color: var(--color-primary); font-family: var(--font-mono);"><?= e($empNo) ?></strong></p>
+    </div>
+    <div class="page-actions">
+        <a href="<?= url('/employee/profile') ?>" class="btn btn-secondary btn-sm">
+            <span>👤</span> View My Profile
+        </a>
+        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
+            <span>✍️</span> File Leave Request
+        </a>
+    </div>
+</div>
+
+<!-- Personal Leave Balances Grid -->
+<div class="card" style="margin-bottom: var(--space-6);">
+    <div class="card-header">
+        <h2 class="card-title"><span>⚖️</span> My Leave Balances (<?= date('Y') ?> Allocation)</h2>
+        <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-secondary btn-sm">JSON API View</a>
+    </div>
+    <div class="card-body">
+        <?php if (empty($balances)): ?>
+            <div class="empty-state" style="padding: 1.5rem;">
+                <div class="empty-state-icon" aria-hidden="true">📅</div>
+                <div class="empty-state-title">No Leave Balances Configured</div>
+                <div class="empty-state-text">Your annual leave balances have not yet been initialized by HR for the current year.</div>
             </div>
-            <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
-                <?= csrf_field() ?>
-                <button type="submit" class="btn-logout">Sign Out</button>
-            </form>
-        </div>
-    </header>
-
-    <main class="container">
-        <div class="auth-proof-banner">
-            <strong>✓ Server-Side Employee Authorization Verified:</strong> You are authenticated as <code><?= e($user['username']) ?></code> (Employee: <code><?= e($user['employee_no']) ?></code>). The <code>RoleMiddleware(['employee'])</code> verified your authorization. Employee data is strictly bound to your authenticated identity.
-        </div>
-
-        <div style="margin-bottom: 1rem; display: flex; gap: 0.75rem;">
-            <a href="<?= url('/employee/profile') ?>" style="padding: 0.4rem 0.75rem; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 0.375rem; text-decoration: none; font-size: 0.8125rem; font-weight: 600; color: #334155;">
-                👤 View My Profile (Ownership Test)
-            </a>
-            <a href="<?= url('/employee/leave-balances') ?>" target="_blank" style="padding: 0.4rem 0.75rem; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 0.375rem; text-decoration: none; font-size: 0.8125rem; font-weight: 600; color: #334155;">
-                📊 View Balances API (JSON)
-            </a>
-        </div>
-
-        <h3 style="font-size: 1rem; color: #475569; margin: 0 0 0.75rem 0;">My Leave Balances (FY <?= date('Y') ?>)</h3>
-        <div class="balances-grid">
-            <?php if (!empty($balances)): ?>
-                <?php foreach ($balances as $b): ?>
+        <?php else: ?>
+            <div class="grid grid-cols-3">
+                <?php foreach ($balances as $b): 
+                    $allocated = (int)($b['allocated_days'] ?? 0);
+                    $used = (int)($b['used_days'] ?? 0);
+                    $remaining = (int)($b['remaining_days'] ?? 0);
+                    $pct = $allocated > 0 ? min(100, round(($used / $allocated) * 100)) : 0;
+                ?>
                     <div class="balance-card">
-                        <div class="balance-title"><?= e($b['leave_name']) ?></div>
-                        <div class="balance-value"><?= e((string)$b['remaining_days']) ?> <span style="font-size: 0.875rem; font-weight: normal; color: #64748B;">days left</span></div>
-                        <div class="balance-meta">Allocated: <?= e((string)$b['allocated_days']) ?> • Used: <?= e((string)$b['used_days']) ?></div>
+                        <div class="balance-title">
+                            <strong><?= e($b['leave_name']) ?></strong>
+                            <span class="badge <?= $remaining > 3 ? 'badge-success' : ($remaining > 0 ? 'badge-warning' : 'badge-danger') ?>">
+                                <?= $remaining ?> Day<?= $remaining === 1 ? '' : 's' ?> Left
+                            </span>
+                        </div>
+                        <div class="balance-meter" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($b['leave_name']) ?> usage">
+                            <div class="balance-fill" style="width: <?= $pct ?>%; background-color: <?= $remaining > 3 ? 'var(--color-primary)' : 'var(--color-warning)' ?>;"></div>
+                        </div>
+                        <div class="balance-stats">
+                            <span>Allocated: <strong><?= $allocated ?></strong></span>
+                            <span>Used: <strong><?= $used ?></strong></span>
+                            <span>Remaining: <strong><?= $remaining ?></strong></span>
+                        </div>
                     </div>
                 <?php endforeach; ?>
-            <?php else: ?>
-                <div class="balance-card">
-                    <div class="balance-title">Standard Leaves</div>
-                    <div class="balance-value">0</div>
-                    <div class="balance-meta">No balance records initialized</div>
-                </div>
-            <?php endif; ?>
-        </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
-        <div class="content-card">
-            <h2>
-                <span>My Recent Leave Requests</span>
-            </h2>
-            <table>
-                <thead>
+<!-- Recent Personal Leave Requests -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title"><span>📋</span> My Leave Applications & Status</h2>
+        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
+            <span>➕</span> New Request
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover" aria-label="My Recent Leave Applications">
+            <thead>
+                <tr>
+                    <th>Leave Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Duration</th>
+                    <th>Reason / Notes</th>
+                    <th>Approval Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($pendingLeaves)): ?>
                     <tr>
-                        <th>Leave Type</th>
-                        <th>Duration</th>
-                        <th>Dates</th>
-                        <th>Reason</th>
-                        <th>Status</th>
+                        <td colspan="6" class="text-center" style="padding: 2.5rem; color: var(--color-text-muted);">
+                            <div class="empty-state-icon" aria-hidden="true" style="font-size: 2rem; margin-bottom: 0.5rem;">🏖️</div>
+                            <div>You have no recent leave applications filed.</div>
+                            <div style="margin-top: 0.5rem;">
+                                <a href="<?= url('/leaves/apply') ?>" class="btn btn-outline btn-sm">Submit a Leave Request</a>
+                            </div>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if (!empty($pendingLeaves)): ?>
-                        <?php foreach ($pendingLeaves as $req): ?>
-                            <tr>
-                                <td><strong><?= e($req['leave_name']) ?></strong></td>
-                                <td><?= e((string)$req['number_of_days']) ?> day(s)</td>
-                                <td><?= e($req['start_date']) ?> to <?= e($req['end_date']) ?></td>
-                                <td><?= e($req['reason']) ?></td>
-                                <td>
-                                    <span class="badge-status status-<?= e($req['status']) ?>">
-                                        <?= e($req['status']) ?>
-                                    </span>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <tr><td colspan="5" style="text-align: center; color: #94A3B8;">No leave requests filed yet.</td></tr>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </main>
-</body>
-</html>
+                <?php else: ?>
+                    <?php foreach ($pendingLeaves as $req): 
+                        $status = $req['status'] ?? 'Pending';
+                        $statusBadgeClass = match($status) {
+                            'Approved' => 'badge-success',
+                            'Pending'  => 'badge-warning',
+                            'Rejected' => 'badge-danger',
+                            default    => 'badge-neutral',
+                        };
+                    ?>
+                        <tr>
+                            <td>
+                                <strong><?= e($req['leave_name']) ?></strong>
+                            </td>
+                            <td style="font-size: 0.8125rem;">
+                                <?= date('M j, Y', strtotime($req['start_date'])) ?>
+                            </td>
+                            <td style="font-size: 0.8125rem;">
+                                <?= date('M j, Y', strtotime($req['end_date'])) ?>
+                            </td>
+                            <td>
+                                <strong><?= (int)$req['number_of_days'] ?></strong> Day<?= (int)$req['number_of_days'] === 1 ? '' : 's' ?>
+                            </td>
+                            <td style="font-size: 0.8125rem; color: var(--color-text-muted); max-width: 250px;">
+                                <?= e($req['reason']) ?>
+                            </td>
+                            <td>
+                                <span class="badge <?= $statusBadgeClass ?>">
+                                    <span class="badge-dot" aria-hidden="true"></span>
+                                    <?= e($status) ?>
+                                </span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>

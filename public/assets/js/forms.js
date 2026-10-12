@@ -1,19 +1,23 @@
 /**
  * Employee HRIS & Leave Management System
- * Form Validations, Dynamic Working-Day Calculator & Dependent Dropdowns
+ * Production Form Utilities: Dynamic Working Day Calculator,
+ * Server-Connected Department-to-Position Cascades & Password Toggles
  */
 
 document.addEventListener('DOMContentLoaded', () => {
     initWorkingDayCalculator();
-    initDepartmentPositionDropdowns();
+    initDepartmentPositionCascade();
     initPasswordToggles();
 });
 
-// Dynamic Working Days Calculator (Monday through Friday, excluding weekends)
+/**
+ * Dynamic Working Days Calculator (Monday-Friday, excluding weekends)
+ */
 function initWorkingDayCalculator() {
-    const startDateInput = document.getElementById('leaveStartDate');
-    const endDateInput = document.getElementById('leaveEndDate');
+    const startDateInput = document.getElementById('leaveStartDate') || document.querySelector('input[name="start_date"]');
+    const endDateInput = document.getElementById('leaveEndDate') || document.querySelector('input[name="end_date"]');
     const displaySpan = document.getElementById('calculatedDaysDisplay');
+    const daysHiddenInput = document.getElementById('numberOfDaysInput') || document.querySelector('input[name="number_of_days"]');
     const errorNotice = document.getElementById('dateValidationError');
 
     if (startDateInput && endDateInput && displaySpan) {
@@ -23,6 +27,7 @@ function initWorkingDayCalculator() {
 
             if (!startVal || !endVal) {
                 displaySpan.textContent = "0 Working Days";
+                if (daysHiddenInput) daysHiddenInput.value = 0;
                 return;
             }
 
@@ -36,13 +41,14 @@ function initWorkingDayCalculator() {
                 }
                 displaySpan.textContent = "Invalid date sequence";
                 displaySpan.style.color = "var(--color-error)";
+                if (daysHiddenInput) daysHiddenInput.value = 0;
                 return;
             }
 
             if (errorNotice) {
                 errorNotice.style.display = "none";
             }
-            displaySpan.style.color = "var(--color-text-primary)";
+            displaySpan.style.color = "var(--color-text-main)";
 
             // Count business days (Mon-Fri)
             let count = 0;
@@ -57,13 +63,14 @@ function initWorkingDayCalculator() {
             }
 
             displaySpan.textContent = `${count} Working Day${count === 1 ? '' : 's'} (Excludes Weekends)`;
-            
-            // Check balance limit if balance element exists
-            const maxDaysEl = document.getElementById('availableDaysNotice');
-            if (maxDaysEl && count > 0) {
-                const max = parseInt(maxDaysEl.dataset.remaining || "12", 10);
-                if (count > max) {
-                    displaySpan.textContent += ` — Exceeds ${max} days balance!`;
+            if (daysHiddenInput) daysHiddenInput.value = count;
+
+            // Check against remaining leave balance if attribute exists
+            const typeSelect = document.getElementById('leaveTypeSelect');
+            if (typeSelect && typeSelect.selectedOptions.length) {
+                const max = parseInt(typeSelect.selectedOptions[0].getAttribute('data-balance') || "999", 10);
+                if (count > max && max < 900) {
+                    displaySpan.textContent += ` — Warning: Exceeds ${max} available days!`;
                     displaySpan.style.color = "var(--color-error)";
                 }
             }
@@ -71,54 +78,72 @@ function initWorkingDayCalculator() {
 
         startDateInput.addEventListener('change', calculateDays);
         endDateInput.addEventListener('change', calculateDays);
+        const typeSelect = document.getElementById('leaveTypeSelect');
+        if (typeSelect) typeSelect.addEventListener('change', calculateDays);
     }
 }
 
-// Dependent Department -> Position Dropdown
-function initDepartmentPositionDropdowns() {
-    const deptSelect = document.getElementById('departmentSelect');
-    const posSelect = document.getElementById('positionSelect');
+/**
+ * Server-Connected Department -> Position Cascading Dropdown
+ */
+function initDepartmentPositionCascade() {
+    const deptSelect = document.getElementById('departmentSelect') || document.querySelector('select[name="department_id"]');
+    const posSelect = document.getElementById('positionSelect') || document.querySelector('select[name="position_id"]');
 
     if (deptSelect && posSelect) {
-        deptSelect.addEventListener('change', () => {
-            const selectedDeptId = parseInt(deptSelect.value, 10);
-            posSelect.innerHTML = '<option value="">-- Select Position --</option>';
-
-            if (!selectedDeptId) {
+        deptSelect.addEventListener('change', async () => {
+            const deptId = deptSelect.value;
+            if (!deptId) {
+                posSelect.innerHTML = '<option value="">-- Select Department First --</option>';
                 posSelect.disabled = true;
                 return;
             }
 
-            const filteredPositions = PrototypeData.positions.filter(p => p.departmentId === selectedDeptId);
-            filteredPositions.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                posSelect.appendChild(opt);
-            });
+            posSelect.disabled = true;
+            posSelect.innerHTML = '<option value="">Loading job positions...</option>';
 
-            posSelect.disabled = false;
+            try {
+                // Fetch live positions from backend endpoint
+                const res = await fetch(`/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/hr/api/positions-by-department/${deptId}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) throw new Error('Network error loading positions');
+                const data = await res.json();
+                const positions = data.positions || [];
+
+                posSelect.innerHTML = '<option value="">-- Select Position --</option>';
+                if (positions.length === 0) {
+                    posSelect.innerHTML += '<option value="" disabled>No active positions in this department</option>';
+                } else {
+                    positions.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id;
+                        opt.textContent = p.position_name;
+                        posSelect.appendChild(opt);
+                    });
+                }
+                posSelect.disabled = false;
+            } catch (err) {
+                console.error(err);
+                posSelect.innerHTML = '<option value="">-- Failed to load positions --</option>';
+            }
         });
     }
 }
 
-// Password Visibility Toggle
+/**
+ * Password Visibility Toggles
+ */
 function initPasswordToggles() {
-    const toggles = document.querySelectorAll('.password-toggle-btn');
-    toggles.forEach(btn => {
+    document.querySelectorAll('[data-toggle="password"]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetInputId = btn.dataset.target;
-            const input = document.getElementById(targetInputId);
-            if (input) {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    btn.textContent = '🙈';
-                    btn.setAttribute('aria-label', 'Hide password');
-                } else {
-                    input.type = 'password';
-                    btn.textContent = '👁️';
-                    btn.setAttribute('aria-label', 'Show password');
-                }
+            const targetId = btn.getAttribute('data-target');
+            const target = document.getElementById(targetId);
+            if (target) {
+                const isPass = target.type === 'password';
+                target.type = isPass ? 'text' : 'password';
+                btn.textContent = isPass ? 'Hide' : 'Show';
+                btn.setAttribute('aria-label', isPass ? 'Hide password' : 'Show password');
             }
         });
     });

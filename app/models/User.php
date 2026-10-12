@@ -190,4 +190,84 @@ class User extends Model
             return false;
         }
     }
+
+    /**
+     * Retrieve all system user accounts joined with employee, department, and position data.
+     *
+     * @return array
+     */
+    public function getAllWithDetails(): array
+    {
+        $sql = "
+            SELECT 
+                u.id,
+                u.employee_id,
+                u.username,
+                u.role,
+                u.status,
+                u.created_at,
+                e.employee_no,
+                e.first_name,
+                e.last_name,
+                e.email,
+                e.employment_status,
+                d.department_name,
+                p.position_name
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            ORDER BY u.id ASC
+        ";
+
+        return $this->fetchAll($sql);
+    }
+
+    /**
+     * Count active HR administrator accounts, optionally excluding a specific user ID.
+     * Essential for protecting against last-active-HR lockout.
+     *
+     * @param int|null $excludeUserId
+     * @return int
+     */
+    public function countActiveHr(?int $excludeUserId = null): int
+    {
+        if ($excludeUserId !== null) {
+            $sql = "SELECT COUNT(*) FROM users WHERE role = 'hr' AND status = 'Active' AND id != :exclude_id";
+            return (int)$this->fetchColumn($sql, ['exclude_id' => $excludeUserId]);
+        }
+
+        $sql = "SELECT COUNT(*) FROM users WHERE role = 'hr' AND status = 'Active'";
+        return (int)$this->fetchColumn($sql);
+    }
+
+    /**
+     * Count active administrator accounts (delegates to countActiveHr for 2-role system).
+     *
+     * @param int|null $excludeUserId
+     * @return int
+     */
+    public function countActiveAdmins(?int $excludeUserId = null): int
+    {
+        return $this->countActiveHr($excludeUserId);
+    }
+
+    /**
+     * Update a user account's assigned role and operational status.
+     *
+     * @param int $id
+     * @param string $role Validated role ('admin', 'hr', 'employee')
+     * @param string $status Validated status ('Active', 'Inactive')
+     * @return bool
+     */
+    public function updateRoleAndStatus(int $id, string $role, string $status): bool
+    {
+        $sql = "UPDATE users SET role = :role, status = :status WHERE id = :id";
+        return $this->execute($sql, [
+            'role'   => $role,
+            'status' => $status,
+            'id'     => $id,
+        ]);
+    }
 }
+

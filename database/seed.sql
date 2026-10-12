@@ -50,14 +50,13 @@ ON DUPLICATE KEY UPDATE `employee_no` = VALUES(`employee_no`);
 -- -----------------------------------------------------------------------------
 -- 4. Users Seed (Authentication Accounts)
 -- Development Credentials:
---   admin  / Admin@123    (Role: admin)
 --   hr01   / Admin@123    (Role: hr)
+--   hr02   / Admin@123    (Role: hr)
 --   emp004 / Employee@123 (Role: employee - David Cruz)
 --   emp005 / Employee@123 (Role: employee - Maria Santos)
 --   emp006 / Employee@123 (Role: employee - Juan Dela Cruz)
 -- -----------------------------------------------------------------------------
 INSERT INTO `users` (`id`, `employee_id`, `username`, `password`, `role`, `status`, `created_at`) VALUES
-(1, 1, 'admin', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'admin', 'Active', NOW()),
 (2, 2, 'hr01', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
 (3, 3, 'hr02', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
 (4, 4, 'emp004', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),

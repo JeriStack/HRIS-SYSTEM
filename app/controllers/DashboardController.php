@@ -47,11 +47,11 @@ class DashboardController extends Controller
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('dashboard.hr', [
-            'pageTitle'       => 'HR & Administration Dashboard - Employee HRIS',
+            'pageTitle'       => 'HR Dashboard - Employee HRIS',
             'user'            => currentUser(),
             'metrics'         => $metrics,
             'recentEmployees' => $recentEmployees,
-        ], null);
+        ], 'hr');
     }
 
     /**
@@ -129,7 +129,7 @@ class DashboardController extends Controller
             'user'          => $user,
             'balances'      => $balances,
             'pendingLeaves' => $pendingLeaves,
-        ], null);
+        ], 'hr');
     }
 
     /**
@@ -179,7 +179,7 @@ class DashboardController extends Controller
             'pageTitle' => 'My Personal Profile - Employee HRIS',
             'user'      => $user,
             'profile'   => $profile,
-        ], null);
+        ], 'hr');
     }
 
     /**
@@ -210,6 +210,17 @@ class DashboardController extends Controller
         ");
         $stmt->execute(['emp_id' => $myEmpId]);
         $balances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Render full HTML view when requested by browser
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
+            $this->view('dashboard.employee_balances', [
+                'pageTitle' => 'My Leave Balances - Employee Self-Service',
+                'user'      => $user,
+                'balances'  => $balances,
+                'year'      => (int)date('Y'),
+            ], 'hr');
+            return;
+        }
 
         $this->json([
             'status'      => 'success',
@@ -248,6 +259,16 @@ class DashboardController extends Controller
         ");
         $stmt->execute(['emp_id' => $myEmpId]);
         $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Render full HTML view when requested by browser
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
+            $this->view('dashboard.employee_requests', [
+                'pageTitle' => 'My Leave Applications - Employee Self-Service',
+                'user'      => $user,
+                'requests'  => $requests,
+            ], 'hr');
+            return;
+        }
 
         $this->json([
             'status'      => 'success',

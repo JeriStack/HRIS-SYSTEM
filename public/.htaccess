@@ -1,5 +1,5 @@
 # ==============================================================================
-# Apache Configuration for HRIS Front Controller
+# Apache Configuration for HRIS Front Controller & Production Security Headers
 # Employee HRIS & Leave Management System
 # ==============================================================================
 
@@ -16,6 +16,24 @@ Options -Indexes -MultiViews
 
     # Otherwise route all HTTP requests through the front controller
     RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Security Headers (Production Hardening)
+<IfModule mod_headers.c>
+    # Prevent clickjacking by restricting framing
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Prevent MIME-type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Legacy XSS protection filter
+    Header always set X-XSS-Protection "1; mode=block"
+
+    # Protect referrer information on external links
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Restrict unnecessary browser APIs
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
 </IfModule>
 
 # Deny direct browser access to hidden files (.git, .env, .htaccess)

@@ -5,13 +5,13 @@
  */
 
 return [
-    'driver'    => 'mysql',
-    'host'      => '127.0.0.1',
-    'port'      => 3306,
-    'database'  => 'hris_db',
-    'username'  => 'root',
-    'password'  => '',
-    'charset'   => 'utf8mb4',
+    'driver'    => getenv('DB_DRIVER') ?: 'mysql',
+    'host'      => getenv('DB_HOST') ?: '127.0.0.1',
+    'port'      => (int)(getenv('DB_PORT') ?: 3306),
+    'database'  => getenv('DB_DATABASE') ?: 'hris_db',
+    'username'  => getenv('DB_USERNAME') ?: 'root',
+    'password'  => getenv('DB_PASSWORD') !== false ? getenv('DB_PASSWORD') : '',
+    'charset'   => getenv('DB_CHARSET') ?: 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
     'options'   => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,

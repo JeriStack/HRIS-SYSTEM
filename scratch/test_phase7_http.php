@@ -132,15 +132,15 @@ assertHttpTest('Employee denied state-changing POST /hr/employees/{id}/deactivat
 // -------------------------------------------------------------------------
 echo "\n--- 3. HR / ADMIN CORE HRIS CRUD OPERATIONS ---\n";
 
-// Log in as Admin
+// Log in as HR
 $loginPageAdmin = makeRequest($baseUrl . '/login', 'GET', [], $cookieFileAdmin);
 $csrfAdmin = extractCsrfToken($loginPageAdmin['body']);
 $adminLogin = makeRequest($baseUrl . '/login', 'POST', [
     '_csrf_token' => $csrfAdmin,
-    'username'    => 'admin',
+    'username'    => 'hr01',
     'password'    => 'Admin@123'
 ], $cookieFileAdmin);
-assertHttpTest('Admin login successful', $adminLogin['code'] === 302, "HTTP {$adminLogin['code']}");
+assertHttpTest('HR login successful', $adminLogin['code'] === 302, "HTTP {$adminLogin['code']}");
 
 // 3.1 HR views Employee Directory
 $hrDir = makeRequest($baseUrl . '/hr/employees', 'GET', [], $cookieFileAdmin);
@@ -172,8 +172,8 @@ $noCsrfPost = makeRequest($baseUrl . '/hr/employees', 'POST', [
 assertHttpTest('POST /hr/employees without CSRF token returns 403 Forbidden', $noCsrfPost['code'] === 403);
 
 // 3.7 Add Employee with valid CSRF token
-$newEmpNo = 'EMP' . rand(800, 999);
-$newEmpEmail = 'live.http.' . time() . '@company.local';
+$newEmpNo = 'EMP' . rand(10000, 99999);
+$newEmpEmail = 'live.http.' . time() . '.' . rand(100, 999) . '@company.local';
 $createEmpPost = makeRequest($baseUrl . '/hr/employees', 'POST', [
     '_csrf_token'       => $formCsrf,
     'employee_no'       => $newEmpNo,
