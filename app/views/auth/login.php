@@ -209,7 +209,7 @@
                        id="loginUsername" 
                        name="username" 
                        class="form-input" 
-                       placeholder="e.g. admin or emp004" 
+                       placeholder="e.g. hr01 or emp004" 
                        value="<?= e($oldUsername ?? '') ?>"
                        required 
                        autofocus 
@@ -243,11 +243,11 @@
         <div class="demo-credentials">
             <strong>Demonstration Accounts:</strong>
             <div class="quick-login-grid">
-                <button type="button" class="btn-quick" onclick="quickFill('admin', 'Admin@123')">
-                    👑 HR Admin
+                <button type="button" class="btn-quick" onclick="quickFill('hr01', 'Admin@123')">
+                    👩‍💼 HR Officer (hr01)
                 </button>
                 <button type="button" class="btn-quick" onclick="quickFill('emp004', 'Employee@123')">
-                    👤 Employee (David)
+                    👤 Employee (emp004)
                 </button>
             </div>
             <div style="margin-top: 0.6rem; text-align: center; color: #94A3B8;">

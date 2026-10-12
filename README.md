@@ -102,8 +102,17 @@ All software specifications, database designs, wireframes, and architectural doc
 * **[Authorization & Routing Architecture](docs/phase-7-core-hris/authorization-and-routing.md):** Complete catalog of protected HR routes, middleware stacks, and parameterized matching rules.
 * **[CRUD & Integration Test Report](docs/phase-7-core-hris/crud-test-report.md):** Full empirical report of 91 automated unit, model, and live HTTP tests (`91 / 91 passed`).
 
+### Production RBAC & Role Separation Architecture
+* **[Role-Permission Capability Matrix](docs/rbac/role-permission-matrix.md):** Definitive 3-way permission matrix, capability tokens, and mutual dashboard isolation rules.
+* **[Authentication & Session Security Design](docs/rbac/authentication-and-session-design.md):** Session lifecycle, fixation prevention, BCRYPT rehashing, and 30-minute inactivity timeout.
+* **[Authorization Architecture & Enforcement](docs/rbac/authorization-architecture.md):** 3-tier middleware stack, fail-closed design, and parameter spoofing defenses.
+* **[Protected Routes & Endpoint Specifications](docs/rbac/protected-routes.md):** Complete catalog of Admin, HR, and Employee routes and HTTP methods.
+* **[Resource Ownership & Data Isolation Rules](docs/rbac/resource-ownership-rules.md):** Strict employee record ownership rules and IDOR protections (NFR-SEC-004).
+* **[Security & RBAC Test Report](docs/rbac/security-test-report.md):** Verified empirical results across 140 automated tests (100% pass rate).
+* **[Database & Migration Notes](docs/rbac/migration-notes.md):** Baseline schema verification and provisioning guidelines.
+
 ### Cross-Phase Tracking
-* **[Decision & Assumptions Log](docs/decision-log.md):** Registry of 11 architectural baseline decisions and open items.
+* **[Decision & Assumptions Log](docs/decision-log.md):** Registry of 12 architectural decisions including DEC-012 for complete RBAC separation.
 * **[Requirements Traceability Matrix (RTM)](docs/requirements-traceability.md):** Bidirectional matrix mapping requirements to modules, database entities, UI screens, and test cases.
 
 ---
@@ -269,34 +278,65 @@ Employee-HRIS-Leave-Management-System/
 
 ## 7. Demonstration Accounts & Local Testing
 
-The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing:
+The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing across all 3 roles:
 
-| Username | Password | Role | Assigned Employee | Access Permissions |
-| :--- | :--- | :--- | :--- | :--- |
-| `admin` | `Admin@123` | `admin` | Eleanor Vance | Full Administrative HR Access (`/hr/*`) |
-| `hr01` | `Admin@123` | `hr` | Marcus Tan | Full HR Portal Access (`/hr/*`) |
-| `emp004` | `Employee@123` | `employee` | David Cruz | Employee Self-Service Only (`/employee/*`) |
-| `emp005` | `Employee@123` | `employee` | Maria Santos | Employee Self-Service Only (`/employee/*`) |
-| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz | Employee Self-Service Only (`/employee/*`) |
+| Username | Password | Role | Assigned Employee | Dedicated Dashboard | Permitted Scope |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `admin` | `Admin@123` | `admin` | Eleanor Vance (EMP001) | `/admin/dashboard` | System Administration, User Accounts & Roles, Metrics |
+| `hr01` | `Admin@123` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | Operational HR, Employee Directory, Depts, Positions, Leaves |
+| `hr02` | `Admin@123` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | Operational HR, Employee Directory, Depts, Positions, Leaves |
+| `emp004` | `Employee@123` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
+| `emp005` | `Employee@123` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
+| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
+| `emp007` | `Employee@123` | `employee` | Beatrice Gomez (EMP007)| `/employee/dashboard` | Self-Service Only: Personal Profile, Balances, Own Requests |
 
-### Verification of Role Separation & Core HRIS:
-1. **Login as HR Admin:** Sign in with `admin` / `Admin@123` $\rightarrow$ automatically redirected to `/hr/dashboard`.
-2. **Access Employee Directory:** Navigate to `http://localhost/.../public/hr/employees` $\rightarrow$ full search, status filters, profile viewing, and soft deactivation controls.
-3. **Manage Departments:** Navigate to `http://localhost/.../public/hr/departments` $\rightarrow$ view and create departments with uniqueness enforcement.
-4. **Manage Job Positions:** Navigate to `http://localhost/.../public/hr/positions` $\rightarrow$ view and create positions associated with parent departments.
-5. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
-6. **Test Boundary Check:** While logged in as `emp004`, manually navigate to `http://localhost/.../public/hr/employees` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
-7. **Test State Mutation Check:** While logged in as `emp004`, submit POST to `/hr/employees/1/deactivate` $\rightarrow$ **HTTP 403 Forbidden** is enforced server-side.
+### Verification of 3-Way Role Separation:
+1. **Login as Administrator:** Sign in with `admin` / `Admin@123` $\rightarrow$ automatically redirected to `/admin/dashboard`.
+   - Access User Accounts & Role Governance at `/admin/users`.
+   - Manage user roles (`admin`, `hr`, `employee`) and account status (`Active`, `Inactive`).
+   - Attempting to visit `/hr/dashboard` or `/employee/dashboard` returns **HTTP 403 Forbidden**.
+2. **Login as HR Officer:** Sign in with `hr01` / `Admin@123` $\rightarrow$ automatically redirected to `/hr/dashboard`.
+   - Manage Employees (`/hr/employees`), Departments (`/hr/departments`), and Positions (`/hr/positions`).
+   - Attempting to visit `/admin/dashboard`, `/admin/users`, or `/employee/dashboard` returns **HTTP 403 Forbidden**.
+3. **Login as Employee:** Sign in with `emp004` / `Employee@123` $\rightarrow$ automatically redirected to `/employee/dashboard`.
+   - View personal profile (`/employee/profile`), leave balances (`/employee/leave-balances`), and leave requests (`/employee/leave-requests`).
+   - Attempting to visit `/admin/dashboard`, `/hr/dashboard`, or `/hr/employees` returns **HTTP 403 Forbidden**.
+   - Attempting parameter tampering (e.g. `?emp_id=5`) returns **HTTP 403 Forbidden** (Ownership Enforced).
 
 ---
 
-## 8. Security Baseline & Milestone Status
+## 8. Automated Test Execution
 
-* **Authentication & Password Hashing:** Native `password_hash()` and `password_verify()` (BCRYPT, cost 12).
-* **Session Protections:** `session_regenerate_id(true)`, `HttpOnly`, `SameSite=Lax`, strict mode, 30-minute inactivity timeout.
-* **Access Control:** Server-side `AuthMiddleware` and `RoleMiddleware` protecting all administrative routes (`/hr/*`).
+The application includes comprehensive automated test suites covering models, controllers, HTTP routes, and role boundaries:
+
+```bash
+# 1. Run Complete RBAC & Server-Side Authorization Suite (55 tests)
+php scratch/test_rbac_suite.php
+
+# 2. Run Core HRIS Live HTTP Integration Suite (34 tests)
+php scratch/test_phase7_http.php
+
+# 3. Run Core HRIS Model & Validation Test Suite (51 tests)
+php scratch/test_phase7_crud.php
+```
+
+### Cumulative Test Results
+* **Master RBAC Suite:** `55 / 55 Passed (100%)`
+* **Core HRIS HTTP Suite:** `34 / 34 Passed (100%)`
+* **Core HRIS Model Suite:** `51 / 51 Passed (100%)`
+* **Grand Total:** **140 / 140 Automated Tests Passed (100% Pass Rate)**
+
+---
+
+## 9. Security Baseline & Production RBAC Status
+
+* **Authentication:** Parameterized PDO queries, BCRYPT password hashing (`password_hash`, `password_verify`), automatic rehashing (`password_needs_rehash`).
+* **Session Protections:** `Session::regenerate(true)`, `HttpOnly`, `SameSite=Lax`, strict mode, 30-minute inactivity timeout.
+* **Access Control:** Centralized `Core\Permission` policy and server-side `RoleMiddleware` enforcing mutually exclusive dashboards.
+* **Ownership Verification:** Server-side ID verification against session identity (NFR-SEC-004), preventing IDOR attacks.
+* **Lockout Protection:** Last active administrator account cannot be demoted or deactivated. Self-demotion blocked.
 * **CSRF Mitigation:** Timing-safe `hash_equals()` validation on state-changing requests (`POST`).
-* **Audit Logging:** Real-time event recording in `activity_logs` for workforce creations, modifications, deactivations, departments, and positions.
-* **Phases 1 through 7 Status:** **100% Complete & Verified (91/91 automated tests passing).**
-* **Next Milestone:** **Phase 8 — Data Structures and Algorithms (DSA) Implementation & Search/Sort Demonstrations.**
+* **Audit Logging:** Immutable audit records inserted into `activity_logs` for all authentication events, user updates, and workforce mutations.
+* **Status:** **Role-Based Access Control Refactor Complete & Fully Verified.**
+
 

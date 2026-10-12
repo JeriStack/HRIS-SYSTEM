@@ -45,6 +45,27 @@ spl_autoload_register(function (string $class) {
     }
 });
 
+// 1.5 Load Environment Variables (.env) if present
+$envFile = __DIR__ . '/../.env';
+if (file_exists($envFile) && is_readable($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+        if (str_contains($line, '=')) {
+            [$name, $val] = explode('=', $line, 2);
+            $name = trim($name);
+            $val = trim($val, " \t\n\r\0\x0B\"'");
+            if (!array_key_exists($name, $_ENV)) {
+                $_ENV[$name] = $val;
+                putenv("{$name}={$val}");
+            }
+        }
+    }
+}
+
 // 2. Load Core Functions Helper
 require_once __DIR__ . '/functions.php';
 

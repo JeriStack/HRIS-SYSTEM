@@ -85,6 +85,17 @@ class Router
             $path = substr($path, strlen($basePath));
         }
 
+        // Also handle if accessed without /public in base path (e.g. /GitHub_Clone_File_Projects/HRIS-SYSTEM/)
+        if ($basePath) {
+            $baseWithoutPublic = preg_replace('#/public/?$#', '', $basePath);
+            if ($baseWithoutPublic && $baseWithoutPublic !== '/' && str_starts_with($path, $baseWithoutPublic)) {
+                $path = substr($path, strlen($baseWithoutPublic));
+                if (str_starts_with($path, '/public')) {
+                    $path = substr($path, strlen('/public'));
+                }
+            }
+        }
+
         // Also handle direct index.php in URI if present
         if (str_starts_with($path, '/index.php')) {
             $path = substr($path, strlen('/index.php'));

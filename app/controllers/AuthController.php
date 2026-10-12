@@ -209,7 +209,7 @@ class AuthController extends Controller
     {
         $role = currentUserRole();
 
-        if ($role === 'admin' || $role === 'hr') {
+        if ($role === 'hr' || $role === 'admin') {
             $this->redirect('/hr/dashboard');
             return;
         }

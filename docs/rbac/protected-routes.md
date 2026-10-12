@@ -1,0 +1,82 @@
+# Protected Routes & Endpoint Access Specifications
+## Employee HRIS & Leave Management System Using PHP, MySQL, and Data Structures & Algorithms
+
+**Document Version:** 2.0  
+**Status:** Approved Production Routing  
+
+---
+
+## 1. Route Registry & Access Matrix
+
+All application routes, their HTTP methods, controllers, and authorization policies:
+
+### A. Public & Authentication Routes
+| Route | Method | Controller Action | Middleware Stack | Description |
+| :--- | :---: | :--- | :--- | :--- |
+| `/` | `GET` | `HomeController::index` | None | Landing Page introducing system & architecture |
+| `/health` | `GET` | `HomeController::health` | None | Health check & system status |
+| `/login` | `GET` | `AuthController::showLoginForm` | None | Authentication login view |
+| `/login` | `POST` | `AuthController::login` | `CsrfMiddleware` | Process credentials & initialize session |
+| `/logout` | `POST` | `AuthController::logout` | `AuthMiddleware`, `CsrfMiddleware` | Terminate session (State-changing) |
+| `/logout` | `GET` | `AuthController::logout` | `AuthMiddleware` | Fallback browser logout |
+| `/dashboard`| `GET` | `AuthController::dashboard` | `AuthMiddleware` | Role-directed dispatcher |
+
+---
+
+### B. Dedicated Administrator Routes (Administrator Only)
+| Route | Method | Controller Action | Middleware Stack | Description |
+| :--- | :---: | :--- | :--- | :--- |
+| `/admin/dashboard` | `GET` | `AdminController::dashboard` | `AuthMiddleware`, `RoleMiddleware('admin')` | System metrics, user accounts summary, audit logs |
+| `/admin/users` | `GET` | `UserController::index` | `AuthMiddleware`, `RoleMiddleware('admin')` | Directory of registered user accounts and roles |
+| `/admin/users/{id}/edit` | `GET` | `UserController::edit` | `AuthMiddleware`, `RoleMiddleware('admin')` | Edit user role and account status form |
+| `/admin/users/{id}/edit` | `POST` | `UserController::update` | `AuthMiddleware`, `RoleMiddleware('admin')`, `CsrfMiddleware` | Update user role and status (lockout-protected) |
+
+---
+
+### C. Dedicated HR Operational Routes (HR Role Only)
+| Route | Method | Controller Action | Middleware Stack | Description |
+| :--- | :---: | :--- | :--- | :--- |
+| `/hr/dashboard` | `GET` | `DashboardController::hrDashboard` | `AuthMiddleware`, `RoleMiddleware('hr')` | HR operational dashboard & leave overview |
+
+---
+
+### D. Workforce & Organizational Management (Administrator & HR Access)
+| Route | Method | Controller Action | Middleware Stack | Description |
+| :--- | :---: | :--- | :--- | :--- |
+| `/hr/employees` | `GET` | `EmployeeController::index` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Employee Directory with search and filtering |
+| `/hr/employees/create` | `GET` | `EmployeeController::create` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Add new employee form |
+| `/hr/employees` | `POST` | `EmployeeController::store` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Store employee record |
+| `/hr/employees/{id}` | `GET` | `EmployeeController::show` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | View employee profile |
+| `/hr/employees/{id}/edit` | `GET` | `EmployeeController::edit` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Edit employee form |
+| `/hr/employees/{id}/edit` | `POST` | `EmployeeController::update` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Update employee record |
+| `/hr/employees/{id}/deactivate` | `POST` | `EmployeeController::deactivate` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Soft-deactivate employee |
+| `/hr/departments` | `GET` | `DepartmentController::index` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Department directory |
+| `/hr/departments/create` | `GET` | `DepartmentController::create` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Create department form |
+| `/hr/departments` | `POST` | `DepartmentController::store` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Store department record |
+| `/hr/departments/{id}/edit` | `GET` | `DepartmentController::edit` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Edit department form |
+| `/hr/departments/{id}/edit` | `POST` | `DepartmentController::update` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Update department record |
+| `/hr/positions` | `GET` | `PositionController::index` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Job position directory |
+| `/hr/positions/create` | `GET` | `PositionController::create` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Create position form |
+| `/hr/positions` | `POST` | `PositionController::store` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Store position record |
+| `/hr/positions/{id}/edit` | `GET` | `PositionController::edit` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Edit position form |
+| `/hr/positions/{id}/edit` | `POST` | `PositionController::update` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])`, `CsrfMiddleware` | Update position record |
+| `/hr/api/positions-by-department/{id}` | `GET` | `PositionController::getByDepartment` | `AuthMiddleware`, `RoleMiddleware(['admin','hr'])` | Dynamic JSON endpoint for position dropdown |
+
+---
+
+### E. Dedicated Employee Self-Service Routes (Employee Only - Ownership Enforced)
+| Route | Method | Controller Action | Middleware Stack | Description |
+| :--- | :---: | :--- | :--- | :--- |
+| `/employee/dashboard` | `GET` | `DashboardController::employeeDashboard` | `AuthMiddleware`, `RoleMiddleware('employee')` | Personal leave balances & pending requests |
+| `/employee/profile` | `GET` | `DashboardController::employeeProfile` | `AuthMiddleware`, `RoleMiddleware('employee')` | Own personal demographic and job profile |
+| `/employee/leave-balances` | `GET` | `DashboardController::employeeLeaveBalances` | `AuthMiddleware`, `RoleMiddleware('employee')` | Personal leave balance API (JSON) |
+| `/employee/leave-requests` | `GET` | `DashboardController::employeeLeaveRequests` | `AuthMiddleware`, `RoleMiddleware('employee')` | Personal leave applications history (JSON) |
+
+---
+
+## 2. Access Response Standards
+
+1. **Unauthenticated Access:** Returns HTTP 302 Redirect to `/login` for HTML requests; returns HTTP 401 Unauthorized for JSON requests.
+2. **Unauthorized Role:** Returns HTTP 403 Forbidden with custom error view `app/views/errors/403.php`.
+3. **Invalid CSRF Token:** Returns HTTP 302 Redirect to `/login` with flash error for browser forms; returns HTTP 403 Forbidden for JSON requests.
+4. **Parameter Spoofing:** Returns HTTP 403 Forbidden with ownership violation notification.

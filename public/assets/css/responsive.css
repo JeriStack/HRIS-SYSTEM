@@ -1,10 +1,21 @@
 /**
  * Employee HRIS & Leave Management System
- * Responsive Media Queries & Print Stylesheet
+ * Production Responsive Media Queries & Print Stylesheet
+ * Breakpoints: Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+)
  */
 
 /* ==========================================================================
-   1. Tablet Breakpoint (768px - 1023px)
+   1. Laptop / Small Desktop Breakpoint (1024px - 1280px)
+   ========================================================================== */
+@media (max-width: 1280px) {
+    .content-container,
+    .app-content {
+        padding: var(--space-5) var(--space-6);
+    }
+}
+
+/* ==========================================================================
+   2. Tablet Breakpoint (768px - 1023px)
    ========================================================================== */
 @media (max-width: 1023px) {
     :root {
@@ -21,19 +32,22 @@
 }
 
 /* ==========================================================================
-   2. Mobile Breakpoint (< 768px)
+   3. Mobile Breakpoint (< 768px)
    ========================================================================== */
 @media (max-width: 767px) {
-    /* Layout Adaptations */
+    /* Off-canvas Navigation Drawer */
     .app-sidebar {
         transform: translateX(-100%);
         box-shadow: var(--shadow-xl);
+        z-index: 1050;
     }
 
-    body.sidebar-open .app-sidebar {
+    body.sidebar-open .app-sidebar,
+    .app-sidebar.active {
         transform: translateX(0);
     }
 
+    /* Modal / Drawer Overlay Backdrop */
     body.sidebar-open::after {
         content: "";
         position: fixed;
@@ -41,30 +55,36 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(15, 23, 42, 0.5);
-        z-index: 95;
+        background-color: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(2px);
+        z-index: 1040;
     }
 
-    .app-container {
-        margin-left: 0;
+    /* Content Canvas */
+    .app-container,
+    .main-content {
+        margin-left: 0 !important;
+        width: 100%;
     }
 
-    .header-toggle {
-        display: block;
+    .header-toggle,
+    .sidebar-toggle {
+        display: inline-flex !important;
     }
 
     .header-breadcrumb {
         display: none;
     }
 
-    .app-content {
-        padding: 1rem;
+    .app-content,
+    .content-container {
+        padding: var(--space-4) var(--space-4);
     }
 
     .page-header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: var(--space-3);
     }
 
     .page-actions {
@@ -73,7 +93,7 @@
         flex-wrap: wrap;
     }
 
-    /* Grids & Forms Flatten to Single Column */
+    /* Grids Flatten to Single Column */
     .grid-cols-4,
     .grid-cols-3,
     .grid-cols-2 {
@@ -86,7 +106,7 @@
 
     /* Stat Cards Compact Layout */
     .stat-card {
-        padding: 1rem;
+        padding: var(--space-4);
     }
 
     .stat-value {
@@ -94,19 +114,22 @@
     }
 
     /* Table Horizontal Scrolling */
-    .table-container {
+    .table-responsive {
         border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
     }
 
     .table th,
     .table td {
         padding: 0.65rem 0.75rem;
+        font-size: 0.8125rem;
     }
 
-    /* Modals Full Width on Mobile */
-    .modal {
+    /* Modals Responsive */
+    .modal,
+    .modal-card {
         max-width: 100%;
-        margin: 0.5rem;
+        margin: var(--space-3);
     }
 
     .modal-footer {
@@ -117,62 +140,77 @@
         width: 100%;
     }
 
-    /* Role Switcher */
-    .role-switcher-badge span {
+    /* Filter Bar Responsive */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-bar .search-input-wrap,
+    .filter-bar .form-select,
+    .filter-bar .btn {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   4. Extra Small Mobile Breakpoint (< 420px)
+   ========================================================================== */
+@media (max-width: 420px) {
+    .top-bar-right .badge,
+    .header-right .role-badge {
+        display: none;
+    }
+
+    .top-bar-right span:not(.badge),
+    .header-user-meta {
         display: none;
     }
 }
 
 /* ==========================================================================
-   3. Print Stylesheet (@media print)
+   5. Print Stylesheet (@media print)
    ========================================================================== */
 @media print {
     body {
-        background: #FFFFFF;
-        color: #000000;
-        font-size: 12pt;
+        background: #FFFFFF !important;
+        color: #000000 !important;
+        font-size: 11pt;
     }
 
     .app-sidebar,
     .app-header,
+    .top-bar,
     .app-footer,
     .page-actions,
     .btn,
     .header-toggle,
-    .role-switcher-badge,
+    .sidebar-toggle,
     .toast-container,
-    .modal-backdrop {
+    .modal-backdrop,
+    .filter-bar {
         display: none !important;
     }
 
-    .app-container {
+    .app-container,
+    .main-content {
         margin-left: 0 !important;
-    }
-
-    .app-content {
         padding: 0 !important;
-        max-width: 100% !important;
     }
 
     .card {
-        border: 1px solid #CCC !important;
+        border: 1px solid #CCCCCC !important;
         box-shadow: none !important;
-        page-break-inside: avoid;
+        break-inside: avoid;
     }
 
     .table {
-        border: 1px solid #CCC !important;
+        border-collapse: collapse !important;
     }
 
     .table th,
     .table td {
-        border: 1px solid #CCC !important;
+        border: 1px solid #DDDDDD !important;
         color: #000000 !important;
-    }
-
-    .badge {
-        border: 1px solid #666 !important;
-        color: #000000 !important;
-        background: transparent !important;
     }
 }

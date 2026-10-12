@@ -187,6 +187,17 @@ if (!function_exists('hasRole')) {
     }
 }
 
+if (!function_exists('can')) {
+    /**
+     * Check if authenticated user possesses authorization for a named capability.
+     */
+    function can(string $capability): bool
+    {
+        return \Core\Permission::can(currentUserRole(), $capability);
+    }
+}
+
+
 if (!function_exists('csrf_token')) {
     /**
      * Retrieve current CSRF token from active session.
