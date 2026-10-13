@@ -1,98 +1,184 @@
-/**
- * Employee HRIS & Leave Management System
- * Landing Page Interactive Script (landing.js)
- */
+document.addEventListener("DOMContentLoaded", () => {
+  const header = document.querySelector(".site-header");
+  const mobileMenuButton = document.getElementById("mobileMenuBtn");
+  const mobileDrawer = document.getElementById("mobileDrawer");
 
-document.addEventListener('DOMContentLoaded', () => {
-    // ======================================================================
-    // 1. Mobile Drawer Navigation Toggle
-    // ======================================================================
-    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-    const mobileDrawer = document.getElementById('mobileDrawer');
+  const sectionIds = [
+    "home",
+    "features",
+    "how-it-works",
+    "dsa-laboratory",
+    "roles",
+    "about",
+  ];
 
-    if (mobileMenuBtn && mobileDrawer) {
-        mobileMenuBtn.addEventListener('click', () => {
-            const isOpen = mobileDrawer.classList.toggle('is-open');
-            mobileMenuBtn.setAttribute('aria-expanded', isOpen);
-            mobileMenuBtn.innerHTML = isOpen ? '✕' : '☰';
-        });
+  const sections = sectionIds
+    .map((id) => document.getElementById(id))
+    .filter(Boolean);
 
-        // Close drawer when clicking any link
-        mobileDrawer.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileDrawer.classList.remove('is-open');
-                mobileMenuBtn.setAttribute('aria-expanded', 'false');
-                mobileMenuBtn.innerHTML = '☰';
-            });
-        });
-    }
+  const navigationLinks = document.querySelectorAll(
+    ".site-nav-links .nav-link, .mobile-drawer .mobile-nav-link",
+  );
 
-    // ======================================================================
-    // 2. Active Navigation Highlight via Intersection Observer
-    // ======================================================================
-    const navLinks = document.querySelectorAll('.site-nav-links .nav-link');
-    const sections = document.querySelectorAll('section[id]');
+  const closeMobileMenu = () => {
+    if (!mobileMenuButton || !mobileDrawer) return;
 
-    if ('IntersectionObserver' in window && sections.length > 0) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const currentId = entry.target.getAttribute('id');
-                    navLinks.forEach(link => {
-                        const href = link.getAttribute('href');
-                        if (href === `#${currentId}`) {
-                            link.classList.add('active');
-                        } else {
-                            link.classList.remove('active');
-                        }
-                    });
-                }
-            });
-        }, {
-            threshold: 0.35
-        });
+    mobileDrawer.classList.remove("is-open");
+    mobileMenuButton.classList.remove("is-open");
+    mobileMenuButton.setAttribute("aria-expanded", "false");
+    mobileMenuButton.setAttribute("aria-label", "Open navigation");
+  };
 
-        sections.forEach(sec => observer.observe(sec));
-    }
+  if (mobileMenuButton && mobileDrawer) {
+    mobileMenuButton.addEventListener("click", () => {
+      const isOpen = mobileDrawer.classList.toggle("is-open");
 
-    // ======================================================================
-    // 3. Smooth Scrolling with Offset for Sticky Header
-    // ======================================================================
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            const targetId = this.getAttribute('href');
-            if (targetId === '#' || targetId === '') return;
-            
-            const targetElement = document.querySelector(targetId);
-            if (targetElement) {
-                e.preventDefault();
-                const headerOffset = 80;
-                const elementPosition = targetElement.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+      mobileMenuButton.classList.toggle("is-open", isOpen);
+      mobileMenuButton.setAttribute("aria-expanded", String(isOpen));
+      mobileMenuButton.setAttribute(
+        "aria-label",
+        isOpen ? "Close navigation" : "Open navigation",
+      );
+    });
+  }
 
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
-        });
+  const updateActiveNavigation = () => {
+    const headerHeight = header?.offsetHeight || 72;
+    const activationPoint = headerHeight + 140;
+
+    let activeSectionId = "home";
+
+    sections.forEach((section) => {
+      const sectionTop = section.getBoundingClientRect().top;
+
+      if (sectionTop <= activationPoint) {
+        activeSectionId = section.id;
+      }
     });
 
-    // ======================================================================
-    // 4. Illustrative Mockup Interactivity (Clearly Labeled Demonstration)
-    // ======================================================================
-    const mockNavItems = document.querySelectorAll('.mockup-nav-item');
-    mockNavItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            mockNavItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            
-            const label = item.textContent.trim();
-            const titleEl = document.querySelector('.mockup-title');
-            if (titleEl) {
-                titleEl.textContent = `HR Portal / ${label} (Demo Preview)`;
-            }
-        });
+    /*
+     * Ensure About remains active near the bottom of the page,
+     * including the CTA and footer.
+     */
+    const nearPageBottom =
+      window.innerHeight + window.scrollY >=
+      document.documentElement.scrollHeight - 20;
+
+    if (nearPageBottom && document.getElementById("about")) {
+      activeSectionId = "about";
+    }
+
+    navigationLinks.forEach((link) => {
+      const linkTarget = link.getAttribute("href");
+      const isActive = linkTarget === `#${activeSectionId}`;
+
+      link.classList.toggle("active", isActive);
+
+      if (isActive) {
+        link.setAttribute("aria-current", "page");
+      } else {
+        link.removeAttribute("aria-current");
+      }
     });
+  };
+
+  const scrollToSection = (target) => {
+    const headerHeight = header?.offsetHeight || 72;
+
+    const targetPosition =
+      target.getBoundingClientRect().top +
+      window.scrollY -
+      headerHeight;
+
+    window.scrollTo({
+      top: targetPosition,
+      behavior: "smooth",
+    });
+  };
+
+  navigationLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const targetId = link.getAttribute("href");
+
+      if (!targetId || !targetId.startsWith("#")) return;
+
+      const target = document.querySelector(targetId);
+
+      if (!target) return;
+
+      event.preventDefault();
+      scrollToSection(target);
+      closeMobileMenu();
+    });
+  });
+
+  /*
+   * Enable smooth scrolling for buttons and footer links
+   * that point to landing-page sections.
+   */
+  document.querySelectorAll('a[href^="#"]').forEach((link) => {
+    if ([...navigationLinks].includes(link)) return;
+
+    link.addEventListener("click", (event) => {
+      const targetId = link.getAttribute("href");
+
+      if (!targetId || targetId === "#") return;
+
+      const target = document.querySelector(targetId);
+
+      if (!target) return;
+
+      event.preventDefault();
+      scrollToSection(target);
+    });
+  });
+
+  /*
+   * Dashboard preview interaction.
+   */
+  document.querySelectorAll(".mockup-nav-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      document
+        .querySelectorAll(".mockup-nav-item")
+        .forEach((navigationItem) => {
+          navigationItem.classList.remove("active");
+        });
+
+      item.classList.add("active");
+
+      const title = document.querySelector(".mockup-title");
+
+      if (title) {
+        title.textContent =
+          `HR Portal / ${item.textContent.trim()} (Demo Preview)`;
+      }
+    });
+  });
+
+  let scrollUpdateRequested = false;
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (scrollUpdateRequested) return;
+
+      scrollUpdateRequested = true;
+
+      window.requestAnimationFrame(() => {
+        updateActiveNavigation();
+        scrollUpdateRequested = false;
+      });
+    },
+    { passive: true },
+  );
+
+  window.addEventListener("resize", () => {
+    updateActiveNavigation();
+
+    if (window.innerWidth > 767) {
+      closeMobileMenu();
+    }
+  });
+
+  updateActiveNavigation();
 });

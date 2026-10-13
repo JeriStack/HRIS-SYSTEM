@@ -104,7 +104,7 @@ function initDepartmentPositionCascade() {
 
             try {
                 // Fetch live positions from backend endpoint
-                const res = await fetch(`/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/hr/api/positions-by-department/${deptId}`, {
+                const res = await fetch(`/HRIS-SYSTEM/public/hr/api/positions-by-department/${deptId}`, {
                     headers: { 'Accept': 'application/json' }
                 });
                 if (!res.ok) throw new Error('Network error loading positions');
