@@ -21,6 +21,7 @@ storage/logs/*
 *.swp
 *~
 .cache/
+scratch/cookie_*.txt
 
 # Operating System Files
 .DS_Store

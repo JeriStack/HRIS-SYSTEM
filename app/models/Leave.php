@@ -206,12 +206,11 @@ class Leave
                 $stmtBal = $this->pdo->prepare("
                     UPDATE leave_balances
                     SET used_days = used_days + :days,
-                        remaining_days = GREATEST(0, allocated_days - (used_days + :days_rem))
+                        remaining_days = GREATEST(0, allocated_days - used_days)
                     WHERE employee_id = :emp_id AND leave_type_id = :lt_id AND year = :year
                 ");
                 $stmtBal->execute([
                     'days'        => $days,
-                    'days_rem'    => $days,
                     'emp_id'      => $empId,
                     'lt_id'       => $leaveTypeId,
                     'year'        => $year,

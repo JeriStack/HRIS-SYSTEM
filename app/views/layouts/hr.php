@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="base-url" content="<?= e(url('/')) ?>">
     <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(config('config.app_name', 'Employee HRIS')) ?></title>
     
     <!-- Enterprise Design System Stylesheets -->
@@ -28,12 +29,7 @@
             </main>
 
             <!-- Standard Enterprise Footer -->
-            <footer class="app-footer">
-                <div>&copy; <?= date('Y') ?> <?= e(config('config.app_name', 'Employee HRIS & Leave Management System')) ?></div>
-                <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                    Production Environment &bull; Security Verified (WCAG 2.2 AA)
-                </div>
-            </footer>
+            <?php require __DIR__ . '/../partials/footer.php'; ?>
         </div>
     </div>
 

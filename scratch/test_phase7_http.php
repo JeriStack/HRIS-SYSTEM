@@ -266,7 +266,7 @@ $deptListPage = makeRequest($baseUrl . "/hr/departments", 'GET', [], $cookieFile
 assertHttpTest('Department list displays newly created department', str_contains($deptListPage['body'], $testDeptHttp));
 
 // Find created department ID from DB
-require_once __DIR__ . '/../../../../../../xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/core/bootstrap.php';
+require_once __DIR__ . '/../core/bootstrap.php';
 $db = \Core\Database::getInstance()->getConnection();
 $httpDeptId = (int)$db->query("SELECT id FROM departments WHERE department_name = " . $db->quote($testDeptHttp))->fetchColumn();
 assertHttpTest('Resolved created Department ID from database', $httpDeptId > 0, "Dept ID: {$httpDeptId}");

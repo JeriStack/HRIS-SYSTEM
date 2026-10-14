@@ -6,7 +6,7 @@
  */
 
 // 1. Bootstrap Application
-require_once __DIR__ . '/../../../../../../xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/core/bootstrap.php';
+require_once __DIR__ . '/../core/bootstrap.php';
 
 use Core\Database;
 use Core\Session;
@@ -160,8 +160,8 @@ assertTest('Employee', 'Retrieve directory employees list with joined department
 assertTest('Employee', 'Retrieve workforce counts (total, active, inactive, depts)', isset($counts['total'], $counts['active'], $counts['inactive']) && $counts['total'] > 0);
 
 // 3.2 Add a valid employee
-$testEmpNo = 'EMP' . rand(700, 999);
-$testEmail = 'employee.' . time() . '@company.local';
+$testEmpNo = 'EMP' . time() . rand(10, 99);
+$testEmail = 'employee.' . time() . '.' . rand(100, 999) . '@company.local';
 $newEmpData = [
     'employee_no'       => $testEmpNo,
     'first_name'        => 'TestFirst',
@@ -347,6 +347,22 @@ echo "Passed:           {$results['passed']}\n";
 echo "Failed:           {$results['failed']}\n";
 echo "Pass Rate:        " . round(($results['passed'] / $results['total']) * 100, 2) . "%\n";
 echo "====================================================================\n";
+
+// Cleanup test records created during test execution
+try {
+    $db = Database::getInstance()->getConnection();
+    if (!empty($newEmpId)) {
+        $db->exec("DELETE FROM employees WHERE id = {$newEmpId}");
+    }
+    if (!empty($newPosId)) {
+        $db->exec("DELETE FROM positions WHERE id = {$newPosId}");
+    }
+    if (!empty($newDeptId)) {
+        $db->exec("DELETE FROM departments WHERE id = {$newDeptId}");
+    }
+} catch (\Throwable $e) {
+    // Ignore cleanup errors
+}
 
 if ($results['failed'] > 0) {
     exit(1);
