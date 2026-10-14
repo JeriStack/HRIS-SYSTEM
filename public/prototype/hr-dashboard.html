@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Dashboard - Employee HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item active">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Application Shell Container -->
+        <div class="app-container">
+            <!-- Top Utility Header -->
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Administrator Dashboard
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <!-- Role Switcher Demonstration Button -->
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge" title="Click to toggle between HR and Employee views for academic demonstration">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications" aria-label="View notifications">🔔</a>
+                </div>
+            </header>
+
+            <!-- Main Content Canvas -->
+            <main class="app-content">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Executive Workforce Overview</h1>
+                        <p>Real-time HR analytics, pending approval queues, and in-memory activity tracking.</p>
+                    </div>
+                    <div class="page-actions">
+                        <a href="leave-requests.html" class="btn btn-primary">
+                            <span>⏳</span> Process Leave Queue (3)
+                        </a>
+                        <a href="employees.html" class="btn btn-secondary">
+                            <span>👥</span> Manage Employees
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 4 Executive Stat Metric Cards -->
+                <div class="grid grid-cols-4">
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">Total Staff</span>
+                            <span class="stat-value">8</span>
+                            <span class="stat-subtext">Across 5 departments</span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-blue">👥</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">Active Headcount</span>
+                            <span class="stat-value">7</span>
+                            <span class="stat-subtext">1 Soft-deactivated</span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-green">🟢</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">Pending Leaves</span>
+                            <span class="stat-value">3</span>
+                            <span class="stat-subtext">FIFO Queue Pipeline</span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-amber">⏳</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">Currently On Leave</span>
+                            <span class="stat-value">1</span>
+                            <span class="stat-subtext">Returning next week</span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-purple">🏖️</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2" style="margin-top: 1.5rem;">
+                    <!-- Pending Leave Queue Preview (FIFO) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title"><span>⏳</span> Pending Leave Queue (FIFO Pipeline)</h2>
+                            <a href="leave-requests.html" class="btn btn-secondary btn-sm">View Full Queue</a>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-container" style="border: none; box-shadow: none;">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ref</th>
+                                            <th>Employee</th>
+                                            <th>Type</th>
+                                            <th>Days</th>
+                                            <th>Dates</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><strong>LR001</strong></td>
+                                            <td>Maria Santos</td>
+                                            <td>Vacation</td>
+                                            <td>5 Days</td>
+                                            <td>Nov 02 - Nov 06</td>
+                                            <td><a href="leave-requests.html" class="btn btn-primary btn-sm">Review</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>LR002</strong></td>
+                                            <td>David Cruz</td>
+                                            <td>Sick</td>
+                                            <td>2 Days</td>
+                                            <td>Nov 09 - Nov 10</td>
+                                            <td><a href="leave-requests.html" class="btn btn-secondary btn-sm">Review</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>LR003</strong></td>
+                                            <td>Juan Dela Cruz</td>
+                                            <td>Vacation</td>
+                                            <td>3 Days</td>
+                                            <td>Nov 16 - Nov 18</td>
+                                            <td><a href="leave-requests.html" class="btn btn-secondary btn-sm">Review</a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <span style="font-size: 0.75rem; color: var(--color-text-secondary);">
+                                Processing Order: First In, First Out (Custom PHP Queue demonstration)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Widget (Custom LIFO Stack Demonstration) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title"><span>📜</span> Recent System Activity (LIFO Stack)</h2>
+                            <a href="activity-logs.html" class="btn btn-secondary btn-sm">All Logs</a>
+                        </div>
+                        <div class="card-body">
+                            <div id="stackDisplay" class="dsa-visualizer-container" style="background: #1E293B; margin-bottom: 0;">
+                                <!-- Rendered dynamically by DsaLab.renderStack() -->
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div style="display: flex; gap: 0.5rem; width: 100%; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary);">
+                                    Demonstrating LIFO Stack (Last In, First Out)
+                                </span>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="DsaLab.pushStack('HR Viewed Dashboard');">Push Event</button>
+                                    <button type="button" class="btn btn-danger btn-sm" onclick="DsaLab.popStack();">Pop Top</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Navigation Action Hub -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>⚡</span> Quick Management Hub</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid grid-cols-4">
+                            <a href="employees.html" class="btn btn-secondary" style="padding: 1rem; flex-direction: column; height: auto;">
+                                <span style="font-size: 1.5rem; margin-bottom: 0.25rem;">👥</span>
+                                <strong>Employee Master</strong>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary);">View & Register Staff</span>
+                            </a>
+                            <a href="leave-requests.html" class="btn btn-secondary" style="padding: 1rem; flex-direction: column; height: auto;">
+                                <span style="font-size: 1.5rem; margin-bottom: 0.25rem;">⏳</span>
+                                <strong>Leave Approval</strong>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Process FIFO Queue</span>
+                            </a>
+                            <a href="reports.html" class="btn btn-secondary" style="padding: 1rem; flex-direction: column; height: auto;">
+                                <span style="font-size: 1.5rem; margin-bottom: 0.25rem;">📊</span>
+                                <strong>HR Reports</strong>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Workforce & Leave Summary</span>
+                            </a>
+                            <a href="dsa-laboratory.html" class="btn btn-secondary" style="padding: 1rem; flex-direction: column; height: auto;">
+                                <span style="font-size: 1.5rem; margin-bottom: 0.25rem;">🧪</span>
+                                <strong>DSA Laboratory</strong>
+                                <span style="font-size: 0.75rem; color: var(--color-text-secondary);">Search & Sort Benchmarks</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- App Footer -->
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+</body>
+</html>

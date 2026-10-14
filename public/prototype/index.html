@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Prototype Hub - Employee HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <style>
+        .prototype-launcher-hero {
+            background: linear-gradient(135deg, #172033 0%, #0F172A 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        .screen-card {
+            background: white;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .screen-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: var(--color-primary);
+        }
+    </style>
+</head>
+<body style="background: var(--color-bg); padding: 2rem 1rem;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+
+        <!-- Hero Banner -->
+        <div class="prototype-launcher-hero">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <div style="display: inline-block; background: rgba(37, 99, 235, 0.3); border: 1px solid #3B82F6; color: #93C5FD; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; margin-bottom: 1rem;">
+                        PHASE 4: UI/UX DESIGN & FRONTEND PROTOTYPE
+                    </div>
+                    <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0 0 0.75rem 0; color: white;">
+                        Employee HRIS & Leave Management System
+                    </h1>
+                    <p style="font-size: 1.05rem; color: #94A3B8; max-width: 750px; margin: 0; line-height: 1.6;">
+                        Complete interactive frontend prototype utilizing pure semantic HTML5, CSS3 design tokens, and Vanilla JavaScript. Built in accordance with approved SRS specifications, MySQL database schema, and custom Data Structures & Algorithms.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <a href="../index.php" class="btn btn-secondary" style="padding: 0.75rem 1.25rem; font-size: 1rem; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">
+                        <span>🏠</span> Landing Page
+                    </a>
+                    <a href="login.html" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
+                        <span>🚀</span> Launch Login Portal
+                    </a>
+                    <a href="hr-dashboard.html" class="btn btn-secondary" style="padding: 0.75rem 1.25rem; font-size: 1rem; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2);">
+                        <span>📊</span> Direct HR View
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Academic Disclaimer & Status Banner -->
+        <div class="alert alert-info" style="margin-bottom: 2rem;">
+            <strong>Academic Prototype Notice:</strong> All views, forms, dialogs, and visualizers operate with synthetic baseline datasets mirroring the Phase 3 MySQL database. Interactive operations (such as leave approvals, working-day calculations, and queue processing) simulate client-side behaviors in preparation for native PHP 8.x and MySQL PDO backend integration in Phase 5.
+        </div>
+
+        <!-- Prototype Screen Grid -->
+        <div style="margin-bottom: 1.5rem;">
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-primary); margin: 0 0 0.5rem 0;">
+                All Prototype Screens & Modules
+            </h2>
+            <p style="color: var(--color-text-secondary); margin: 0 0 1.5rem 0;">
+                Explore both Administrator/HR and authenticated Employee interfaces.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-3" style="gap: 1.5rem; margin-bottom: 2.5rem;">
+            <!-- Login -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">🔐</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Authentication & Sign In</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Secure sign-in screen featuring show/hide password toggle, required field validation, and 1-click quick-fill buttons for Admin and Employee roles.
+                    </p>
+                </div>
+                <a href="login.html" class="btn btn-primary">Open Login Page ➔</a>
+            </div>
+
+            <!-- HR Dashboard -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">📊</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Administrator / HR Dashboard</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Executive KPI summary cards, pending leave FIFO queue preview, interactive LIFO activity stack widget, and quick management links.
+                    </p>
+                </div>
+                <a href="hr-dashboard.html" class="btn btn-primary">Open HR Dashboard ➔</a>
+            </div>
+
+            <!-- Employee Dashboard -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">👤</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Employee Self-Service Dashboard</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Personalized welcome header, leave balance cards (Vacation, Sick, Emergency), pending requests table, and leave cancellation modal.
+                    </p>
+                </div>
+                <a href="employee-dashboard.html" class="btn btn-primary">Open Employee View ➔</a>
+            </div>
+
+            <!-- Workforce Directory -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">👥</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Employee Master Directory</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Workforce table with instant live search, department/status filters, Add Employee modal with dynamic position dropdown, and soft deactivation modal.
+                    </p>
+                </div>
+                <a href="employees.html" class="btn btn-primary">Open Employees ➔</a>
+            </div>
+
+            <!-- Pending Leave Queue -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">⏳</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Pending Leave Review Queue</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        First-In, First-Out (FIFO) queue evaluation interface. Interactive Queue visualizer, balance impact deduction modal, and rejection modal.
+                    </p>
+                </div>
+                <a href="leave-requests.html" class="btn btn-primary">Open Leave Queue ➔</a>
+            </div>
+
+            <!-- Leave History & Filing -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">📜</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Leave History & Filing Form</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Audit log of approved, rejected, and cancelled requests. Interactive File Leave modal featuring automatic Monday–Friday working-day calculator.
+                    </p>
+                </div>
+                <a href="leave-history.html" class="btn btn-primary">Open Leave History ➔</a>
+            </div>
+
+            <!-- Departments -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">🏢</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Departments Management</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Organizational unit configuration, Add Department modal, and MySQL referential integrity delete restriction safeguards.
+                    </p>
+                </div>
+                <a href="departments.html" class="btn btn-primary">Open Departments ➔</a>
+            </div>
+
+            <!-- Positions -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">💼</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Job Position Management</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Position catalog with department filtering, Add Position modal with parent department selector, and incumbent delete protection.
+                    </p>
+                </div>
+                <a href="positions.html" class="btn btn-primary">Open Job Positions ➔</a>
+            </div>
+
+            <!-- Leave Policies -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">📋</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Leave Policies & Types</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Statutory entitlement rules (Vacation, Sick, Emergency, Maternity, Paternity) with default allocation days and policy update modals.
+                    </p>
+                </div>
+                <a href="leave-types.html" class="btn btn-primary">Open Leave Policies ➔</a>
+            </div>
+
+            <!-- Balances Matrix -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">💳</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Leave Balances Matrix</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Annual allocated, used, and remaining credit matrix for all employees across all leave categories, with manual balance adjustment dialog.
+                    </p>
+                </div>
+                <a href="leave-balances.html" class="btn btn-primary">Open Balances Matrix ➔</a>
+            </div>
+
+            <!-- DSA Laboratory -->
+            <div class="screen-card" style="border: 2px solid var(--color-primary); background: #F8FAFC;">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">🧪</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0; color: var(--color-primary);">DSA Academic Laboratory</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Full interactive workbench: LIFO Stack, FIFO Queue, Linked List, Hash Table, Binary Search Tree, Search comparisons, and Sort benchmarks.
+                    </p>
+                </div>
+                <a href="dsa-laboratory.html" class="btn btn-primary">Open DSA Laboratory ➔</a>
+            </div>
+
+            <!-- Reports & Audit -->
+            <div class="screen-card">
+                <div>
+                    <div style="font-size: 2rem; margin-bottom: 0.75rem;">📈</div>
+                    <h3 style="font-size: 1.15rem; margin: 0 0 0.5rem 0;">Workforce Reports & Audit</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin: 0 0 1rem 0;">
+                        Official printable reports (Employee Master, Leave Utilization, Department Headcount) and system activity security audit logs.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="reports.html" class="btn btn-secondary" style="flex: 1; text-align: center;">Reports</a>
+                    <a href="activity-logs.html" class="btn btn-secondary" style="flex: 1; text-align: center;">Audit Logs</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Footnote -->
+        <footer style="text-align: center; color: var(--color-text-secondary); font-size: 0.875rem; border-top: 1px solid var(--color-border); padding-top: 1.5rem;">
+            Employee HRIS & Leave Management System • Academic DSA Capstone • Phase 4 Frontend Prototype Verified
+        </footer>
+    </div>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workforce Reports - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item active">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Analytics & Audit / <span>Workforce Reports</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Management & Operational Reports</h1>
+                        <p class="page-subtitle">Generate official printable summaries for personnel rosters, leave utilization, and organizational headcount.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary" onclick="window.print()">
+                            <span>🖨</span> Print / Export PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Selector Tabs -->
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--color-border); padding-bottom: 0.5rem;">
+                    <button type="button" id="tabBtnEmployees" class="btn btn-secondary" onclick="switchReportTab('employees')" style="background: var(--color-primary); color: white;">
+                        👥 Employee Master Report
+                    </button>
+                    <button type="button" id="tabBtnLeave" class="btn btn-secondary" onclick="switchReportTab('leave')">
+                        📋 Leave Utilization Report
+                    </button>
+                    <button type="button" id="tabBtnDept" class="btn btn-secondary" onclick="switchReportTab('department')">
+                        🏢 Department Headcount Report
+                    </button>
+                </div>
+
+                <!-- 1. Employee Master Report -->
+                <div id="reportSectionEmployees" class="report-section">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>👥</span> Employee Master Roster</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Comprehensive roster of all registered staff</p>
+                            </div>
+                            <span class="badge badge-info">8 Total Staff</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Employee No.</th>
+                                            <th>Full Name</th>
+                                            <th>Department</th>
+                                            <th>Job Position</th>
+                                            <th>Date Hired</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><code>EMP001</code></td><td>Eleanor Rose Vance</td><td>Executive Management</td><td>Chief Executive Officer</td><td>Jan 15, 2018</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP002</code></td><td>Marcus Aurelio Tan</td><td>Human Resources</td><td>HR Director</td><td>Mar 01, 2019</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP003</code></td><td>Sofia Maria Reyes</td><td>Human Resources</td><td>HR Officer</td><td>Jul 15, 2020</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP004</code></td><td>David James Cruz</td><td>Information Technology</td><td>Senior Software Engineer</td><td>Feb 01, 2021</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP005</code></td><td>Maria Clara Santos</td><td>Information Technology</td><td>Junior Software Engineer</td><td>Aug 15, 2022</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP006</code></td><td>Juan Carlos Dela Cruz</td><td>Information Technology</td><td>Systems Administrator</td><td>Nov 10, 2021</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP007</code></td><td>Beatrice Anne Gomez</td><td>Finance & Accounting</td><td>Finance Manager</td><td>Jan 10, 2020</td><td><span class="badge badge-success">Active</span></td></tr>
+                                        <tr><td><code>EMP008</code></td><td>Ricardo Luis Mercado</td><td>Marketing & Sales</td><td>Marketing Specialist</td><td>May 15, 2021</td><td><span class="badge badge-danger">Inactive</span></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Leave Utilization Report -->
+                <div id="reportSectionLeave" class="report-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>📋</span> Leave Transactions & Utilization Audit</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Record of applications filed across all categories</p>
+                            </div>
+                            <span class="badge badge-info">7 Applications Logged</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Ref No.</th>
+                                            <th>Employee</th>
+                                            <th>Leave Type</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Work Days</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><code>LR004</code></td><td>David Cruz (EMP004)</td><td>Vacation Leave</td><td>2026-08-10</td><td>2026-08-12</td><td>3 Days</td><td><span class="badge badge-success">Approved</span></td></tr>
+                                        <tr><td><code>LR005</code></td><td>Maria Santos (EMP005)</td><td>Vacation Leave</td><td>2026-09-14</td><td>2026-09-18</td><td>5 Days</td><td><span class="badge badge-success">Approved</span></td></tr>
+                                        <tr><td><code>LR006</code></td><td>Beatrice Gomez (EMP007)</td><td>Vacation Leave</td><td>2026-09-21</td><td>2026-09-25</td><td>5 Days</td><td><span class="badge badge-danger">Rejected</span></td></tr>
+                                        <tr><td><code>LR007</code></td><td>David Cruz (EMP004)</td><td>Emergency Leave</td><td>2026-10-05</td><td>2026-10-05</td><td>1 Day</td><td><span class="badge badge-secondary">Cancelled</span></td></tr>
+                                        <tr><td><code>LR001</code></td><td>Maria Santos (EMP005)</td><td>Vacation Leave</td><td>2026-11-02</td><td>2026-11-06</td><td>5 Days</td><td><span class="badge badge-warning">Pending</span></td></tr>
+                                        <tr><td><code>LR002</code></td><td>David Cruz (EMP004)</td><td>Sick Leave</td><td>2026-11-09</td><td>2026-11-10</td><td>2 Days</td><td><span class="badge badge-warning">Pending</span></td></tr>
+                                        <tr><td><code>LR003</code></td><td>Juan Dela Cruz (EMP006)</td><td>Vacation Leave</td><td>2026-11-16</td><td>2026-11-18</td><td>3 Days</td><td><span class="badge badge-warning">Pending</span></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Department Headcount Report -->
+                <div id="reportSectionDepartment" class="report-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🏢</span> Departmental Distribution & Headcount</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Operational breakdown of human resources across organizational units</p>
+                            </div>
+                            <span class="badge badge-info">5 Units</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Department Unit</th>
+                                            <th style="text-align: center;">Total Staff</th>
+                                            <th style="text-align: center;">Active Personnel</th>
+                                            <th style="text-align: center;">Inactive Staff</th>
+                                            <th>Allocation Ratio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><strong>Executive Management</strong></td><td style="text-align: center;">1</td><td style="text-align: center;"><span class="badge badge-success">1</span></td><td style="text-align: center;">0</td><td>12.5%</td></tr>
+                                        <tr><td><strong>Human Resources</strong></td><td style="text-align: center;">2</td><td style="text-align: center;"><span class="badge badge-success">2</span></td><td style="text-align: center;">0</td><td>25.0%</td></tr>
+                                        <tr><td><strong>Information Technology</strong></td><td style="text-align: center;">3</td><td style="text-align: center;"><span class="badge badge-success">3</span></td><td style="text-align: center;">0</td><td>37.5%</td></tr>
+                                        <tr><td><strong>Finance & Accounting</strong></td><td style="text-align: center;">1</td><td style="text-align: center;"><span class="badge badge-success">1</span></td><td style="text-align: center;">0</td><td>12.5%</td></tr>
+                                        <tr><td><strong>Marketing & Sales</strong></td><td style="text-align: center;">1</td><td style="text-align: center;"><span class="badge badge-warning">0</span></td><td style="text-align: center;"><span class="badge badge-danger">1</span></td><td>12.5%</td></tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="font-weight: bold; background: var(--color-bg);">
+                                            <td>Total Workforce</td>
+                                            <td style="text-align: center;">8</td>
+                                            <td style="text-align: center;">7</td>
+                                            <td style="text-align: center;">1</td>
+                                            <td>100.0%</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function switchReportTab(tab) {
+            const sections = {
+                employees: document.getElementById('reportSectionEmployees'),
+                leave: document.getElementById('reportSectionLeave'),
+                department: document.getElementById('reportSectionDepartment')
+            };
+
+            const buttons = {
+                employees: document.getElementById('tabBtnEmployees'),
+                leave: document.getElementById('tabBtnLeave'),
+                department: document.getElementById('tabBtnDept')
+            };
+
+            Object.keys(sections).forEach(k => {
+                if (k === tab) {
+                    sections[k].style.display = 'block';
+                    buttons[k].style.background = 'var(--color-primary)';
+                    buttons[k].style.color = 'white';
+                } else {
+                    sections[k].style.display = 'none';
+                    buttons[k].style.background = '';
+                    buttons[k].style.color = '';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

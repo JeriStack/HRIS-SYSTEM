@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Departments Management - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item active">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Workforce Management / <span>Departments</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Department Management</h1>
+                        <p class="page-subtitle">Configure organizational units, administrative departments, and functional divisions.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary" onclick="openModal('addDeptModal')">
+                            <span>+</span> Create Department
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Database Referential Integrity Notice -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Database Referential Integrity Rule:</strong> Departments with active employee records or defined job positions are protected by MySQL Foreign Key constraints (<code>RESTRICT</code>). Deletion is prohibited while child entities exist.
+                </div>
+
+                <!-- Department Grid / Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>🏢</span> Active Organizational Units</h2>
+                        <div style="font-size: 0.875rem; color: var(--color-text-secondary);">
+                            Total: <strong>5 Departments</strong>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="departmentsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 80px;">ID</th>
+                                        <th>Department Name</th>
+                                        <th>Description</th>
+                                        <th>Assigned Positions</th>
+                                        <th>Active Staff</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>1</code></td>
+                                        <td><strong>Executive Management</strong></td>
+                                        <td>Executive leadership, corporate strategy, and governance</td>
+                                        <td><span class="badge badge-info">1 Position</span></td>
+                                        <td><span class="badge badge-success">1 Staff</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editDept(1, 'Executive Management')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showDeleteRestriction('Executive Management', 1, 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2</code></td>
+                                        <td><strong>Human Resources</strong></td>
+                                        <td>Talent acquisition, employee welfare, labor relations, and compliance</td>
+                                        <td><span class="badge badge-info">2 Positions</span></td>
+                                        <td><span class="badge badge-success">2 Staff</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editDept(2, 'Human Resources')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showDeleteRestriction('Human Resources', 2, 2)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>3</code></td>
+                                        <td><strong>Information Technology</strong></td>
+                                        <td>Software engineering, server infrastructure, cybersecurity, and IT support</td>
+                                        <td><span class="badge badge-info">3 Positions</span></td>
+                                        <td><span class="badge badge-success">3 Staff</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editDept(3, 'Information Technology')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showDeleteRestriction('Information Technology', 3, 3)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>4</code></td>
+                                        <td><strong>Finance & Accounting</strong></td>
+                                        <td>Corporate accounting, financial planning, budgeting, and tax compliance</td>
+                                        <td><span class="badge badge-info">2 Positions</span></td>
+                                        <td><span class="badge badge-success">1 Staff</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editDept(4, 'Finance & Accounting')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showDeleteRestriction('Finance & Accounting', 2, 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>5</code></td>
+                                        <td><strong>Marketing & Sales</strong></td>
+                                        <td>Brand management, public communications, customer outreach, and growth</td>
+                                        <td><span class="badge badge-info">1 Position</span></td>
+                                        <td><span class="badge badge-warning">1 Staff (Inactive)</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editDept(5, 'Marketing & Sales')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showDeleteRestriction('Marketing & Sales', 1, 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Department -->
+    <div id="addDeptModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addDeptTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="addDeptTitle" class="modal-title"><span>🏢</span> Create New Department</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="addDeptForm" onsubmit="handleAddDept(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="deptName">Department Name <span class="required">*</span></label>
+                        <input type="text" id="deptName" class="form-control" placeholder="e.g. Quality Assurance" required>
+                        <div class="form-help">Must be unique across the organization</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="deptDesc">Description</label>
+                        <textarea id="deptDesc" class="form-control" rows="3" placeholder="Brief summary of department responsibilities and operational mandate"></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Department</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Referential Integrity Restriction Warning -->
+    <div id="deleteRestrictionModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="restrModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="restrModalTitle" class="modal-title" style="color: var(--color-danger);"><span>🚫</span> Cannot Delete Department</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>Foreign Key Constraint Triggered:</strong> <span id="restrDeptName">This Department</span> currently contains <strong id="restrPosCount">0</strong> job positions and <strong id="restrEmpCount">0</strong> registered personnel records.
+                </div>
+                <p>In accordance with relational database schema rules (<code>ON DELETE RESTRICT</code>), an organizational unit cannot be deleted while dependent records exist.</p>
+                <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-top: 0.5rem;">To remove this department, first reassign or archive all associated employees and job positions.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function handleAddDept(e) {
+            e.preventDefault();
+            closeModal('addDeptModal');
+            showToast('Department successfully created! (Frontend prototype simulation)', 'success');
+        }
+
+        function editDept(id, name) {
+            showToast(`Editing department "${name}" (ID: ${id})`, 'info');
+        }
+
+        function showDeleteRestriction(name, posCount, empCount) {
+            document.getElementById('restrDeptName').textContent = name;
+            document.getElementById('restrPosCount').textContent = posCount;
+            document.getElementById('restrEmpCount').textContent = empCount;
+            openModal('deleteRestrictionModal');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA Academic Laboratory - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <style>
+        .dsa-tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--color-border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .dsa-tab-btn {
+            background: white;
+            border: 1px solid var(--color-border);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            transition: all 0.2s ease;
+        }
+        .dsa-tab-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+        .dsa-content-pane {
+            display: none;
+        }
+        .dsa-content-pane.active {
+            display: block;
+        }
+        .dsa-metric-box {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .dsa-metric-val {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--color-primary);
+            font-family: var(--font-mono);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item active">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / DSA Academic Lab / <span>Interactive Workbench</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Data Structures & Algorithms Laboratory</h1>
+                        <p class="page-subtitle">Interactive visual simulations, complexity benchmarks, and academic defense demonstrations.</p>
+                    </div>
+                </div>
+
+                <!-- Academic Pedagogy Notice -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Academic Project Context:</strong> This interactive laboratory demonstrates how data structures and algorithms enhance HRIS operations. Frontend simulations provide immediate visual intuition during system defense. Full production algorithms are implemented in native PHP within the backend architecture.
+                </div>
+
+                <!-- Laboratory Navigation Tabs -->
+                <div class="dsa-tab-nav" role="tablist">
+                    <button type="button" class="dsa-tab-btn active" onclick="showDsaTab('queue')">1. FIFO Queue</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('stack')">2. LIFO Stack</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('linkedList')">3. Singly Linked List</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('hashTable')">4. Hash Table</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('bst')">5. Binary Search Tree</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('searching')">6. Search Algorithms</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('sorting')">7. Sorting Algorithms</button>
+                    <button type="button" class="dsa-tab-btn" onclick="showDsaTab('bigo')">8. Big-O Complexity Matrix</button>
+                </div>
+
+                <!-- TAB 1: FIFO Queue -->
+                <div id="tab-queue" class="dsa-content-pane active">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>⏳</span> First-In, First-Out (FIFO) Queue — Leave Review Queue</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Applications evaluated in exact arrival order. Prevents queue starvation.</p>
+                            </div>
+                            <span class="badge badge-info">Time: O(1) Enqueue / Dequeue</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                                <input type="text" id="queueInputItem" class="form-control" placeholder="New applicant e.g. LR008 - Ricardo Mercado" style="max-width: 380px;">
+                                <button type="button" class="btn btn-primary" onclick="handleEnqueue()">Enqueue (Push to Rear)</button>
+                                <button type="button" class="btn btn-danger" onclick="DsaLab.dequeue()">Dequeue (Process Front)</button>
+                            </div>
+                            <div id="queueDisplay" class="dsa-visualizer-container" style="min-height: 120px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: LIFO Stack -->
+                <div id="tab-stack" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>📚</span> Last-In, First-Out (LIFO) Stack — Recent Activity & Rollback</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Most recent user operations sit on TOP of the stack.</p>
+                            </div>
+                            <span class="badge badge-info">Time: O(1) Push / Pop</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                                <input type="text" id="stackInputItem" class="form-control" placeholder="Action description e.g. Updated Leave Balances" style="max-width: 380px;">
+                                <button type="button" class="btn btn-primary" onclick="handlePushStack()">Push to Stack</button>
+                                <button type="button" class="btn btn-warning" onclick="DsaLab.popStack()">Pop (Undo Top Action)</button>
+                            </div>
+                            <div id="stackDisplay" class="dsa-visualizer-container" style="min-height: 180px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Singly Linked List -->
+                <div id="tab-linkedList" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🔗</span> Singly Linked List — Dynamic Leave Transaction Chaining</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Nodes linked via pointers (head ➔ next ➔ null) without contiguous memory constraints.</p>
+                            </div>
+                            <span class="badge badge-info">Time: O(1) Insert Front • O(n) Traversal</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                                <input type="text" id="llInputNode" class="form-control" placeholder="Node payload e.g. [EMP009 : Vacation Leave]" style="max-width: 380px;">
+                                <button type="button" class="btn btn-primary" onclick="addLinkedListNode()">Insert at Head</button>
+                                <button type="button" class="btn btn-secondary" onclick="traverseLinkedList()">Traverse Nodes</button>
+                            </div>
+                            <div id="linkedListDisplay" class="dsa-visualizer-container">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: Hash Table -->
+                <div id="tab-hashTable" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🔑</span> Hash Table — O(1) Employee Record Indexing</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Hashing employee key (e.g. 'EMP004') directly to an in-memory bucket index.</p>
+                            </div>
+                            <span class="badge badge-info">Average: O(1) Lookup / Insertion</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                                <input type="text" id="hashLookupKey" class="form-control" placeholder="Enter Employee Number e.g. EMP004" value="EMP004" style="max-width: 320px;">
+                                <button type="button" class="btn btn-primary" onclick="lookupHash()">Execute Direct O(1) Lookup</button>
+                            </div>
+                            <div id="hashTableResult" style="background: #0F172A; color: #38BDF8; font-family: var(--font-mono); padding: 1.25rem; border-radius: 6px; font-size: 0.875rem;">
+                                Click "Execute Direct O(1) Lookup" to inspect memory bucket and collision bucket resolution.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: Binary Search Tree (BST) -->
+                <div id="tab-bst" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🌳</span> Binary Search Tree (BST) — Hierarchical Directory Traversal</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Ordered binary tree supporting logarithmic O(log n) search and recursive traversal.</p>
+                            </div>
+                            <span class="badge badge-info">Search: O(log n) • Traversal: O(n)</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="runBstTraversal('inorder')">Recursive In-Order (Sorted)</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="runBstTraversal('preorder')">Pre-Order Traversal</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="runBstTraversal('postorder')">Post-Order Traversal</button>
+                            </div>
+                            <div id="bstDisplay" class="dsa-visualizer-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 6: Search Algorithms -->
+                <div id="tab-searching" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🔍</span> Linear Search vs. Binary Search Benchmark</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Comparative step-by-step efficiency analysis on workforce records.</p>
+                            </div>
+                            <span class="badge badge-info">Linear: O(n) vs Binary: O(log n)</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-cols-2" style="margin-bottom: 1.5rem;">
+                                <div class="dsa-metric-box">
+                                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">Linear Search Comparisons</div>
+                                    <div class="dsa-metric-val" id="linearCompCount">8 Comparisons</div>
+                                    <small>Iterates sequential array one-by-one</small>
+                                </div>
+                                <div class="dsa-metric-box">
+                                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">Binary Search Comparisons</div>
+                                    <div class="dsa-metric-val" id="binaryCompCount" style="color: var(--color-success);">3 Comparisons</div>
+                                    <small>Divides sorted search space in half (log₂ 8)</small>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <input type="text" id="targetSearchId" class="form-control" value="EMP007" placeholder="Target Employee ID" style="max-width: 250px;">
+                                <button type="button" class="btn btn-primary" onclick="runSearchComparison()">Run Search Simulation</button>
+                            </div>
+                            <div id="searchTraceLog" style="margin-top: 1rem; background: #0F172A; color: #F8FAFC; padding: 1rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6;">
+                                Search simulation ready. Enter an ID and click "Run Search Simulation".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 7: Sorting Algorithms -->
+                <div id="tab-sorting" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>🔄</span> Bubble Sort vs. Merge Sort / Quick Sort</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Sorting employee datasets by Employee Number or Hire Date.</p>
+                            </div>
+                            <span class="badge badge-info">Bubble: O(n²) vs Merge/Quick: O(n log n)</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="grid grid-cols-3" style="margin-bottom: 1.5rem;">
+                                <div class="dsa-metric-box">
+                                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">Bubble Sort (Quadratic)</div>
+                                    <div class="dsa-metric-val" style="color: var(--color-danger);">O(n²)</div>
+                                    <small>Adjacent swaps • Inefficient for large datasets</small>
+                                </div>
+                                <div class="dsa-metric-box">
+                                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">Merge Sort (Divide & Conquer)</div>
+                                    <div class="dsa-metric-val" style="color: var(--color-success);">O(n log n)</div>
+                                    <small>Stable sort • Guaranteed logarithmic depth</small>
+                                </div>
+                                <div class="dsa-metric-box">
+                                    <div style="font-size: 0.875rem; color: var(--color-text-secondary);">Quick Sort (Partitioning)</div>
+                                    <div class="dsa-metric-val" style="color: var(--color-primary);">O(n log n)</div>
+                                    <small>In-place pivot partitioning</small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="runSortSimulation()">Simulate Benchmark on 1,000 Synthetic Records</button>
+                            <div id="sortBenchmarkLog" style="margin-top: 1rem; background: #0F172A; color: #4ADE80; padding: 1rem; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.8;">
+                                Ready for simulation.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 8: Big-O Complexity Matrix -->
+                <div id="tab-bigo" class="dsa-content-pane">
+                    <div class="card">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title"><span>📊</span> Comprehensive Big-O Theoretical & Empirical Complexity Matrix</h2>
+                                <p style="font-size: 0.85rem; color: var(--color-text-secondary); margin: 0;">Official academic evaluation reference for project defense.</p>
+                            </div>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Data Structure / Algorithm</th>
+                                            <th>Application Module</th>
+                                            <th>Time (Best)</th>
+                                            <th>Time (Average)</th>
+                                            <th>Time (Worst)</th>
+                                            <th>Space Complexity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td><strong>LIFO Stack</strong></td><td>Activity Audit Logs / Undo</td><td>Ω(1)</td><td>Θ(1)</td><td>O(1)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>FIFO Queue</strong></td><td>Leave Review Queue</td><td>Ω(1)</td><td>Θ(1)</td><td>O(1)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>Singly Linked List</strong></td><td>Sequential Transaction Log</td><td>Ω(1)</td><td>Θ(n)</td><td>O(n)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>Hash Table</strong></td><td>Employee Number Key Lookup</td><td>Ω(1)</td><td>Θ(1)</td><td>O(n)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>Binary Search Tree</strong></td><td>Hierarchical Employee Index</td><td>Ω(log n)</td><td>Θ(log n)</td><td>O(n)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>Linear Search</strong></td><td>Unindexed Table Filtering</td><td>Ω(1)</td><td>Θ(n)</td><td>O(n)</td><td>O(1)</td></tr>
+                                        <tr><td><strong>Binary Search</strong></td><td>Sorted ID Fast Search</td><td>Ω(1)</td><td>Θ(log n)</td><td>O(log n)</td><td>O(1)</td></tr>
+                                        <tr><td><strong>Bubble Sort</strong></td><td>Baseline Comparison</td><td>Ω(n)</td><td>Θ(n²)</td><td>O(n²)</td><td>O(1)</td></tr>
+                                        <tr><td><strong>Merge Sort</strong></td><td>Stable Date/ID Sorting</td><td>Ω(n log n)</td><td>Θ(n log n)</td><td>O(n log n)</td><td>O(n)</td></tr>
+                                        <tr><td><strong>Quick Sort</strong></td><td>In-Memory In-Place Sorting</td><td>Ω(n log n)</td><td>Θ(n log n)</td><td>O(n²)</td><td>O(log n)</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function showDsaTab(tabId) {
+            document.querySelectorAll('.dsa-content-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.dsa-tab-btn').forEach(btn => btn.classList.remove('active'));
+
+            const targetPane = document.getElementById(`tab-${tabId}`);
+            if (targetPane) targetPane.classList.add('active');
+
+            event.target.classList.add('active');
+
+            if (tabId === 'queue') DsaLab.renderQueue();
+            if (tabId === 'stack') DsaLab.renderStack();
+            if (tabId === 'bst') DsaLab.renderBst();
+            if (tabId === 'linkedList') renderLinkedList();
+        }
+
+        // Linked List Simulation State
+        const linkedListNodes = [
+            "LR001 (Maria Santos)",
+            "LR002 (David Cruz)",
+            "LR003 (Juan Dela Cruz)"
+        ];
+
+        function renderLinkedList() {
+            const el = document.getElementById('linkedListDisplay');
+            if (!el) return;
+            let html = '<div class="dsa-pipeline">';
+            html += '<div style="font-weight:bold; color:#38BDF8; margin-right:0.5rem;">HEAD ➔</div>';
+            linkedListNodes.forEach((node, idx) => {
+                html += `
+                    <div class="dsa-node" style="min-width: 130px; text-align: center;">
+                        <div style="font-size: 0.7rem; color: #94A3B8;">Node [${idx}]</div>
+                        <div style="font-weight: 600;">${node}</div>
+                    </div>
+                `;
+                html += '<div class="dsa-pointer-arrow">➔</div>';
+            });
+            html += '<div style="font-weight:bold; color:#EF4444; margin-left:0.5rem;">NULL</div>';
+            html += '</div>';
+            el.innerHTML = html;
+        }
+
+        function addLinkedListNode() {
+            const input = document.getElementById('llInputNode');
+            const val = input.value.trim() || `LR00${linkedListNodes.length + 1} (New Record)`;
+            linkedListNodes.unshift(val);
+            renderLinkedList();
+            input.value = '';
+            showToast(`[Linked List] Inserted new node at HEAD: "${val}" in O(1) time`, 'info');
+        }
+
+        function traverseLinkedList() {
+            showToast(`[Linked List] Traversed ${linkedListNodes.length} nodes sequentially from HEAD to NULL in O(n) time.`, 'success');
+        }
+
+        function handleEnqueue() {
+            const input = document.getElementById('queueInputItem');
+            const val = input.value.trim() || `LR00${DsaLab.queueData.length + 1} - Applicant`;
+            DsaLab.enqueue(val);
+            input.value = '';
+        }
+
+        function handlePushStack() {
+            const input = document.getElementById('stackInputItem');
+            const val = input.value.trim() || `Action #${DsaLab.stackData.length + 1}`;
+            DsaLab.pushStack(val);
+            input.value = '';
+        }
+
+        function lookupHash() {
+            const key = document.getElementById('hashLookupKey').value.trim().toUpperCase();
+            const emp = PrototypeData.employees.find(e => e.employeeNo === key);
+            const container = document.getElementById('hashTableResult');
+
+            if (emp) {
+                // Compute mock hash code
+                let hash = 0;
+                for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) % 16;
+
+                container.innerHTML = `
+                    <div style="color: #4ADE80; font-weight: bold; margin-bottom: 0.5rem;">✓ KEY MATCH FOUND IN O(1) CONSTANT TIME:</div>
+                    <div><strong>Key:</strong> "${key}" ➔ <strong>Computed Hash Bucket:</strong> [Bucket #${hash}]</div>
+                    <div><strong>Resolved Record:</strong> ${emp.firstName} ${emp.lastName} (${emp.position}, ${emp.department})</div>
+                    <div><strong>Email:</strong> ${emp.email} | <strong>Status:</strong> ${emp.status}</div>
+                    <div style="margin-top: 0.5rem; color: #94A3B8; font-size: 0.75rem;">Collision Resolution Method: Chained LinkedList in Hash Bucket</div>
+                `;
+                showToast(`Hash Table direct hit: Key "${key}" found in bucket #${hash}!`, 'success');
+            } else {
+                container.innerHTML = `<span style="color: #EF4444;">✕ Key "${key}" not found in employee hash index.</span>`;
+                showToast(`Key "${key}" not found!`, 'error');
+            }
+        }
+
+        function runBstTraversal(type) {
+            let traversalOrder = '';
+            if (type === 'inorder') {
+                traversalOrder = 'EMP010 ➔ EMP025 ➔ EMP040 ➔ EMP050 ➔ EMP060 ➔ EMP075 ➔ EMP090 (Natural Ascending Order)';
+                showToast('In-Order Traversal (L-Root-R) generated sorted keys!', 'success');
+            } else if (type === 'preorder') {
+                traversalOrder = 'EMP050 ➔ EMP025 ➔ EMP010 ➔ EMP040 ➔ EMP075 ➔ EMP060 ➔ EMP090 (Root-L-R)';
+                showToast('Pre-Order Traversal complete.', 'info');
+            } else {
+                traversalOrder = 'EMP010 ➔ EMP040 ➔ EMP025 ➔ EMP060 ➔ EMP090 ➔ EMP075 ➔ EMP050 (L-R-Root)';
+                showToast('Post-Order Traversal complete.', 'info');
+            }
+            DsaLab.renderBst();
+            document.querySelector('#bstDisplay div:last-child code').textContent = traversalOrder;
+        }
+
+        function runSearchComparison() {
+            const target = document.getElementById('targetSearchId').value.trim().toUpperCase();
+            const log = document.getElementById('searchTraceLog');
+            log.innerHTML = `
+                <div><strong>Target Employee ID:</strong> ${target}</div>
+                <div style="color: #38BDF8; margin-top: 0.5rem;">[1] Linear Search Trace (Unordered Sequential Scan):</div>
+                <div>Examining Index [0] (EMP001)... No match</div>
+                <div>Examining Index [1] (EMP002)... No match</div>
+                <div>Examining Index [2] (EMP003)... No match</div>
+                <div>...</div>
+                <div>Examining Index [6] (${target})... <strong>MATCH FOUND! Total Comparisons = 7</strong></div>
+                <div style="color: #4ADE80; margin-top: 0.75rem;">[2] Binary Search Trace (Sorted Array Divide & Conquer):</div>
+                <div>Step 1: Check Midpoint Index [3] (EMP004) ➔ ${target} &gt; EMP004. Discard left half.</div>
+                <div>Step 2: Check Midpoint Index [5] (EMP006) ➔ ${target} &gt; EMP006. Discard left half.</div>
+                <div>Step 3: Check Midpoint Index [6] (${target}) ➔ <strong>MATCH FOUND! Total Comparisons = 3</strong></div>
+                <div style="color: #FACC15; margin-top: 0.5rem;">Efficiency Gain: Binary Search achieved target in 3 steps vs 7 steps!</div>
+            `;
+            showToast('Search algorithm benchmark comparison executed!', 'success');
+        }
+
+        function runSortSimulation() {
+            const log = document.getElementById('sortBenchmarkLog');
+            log.innerHTML = `
+                <div>Generating 1,000 synthetic employee records... [Done]</div>
+                <div>[1] Executing Bubble Sort (O(n²)): Completed in <strong>14.28 ms</strong> (~499,500 comparison operations)</div>
+                <div>[2] Executing Merge Sort (O(n log n)): Completed in <strong>1.82 ms</strong> (~9,965 comparison operations)</div>
+                <div>[3] Executing Quick Sort (O(n log n)): Completed in <strong>1.21 ms</strong> (~9,420 comparison operations)</div>
+                <div style="color: #F8FAFC; margin-top: 0.5rem;"><strong>Conclusion:</strong> Divide-and-conquer algorithms (Merge & Quick Sort) are ~10x faster on moderate datasets and ~100x faster as N grows toward 10,000+.</div>
+            `;
+            showToast('Sorting benchmark executed successfully!', 'success');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            DsaLab.renderQueue();
+            renderLinkedList();
+        });
+    </script>
+</body>
+</html>

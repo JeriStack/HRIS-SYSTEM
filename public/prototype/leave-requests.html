@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Leave Review Queue - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item active">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning" id="sidebarPendingCount">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Leave Operations / <span>Pending Leave Review Queue</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Pending Leave Review Queue</h1>
+                        <p class="page-subtitle">Review, evaluate, and approve employee leave applications in strict First-In, First-Out (FIFO) chronological sequence.</p>
+                    </div>
+                </div>
+
+                <!-- Academic DSA Queue Visualization Widget -->
+                <div class="card" style="margin-bottom: 1.5rem; border-left: 4px solid var(--color-primary);">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>🧪</span> DSA FIFO Queue Pipeline (First-In, First-Out Order)</h2>
+                        <span class="badge badge-info">In-Memory Queue Visualizer</span>
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin-bottom: 1rem;">
+                            Applications are ingested into an in-memory Queue structure. The FRONT node represents the earliest submitted application that HR must evaluate first.
+                        </p>
+                        <div id="queueDisplay" class="dsa-visualizer-container">
+                            <!-- Populated dynamically via DsaLab.renderQueue() -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Review Table Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>⏳</span> Applications Awaiting Decision (<span id="queueCounter">3</span>)</h2>
+                        <div style="font-size: 0.875rem; color: var(--color-text-secondary);">
+                            Sorted chronologically by submission timestamp
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="pendingQueueTable">
+                                <thead>
+                                    <tr>
+                                        <th>Ref No.</th>
+                                        <th>Employee Applicant</th>
+                                        <th>Department</th>
+                                        <th>Leave Type</th>
+                                        <th>Inclusive Dates</th>
+                                        <th>Work Days</th>
+                                        <th>Reason / Justification</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Review Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="row-LR001">
+                                        <td><code>LR001</code></td>
+                                        <td>
+                                            <strong>Maria C. Santos</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP005 • Jr. Software Eng.</div>
+                                        </td>
+                                        <td>Information Technology</td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>
+                                            <strong>Nov 02 – Nov 06, 2026</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Mon to Fri</div>
+                                        </td>
+                                        <td><strong>5 Days</strong></td>
+                                        <td>Family vacation trip out of town</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="openApproveModal('LR001', 'Maria Santos', 'Vacation Leave', 5, 15, 10)">Approve</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('LR001', 'Maria Santos')">Reject</button>
+                                        </td>
+                                    </tr>
+                                    <tr id="row-LR002">
+                                        <td><code>LR002</code></td>
+                                        <td>
+                                            <strong>David J. Cruz</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP004 • Sr. Software Eng.</div>
+                                        </td>
+                                        <td>Information Technology</td>
+                                        <td><span class="badge badge-info">Sick Leave</span></td>
+                                        <td>
+                                            <strong>Nov 09 – Nov 10, 2026</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Mon to Tue</div>
+                                        </td>
+                                        <td><strong>2 Days</strong></td>
+                                        <td>Scheduled medical checkup and recovery</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="openApproveModal('LR002', 'David Cruz', 'Sick Leave', 2, 10, 8)">Approve</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('LR002', 'David Cruz')">Reject</button>
+                                        </td>
+                                    </tr>
+                                    <tr id="row-LR003">
+                                        <td><code>LR003</code></td>
+                                        <td>
+                                            <strong>Juan C. Dela Cruz</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">EMP006 • Systems Admin</div>
+                                        </td>
+                                        <td>Information Technology</td>
+                                        <td><span class="badge badge-info">Vacation Leave</span></td>
+                                        <td>
+                                            <strong>Nov 16 – Nov 18, 2026</strong>
+                                            <div style="font-size: 0.75rem; color: var(--color-text-secondary);">Mon to Wed</div>
+                                        </td>
+                                        <td><strong>3 Days</strong></td>
+                                        <td>Attending family reunion event</td>
+                                        <td><span class="badge badge-warning">Pending</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="openApproveModal('LR003', 'Juan Dela Cruz', 'Vacation Leave', 3, 15, 12)">Approve</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="openRejectModal('LR003', 'Juan Dela Cruz')">Reject</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Approve Leave Request -->
+    <div id="approveModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="apprModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="apprModalTitle" class="modal-title" style="color: var(--color-success);"><span>✓</span> Confirm Leave Approval</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-success">
+                    <strong>Atomic Balance Deduction:</strong> Approving this application will execute a simulated transactional deduction on the employee's remaining credits.
+                </div>
+                <div style="background: var(--color-bg); padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Application:</span> <strong id="apprRefDisplay">LR000</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Applicant:</span> <strong id="apprNameDisplay">Employee</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Leave Type:</span> <strong id="apprTypeDisplay">Type</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Requested Duration:</span> <strong id="apprDaysDisplay" style="color: var(--color-primary);">0 Days</strong>
+                    </div>
+                    <hr style="border: 0; border-top: 1px dashed var(--color-border); margin: 0.5rem 0;">
+                    <div style="display: flex; justify-content: space-between; color: var(--color-text-secondary); font-size: 0.875rem;">
+                        <span>Remaining Balance Calculation:</span>
+                        <span><span id="apprCurBal">15</span> - <span id="apprReqBal">5</span> = <strong id="apprNewBal" style="color: var(--color-success);">10 Days</strong></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="apprRemarks">HR Approval Remarks (Optional)</label>
+                    <textarea id="apprRemarks" class="form-control" rows="2" placeholder="e.g. Approved. Project handover confirmed with team lead."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="executeApproval()">Confirm & Approve Application</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Reject Leave Request -->
+    <div id="rejectModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="rejModalTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="rejModalTitle" class="modal-title" style="color: var(--color-danger);"><span>✕</span> Reject Leave Request</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Zero-Deduction Policy:</strong> In accordance with business rules, rejecting a leave request preserves the employee's existing balance. No credits will be deducted.
+                </div>
+                <p>Rejecting application <strong id="rejRefDisplay">LR000</strong> for <strong id="rejNameDisplay">Employee</strong>.</p>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="rejReason">Official Rejection Reason <span class="required">*</span></label>
+                    <textarea id="rejReason" class="form-control" rows="3" placeholder="e.g. Critical project sprint milestone; leaves restricted during this work week." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="executeRejection()">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        let currentRef = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            DsaLab.renderQueue();
+        });
+
+        function openApproveModal(ref, name, type, days, curBal, newBal) {
+            currentRef = ref;
+            document.getElementById('apprRefDisplay').textContent = ref;
+            document.getElementById('apprNameDisplay').textContent = name;
+            document.getElementById('apprTypeDisplay').textContent = type;
+            document.getElementById('apprDaysDisplay').textContent = `${days} Working Days`;
+            document.getElementById('apprCurBal').textContent = `${curBal}d`;
+            document.getElementById('apprReqBal').textContent = `${days}d`;
+            document.getElementById('apprNewBal').textContent = `${newBal} Days Remaining`;
+            openModal('approveModal');
+        }
+
+        function executeApproval() {
+            closeModal('approveModal');
+            const row = document.getElementById(`row-${currentRef}`);
+            if (row) {
+                row.remove();
+                DsaLab.dequeue();
+                updatePendingCount();
+                showToast(`Application ${currentRef} approved successfully! Balance deducted.`, 'success');
+            }
+        }
+
+        function openRejectModal(ref, name) {
+            currentRef = ref;
+            document.getElementById('rejRefDisplay').textContent = ref;
+            document.getElementById('rejNameDisplay').textContent = name;
+            openModal('rejectModal');
+        }
+
+        function executeRejection() {
+            const reason = document.getElementById('rejReason').value.trim();
+            if (!reason) {
+                showToast('Please provide an official rejection reason.', 'error');
+                return;
+            }
+            closeModal('rejectModal');
+            const row = document.getElementById(`row-${currentRef}`);
+            if (row) {
+                row.remove();
+                DsaLab.dequeue();
+                updatePendingCount();
+                showToast(`Application ${currentRef} rejected. Employee balance preserved.`, 'warning');
+            }
+        }
+
+        function updatePendingCount() {
+            const remainingRows = document.querySelectorAll('#pendingQueueTable tbody tr').length;
+            document.getElementById('queueCounter').textContent = remainingRows;
+            const sidebarBadge = document.getElementById('sidebarPendingCount');
+            if (sidebarBadge) sidebarBadge.textContent = remainingRows;
+            if (remainingRows === 0) {
+                document.querySelector('#pendingQueueTable tbody').innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div>
+                            <strong>All pending leave applications have been processed!</strong>
+                            <div style="font-size: 0.85rem;">The FIFO queue is currently empty.</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

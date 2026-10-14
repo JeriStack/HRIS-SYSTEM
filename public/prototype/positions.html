@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Positions - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item active">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Workforce Management / <span>Job Positions</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Job Position Management</h1>
+                        <p class="page-subtitle">Configure organizational roles, occupational titles, and department alignments.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary" onclick="openModal('addPosModal')">
+                            <span>+</span> Add New Position
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Toolbar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem 1.25rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 0.75rem; flex: 1; min-width: 280px;">
+                                <input type="text" id="positionSearchInput" class="form-control" placeholder="🔍 Search position title or description...">
+                                <select id="deptFilter" class="form-control" style="width: 240px;">
+                                    <option value="">All Departments</option>
+                                    <option value="Executive Management">Executive Management</option>
+                                    <option value="Human Resources">Human Resources</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Finance & Accounting">Finance & Accounting</option>
+                                    <option value="Marketing & Sales">Marketing & Sales</option>
+                                </select>
+                            </div>
+                            <div style="color: var(--color-text-secondary); font-size: 0.875rem;">
+                                Total: <strong>9 Defined Positions</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Positions Data Table -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="positionsTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">ID</th>
+                                        <th>Position Title</th>
+                                        <th>Assigned Department</th>
+                                        <th>Description</th>
+                                        <th>Incumbent Count</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>1</code></td>
+                                        <td><strong>Chief Executive Officer</strong></td>
+                                        <td><span class="badge badge-info">Executive Management</span></td>
+                                        <td>Top executive officer and organizational leader</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(1, 'Chief Executive Officer')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Chief Executive Officer', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2</code></td>
+                                        <td><strong>HR Director</strong></td>
+                                        <td><span class="badge badge-info">Human Resources</span></td>
+                                        <td>Head of Human Resources and organizational development</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(2, 'HR Director')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('HR Director', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>3</code></td>
+                                        <td><strong>HR Officer</strong></td>
+                                        <td><span class="badge badge-info">Human Resources</span></td>
+                                        <td>Employee records management and leave review coordinator</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(3, 'HR Officer')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('HR Officer', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>4</code></td>
+                                        <td><strong>Senior Software Engineer</strong></td>
+                                        <td><span class="badge badge-info">Information Technology</span></td>
+                                        <td>Full-stack application architecture and backend lead</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(4, 'Senior Software Engineer')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Senior Software Engineer', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>5</code></td>
+                                        <td><strong>Junior Software Engineer</strong></td>
+                                        <td><span class="badge badge-info">Information Technology</span></td>
+                                        <td>Web application development, UI implementation, and bug fixes</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(5, 'Junior Software Engineer')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Junior Software Engineer', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>6</code></td>
+                                        <td><strong>Systems Administrator</strong></td>
+                                        <td><span class="badge badge-info">Information Technology</span></td>
+                                        <td>Server infrastructure, networking, and security operations</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(6, 'Systems Administrator')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Systems Administrator', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>7</code></td>
+                                        <td><strong>Finance Manager</strong></td>
+                                        <td><span class="badge badge-info">Finance & Accounting</span></td>
+                                        <td>Financial planning, statutory auditing, and reporting</td>
+                                        <td><span class="badge badge-success">1 Employee</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(7, 'Finance Manager')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Finance Manager', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>8</code></td>
+                                        <td><strong>Accountant</strong></td>
+                                        <td><span class="badge badge-info">Finance & Accounting</span></td>
+                                        <td>General ledger, payroll assistance, and accounts reconciliation</td>
+                                        <td><span class="badge badge-warning">0 Employees</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(8, 'Accountant')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="deleteEmptyPos(8, 'Accountant')">Delete</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>9</code></td>
+                                        <td><strong>Marketing Specialist</strong></td>
+                                        <td><span class="badge badge-info">Marketing & Sales</span></td>
+                                        <td>Digital marketing campaigns, social media, and client outreach</td>
+                                        <td><span class="badge badge-secondary">1 Inactive</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editPos(9, 'Marketing Specialist')">Edit</button>
+                                            <button type="button" class="btn btn-secondary btn-sm" style="color: var(--color-danger);" onclick="showPosRestriction('Marketing Specialist', 1)">Delete</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Position -->
+    <div id="addPosModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addPosTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="addPosTitle" class="modal-title"><span>💼</span> Create Job Position</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="addPosForm" onsubmit="handleAddPos(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="posDept">Parent Department <span class="required">*</span></label>
+                        <select id="posDept" class="form-control" required>
+                            <option value="">-- Select Department --</option>
+                            <option value="1">Executive Management</option>
+                            <option value="2">Human Resources</option>
+                            <option value="3">Information Technology</option>
+                            <option value="4">Finance & Accounting</option>
+                            <option value="5">Marketing & Sales</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="posTitle">Position Title <span class="required">*</span></label>
+                        <input type="text" id="posTitle" class="form-control" placeholder="e.g. Quality Assurance Lead" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="posDesc">Role Description</label>
+                        <textarea id="posDesc" class="form-control" rows="3" placeholder="Core job functions and technical responsibilities"></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Position</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Position Deletion Restriction -->
+    <div id="posRestrictionModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="posRestrTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="posRestrTitle" class="modal-title" style="color: var(--color-danger);"><span>🚫</span> Cannot Delete Position</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <strong>Referential Integrity Constraint:</strong> Position <strong id="restrPosName">Title</strong> is currently assigned to <strong id="restrStaffCount">1</strong> personnel records.
+                </div>
+                <p>A job position cannot be deleted from the database while active or historical employee records reference its foreign key.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initTableSearch('positionSearchInput', 'positionsTable');
+
+            const deptFilter = document.getElementById('deptFilter');
+            const table = document.getElementById('positionsTable');
+
+            deptFilter.addEventListener('change', () => {
+                const val = deptFilter.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const deptText = row.children[2].textContent.toLowerCase();
+                    if (!val || deptText.includes(val)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        function handleAddPos(e) {
+            e.preventDefault();
+            closeModal('addPosModal');
+            showToast('Job position successfully created! (Frontend prototype simulation)', 'success');
+        }
+
+        function editPos(id, name) {
+            showToast(`Editing position "${name}" (ID: ${id})`, 'info');
+        }
+
+        function showPosRestriction(title, count) {
+            document.getElementById('restrPosName').textContent = title;
+            document.getElementById('restrStaffCount').textContent = count;
+            openModal('posRestrictionModal');
+        }
+
+        function deleteEmptyPos(id, title) {
+            if (confirm(`Position "${title}" currently has 0 assigned staff. Proceed with deletion simulation?`)) {
+                showToast(`Position "${title}" removed (Simulation).`, 'success');
+            }
+        }
+    </script>
+</body>
+</html>
