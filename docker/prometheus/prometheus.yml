@@ -1,0 +1,44 @@
+# =============================================================================
+# Prometheus Configuration
+# Employee HRIS & Leave Management System
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+# Alertmanager configuration (optional / extensible)
+alerting:
+  alertmanagers: []
+
+# Rule files (optional / extensible)
+rule_files: []
+
+# -----------------------------------------------------------------------------
+# Scrape Configurations
+# -----------------------------------------------------------------------------
+scrape_configs:
+  # 1. Prometheus Self-Monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'monitoring'
+          app: 'prometheus'
+
+  # 2. Nginx Reverse Proxy Metrics (via nginx-prometheus-exporter)
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+        labels:
+          service: 'proxy'
+          app: 'nginx'
+
+  # 3. MySQL Database Metrics (via mysqld-exporter)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['mysqld-exporter:9104']
+        labels:
+          service: 'database'
+          app: 'mysql'

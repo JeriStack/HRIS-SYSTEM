@@ -14,6 +14,12 @@ $cookieFileEmp = __DIR__ . '/cookie_p8_emp.txt';
 @unlink($cookieFileHR);
 @unlink($cookieFileEmp);
 
+require_once __DIR__ . '/../core/bootstrap.php';
+try {
+    $cleanPdo = \Core\Database::getInstance()->getConnection();
+    $cleanPdo->exec("DELETE FROM leave_requests WHERE reason LIKE 'PHASE8_HTTP_%'");
+} catch (\Throwable $e) {}
+
 $httpResults = [
     'passed' => 0,
     'failed' => 0,
