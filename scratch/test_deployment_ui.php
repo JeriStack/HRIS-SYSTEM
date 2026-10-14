@@ -4,7 +4,7 @@
  * Employee HRIS & Leave Management System
  */
 
-$baseUrl = "http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public";
+$baseUrl = getenv('TEST_BASE_URL') ?: "http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public";
 $cookieAdmin = tempnam(sys_get_temp_dir(), 'hris_cookie_admin_');
 $cookieHr = tempnam(sys_get_temp_dir(), 'hris_cookie_hr_');
 $cookieEmployee = tempnam(sys_get_temp_dir(), 'hris_cookie_emp_');

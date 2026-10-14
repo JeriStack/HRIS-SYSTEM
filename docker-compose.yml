@@ -1,0 +1,103 @@
+services:
+  # -----------------------------------------------------------------------------
+  # Application Service: PHP 8.2 + Apache Front Controller
+  # Available on host: http://localhost:8080
+  # -----------------------------------------------------------------------------
+  app:
+    container_name: hris_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "Employee HRIS & Leave Management System"
+      APP_ENV: development
+      BASE_URL: "http://localhost:8080"
+      TIMEZONE: "Asia/Manila"
+      SESSION_LIFETIME: 1800
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: hris_db
+      DB_USERNAME: hris_user
+      DB_PASSWORD: hris_password
+      DB_CHARSET: utf8mb4
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # Database Service: MySQL 8.0 with Persistent Volume & Auto-Initialization
+  # Available on host: localhost:3307 (avoids collision with local XAMPP 3306)
+  # Internal Docker network: db:3306
+  # -----------------------------------------------------------------------------
+  db:
+    container_name: hris_db
+    image: mysql:8.0
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: hris_db
+      MYSQL_USER: hris_user
+      MYSQL_PASSWORD: hris_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # Database Management: phpMyAdmin
+  # Available on host: http://localhost:8081
+  # -----------------------------------------------------------------------------
+  phpmyadmin:
+    container_name: hris_phpmyadmin
+    image: phpmyadmin:latest
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - hris_network
+
+# -----------------------------------------------------------------------------
+# Storage Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  db_data:
+    name: hris_db_data
+    driver: local
+
+# -----------------------------------------------------------------------------
+# Isolated Bridge Network
+# -----------------------------------------------------------------------------
+networks:
+  hris_network:
+    name: hris_network
+    driver: bridge

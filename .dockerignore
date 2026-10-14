@@ -1,0 +1,19 @@
+# Version control
+.git
+.github
+.gitignore
+
+# Docker build files
+.dockerignore
+Dockerfile
+docker-compose*.yml
+
+# Scratch, temp, and logs
+scratch/
+*.log
+.DS_Store
+Thumbs.db
+
+# Documentation build and agent files
+.agents/
+docs/_build/
