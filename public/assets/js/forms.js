@@ -31,8 +31,8 @@ function initWorkingDayCalculator() {
                 return;
             }
 
-            const start = new Date(startVal);
-            const end = new Date(endVal);
+            const start = new Date(startVal + 'T00:00:00');
+            const end = new Date(endVal + 'T00:00:00');
 
             if (start > end) {
                 if (errorNotice) {

@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS `leave_requests` (
     `end_date` DATE NOT NULL,
     `number_of_days` INT UNSIGNED NOT NULL,
     `reason` TEXT NOT NULL,
+    `rejection_reason` TEXT NULL,
     `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
     `approved_by` INT UNSIGNED NULL,
     `approved_at` DATETIME NULL,
