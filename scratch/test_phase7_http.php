@@ -5,7 +5,7 @@
  * authentication, role guards, CSRF, forms, redirects, views, and activity logging.
  */
 
-$baseUrl = 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
+$baseUrl = getenv('TEST_BASE_URL') ?: 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
 $cookieFileAdmin = __DIR__ . '/cookie_hr_admin.txt';
 $cookieFileEmp   = __DIR__ . '/cookie_hr_emp.txt';
 

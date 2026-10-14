@@ -252,12 +252,37 @@ The database (`database/seed.sql`) includes pre-hashed development accounts conf
 
 ## 7. Quick Start & Local Setup Guide
 
-### 1. Prerequisites
+You can run the Employee HRIS & Leave Management System either via **Docker (Recommended)** or via **Local XAMPP**.
+
+### Option A: Docker Containerized Setup (Recommended)
+
+The system includes a pre-configured, production-ready 3-tier container stack (`app`, `db`, `phpmyadmin`) with automated database schema migration and demo seeding.
+
+#### 1. Prerequisites
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+#### 2. Start the Stack
+```bash
+docker compose up -d
+```
+
+#### 3. Access the Services
+* **HRIS Application:** [http://localhost:8080](http://localhost:8080)
+* **phpMyAdmin (DB Management):** [http://localhost:8081](http://localhost:8081)
+* **MySQL Database Host Port:** `localhost:3307` (avoids conflict with local XAMPP port 3306)
+
+For comprehensive container documentation, commands, and seed logins, see [docs/deployment/docker-setup.md](docs/deployment/docker-setup.md).
+
+---
+
+### Option B: Local XAMPP Setup
+
+#### 1. Prerequisites
 * **PHP 8.1+** with `pdo_mysql`, `mbstring`, `session`, `curl` extensions enabled
 * **MySQL 8.0+** or **MariaDB 10.4+** (XAMPP recommended)
 * Apache Web Server with `mod_rewrite` enabled
 
-### 2. Database Installation
+#### 2. Database Installation
 1. Start Apache and MySQL in your XAMPP Control Panel.
 2. Create the target database:
    ```sql
@@ -272,7 +297,7 @@ The database (`database/seed.sql`) includes pre-hashed development accounts conf
    mysql -u root -p hris_db < database/seed.sql
    ```
 
-### 3. Environment Configuration
+#### 3. Environment Configuration
 Create your local environment file by copying `.env.example`:
 ```bash
 cp .env.example .env
@@ -286,7 +311,7 @@ DB_USER=root
 DB_PASS=
 ```
 
-### 4. Running the Application
+#### 4. Running the Application
 Access the application through your browser:
 * **Direct Apache URL:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/`
 * **Root Alias URL:** `http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/`
