@@ -1,7 +1,7 @@
 <?php
 /**
  * Employee Personal Leave Applications History View
- * Employee HRIS & Leave Management System
+ * Employee HRIS & Leave Management System - Phase 8
  */
 
 $userName = $user['name'] ?? $user['username'] ?? 'Employee';
@@ -64,16 +64,19 @@ $empNo = $user['employee_no'] ?? 'EMP-Self';
                 <?php else: ?>
                     <?php foreach ($requests as $r): 
                         $status = $r['status'] ?? 'Pending';
-                        $badgeClass = 'badge-warning';
-                        if ($status === 'Approved') $badgeClass = 'badge-success';
-                        elseif ($status === 'Rejected') $badgeClass = 'badge-danger';
-                        elseif ($status === 'Cancelled') $badgeClass = 'badge-neutral';
+                        $badgeClass = match($status) {
+                            'Approved'  => 'badge-success',
+                            'Pending'   => 'badge-warning',
+                            'Rejected'  => 'badge-danger',
+                            'Cancelled' => 'badge-neutral',
+                            default     => 'badge-neutral',
+                        };
                     ?>
                         <tr>
                             <td>
-                                <strong style="font-family: var(--font-mono); font-size: 0.8125rem; color: var(--color-primary);">
-                                    #<?= (int)$r['id'] ?>
-                                </strong>
+                                <a href="<?= url('/leaves/' . $r['id']) ?>" style="font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 700; color: var(--color-primary); text-decoration: none;">
+                                    #LR-<?= str_pad((string)$r['id'], 3, '0', STR_PAD_LEFT) ?>
+                                </a>
                             </td>
                             <td>
                                 <strong><?= e($r['leave_name']) ?></strong>
@@ -91,26 +94,36 @@ $empNo = $user['employee_no'] ?? 'EMP-Self';
                                 <span title="<?= e($r['reason']) ?>" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.8125rem;">
                                     <?= e($r['reason']) ?>
                                 </span>
+                                <?php if ($status === 'Rejected' && !empty($r['rejection_reason'])): ?>
+                                    <div style="font-size: 0.725rem; color: var(--color-danger); margin-top: 3px; font-style: italic;">
+                                        Reason: <?= e($r['rejection_reason']) ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td style="font-size: 0.8125rem; color: var(--color-text-muted);">
                                 <?= date('M d, Y', strtotime($r['created_at'])) ?>
                             </td>
                             <td>
                                 <span class="badge <?= $badgeClass ?>">
+                                    <span class="badge-dot" aria-hidden="true"></span>
                                     <?= e($status) ?>
                                 </span>
                             </td>
                             <td style="text-align: right;">
-                                <?php if ($status === 'Pending'): ?>
-                                    <form action="<?= url('/leaves/' . $r['id'] . '/cancel') ?>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this pending leave request?');">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn-danger btn-sm" style="font-size: 0.75rem; padding: 3px 8px;">
-                                            Cancel
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <span style="font-size: 0.75rem; color: var(--color-text-muted);">&mdash;</span>
-                                <?php endif; ?>
+                                <div class="table-actions" style="justify-content: flex-end;">
+                                    <a href="<?= url('/leaves/' . $r['id']) ?>" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px;">
+                                        View
+                                    </a>
+
+                                    <?php if ($status === 'Pending'): ?>
+                                        <form action="<?= url('/leaves/' . $r['id'] . '/cancel') ?>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this pending leave request?');">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn-danger btn-sm" style="font-size: 0.75rem; padding: 3px 8px;">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>

@@ -4,7 +4,7 @@
 [![Database](https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC%20(2--Role%20RBAC)-green.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready%20%26%20100%25%20Tested-success.svg)]()
-[![Tests](https://img.shields.io/badge/Tests-171%20%2F%20171%20Passing-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-288%20%2F%20288%20Passing-brightgreen.svg)]()
 
 ## 1. Project Overview
 
@@ -86,6 +86,20 @@ All software specifications, database designs, wireframes, security audits, and 
 * **[System Security Activity Trail](docs/phase-4-ui-ux/activity-logs-screen.md):** Immutable audit table and security event inspection.
 * **[DSA Laboratory & Benchmarks](docs/phase-4-ui-ux/dsa-laboratory-screens.md):** Interactive algorithm benchmark graphs, structures visualizer, and step counters.
 * **[Accessibility & Responsive Guidelines](docs/phase-4-ui-ux/responsive-and-accessibility.md):** Touch target sizing ($\ge 44\text{ px}$), WCAG 2.1 AA color contrast compliance.
+
+### Phase 8 — Complete Leave Management System
+* **[Phase 8 Overview & Architecture](docs/phase-8-leave-management/README.md):** Architectural boundaries, component layout, and verification summary.
+* **[Leave Classification Management](docs/phase-8-leave-management/leave-type-management.md):** Schema, unique constraints, and soft deactivation preservation.
+* **[Leave Balance Management](docs/phase-8-leave-management/leave-balance-management.md):** Tracking quotas, atomic deduction on approval, and authorized adjustments.
+* **[Leave Filing Workflow](docs/phase-8-leave-management/leave-filing-workflow.md):** Employee application lifecycle, validation sequence, and reservation checks.
+* **[Leave-Day Calculation Service](docs/phase-8-leave-management/leave-day-calculation.md):** Monday–Friday working day calculation rules, boundary handling, and test cases.
+* **[Server-Side Validation Rules](docs/phase-8-leave-management/leave-validation-rules.md):** Comprehensive validation matrix, CSRF protection, and balance checks.
+* **[Leave Status Transitions](docs/phase-8-leave-management/leave-status-transitions.md):** Lifecycle state machine, permitted transitions, and race condition defenses.
+* **[Leave Approval & Rejection](docs/phase-8-leave-management/leave-approval-and-rejection.md):** Review queue operations, atomic balance updates, and rejection reason capture.
+* **[Leave Cancellation & History](docs/phase-8-leave-management/leave-cancellation-and-history.md):** Self-service cancellation, privacy isolation, and organization-wide history.
+* **[Routes & Permission Matrix](docs/phase-8-leave-management/leave-routes-and-permissions.md):** Full route inventory, HTTP methods, and role access guards.
+* **[Automated Test Execution Report](docs/phase-8-leave-management/leave-test-report.md):** Complete test execution report covering 86 Phase 8 automated tests.
+* **[Database Migration Notes](docs/phase-8-leave-management/migration-notes.md):** Non-destructive schema migration documentation for `rejection_reason`.
 
 ### Security, RBAC & Deployment Audits
 * **[System Repair & Remediation Log](docs/audits/repair-log.md):** Complete record of audited defects, root cause analyses, implemented fixes, and empirical test pass evidence.
