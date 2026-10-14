@@ -254,9 +254,16 @@ The database (`database/seed.sql`) includes pre-hashed development accounts conf
 
 You can run the Employee HRIS & Leave Management System either via **Docker (Recommended)** or via **Local XAMPP**.
 
-### Option A: Docker Containerized Setup (Recommended)
+### Option A: Docker Containerized Setup with Nginx & Monitoring (Recommended)
 
-The system includes a pre-configured, production-ready 3-tier container stack (`app`, `db`, `phpmyadmin`) with automated database schema migration and demo seeding.
+The system includes a pre-configured, production-grade 8-container stack featuring:
+- **Nginx Reverse Proxy** at the edge ([http://localhost:8080](http://localhost:8080))
+- **PHP 8.2 + Apache Application Server** (shielded internally behind Nginx)
+- **MySQL 8.0 Database** with persistent storage volume ([localhost:3307](http://localhost:3307))
+- **phpMyAdmin** for browser database management ([http://localhost:8081](http://localhost:8081))
+- **Prometheus** time-series metrics collection ([http://localhost:9090](http://localhost:9090))
+- **Grafana** performance & health visualization dashboards ([http://localhost:3100](http://localhost:3100))
+- **Specialized Monitoring Exporters:** `nginx-exporter` and `mysqld-exporter`
 
 #### 1. Prerequisites
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
@@ -269,9 +276,11 @@ docker compose up -d
 #### 3. Access the Services
 * **HRIS Application:** [http://localhost:8080](http://localhost:8080)
 * **phpMyAdmin (DB Management):** [http://localhost:8081](http://localhost:8081)
+* **Prometheus Targets & Metrics:** [http://localhost:9090](http://localhost:9090)
+* **Grafana Dashboards:** [http://localhost:3100](http://localhost:3100) *(User: `admin` / Pass: `admin`)*
 * **MySQL Database Host Port:** `localhost:3307` (avoids conflict with local XAMPP port 3306)
 
-For comprehensive container documentation, commands, and seed logins, see [docs/deployment/docker-setup.md](docs/deployment/docker-setup.md).
+For comprehensive container documentation, commands, architecture, and exporter metrics, see [docs/docker-monitoring/README.md](docs/docker-monitoring/README.md).
 
 ---
 
