@@ -25,6 +25,31 @@ jobs:
     name: PHP Syntax and Tests
     runs-on: ubuntu-24.04
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_password
+          MYSQL_DATABASE: hris_test
+          MYSQL_USER: hris_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_DRIVER: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: hris_test
+      DB_USERNAME: hris_test_user
+      DB_PASSWORD: test_password
+      APP_ENV: testing
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,6 +117,23 @@ jobs:
           else
             echo "scratch/test_dsa_suite.php not found; skipping."
           fi
+
+      - name: Initialize test database schema and seed data
+        shell: bash
+        run: |
+          echo "Checking MySQL client availability..."
+          if ! command -v mysql &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y default-mysql-client
+          fi
+
+          echo "Importing database schema into hris_test..."
+          mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/schema.sql
+
+          if [ -f database/seed.sql ]; then
+            echo "Importing seed data into hris_test..."
+            mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/seed.sql
+          fi
+          echo "Database schema and seed initialized successfully."
 
       - name: Run PHPUnit tests
         shell: bash
