@@ -42,8 +42,9 @@ Thumbs.db
 *.sublime-project
 *.sublime-workspace
 
-# Node / Package Manager Dependencies
+# Node & Composer Dependencies
 node_modules/
+vendor/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
