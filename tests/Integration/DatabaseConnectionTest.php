@@ -48,4 +48,34 @@ class DatabaseConnectionTest extends TestCase
         $this->assertInstanceOf(Database::class, $instanceAfter);
         $this->assertNotSame($instanceBefore, $instanceAfter, 'Database::reset() must create a fresh instance on next call.');
     }
+
+    public function test_schema_tables_exist_when_connected(): void
+    {
+        $db = Database::getInstance();
+        if (!$db->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
+        $pdo = $db->getConnection();
+        $stmt = $pdo->query("SHOW TABLES");
+        $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $expectedTables = ['departments', 'positions', 'employees', 'users', 'leave_types', 'leave_requests', 'leave_balances'];
+        foreach ($expectedTables as $table) {
+            $this->assertContains($table, $tables, "Expected table '{$table}' to exist in database.");
+        }
+    }
+
+    public function test_database_queries_seed_data_successfully(): void
+    {
+        $db = Database::getInstance();
+        if (!$db->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
+        $pdo = $db->getConnection();
+        $stmt = $pdo->query("SELECT COUNT(*) as count FROM departments");
+        $count = (int)$stmt->fetch(PDO::FETCH_ASSOC)['count'];
+        $this->assertGreaterThan(0, $count, "Seed data should populate departments table.");
+    }
 }
