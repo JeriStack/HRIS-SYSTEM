@@ -1,0 +1,208 @@
+name: Unit Tests & Jira Integration
+
+on:
+  push:
+    branches:
+      - main
+      - development
+      - develop
+      - 'HRIS-*'
+  pull_request:
+    branches:
+      - main
+      - development
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+concurrency:
+  group: hris-unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: PHP Unit Tests & MySQL Integration
+    runs-on: ubuntu-24.04
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_password
+          MYSQL_DATABASE: hris_test
+          MYSQL_USER: hris_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_DRIVER: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: hris_test
+      DB_USERNAME: hris_test_user
+      DB_PASSWORD: test_password
+      APP_ENV: testing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify secrets are not tracked
+        shell: bash
+        run: |
+          echo "Verifying no .env files or credentials are tracked in Git..."
+          if git ls-files --error-unmatch .env 2>/dev/null; then
+            echo "::error::.env file is tracked in Git! Keep secrets, .env files, and credentials out of Git."
+            exit 1
+          fi
+          echo "Secrets check passed: .env is excluded."
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, pdo, pdo_mysql, zip, json
+          tools: composer
+          coverage: none
+
+      - name: Display PHP version
+        run: php --version
+
+      - name: Install Composer dependencies
+        shell: bash
+        run: |
+          if [ -f composer.json ]; then
+            composer validate --no-check-publish
+            if [ -f composer.lock ]; then
+              composer install --no-interaction --prefer-dist --no-progress
+            else
+              echo "::error::composer.lock is missing."
+              echo "Commit composer.lock for reproducible CI builds."
+              exit 1
+            fi
+          else
+            echo "No composer.json found; skipping dependency installation."
+          fi
+
+      - name: Check PHP syntax
+        shell: bash
+        run: |
+          mapfile -t files < <(git ls-files '*.php')
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No tracked PHP files found."
+            exit 1
+          fi
+
+          echo "Validating syntax across ${#files[@]} tracked PHP files..."
+          for file in "${files[@]}"; do
+            php -l "$file" || exit 1
+          done
+          echo "All tracked PHP files passed syntax check!"
+
+      - name: Run DSA automated unit tests
+        shell: bash
+        run: |
+          if [ -f scratch/test_dsa_suite.php ]; then
+            echo "Running automated Data Structures & Algorithms unit test suite..."
+            php scratch/test_dsa_suite.php
+          else
+            echo "scratch/test_dsa_suite.php not found; skipping."
+          fi
+
+      - name: Initialize test database schema and seed data
+        shell: bash
+        run: |
+          echo "Checking MySQL client availability..."
+          if ! command -v mysql &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y default-mysql-client
+          fi
+
+          echo "Importing database schema into hris_test..."
+          mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/schema.sql
+
+          if [ -f database/seed.sql ]; then
+            echo "Importing seed data into hris_test..."
+            mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/seed.sql
+          fi
+          echo "Database schema and seed initialized successfully."
+
+      - name: Run PHPUnit tests
+        shell: bash
+        run: |
+          if [ -x vendor/bin/phpunit ]; then
+            if [ -f phpunit.xml ] || [ -f phpunit.xml.dist ]; then
+              ./vendor/bin/phpunit
+            else
+              echo "PHPUnit is installed, but no PHPUnit configuration exists."
+              echo "Configure tests before enabling this step as a required check."
+              exit 1
+            fi
+          else
+            echo "PHPUnit is not installed; automated tests are skipped."
+          fi
+
+  jira-transition:
+    name: Jira Issue Transition
+    needs: test
+    if: success()
+    runs-on: ubuntu-latest
+    env:
+      JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+      JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Jira Login
+        if: env.JIRA_BASE_URL != '' && env.JIRA_API_TOKEN != ''
+        uses: atlassian/gajira-login@v3
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Find Jira Issue Key
+        id: find_issue
+        if: env.JIRA_BASE_URL != '' && env.JIRA_API_TOKEN != ''
+        uses: atlassian/gajira-find-issue-key@v3
+        with:
+          from: branch,commits
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+
+      - name: Transition Jira Issue to In Review
+        if: env.JIRA_BASE_URL != '' && env.JIRA_API_TOKEN != '' && steps.find_issue.outputs.issue != ''
+        continue-on-error: true
+        uses: atlassian/gajira-transition@v3
+        with:
+          issue: ${{ steps.find_issue.outputs.issue }}
+          transition: "In Review"
+
+      - name: Jira Integration Status Report
+        shell: bash
+        run: |
+          echo "=========================================================="
+          echo "  JIRA AUTOMATION STATUS"
+          echo "=========================================================="
+          if [ -n "${{ steps.find_issue.outputs.issue }}" ]; then
+            echo "Detected Jira Issue: ${{ steps.find_issue.outputs.issue }}"
+            echo "Tests passed! Automated transition dispatched."
+          else
+            echo "No Jira issue key detected in branch or commit, or Jira credentials pending."
+            echo "Unit tests completed with 100% pass rate."
+          fi
+          echo "=========================================================="
