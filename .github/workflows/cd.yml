@@ -5,13 +5,13 @@ on:
     branches:
       - main
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       target_env:
-        description: 'Target Deployment Environment'
+        description: "Target Deployment Environment"
         required: true
-        default: 'production'
+        default: "production"
         type: choice
         options:
           - production
@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Verify production directory layout
         shell: bash
@@ -64,7 +64,7 @@ jobs:
         run: |
           RELEASE_NAME="hris-system-release-${{ github.sha }}"
           mkdir -p dist
-          
+
           # Package application files excluding development-only artifacts
           tar --exclude='./.git' \
               --exclude='./.github' \
@@ -78,7 +78,7 @@ jobs:
           ls -lh dist/
 
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hris-production-artifact
           path: dist/*.tar.gz
@@ -92,7 +92,7 @@ jobs:
 
     steps:
       - name: Download deployment artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: hris-production-artifact
           path: dist
