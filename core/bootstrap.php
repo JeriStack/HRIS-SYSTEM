@@ -11,6 +11,7 @@ spl_autoload_register(function (string $class) {
         'Core\\'                => __DIR__ . '/',
         'App\\Controllers\\'    => __DIR__ . '/../app/controllers/',
         'App\\Models\\'         => __DIR__ . '/../app/models/',
+        'App\\Services\\'       => __DIR__ . '/../app/services/',
         'App\\Dsa\\Algorithms\\' => __DIR__ . '/../app/dsa/algorithms/',
         'App\\Dsa\\Structures\\' => __DIR__ . '/../app/dsa/structures/',
         'App\\Dsa\\'            => __DIR__ . '/../app/dsa/',
@@ -34,6 +35,7 @@ spl_autoload_register(function (string $class) {
         __DIR__ . '/',
         __DIR__ . '/../app/controllers/',
         __DIR__ . '/../app/models/',
+        __DIR__ . '/../app/services/',
     ];
 
     foreach ($fallbackDirs as $dir) {
