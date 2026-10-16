@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/13.4/phpunit.xsd" bootstrap="tests/bootstrap.php" colors="true" cacheDirectory=".phpunit.cache" executionOrder="defects" beStrictAboutOutputDuringTests="false" failOnRisky="false" failOnWarning="false" resolveDependencies="true">
+  <testsuites>
+    <testsuite name="Unit">
+      <directory>tests/Unit</directory>
+    </testsuite>
+    <testsuite name="Integration">
+      <directory>tests/Integration</directory>
+    </testsuite>
+    <testsuite name="Feature">
+      <directory>tests/Feature</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory>app</directory>
+      <directory>core</directory>
+    </include>
+    <exclude>
+      <directory>app/views</directory>
+    </exclude>
+  </source>
+  <php>
+    <env name="APP_ENV" value="testing"/>
+    <env name="DB_DRIVER" value="mysql"/>
+    <env name="DB_HOST" value="127.0.0.1"/>
+    <env name="DB_PORT" value="3306"/>
+    <env name="DB_DATABASE" value="hris_test"/>
+    <env name="DB_USERNAME" value="hris_test_user"/>
+    <env name="DB_PASSWORD" value="test_password"/>
+  </php>
+</phpunit>

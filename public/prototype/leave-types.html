@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leave Policies & Types - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item active">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Leave Operations / <span>Leave Policies & Types</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Leave Policies & Category Management</h1>
+                        <p class="page-subtitle">Configure statutory leave entitlements, annual credit quotas, and eligibility parameters.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-primary" onclick="openModal('addLeaveTypeModal')">
+                            <span>+</span> Add Leave Policy
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Academic Business Rule Notice -->
+                <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                    <strong>Approved System Business Rules:</strong> Leave requests are calculated strictly on Monday–Friday business days (Saturday and Sunday are automatically excluded). Modifying default quotas applies to future annual credit provisions without retroactively modifying existing active balance balances.
+                </div>
+
+                <!-- Leave Types Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title"><span>📋</span> Standard Corporate Leave Entitlements</h2>
+                        <span class="badge badge-info">5 Active Categories</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">ID</th>
+                                        <th>Leave Type Name</th>
+                                        <th>Default Annual Quota</th>
+                                        <th>Description & Policy Intent</th>
+                                        <th>Calculation Rule</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>1</code></td>
+                                        <td><strong>Vacation Leave</strong></td>
+                                        <td><span class="badge badge-info" style="font-size: 0.85rem; padding: 0.35rem 0.65rem;">15 Working Days</span></td>
+                                        <td>Annual personal rest, rest, and leisure. Subject to HR operational clearance.</td>
+                                        <td><code>Monday–Friday (Excl. Weekends)</code></td>
+                                        <td><span class="badge badge-success">Active</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editLeaveType('Vacation Leave', 15)">Edit Policy</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>2</code></td>
+                                        <td><strong>Sick Leave</strong></td>
+                                        <td><span class="badge badge-info" style="font-size: 0.85rem; padding: 0.35rem 0.65rem;">10 Working Days</span></td>
+                                        <td>Medical illness, medical consults, or recuperation. Medical certificate required for &gt; 2 days.</td>
+                                        <td><code>Monday–Friday (Excl. Weekends)</code></td>
+                                        <td><span class="badge badge-success">Active</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editLeaveType('Sick Leave', 10)">Edit Policy</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>3</code></td>
+                                        <td><strong>Emergency Leave</strong></td>
+                                        <td><span class="badge badge-info" style="font-size: 0.85rem; padding: 0.35rem 0.65rem;">5 Working Days</span></td>
+                                        <td>Unforeseen family emergencies, bereavement, or sudden domestic crises.</td>
+                                        <td><code>Monday–Friday (Excl. Weekends)</code></td>
+                                        <td><span class="badge badge-success">Active</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editLeaveType('Emergency Leave', 5)">Edit Policy</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>4</code></td>
+                                        <td><strong>Maternity Leave</strong></td>
+                                        <td><span class="badge badge-info" style="font-size: 0.85rem; padding: 0.35rem 0.65rem;">60 Calendar Days</span></td>
+                                        <td>Statutory childbirth and postpartum convalescence benefit for eligible female staff.</td>
+                                        <td><code>Statutory Calendar Duration</code></td>
+                                        <td><span class="badge badge-success">Active</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editLeaveType('Maternity Leave', 60)">Edit Policy</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>5</code></td>
+                                        <td><strong>Paternity Leave</strong></td>
+                                        <td><span class="badge badge-info" style="font-size: 0.85rem; padding: 0.35rem 0.65rem;">7 Working Days</span></td>
+                                        <td>Statutory paternity leave granting male employees time off to assist their spouse during delivery.</td>
+                                        <td><code>Monday–Friday (Excl. Weekends)</code></td>
+                                        <td><span class="badge badge-success">Active</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="editLeaveType('Paternity Leave', 7)">Edit Policy</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Policy Summary Cards -->
+                <div class="grid grid-cols-3" style="margin-top: 1.5rem;">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>📅</span> Working Days Only
+                            </h3>
+                            <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">
+                                The system calculation algorithm strictly counts Monday through Friday. If an employee applies for Friday through Monday, the duration equals 2 working days.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>⚖</span> Strict Deduction
+                            </h3>
+                            <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">
+                                Balance deduction occurs in MySQL only when an application is Approved. Rejected or Cancelled requests never deduct leave credits.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <span>🔒</span> Scope Boundaries
+                            </h3>
+                            <p style="font-size: 0.875rem; color: var(--color-text-secondary); margin: 0;">
+                                In accordance with approved specifications, complex unapproved policies such as carry-forward rollover and monthly proration are not implemented.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Edit Leave Policy -->
+    <div id="editLeaveTypeModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editPolicyTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="editPolicyTitle" class="modal-title"><span>📋</span> Update Leave Policy Quota</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning" style="margin-bottom: 1rem;">
+                    <strong>Policy Impact Notice:</strong> Adjusting the default annual quota modifies baseline allocations for subsequent fiscal periods. It does not overwrite employees' already allocated balances for the current year.
+                </div>
+                <form id="editPolicyForm" onsubmit="handlePolicyUpdate(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="editPolicyName">Leave Category</label>
+                        <input type="text" id="editPolicyName" class="form-control" readonly style="background: var(--color-bg);">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editDefaultDays">Default Annual Allocated Days <span class="required">*</span></label>
+                        <input type="number" id="editDefaultDays" class="form-control" min="1" max="90" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="editPolicyDesc">Policy Description & Guidelines</label>
+                        <textarea id="editPolicyDesc" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Policy Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Add Leave Type -->
+    <div id="addLeaveTypeModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="addTypeTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="addTypeTitle" class="modal-title"><span>📋</span> Add Custom Leave Category</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="addTypeForm" onsubmit="handleAddType(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="newTypeName">Leave Category Name <span class="required">*</span></label>
+                        <input type="text" id="newTypeName" class="form-control" placeholder="e.g. Bereavement Leave" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newTypeDays">Default Allocated Days <span class="required">*</span></label>
+                        <input type="number" id="newTypeDays" class="form-control" value="3" min="1" max="60" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="newTypeDesc">Policy Description</label>
+                        <textarea id="newTypeDesc" class="form-control" rows="2" placeholder="Eligibility guidelines and filing rules"></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        function editLeaveType(name, days) {
+            document.getElementById('editPolicyName').value = name;
+            document.getElementById('editDefaultDays').value = days;
+            document.getElementById('editPolicyDesc').value = `Standard organizational leave allowance for ${name}.`;
+            openModal('editLeaveTypeModal');
+        }
+
+        function handlePolicyUpdate(e) {
+            e.preventDefault();
+            closeModal('editLeaveTypeModal');
+            showToast('Leave policy updated successfully! (Frontend prototype simulation)', 'success');
+        }
+
+        function handleAddType(e) {
+            e.preventDefault();
+            closeModal('addLeaveTypeModal');
+            showToast('New leave category created! (Frontend prototype simulation)', 'success');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Target icon">
+  <rect width="64" height="64" rx="16" fill="#FCE7F3"/>
+  <circle cx="32" cy="32" r="18" fill="#EC4899" opacity="0.9"/>
+  <circle cx="32" cy="32" r="8" fill="#FDF2F8"/>
+  <circle cx="32" cy="32" r="2.5" fill="#EC4899"/>
+</svg>

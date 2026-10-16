@@ -1,0 +1,149 @@
+name: HRIS CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'Target Deployment Environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hris-cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-release:
+    name: Package Production Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify production directory layout
+        shell: bash
+        run: |
+          echo "Verifying production structure..."
+          test -f public/index.php || { echo "::error::public/index.php missing!"; exit 1; }
+          test -f .htaccess || { echo "::error::Root .htaccess missing!"; exit 1; }
+          test -f public/.htaccess || { echo "::error::public/.htaccess missing!"; exit 1; }
+          test -f config/config.php || { echo "::error::config/config.php missing!"; exit 1; }
+          test -f config/database.php || { echo "::error::config/database.php missing!"; exit 1; }
+
+          # Strict security verification: ensure .env is not present in repository
+          if [ -f .env ]; then
+            echo "::error::A .env file was found in the workspace. Secrets must not be packaged."
+            exit 1
+          fi
+          echo "Production directory layout verified successfully."
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker production image
+        run: |
+          echo "Building production Docker container..."
+          docker build -t hris-system:${{ github.sha }} -t hris-system:latest .
+          echo "Docker container build completed successfully."
+
+      - name: Create release distribution archive
+        shell: bash
+        run: |
+          RELEASE_NAME="hris-system-release-${{ github.sha }}"
+          mkdir -p dist
+          
+          # Package application files excluding development-only artifacts
+          tar --exclude='./.git' \
+              --exclude='./.github' \
+              --exclude='./node_modules' \
+              --exclude='./vendor' \
+              --exclude='./dist' \
+              --exclude='./.env' \
+              -czf "dist/${RELEASE_NAME}.tar.gz" .
+
+          echo "Release package created: dist/${RELEASE_NAME}.tar.gz"
+          ls -lh dist/
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hris-production-artifact
+          path: dist/*.tar.gz
+          retention-days: 14
+
+  deploy:
+    name: Deploy to Server
+    needs: package-release
+    runs-on: ubuntu-24.04
+    environment: production
+
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: hris-production-artifact
+          path: dist
+
+      - name: Execute Server Deployment
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_USER: ${{ secrets.SERVER_USER }}
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH || '/var/www/hris' }}
+        run: |
+          echo "=========================================================="
+          echo "  HRIS CONTINUOUS DEPLOYMENT (CD) DISPATCH"
+          echo "=========================================================="
+
+          if [ -n "$SSH_HOST" ] && [ -n "$SSH_USER" ] && [ -n "$SSH_KEY" ]; then
+            echo "Remote server secrets detected. Initiating SSH deployment..."
+            
+            mkdir -p ~/.ssh
+            echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+            echo "Deploying release to ${SSH_USER}@${SSH_HOST}:${SERVER_PATH}..."
+            scp dist/*.tar.gz "${SSH_USER}@${SSH_HOST}:${SERVER_PATH}/"
+            
+            ssh "${SSH_USER}@${SSH_HOST}" << 'EOF'
+              set -e
+              cd /var/www/hris
+              tar -xzf hris-system-release-*.tar.gz
+              rm -f hris-system-release-*.tar.gz
+              chown -R www-data:www-data /var/www/hris
+              find /var/www/hris -type d -exec chmod 755 {} \;
+              find /var/www/hris -type f -exec chmod 644 {} \;
+              [ -f .env ] && chmod 600 .env
+              chmod 700 config
+              echo "Deployment completed and permissions secured."
+            EOF
+
+            echo "Deployment to $SSH_HOST succeeded!"
+          else
+            echo "Notice: Deployment credentials (SERVER_HOST, SERVER_USER, SERVER_SSH_KEY)"
+            echo "have not been configured in repository Secrets yet."
+            echo ""
+            echo "Artifact Package: Ready and verified in GitHub Actions artifacts."
+            echo "To enable fully automated continuous deployment to your server:"
+            echo "  1. Go to repository Settings -> Secrets and variables -> Actions"
+            echo "  2. Add: SERVER_HOST (server IP or domain)"
+            echo "  3. Add: SERVER_USER (e.g. www-data or deploy user)"
+            echo "  4. Add: SERVER_SSH_KEY (private SSH key)"
+            echo "  5. Optionally add: SERVER_PATH (default: /var/www/hris)"
+            echo "=========================================================="
+          fi

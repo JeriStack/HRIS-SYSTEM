@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Leave Balances - HRIS & Leave Management System</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/components.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- Persistent Sidebar Navigation -->
+        <aside class="app-sidebar" aria-label="Main Navigation">
+            <div class="sidebar-header">
+                <a href="hr-dashboard.html" class="sidebar-brand">
+                    <span class="brand-icon">H</span>
+                    <span>HRIS Portal</span>
+                </a>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Executive</div>
+                <a href="hr-dashboard.html" class="nav-item">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+
+                <div class="nav-section-title">Workforce Management</div>
+                <a href="employees.html" class="nav-item">
+                    <span class="icon">👥</span>
+                    <span>Employees Directory</span>
+                </a>
+                <a href="departments.html" class="nav-item">
+                    <span class="icon">🏢</span>
+                    <span>Departments</span>
+                </a>
+                <a href="positions.html" class="nav-item">
+                    <span class="icon">💼</span>
+                    <span>Job Positions</span>
+                </a>
+
+                <div class="nav-section-title">Leave Operations</div>
+                <a href="leave-requests.html" class="nav-item">
+                    <span class="icon">⏳</span>
+                    <span>Pending Leave Queue</span>
+                    <span class="badge badge-warning">3</span>
+                </a>
+                <a href="leave-types.html" class="nav-item">
+                    <span class="icon">📋</span>
+                    <span>Leave Policies</span>
+                </a>
+                <a href="leave-balances.html" class="nav-item active">
+                    <span class="icon">💳</span>
+                    <span>Employee Balances</span>
+                </a>
+                <a href="leave-history.html" class="nav-item">
+                    <span class="icon">📜</span>
+                    <span>Global Leave History</span>
+                </a>
+
+                <div class="nav-section-title">Analytics & Audit</div>
+                <a href="reports.html" class="nav-item">
+                    <span class="icon">📈</span>
+                    <span>Workforce Reports</span>
+                </a>
+                <a href="activity-logs.html" class="nav-item">
+                    <span class="icon">🔒</span>
+                    <span>Activity Audit Logs</span>
+                </a>
+
+                <div class="nav-section-title">DSA Academic Lab</div>
+                <a href="dsa-laboratory.html" class="nav-item">
+                    <span class="icon">🧪</span>
+                    <span>DSA Laboratory</span>
+                </a>
+
+                <div class="nav-section-title">System & Alerts</div>
+                <a href="notifications.html" class="nav-item">
+                    <span class="icon">🔔</span>
+                    <span>Notifications</span>
+                    <span class="badge badge-info">1</span>
+                </a>
+                <a href="login.html" class="nav-item" onclick="localStorage.removeItem('hris_simulated_role')">
+                    <span class="icon">🚪</span>
+                    <span>Sign Out</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-avatar user-avatar-label">EV</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name user-name-label">Eleanor Vance</div>
+                    <div class="sidebar-user-role user-role-label">Administrator / HR</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Shell -->
+        <div class="app-container">
+            <header class="app-header">
+                <div class="header-left">
+                    <button type="button" id="mobileSidebarToggle" class="header-toggle" aria-label="Toggle navigation drawer">☰</button>
+                    <div class="header-breadcrumb">
+                        <strong>HRIS</strong> / Leave Operations / <span>Employee Balances</span>
+                    </div>
+                </div>
+
+                <div class="header-right">
+                    <button type="button" id="roleSwitcherBtn" class="role-switcher-badge">
+                        <span>Simulated Role:</span> <strong class="user-role-label">Administrator / HR</strong> (Switch ⇄)
+                    </button>
+                    <a href="notifications.html" class="btn btn-secondary btn-icon" title="Notifications">🔔</a>
+                </div>
+            </header>
+
+            <main class="app-main">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Workforce Leave Balances Matrix</h1>
+                        <p class="page-subtitle">Inspect annual allocations, utilized credits, and remaining balances per employee.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-secondary" onclick="exportNotice()">
+                            <span>📥</span> Export Matrix
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters & Search Toolbar -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-body" style="padding: 1rem 1.25rem;">
+                        <div style="display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                            <div style="display: flex; gap: 0.75rem; flex: 1; min-width: 280px;">
+                                <input type="text" id="balanceSearchInput" class="form-control" placeholder="🔍 Search employee name or number...">
+                                <select id="yearSelect" class="form-control" style="width: 140px;">
+                                    <option value="2026" selected>Year 2026</option>
+                                    <option value="2025">Year 2025</option>
+                                </select>
+                                <select id="balanceDeptFilter" class="form-control" style="width: 220px;">
+                                    <option value="">All Departments</option>
+                                    <option value="Executive Management">Executive Management</option>
+                                    <option value="Human Resources">Human Resources</option>
+                                    <option value="Information Technology">Information Technology</option>
+                                    <option value="Finance & Accounting">Finance & Accounting</option>
+                                    <option value="Marketing & Sales">Marketing & Sales</option>
+                                </select>
+                            </div>
+                            <div style="color: var(--color-text-secondary); font-size: 0.875rem;">
+                                Academic Balance Matrix (Demonstration Data)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balances Table -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="balancesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Employee Name</th>
+                                        <th>Department</th>
+                                        <th style="text-align: center;">Vacation Leave<br><small style="color: var(--color-text-secondary); font-weight: normal;">Alloc / Used / Rem</small></th>
+                                        <th style="text-align: center;">Sick Leave<br><small style="color: var(--color-text-secondary); font-weight: normal;">Alloc / Used / Rem</small></th>
+                                        <th style="text-align: center;">Emergency Leave<br><small style="color: var(--color-text-secondary); font-weight: normal;">Alloc / Used / Rem</small></th>
+                                        <th style="text-align: center;">Total Remaining</th>
+                                        <th style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><code>EMP001</code></td>
+                                        <td><strong>Eleanor Vance</strong></td>
+                                        <td>Executive Management</td>
+                                        <td style="text-align: center;"><code>15 / 0 / 15</code></td>
+                                        <td style="text-align: center;"><code>10 / 0 / 10</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">30 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP001', 'Eleanor Vance')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP002</code></td>
+                                        <td><strong>Marcus Tan</strong></td>
+                                        <td>Human Resources</td>
+                                        <td style="text-align: center;"><code>15 / 2 / 13</code></td>
+                                        <td style="text-align: center;"><code>10 / 1 / 9</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">27 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP002', 'Marcus Tan')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP003</code></td>
+                                        <td><strong>Sofia Reyes</strong></td>
+                                        <td>Human Resources</td>
+                                        <td style="text-align: center;"><code>15 / 1 / 14</code></td>
+                                        <td style="text-align: center;"><code>10 / 0 / 10</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">29 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP003', 'Sofia Reyes')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP004</code></td>
+                                        <td><strong>David Cruz</strong></td>
+                                        <td>Information Technology</td>
+                                        <td style="text-align: center;"><code>15 / 3 / 12</code></td>
+                                        <td style="text-align: center;"><code>10 / 1 / 9</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">26 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP004', 'David Cruz')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP005</code></td>
+                                        <td><strong>Maria Santos</strong></td>
+                                        <td>Information Technology</td>
+                                        <td style="text-align: center;"><code>15 / 5 / 10</code></td>
+                                        <td style="text-align: center;"><code>10 / 0 / 10</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">25 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP005', 'Maria Santos')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP006</code></td>
+                                        <td><strong>Juan Dela Cruz</strong></td>
+                                        <td>Information Technology</td>
+                                        <td style="text-align: center;"><code>15 / 0 / 15</code></td>
+                                        <td style="text-align: center;"><code>10 / 2 / 8</code></td>
+                                        <td style="text-align: center;"><code>5 / 1 / 4</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">27 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP006', 'Juan Dela Cruz')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP007</code></td>
+                                        <td><strong>Beatrice Gomez</strong></td>
+                                        <td>Finance & Accounting</td>
+                                        <td style="text-align: center;"><code>15 / 4 / 11</code></td>
+                                        <td style="text-align: center;"><code>10 / 0 / 10</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-success">26 Days</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="adjustBalance('EMP007', 'Beatrice Gomez')">Adjust</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>EMP008</code></td>
+                                        <td><strong>Ricardo Mercado</strong></td>
+                                        <td>Marketing & Sales</td>
+                                        <td style="text-align: center;"><code>15 / 0 / 15</code></td>
+                                        <td style="text-align: center;"><code>10 / 0 / 10</code></td>
+                                        <td style="text-align: center;"><code>5 / 0 / 5</code></td>
+                                        <td style="text-align: center;"><span class="badge badge-secondary">Inactive Staff</span></td>
+                                        <td style="text-align: right;">
+                                            <button type="button" class="btn btn-secondary btn-sm" disabled title="Cannot adjust inactive staff">Adjust</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <footer class="app-footer">
+                <div>Employee HRIS & Leave Management System • Academic DSA Project</div>
+                <div>Frontend Prototype Version 1.0 (Phase 4)</div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: Balance Adjustment -->
+    <div id="adjustModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="adjustTitle">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 id="adjustTitle" class="modal-title"><span>💳</span> Manual Leave Balance Adjustment</h2>
+                <button type="button" class="modal-close" data-dismiss="modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <strong>Audit Compliance Rule:</strong> All manual balance overrides create a permanent entry in the Activity Logs (<code>activity_logs</code> table) detailing the actor, reason, and delta.
+                </div>
+                <form id="adjustForm" onsubmit="handleAdjustSubmit(event)">
+                    <div class="form-group">
+                        <label class="form-label">Employee Target</label>
+                        <input type="text" id="targetEmpDisplay" class="form-control" readonly style="background: var(--color-bg);">
+                    </div>
+                    <div class="grid grid-cols-2">
+                        <div class="form-group">
+                            <label class="form-label" for="adjLeaveType">Leave Category <span class="required">*</span></label>
+                            <select id="adjLeaveType" class="form-control" required>
+                                <option value="1">Vacation Leave</option>
+                                <option value="2">Sick Leave</option>
+                                <option value="3">Emergency Leave</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="adjNewRemaining">New Remaining Days <span class="required">*</span></label>
+                            <input type="number" id="adjNewRemaining" class="form-control" min="0" max="60" value="12" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="adjReason">Adjustment Justification <span class="required">*</span></label>
+                        <textarea id="adjReason" class="form-control" rows="2" placeholder="e.g. Administrative credit for unrecorded medical certification" required></textarea>
+                    </div>
+                    <div class="modal-footer" style="padding-top: 1rem; border-top: 1px solid var(--color-border);">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Adjustment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../assets/js/prototype-data.js"></script>
+    <script src="../assets/js/navigation.js"></script>
+    <script src="../assets/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initTableSearch('balanceSearchInput', 'balancesTable');
+
+            const deptFilter = document.getElementById('balanceDeptFilter');
+            const table = document.getElementById('balancesTable');
+
+            deptFilter.addEventListener('change', () => {
+                const val = deptFilter.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const deptText = row.children[2].textContent.toLowerCase();
+                    if (!val || deptText.includes(val)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        function adjustBalance(empNo, name) {
+            document.getElementById('targetEmpDisplay').value = `${empNo} - ${name}`;
+            openModal('adjustModal');
+        }
+
+        function handleAdjustSubmit(e) {
+            e.preventDefault();
+            closeModal('adjustModal');
+            showToast('Leave balance adjusted successfully (Prototype simulation logged).', 'success');
+        }
+
+        function exportNotice() {
+            showToast('Exporting leave balance matrix to CSV (Simulation).', 'info');
+        }
+    </script>
+</body>
+</html>

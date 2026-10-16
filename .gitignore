@@ -1,0 +1,55 @@
+# ==============================================================================
+# Git Ignore Configuration
+# Employee HRIS & Leave Management System
+# ==============================================================================
+
+# Environment & Sensitive Credentials
+.env
+.env.*
+!.env.example
+!.env.docker.example
+config/*.local.php
+
+# Server & Application Logs
+*.log
+error_log
+storage/logs/*
+!storage/logs/.gitkeep
+
+# Temporary & Cache Files
+*.tmp
+*.bak
+*.swp
+*~
+.cache/
+.phpunit.cache/
+scratch/cookie_*.txt
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# Editor & IDE Settings
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+
+# Node & Composer Dependencies
+node_modules/
+vendor/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Public Uploads (preserve directory via .gitkeep)
+public/uploads/*
+!public/uploads/.gitkeep

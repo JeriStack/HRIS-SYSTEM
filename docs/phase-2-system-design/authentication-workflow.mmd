@@ -1,0 +1,74 @@
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant Router as core/Router.php
+    participant Middleware as core/Middleware.php
+    participant AuthCtrl as AuthController
+    participant UserModel as app/models/User.php
+    participant DB as MySQL Database
+    participant Session as PHP Session Store
+
+    %% Authentication Flow
+    Note over User, DB: Authentication & Login Flow
+    User->>Router: GET /login
+    Router->>AuthCtrl: showLoginForm()
+    AuthCtrl-->>User: Render login.php (with CSRF Token)
+
+    User->>Router: POST /login (username, password, csrf_token)
+    Router->>Middleware: validateCsrfToken()
+    alt CSRF Token Invalid
+        Middleware-->>User: 403 Forbidden (CSRF verification failed)
+    else CSRF Valid
+        Router->>AuthCtrl: processLogin()
+        AuthCtrl->>UserModel: findByUsername(username)
+        UserModel->>DB: SELECT * FROM users WHERE username = :u LIMIT 1
+        DB-->>UserModel: User record (or null)
+
+        alt User Not Found OR Deactivated
+            AuthCtrl-->>User: Render Error ("Invalid username or password")
+        else User Found
+            AuthCtrl->>AuthCtrl: password_verify(password, hash)
+            alt Password Mismatch
+                AuthCtrl->>DB: INSERT INTO activity_logs (FAILED_LOGIN)
+                AuthCtrl-->>User: Render Error ("Invalid username or password")
+            else Password Matches
+                AuthCtrl->>Session: session_regenerate_id(true)
+                AuthCtrl->>Session: Store [user_id, employee_id, role, last_activity]
+                AuthCtrl->>DB: INSERT INTO activity_logs (LOGIN)
+                
+                alt Role == 'admin' OR 'hr'
+                    AuthCtrl-->>User: Redirect 302 -> /admin/dashboard
+                else Role == 'employee'
+                    AuthCtrl-->>User: Redirect 302 -> /dashboard
+                end
+            end
+        end
+    end
+
+    %% Protected Route & Timeout Flow
+    Note over User, Session: Protected Route & Session Timeout Guard
+    User->>Router: GET /admin/employees
+    Router->>Middleware: authenticate() & checkSessionTimeout()
+    
+    alt Session Inactive > 1800s (30 mins)
+        Middleware->>Session: session_destroy()
+        Middleware-->>User: Redirect -> /login?msg=session_expired
+    else Session Active
+        Middleware->>Session: update last_activity = time()
+        Router->>Middleware: authorize(['admin', 'hr'])
+        alt Role Not Authorized (e.g. Employee accesses /admin/...)
+            Middleware->>DB: INSERT INTO activity_logs (UNAUTHORIZED_ATTEMPT)
+            Middleware-->>User: 403 Forbidden ("Access Denied")
+        else Role Authorized
+            Router->>AuthCtrl: handleRequest()
+            AuthCtrl-->>User: 200 OK (Protected View)
+        end
+    end
+
+    %% Logout Flow
+    Note over User, Session: Logout Flow
+    User->>Router: POST /logout (with CSRF Token)
+    Router->>AuthCtrl: logout()
+    AuthCtrl->>DB: INSERT INTO activity_logs (LOGOUT)
+    AuthCtrl->>Session: $_SESSION = []; session_destroy();
+    AuthCtrl-->>User: Redirect 302 -> /login?msg=logged_out
