@@ -1,0 +1,16 @@
+# ==============================================================================
+# Jira Cloud Integration Configuration
+# Employee HRIS & Leave Management System
+# ==============================================================================
+
+project:
+  key: HRIS
+
+deployments:
+  environments:
+    - name: production
+      type: production
+    - name: staging
+      type: staging
+    - name: testing
+      type: testing
