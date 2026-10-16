@@ -31,8 +31,8 @@ function initWorkingDayCalculator() {
                 return;
             }
 
-            const start = new Date(startVal);
-            const end = new Date(endVal);
+            const start = new Date(startVal + 'T00:00:00');
+            const end = new Date(endVal + 'T00:00:00');
 
             if (start > end) {
                 if (errorNotice) {
@@ -91,6 +91,11 @@ function initDepartmentPositionCascade() {
     const posSelect = document.getElementById('positionSelect') || document.querySelector('select[name="position_id"]');
 
     if (deptSelect && posSelect) {
+        // If the element already has pre-rendered data-dept options, let local DOM filter handle it
+        if (posSelect.querySelector('option[data-dept]')) {
+            return;
+        }
+
         deptSelect.addEventListener('change', async () => {
             const deptId = deptSelect.value;
             if (!deptId) {
@@ -103,8 +108,12 @@ function initDepartmentPositionCascade() {
             posSelect.innerHTML = '<option value="">Loading job positions...</option>';
 
             try {
-                // Fetch live positions from backend endpoint
-                const res = await fetch(`/GitHub_Clone_File_Projects/HRIS-SYSTEM/public/hr/api/positions-by-department/${deptId}`, {
+                // Dynamically resolve base URL from meta tag or window global
+                const metaBase = document.querySelector('meta[name="base-url"]')?.getAttribute('content');
+                const baseUrl = metaBase ? metaBase.replace(/\/$/, '') : '';
+                const endpoint = `${baseUrl}/hr/api/positions-by-department/${deptId}`;
+
+                const res = await fetch(endpoint, {
                     headers: { 'Accept': 'application/json' }
                 });
                 if (!res.ok) throw new Error('Network error loading positions');

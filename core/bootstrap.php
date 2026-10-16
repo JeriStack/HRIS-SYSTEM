@@ -58,7 +58,7 @@ if (file_exists($envFile) && is_readable($envFile)) {
             [$name, $val] = explode('=', $line, 2);
             $name = trim($name);
             $val = trim($val, " \t\n\r\0\x0B\"'");
-            if (!array_key_exists($name, $_ENV)) {
+            if (getenv($name) === false && !array_key_exists($name, $_ENV)) {
                 $_ENV[$name] = $val;
                 putenv("{$name}={$val}");
             }

@@ -92,13 +92,26 @@ try {
 
     // Leave Management Routes (Administrator & HR Access)
     $router->get('/leaves', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/hr/leave-requests', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/hr/leave-requests/pending', function () {
+        redirect('/leaves?status=Pending');
+    }, [AuthMiddleware::class, $workforceRoles]);
     $router->get('/leaves/balances', [LeaveController::class, 'balances'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/leaves/balances/adjust', [LeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/leaves/balances/initialize', [LeaveController::class, 'initializeBalances'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->get('/hr/leave-types', [LeaveController::class, 'types'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/hr/leave-types/create', [LeaveController::class, 'createType'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/leave-types', [LeaveController::class, 'storeType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->get('/hr/leave-types/{id}/edit', [LeaveController::class, 'editType'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/leave-types/{id}/edit', [LeaveController::class, 'updateType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/leave-types/{id}/toggle-status', [LeaveController::class, 'toggleTypeStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/approve', [LeaveController::class, 'approve'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/reject', [LeaveController::class, 'reject'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
-    // Leave Application & Self-Service (Authenticated)
+    // Leave Application, Show & Self-Service (Authenticated)
     $router->get('/leaves/apply', [LeaveController::class, 'apply'], [AuthMiddleware::class]);
     $router->post('/leaves/apply', [LeaveController::class, 'store'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->get('/leaves/{id}', [LeaveController::class, 'show'], [AuthMiddleware::class]);
     $router->post('/leaves/{id}/cancel', [LeaveController::class, 'cancel'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Operational Reports & Analytics (Administrator & HR Access)
@@ -120,6 +133,7 @@ try {
     $router->get('/employee/profile', [DashboardController::class, 'employeeProfile'], [AuthMiddleware::class, $employeeOnly]);
     $router->get('/employee/leave-balances', [DashboardController::class, 'employeeLeaveBalances'], [AuthMiddleware::class, $employeeOnly]);
     $router->get('/employee/leave-requests', [DashboardController::class, 'employeeLeaveRequests'], [AuthMiddleware::class, $employeeOnly]);
+    $router->get('/employee/leave-history', [DashboardController::class, 'employeeLeaveRequests'], [AuthMiddleware::class, $employeeOnly]);
 
     // Static Prototype Reference
     $router->get('/prototype', function () {

@@ -67,6 +67,10 @@ if ($rawRole === 'hr' || $rawRole === 'admin') {
                 <span class="icon" aria-hidden="true">⚖️</span>
                 <span>Workforce Balances</span>
             </a>
+            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/hr/leave-types') ? 'active' : '' ?>">
+                <span class="icon" aria-hidden="true">🏷️</span>
+                <span>Leave Classifications</span>
+            </a>
 
             <div class="nav-section-title">Analytics & Tools</div>
             <a href="<?= url('/reports') ?>" class="nav-item <?= str_contains($currentPath, '/reports') ? 'active' : '' ?>">

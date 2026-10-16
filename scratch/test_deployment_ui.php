@@ -4,7 +4,7 @@
  * Employee HRIS & Leave Management System
  */
 
-$baseUrl = "http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public";
+$baseUrl = getenv('TEST_BASE_URL') ?: "http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public";
 $cookieAdmin = tempnam(sys_get_temp_dir(), 'hris_cookie_admin_');
 $cookieHr = tempnam(sys_get_temp_dir(), 'hris_cookie_hr_');
 $cookieEmployee = tempnam(sys_get_temp_dir(), 'hris_cookie_emp_');
@@ -193,7 +193,8 @@ assertCheck("Employee blocked from /admin/users (HTTP 403 Forbidden)", $empBlock
 echo "\n--- 5. LIVE LEAVE FILING & APPROVAL TRANSACTION ---\n";
 require_once __DIR__ . '/../core/bootstrap.php';
 $pdo = Core\Database::getInstance()->getConnection();
-// Ensure test employee has balance available
+// Ensure test employee has balance available and clean up past test requests
+$pdo->exec("DELETE FROM leave_requests WHERE reason LIKE 'Automated test suite verification leave request%'");
 $pdo->query("UPDATE leave_balances SET used_days = 0, remaining_days = allocated_days WHERE employee_id = 4 AND year = 2026");
 
 // 1. Employee files a leave request
@@ -263,6 +264,7 @@ assertCheck("Mark-all-read action executes (HTTP 302 Redirect)", $markReadRes['c
 // -----------------------------------------------------------------------------
 // CLEANUP & SUMMARY
 // -----------------------------------------------------------------------------
+$pdo->exec("DELETE FROM leave_requests WHERE reason LIKE 'Automated test suite verification leave request%'");
 @unlink($cookieAdmin);
 @unlink($cookieHr);
 @unlink($cookieEmployee);

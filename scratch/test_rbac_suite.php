@@ -13,7 +13,7 @@
  * 7. Verification that 'admin' user account is removed from authentication boundary
  */
 
-$baseUrl = 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
+$baseUrl = getenv('TEST_BASE_URL') ?: 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
 $cookieHr       = __DIR__ . '/cookie_rbac_hr.txt';
 $cookieEmployee = __DIR__ . '/cookie_rbac_emp.txt';
 

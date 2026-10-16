@@ -5,7 +5,7 @@
  * authentication, role guards, CSRF, forms, redirects, views, and activity logging.
  */
 
-$baseUrl = 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
+$baseUrl = getenv('TEST_BASE_URL') ?: 'http://localhost/GitHub_Clone_File_Projects/HRIS-SYSTEM/public';
 $cookieFileAdmin = __DIR__ . '/cookie_hr_admin.txt';
 $cookieFileEmp   = __DIR__ . '/cookie_hr_emp.txt';
 
@@ -266,7 +266,7 @@ $deptListPage = makeRequest($baseUrl . "/hr/departments", 'GET', [], $cookieFile
 assertHttpTest('Department list displays newly created department', str_contains($deptListPage['body'], $testDeptHttp));
 
 // Find created department ID from DB
-require_once __DIR__ . '/../../../../../../xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/core/bootstrap.php';
+require_once __DIR__ . '/../core/bootstrap.php';
 $db = \Core\Database::getInstance()->getConnection();
 $httpDeptId = (int)$db->query("SELECT id FROM departments WHERE department_name = " . $db->quote($testDeptHttp))->fetchColumn();
 assertHttpTest('Resolved created Department ID from database', $httpDeptId > 0, "Dept ID: {$httpDeptId}");
