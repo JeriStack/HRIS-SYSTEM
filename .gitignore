@@ -22,6 +22,7 @@ storage/logs/*
 *.swp
 *~
 .cache/
+.phpunit.cache/
 scratch/cookie_*.txt
 
 # Operating System Files

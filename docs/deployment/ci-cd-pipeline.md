@@ -108,7 +108,10 @@ The CD workflow triggers on:
   # Check syntax of all PHP files
   git ls-files '*.php' | xargs -n 1 php -l
 
-  # Run automated test suites
+  # Run PHPUnit test suites (Unit, Integration, Feature)
+  ./vendor/bin/phpunit
+
+  # Run automated DSA verification suite
   php scratch/test_dsa_suite.php
   ```
 - **Configuring GitHub Repository Secrets for CD:**

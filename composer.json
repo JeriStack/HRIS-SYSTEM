@@ -1,0 +1,29 @@
+{
+    "autoload": {
+        "psr-4": {
+            "Core\\": "core/",
+            "App\\Controllers\\": "app/controllers/",
+            "App\\Models\\": "app/models/",
+            "App\\Services\\": "app/services/",
+            "App\\Dsa\\Algorithms\\": "app/dsa/algorithms/",
+            "App\\Dsa\\Structures\\": "app/dsa/structures/",
+            "App\\Dsa\\": "app/dsa/",
+            "App\\": "app/"
+        },
+        "classmap": [
+            "app/",
+            "core/"
+        ],
+        "files": [
+            "core/functions.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.4"
+    }
+}
