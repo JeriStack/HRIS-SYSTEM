@@ -134,6 +134,26 @@ class Employee extends Model
     }
 
     /**
+     * Find employee by registered email.
+     *
+     * @param string $email
+     * @return array|null
+     */
+    public function findByEmail(string $email): ?array
+    {
+        $sql = "
+            SELECT e.*, d.department_name, p.position_name
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE LOWER(e.email) = LOWER(:email)
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['email' => trim($email)]);
+    }
+
+    /**
      * Check if employee number is unique.
      *
      * @param string $employeeNo
@@ -344,5 +364,32 @@ class Employee extends Model
             'active'   => (int)($res['active'] ?? 0),
             'inactive' => (int)($res['inactive'] ?? 0),
         ];
+    }
+
+    /**
+     * Retrieve active employees who currently do not have a user account provisioned.
+     *
+     * @return array
+     */
+    public function getEmployeesWithoutUserAccount(): array
+    {
+        $sql = "
+            SELECT 
+                e.id,
+                e.employee_no,
+                e.first_name,
+                e.last_name,
+                e.email,
+                d.department_name,
+                p.position_name
+            FROM employees e
+            LEFT JOIN users u ON e.id = u.employee_id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE u.id IS NULL AND e.employment_status = 'Active'
+            ORDER BY e.last_name ASC, e.first_name ASC
+        ";
+
+        return $this->fetchAll($sql);
     }
 }

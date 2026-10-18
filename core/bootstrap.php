@@ -47,6 +47,12 @@ spl_autoload_register(function (string $class) {
     }
 });
 
+// 1.2 Include Composer Autoloader for Third-Party Packages (e.g. PHPMailer)
+$composerAutoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 // 1.5 Load Environment Variables (.env) if present
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile) && is_readable($envFile)) {

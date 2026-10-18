@@ -39,6 +39,11 @@ try {
     // Authentication Routes
     $router->get('/login', [AuthController::class, 'showLoginForm']);
     $router->post('/login', [AuthController::class, 'login'], [CsrfMiddleware::class]);
+    $router->get('/verify-otp', [AuthController::class, 'showVerifyOtpForm']);
+    $router->post('/verify-otp', [AuthController::class, 'verifyOtp'], [CsrfMiddleware::class]);
+    $router->post('/verify-otp/resend', [AuthController::class, 'resendOtp'], [CsrfMiddleware::class]);
+    $router->post('/verify-otp/cancel', [AuthController::class, 'cancelOtp'], [CsrfMiddleware::class]);
+    $router->get('/verify-otp/cancel', [AuthController::class, 'cancelOtp']);
     $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->get('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]);
 
@@ -55,6 +60,8 @@ try {
 
     // User Accounts & Role Governance Routes (HR Only)
     $router->get('/hr/users', [UserController::class, 'index'], [AuthMiddleware::class, $hrOnly]);
+    $router->get('/hr/users/create', [UserController::class, 'create'], [AuthMiddleware::class, $hrOnly]);
+    $router->post('/hr/users/create', [UserController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
     $router->get('/hr/users/{id}/edit', [UserController::class, 'edit'], [AuthMiddleware::class, $hrOnly]);
     $router->post('/hr/users/{id}/edit', [UserController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
 

@@ -11,14 +11,17 @@ use Core\Controller;
 use Core\Session;
 use Core\Permission;
 use App\Models\User;
+use App\Models\Employee;
 
 class UserController extends Controller
 {
     private User $userModel;
+    private Employee $employeeModel;
 
-    public function __construct()
+    public function __construct(?User $userModel = null, ?Employee $employeeModel = null)
     {
-        $this->userModel = new User();
+        $this->userModel = $userModel ?? new User();
+        $this->employeeModel = $employeeModel ?? new Employee();
     }
 
     /**
@@ -44,6 +47,114 @@ class UserController extends Controller
             'users'     => $users,
             'stats'     => $stats,
         ], 'hr');
+    }
+
+    /**
+     * Render the account provisioning form for active employees.
+     * Route: GET /hr/users/create
+     * Access: HR Only
+     */
+    public function create(): void
+    {
+        $unlinkedEmployees = $this->employeeModel->getEmployeesWithoutUserAccount();
+        $selectedEmpId = (int)($_GET['employee_id'] ?? 0);
+
+        $this->view('users.create', [
+            'pageTitle'         => 'Provision User Account - HR Portal',
+            'user'              => currentUser(),
+            'unlinkedEmployees' => $unlinkedEmployees,
+            'selectedEmpId'     => $selectedEmpId,
+            'validRoles'        => ['employee', 'hr'],
+            'errors'            => Session::getFlash('errors', []),
+            'old'               => Session::getFlash('old', []),
+        ], 'hr');
+    }
+
+    /**
+     * Process provisioning of a new user account for an employee.
+     * Route: POST /hr/users/create
+     * Access: HR Only
+     */
+    public function store(): void
+    {
+        $employeeId = (int)($_POST['employee_id'] ?? 0);
+        $role = strtolower(trim((string)($_POST['role'] ?? 'employee')));
+        $password = (string)($_POST['password'] ?? '');
+        $confirmPassword = (string)($_POST['confirm_password'] ?? '');
+
+        $errors = [];
+
+        // 1. Validate employee
+        $employee = null;
+        if ($employeeId <= 0) {
+            $errors['employee_id'] = 'Please select a valid employee record.';
+        } else {
+            $employee = $this->employeeModel->findById($employeeId);
+            if (!$employee) {
+                $errors['employee_id'] = 'The selected employee record does not exist.';
+            } elseif ($employee['employment_status'] !== 'Active') {
+                $errors['employee_id'] = 'Cannot provision an account for an inactive employee.';
+            } elseif (!empty($employee['user_account_id'])) {
+                $errors['employee_id'] = 'This employee already has an associated user account.';
+            }
+        }
+
+        // 2. Validate role against strict allowlist (hr, employee)
+        if (!in_array($role, ['employee', 'hr'], true)) {
+            $errors['role'] = 'Invalid role assignment. Must be either HR or Employee.';
+        }
+
+        // 3. Validate password complexity (minimum 8 characters)
+        if (strlen($password) < 8) {
+            $errors['password'] = 'Password must be at least 8 characters long.';
+        }
+        if ($password !== $confirmPassword) {
+            $errors['confirm_password'] = 'Password confirmation does not match.';
+        }
+
+        // 4. Validate employee email uniqueness
+        $email = '';
+        if ($employee) {
+            $email = strtolower(trim((string)$employee['email']));
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors['employee_id'] = 'The selected employee does not have a valid email address.';
+            } elseif ($this->userModel->emailExists($email)) {
+                $errors['employee_id'] = 'The email address associated with this employee is already in use by another account.';
+            }
+        }
+
+        if (!empty($errors)) {
+            Session::flash('errors', $errors);
+            Session::flash('old', $_POST);
+            $this->redirect('/hr/users/create' . ($employeeId > 0 ? '?employee_id=' . $employeeId : ''));
+            return;
+        }
+
+        // 5. Generate username from employee_no
+        $username = strtolower($employee['employee_no']);
+
+        // 6. Create user account with secure password hash
+        $newUserId = $this->userModel->create([
+            'employee_id' => $employeeId,
+            'username'    => $username,
+            'email'       => $email,
+            'password'    => $password, // hashed inside User::create()
+            'role'        => $role,
+            'status'      => 'Active',
+        ]);
+
+        // 7. Audit Logging
+        $currentUserId = currentUserId();
+        $this->userModel->logActivity(
+            $currentUserId,
+            'USER_PROVISIONED',
+            "Provisioned new user account for {$employee['first_name']} {$employee['last_name']} ({$email}) with role '{$role}'",
+            'users',
+            (string)$newUserId
+        );
+
+        Session::flash('success', "User account for {$employee['first_name']} {$employee['last_name']} ({$email}) was successfully provisioned.");
+        $this->redirect('/hr/users');
     }
 
     /**
