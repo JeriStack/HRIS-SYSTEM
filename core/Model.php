@@ -56,6 +56,15 @@ abstract class Model
     }
 
     /**
+     * Execute a parameterized query and fetch a single column value.
+     */
+    protected function fetchColumn(string $sql, array $params = [], int $columnNumber = 0): mixed
+    {
+        $stmt = $this->query($sql, $params);
+        return $stmt->fetchColumn($columnNumber);
+    }
+
+    /**
      * Execute a parameterized SQL statement (INSERT, UPDATE, DELETE).
      */
     protected function execute(string $sql, array $params = []): bool

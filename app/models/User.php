@@ -12,6 +12,122 @@ use Core\Model;
 class User extends Model
 {
     /**
+     * Find user record by email with joined employee, department, and position data.
+     * Normalizes the input email (trims whitespace and converts to lower case).
+     *
+     * @param string $email Registered account email address
+     * @return array|null User record or null if not found
+     */
+    public function findByEmail(string $email): ?array
+    {
+        $normalizedEmail = strtolower(trim($email));
+        if ($normalizedEmail === '' || !filter_var($normalizedEmail, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+
+        $sql = "
+            SELECT 
+                u.id,
+                u.employee_id,
+                u.username,
+                COALESCE(u.email, e.email) AS email,
+                u.password,
+                u.role,
+                u.status,
+                u.created_at,
+                e.employee_no,
+                e.first_name,
+                e.middle_name,
+                e.last_name,
+                e.employment_status,
+                e.department_id,
+                e.position_id,
+                d.department_name,
+                p.position_name
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE LOWER(TRIM(COALESCE(u.email, e.email))) = :email
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['email' => $normalizedEmail]);
+    }
+
+    /**
+     * Check if an email address is already registered to another user account.
+     *
+     * @param string $email
+     * @param int|null $excludeUserId
+     * @return bool
+     */
+    public function emailExists(string $email, ?int $excludeUserId = null): bool
+    {
+        $normalized = strtolower(trim($email));
+        if ($excludeUserId !== null) {
+            $sql = "
+                SELECT COUNT(*) FROM users u 
+                LEFT JOIN employees e ON u.employee_id = e.id 
+                WHERE LOWER(TRIM(COALESCE(u.email, e.email))) = :email
+                  AND u.id != :exclude_id
+            ";
+            return (int)$this->fetchColumn($sql, ['email' => $normalized, 'exclude_id' => $excludeUserId]) > 0;
+        }
+
+        $sql = "
+            SELECT COUNT(*) FROM users u 
+            LEFT JOIN employees e ON u.employee_id = e.id 
+            WHERE LOWER(TRIM(COALESCE(u.email, e.email))) = :email
+        ";
+        return (int)$this->fetchColumn($sql, ['email' => $normalized]) > 0;
+    }
+
+    /**
+     * Create a new user account with secure password hash.
+     *
+     * @param array $data ['employee_id' => ?, 'username' => ?, 'email' => ?, 'password' => ?, 'role' => ?, 'status' => ?]
+     * @return int Inserted user ID
+     */
+    public function create(array $data): int
+    {
+        $email = strtolower(trim((string)($data['email'] ?? '')));
+        $username = trim((string)($data['username'] ?? ''));
+        if ($username === '' && $email !== '') {
+            $username = explode('@', $email)[0];
+        }
+
+        $role = strtolower(trim((string)($data['role'] ?? 'employee')));
+        if ($role !== 'hr' && $role !== 'employee') {
+            throw new \InvalidArgumentException("Invalid role '{$role}'. Only 'hr' and 'employee' are permitted.");
+        }
+
+        $passwordHash = (string)$data['password'];
+        if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
+            $passwordHash = password_hash($passwordHash, PASSWORD_BCRYPT);
+        }
+
+        $sql = "
+            INSERT INTO users (
+                employee_id, username, email, password, role, status, created_at
+            ) VALUES (
+                :employee_id, :username, :email, :password, :role, :status, NOW()
+            )
+        ";
+
+        $this->execute($sql, [
+            'employee_id' => !empty($data['employee_id']) ? (int)$data['employee_id'] : null,
+            'username'    => $username,
+            'email'       => $email,
+            'password'    => $passwordHash,
+            'role'        => $role,
+            'status'      => $data['status'] ?? 'Active',
+        ]);
+
+        return (int)$this->lastInsertId();
+    }
+
+    /**
      * Find user record by username with joined employee, department, and position data.
      *
      * @param string $username Unique login username
@@ -24,6 +140,7 @@ class User extends Model
                 u.id,
                 u.employee_id,
                 u.username,
+                COALESCE(u.email, e.email) AS email,
                 u.password,
                 u.role,
                 u.status,
@@ -32,7 +149,6 @@ class User extends Model
                 e.first_name,
                 e.middle_name,
                 e.last_name,
-                e.email,
                 e.employment_status,
                 e.department_id,
                 e.position_id,
@@ -62,6 +178,7 @@ class User extends Model
                 u.id,
                 u.employee_id,
                 u.username,
+                COALESCE(u.email, e.email) AS email,
                 u.role,
                 u.status,
                 u.created_at,
@@ -69,7 +186,6 @@ class User extends Model
                 e.first_name,
                 e.middle_name,
                 e.last_name,
-                e.email,
                 e.employment_status,
                 e.department_id,
                 e.position_id,
@@ -203,13 +319,13 @@ class User extends Model
                 u.id,
                 u.employee_id,
                 u.username,
+                COALESCE(u.email, e.email) AS email,
                 u.role,
                 u.status,
                 u.created_at,
                 e.employee_no,
                 e.first_name,
                 e.last_name,
-                e.email,
                 e.employment_status,
                 d.department_name,
                 p.position_name

@@ -74,11 +74,13 @@ CREATE TABLE IF NOT EXISTS `users` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `employee_id` INT UNSIGNED NULL,
     `username` VARCHAR(50) NOT NULL,
+    `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
     `role` ENUM('hr', 'employee') NOT NULL DEFAULT 'employee',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_users_username` UNIQUE (`username`),
+    CONSTRAINT `uq_users_email` UNIQUE (`email`),
     CONSTRAINT `uq_users_employee` UNIQUE (`employee_id`),
     CONSTRAINT `fk_users_employee` FOREIGN KEY (`employee_id`) 
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -191,4 +193,25 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     INDEX `idx_notifications_user_read` (`user_id`, `is_read`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- 10. Email OTPs Table
+-- Secure persistent storage for hashed Email One-Time Passwords (OTP)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `email_otps` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `otp_hash` VARCHAR(255) NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `consumed_at` DATETIME NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` VARCHAR(255) NULL,
+    CONSTRAINT `fk_email_otps_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_email_otps_user_active` (`user_id`, `consumed_at`, `expires_at`),
+    INDEX `idx_email_otps_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
+

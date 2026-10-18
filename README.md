@@ -232,21 +232,66 @@ Employee-HRIS-Leave-Management-System/
 
 ---
 
-## 6. Demonstration Accounts & Local Testing
+## 6. Production Authentication & Real Account Provisioning
 
-The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing:
+The application uses an enterprise-grade **Email Address + Password → Email OTP Verification → Role-Based Dashboard** flow. All demonstration login buttons, hardcoded demo credentials (`hr01`, `emp004`), quick-login shortcuts, and authentication bypasses have been completely removed.
 
-| Username | Password | Assigned Role | Associated Employee | Dedicated Dashboard | Permitted Operational Scope |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `hr01` | `Admin@123` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
-| `hr02` | `Admin@123` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
-| `emp004` | `Employee@123` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp005` | `Employee@123` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp007` | `Employee@123` | `employee` | Beatrice Gomez (EMP007)| `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
+### Authentication Flow
+
+1. **Step 1: Email & Password Submission** (`/login`)
+   - Users submit their registered email address and password.
+   - Server-side email normalization (`trim` and lowercase), CSRF verification, rate limiting, and password verification (`password_verify`).
+   - Account must be `active` and assigned to one of the two supported roles: `hr` or `employee`.
+2. **Step 2: Cryptographic OTP Dispatch** (`/login/otp`)
+   - A cryptographically secure 6-digit numeric OTP is generated (`random_int(100000, 999999)`).
+   - Only a SHA-256 hash of the OTP is persisted in `email_otps`. The plaintext code is never stored in the database.
+   - The OTP is dispatched via PHPMailer SMTP to the account's registered email address.
+   - Strict security controls: 5-minute expiry, max 5 failed attempts per challenge, 60-second resend cooldown.
+3. **Step 3: Role-Based Dashboard Entry**
+   - Upon successful verification, the challenge is consumed atomically, the session ID is regenerated (`session_regenerate_id(true)`), and the user is redirected to their dedicated dashboard:
+     - **HR Officers (`hr`)** → `/hr/dashboard`
+     - **Employees (`employee`)** → `/employee/dashboard`
+
+---
+
+### Provisioning Accounts
+
+No public registration exists. Accounts are provisioned through strictly controlled mechanisms:
+
+#### 1. Provisioning the First HR Account (CLI Bootstrapper)
+For fresh installations or provisioning privileged HR users without accessing the web UI:
+```bash
+# Interactive mode (prompts for email, password, and username)
+php bin/create_hr_user.php
+
+# Non-interactive CLI flags
+php bin/create_hr_user.php --email="hr.admin@company.com" --password="StrongPassword123!" --username="hr.admin"
+```
+
+#### 2. Provisioning Employee and HR Accounts (HR Portal)
+Authenticated HR Officers can provision portal accounts for active workforce members:
+1. Navigate to **HR Operational Portal → User Accounts (`/hr/users`)**.
+2. Click **"+ Provision User Account"** or select **"Provision Portal Account"** on any employee record (`/hr/employees/{id}`).
+3. Select the unlinked employee, verify their official email address, assign the role (`hr` or `employee`), and set a secure initial password.
+
+---
+
+### Pre-Seeded Development Accounts (Local Testing)
+
+For local development and testing, accounts are registered to actual employee profile emails:
+
+| Registered Email | Assigned Role | Associated Employee | Dedicated Dashboard | Permitted Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| `marcus.tan@company.local` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | HR Management: Workforce, Departments, Positions, Leaves, User Provisioning (`/hr/users`), Reports, Audit Trail |
+| `sofia.reyes@company.local` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | HR Management: Workforce, Departments, Positions, Leaves, User Provisioning (`/hr/users`), Reports, Audit Trail |
+| `david.cruz@company.local` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `maria.santos@company.local` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `juan.delacruz@company.local` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `beatrice.gomez@company.local` | `employee` | Beatrice Gomez (EMP007) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
 
 > [!NOTE]
-> The former `admin` user account has been deleted as part of the 2-role system refinement. All system management, user governance, and role assignments are now safely administered by **HR Officers**.
+> During local testing without an active external SMTP relay, enable mock mode (`MAIL_MOCK=true`) in `.env` or inspect OTPs generated during automated test suites. To test real email delivery with Gmail or custom SMTP, run `php bin/test_smtp.php`.
+
 
 ---
 
@@ -362,6 +407,8 @@ TOTAL AUTOMATED ASSERTIONS         -> 171 Passed, 0 Failed (100% Pass Rate)
 
 ## 9. Security & Governance Policies
 
+* **Two-Factor Email OTP Authentication:** Login requires the user's registered email address and password, followed by a time-limited 6-digit numeric OTP dispatched via PHPMailer SMTP with row-locked atomic consumption, 5-minute expiry, and 60-second resend cooldown.
+* **Account Provisioning & Onboarding:** Controlled onboarding via authenticated HR management (`/hr/users/create`) and restricted initial setup CLI tool (`bin/create_hr_user.php`). All demo accounts, shortcuts, and bypasses are removed.
 * **Authentication:** Parameterized PDO queries against SQL injection, native BCRYPT password hashing (`password_hash`, `password_verify`).
 * **Session Hardening:** Strict session regeneration on privilege escalation (`session_regenerate_id(true)`), `HttpOnly` and `SameSite=Lax` cookies, 30-minute inactivity timeout.
 * **Access Control:** Centralized `Core\Permission` policy and server-side `RoleMiddleware` enforcing strict boundary isolation between HR and Employee dashboards.

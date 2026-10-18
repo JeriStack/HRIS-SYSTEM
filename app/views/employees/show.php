@@ -135,10 +135,12 @@ $tenureStr = "{$tenure->y} yr(s), {$tenure->m} mo(s)";
                 <span>
                     <?php if (!empty($employee['user_account_id'])): ?>
                         <code style="background: #F1F5F9; color: #334155; padding: 0.15rem 0.4rem; border-radius: 0.25rem;">
-                            <?= e($employee['account_username']) ?> (<?= e(strtoupper($employee['user_role'] ?? 'EMPLOYEE')) ?>)
+                            <?= e($employee['email']) ?> (<?= e(strtoupper($employee['user_role'] ?? 'EMPLOYEE')) ?>)
                         </code>
                     <?php else: ?>
-                        <span style="color: #94A3B8; font-style: italic;">No login credentials created</span>
+                        <a href="<?= url('/hr/users/create?employee_id=' . $employee['id']) ?>" class="btn btn-primary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; text-decoration: none;">
+                            + Provision Portal Account
+                        </a>
                     <?php endif; ?>
                 </span>
             </div>
