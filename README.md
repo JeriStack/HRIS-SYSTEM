@@ -373,7 +373,119 @@ Access the application through your browser:
 
 ---
 
-## 8. Automated Test Execution & Quality Assurance
+## 8. REST API Documentation & Swagger UI
+
+The HRIS enterprise system features an official **OpenAPI 3.0** REST API layer under `/api/v1` along with **Swagger UI** for interactive exploration and client integration.
+
+### Accessing Swagger UI
+
+| Interface | URL | Description |
+| :--- | :--- | :--- |
+| **Docker Compose Swagger UI** | `http://localhost:8083` | Dedicated container (`hris_swagger_ui`) mounting `docs/api/openapi.yaml` |
+| **Application Embedded Swagger UI** | `http://localhost:8080/docs` | Built-in Swagger UI portal (active in `development` environment) |
+| **Alternative App Docs Route** | `http://localhost:8080/api/docs` | Standard `/api/docs` route alias |
+| **OpenAPI YAML Specification** | `http://localhost:8080/api/docs/openapi.yaml` | Raw OpenAPI 3.0.0 YAML schema definition |
+| **OpenAPI JSON Specification** | `http://localhost:8080/api/docs/openapi.json` | Raw OpenAPI 3.0.0 JSON schema definition |
+
+> **Production Security Note:** Swagger UI and specification inspection endpoints are environment-gated and disabled in `production` unless explicitly authorized.
+
+### Regenerating OpenAPI Specifications
+
+Source documentation annotations are maintained using native **PHP 8 attributes** (`OpenApi\Attributes`) directly within controllers in `app/controllers/Api/`.
+
+To regenerate `docs/api/openapi.yaml` and `docs/api/openapi.json`:
+
+```bash
+# Option 1: Using Composer script (generates both YAML and JSON)
+composer swagger:generate
+
+# Option 2: Using the CLI generator script directly
+php bin/generate_docs.php
+
+# Option 3: Using the zircote/swagger-php binary directly
+vendor/bin/openapi app -o docs/api/openapi.yaml
+vendor/bin/openapi app -f json -o docs/api/openapi.json
+```
+
+### API Endpoint Groups & Tags
+
+The API specification is organized into 9 structured functional tags:
+
+1. **`Authentication`**:
+   - `GET /api/v1/auth/csrf`: Retrieve active session CSRF token for testing and client headers.
+   - `POST /api/v1/auth/login`: Stage 1 password challenge; dispatches 6-digit email OTP.
+   - `POST /api/v1/auth/verify-otp`: Stage 2 OTP verification; establishes session cookie (`PHPSESSID`).
+   - `POST /api/v1/auth/resend-otp`: Resend fresh OTP (subject to 60-second rate-limiting cooldown).
+   - `POST /api/v1/auth/logout`: Invalidate and destroy active authenticated session.
+2. **`Account and Profile`**:
+   - `GET /api/v1/profile`: Retrieve authenticated user identity, assigned role, and linked employee record.
+   - `GET /api/v1/notifications`: List personal notifications and unread alert counts.
+   - `POST /api/v1/notifications/{id}/read`: Mark notification as read.
+   - `POST /api/v1/notifications/mark-all-read`: Mark all notifications as read.
+3. **`Employee Management`** *(HR Role Only)*:
+   - `GET /api/v1/employees`: Search and list workforce directory with department and status filters.
+   - `GET /api/v1/employees/{id}`: Detailed individual employee record inspection.
+   - `POST /api/v1/employees`: Register new workforce member (enforces unique employee number and email).
+   - `PUT /api/v1/employees/{id}`: Update employee demographic and departmental alignment.
+   - `POST /api/v1/employees/{id}/deactivate`: Soft-deactivate employee while preserving historical audit trails.
+4. **`Department Management`**:
+   - `GET /api/v1/departments`: List organizational departments with position counts and headcount.
+   - `GET /api/v1/departments/{id}`: Department profile details.
+   - `POST /api/v1/departments`: Create new department *(HR only)*.
+   - `PUT /api/v1/departments/{id}`: Update department *(HR only)*.
+5. **`Position Management`**:
+   - `GET /api/v1/positions`: List job positions with optional department filter.
+   - `GET /api/v1/positions/{id}`: Job position classification details.
+   - `POST /api/v1/positions`: Create position classification *(HR only)*.
+   - `PUT /api/v1/positions/{id}`: Update position classification *(HR only)*.
+   - `GET /hr/api/positions-by-department/{id}`: Operational dynamic dropdown feed.
+6. **`Leave Types and Balances`**:
+   - `GET /api/v1/leave-types`: Active leave policy classifications for employee submission.
+   - `GET /api/v1/hr/leave-types`: All leave classifications with usage statistics *(HR only)*.
+   - `POST /api/v1/hr/leave-types`: Create leave policy classification *(HR only)*.
+   - `GET /api/v1/leave-balances/my`: Personal leave balances for current calendar year.
+   - `GET /api/v1/hr/leave-balances`: Organization-wide leave balances *(HR only)*.
+   - `POST /api/v1/hr/leave-balances/adjust`: Adjust employee allocated leave days *(HR only)*.
+7. **`Leave Requests`**:
+   - `GET /api/v1/leaves/my`: Personal leave submission history (enforces strict employee ownership).
+   - `POST /api/v1/leaves`: Submit new leave application (calculates Mon–Fri working days, validates quota and overlap).
+   - `GET /api/v1/leaves/{id}`: View leave request (restricted to submitting employee or HR).
+   - `POST /api/v1/leaves/{id}/cancel`: Cancel pending leave request (owner employee only).
+8. **`HR Approvals`** *(HR Role Only)*:
+   - `GET /api/v1/hr/leaves`: Review queue with status, employee, department, and date range filters.
+   - `POST /api/v1/hr/leaves/{id}/approve`: Transaction-safe approval with balance quota deduction and collision defense.
+   - `POST /api/v1/hr/leaves/{id}/reject`: Rejection with administrative reason recording.
+9. **`Health and Diagnostics`**:
+   - `GET /api/v1/health`: Clean operational health check without sensitive environment or database credentials.
+   - `GET /health`: Operational telemetry endpoint.
+
+### Testing Endpoints via Swagger UI or cURL
+
+1. **Obtain CSRF Token:**
+   ```bash
+   curl -s -c cookies.txt http://localhost:8080/api/v1/auth/csrf
+   ```
+2. **Initiate Login (Stage 1):**
+   ```bash
+   curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"your-email@company.local","password":"YourPassword"}'
+   ```
+3. **Verify OTP (Stage 2):**
+   ```bash
+   curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/v1/auth/verify-otp \
+     -H "Content-Type: application/json" \
+     -d '{"otp":"123456"}'
+   ```
+4. **Access Protected Endpoints:**
+   ```bash
+   curl -s -b cookies.txt http://localhost:8080/api/v1/profile
+   ```
+   For state-changing operations (`POST`, `PUT`, `DELETE`), pass the CSRF token in the `X-CSRF-Token` header.
+
+---
+
+## 9. Automated Test Execution & Quality Assurance
 
 The system includes 4 automated test suites validating authentication, authorization, CRUD operations, HTTP routes, ownership enforcement, and deployment workflows:
 

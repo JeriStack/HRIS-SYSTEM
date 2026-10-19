@@ -26,6 +26,14 @@ use App\Controllers\ReportController;
 use App\Controllers\ActivityLogController;
 use App\Controllers\DsaController;
 use App\Controllers\NotificationController;
+use App\Controllers\Api\AuthController as ApiAuthController;
+use App\Controllers\Api\ProfileController as ApiProfileController;
+use App\Controllers\Api\EmployeeController as ApiEmployeeController;
+use App\Controllers\Api\DepartmentController as ApiDepartmentController;
+use App\Controllers\Api\PositionController as ApiPositionController;
+use App\Controllers\Api\LeaveController as ApiLeaveController;
+use App\Controllers\Api\HealthController as ApiHealthController;
+use App\Controllers\Api\DocsController as ApiDocsController;
 
 try {
     // 2. Initialize Core Router
@@ -146,6 +154,75 @@ try {
     $router->get('/prototype', function () {
         redirect('prototype/index.html');
     });
+
+    // =========================================================================
+    // Swagger UI & OpenAPI Specification Routes (Environment Gated)
+    // =========================================================================
+    $router->get('/docs', [ApiDocsController::class, 'index']);
+    $router->get('/api/docs', [ApiDocsController::class, 'index']);
+    $router->get('/api/docs/openapi.yaml', [ApiDocsController::class, 'yamlSpec']);
+    $router->get('/api/docs/openapi.json', [ApiDocsController::class, 'jsonSpec']);
+
+    // =========================================================================
+    // REST API v1 Core Routes
+    // =========================================================================
+
+    // Group: Health and Diagnostics
+    $router->get('/api/v1/health', [ApiHealthController::class, 'health']);
+
+    // Group: Authentication
+    $router->get('/api/v1/auth/csrf', [ApiAuthController::class, 'csrf']);
+    $router->post('/api/v1/auth/login', [ApiAuthController::class, 'login']);
+    $router->post('/api/v1/auth/verify-otp', [ApiAuthController::class, 'verifyOtp']);
+    $router->post('/api/v1/auth/resend-otp', [ApiAuthController::class, 'resendOtp']);
+    $router->post('/api/v1/auth/logout', [ApiAuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Group: Account and Profile
+    $router->get('/api/v1/profile', [ApiProfileController::class, 'profile'], [AuthMiddleware::class]);
+    $router->get('/api/v1/notifications', [ApiProfileController::class, 'notifications'], [AuthMiddleware::class]);
+    $router->post('/api/v1/notifications/{id}/read', [ApiProfileController::class, 'markRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/api/v1/notifications/mark-all-read', [ApiProfileController::class, 'markAllRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Group: Employee Management (HR Role Only)
+    $router->get('/api/v1/employees', [ApiEmployeeController::class, 'index'], [AuthMiddleware::class, $hrOnly]);
+    $router->get('/api/v1/employees/{id}', [ApiEmployeeController::class, 'show'], [AuthMiddleware::class, $hrOnly]);
+    $router->post('/api/v1/employees', [ApiEmployeeController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->put('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/employees/{id}/deactivate', [ApiEmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+
+    // Group: Department Management
+    $router->get('/api/v1/departments', [ApiDepartmentController::class, 'index'], [AuthMiddleware::class]);
+    $router->get('/api/v1/departments/{id}', [ApiDepartmentController::class, 'show'], [AuthMiddleware::class]);
+    $router->post('/api/v1/departments', [ApiDepartmentController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->put('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+
+    // Group: Position Management
+    $router->get('/api/v1/positions', [ApiPositionController::class, 'index'], [AuthMiddleware::class]);
+    $router->get('/api/v1/positions/{id}', [ApiPositionController::class, 'show'], [AuthMiddleware::class]);
+    $router->post('/api/v1/positions', [ApiPositionController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->put('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+
+    // Group: Leave Types and Balances
+    $router->get('/api/v1/leave-types', [ApiLeaveController::class, 'types'], [AuthMiddleware::class]);
+    $router->get('/api/v1/hr/leave-types', [ApiLeaveController::class, 'hrTypes'], [AuthMiddleware::class, $hrOnly]);
+    $router->post('/api/v1/hr/leave-types', [ApiLeaveController::class, 'storeType'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->get('/api/v1/leave-balances/my', [ApiLeaveController::class, 'myBalances'], [AuthMiddleware::class]);
+    $router->get('/api/v1/hr/leave-balances', [ApiLeaveController::class, 'hrBalances'], [AuthMiddleware::class, $hrOnly]);
+    $router->post('/api/v1/hr/leave-balances/adjust', [ApiLeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+
+    // Group: Leave Requests
+    $router->get('/api/v1/leaves/my', [ApiLeaveController::class, 'myLeaves'], [AuthMiddleware::class]);
+    $router->post('/api/v1/leaves', [ApiLeaveController::class, 'apply'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->get('/api/v1/leaves/{id}', [ApiLeaveController::class, 'show'], [AuthMiddleware::class]);
+    $router->post('/api/v1/leaves/{id}/cancel', [ApiLeaveController::class, 'cancel'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Group: HR Approvals
+    $router->get('/api/v1/hr/leaves', [ApiLeaveController::class, 'hrLeaves'], [AuthMiddleware::class, $hrOnly]);
+    $router->post('/api/v1/hr/leaves/{id}/approve', [ApiLeaveController::class, 'approve'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/hr/leaves/{id}/reject', [ApiLeaveController::class, 'reject'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
 
     // 4. Dispatch Request through the Router
     $router->dispatch();
