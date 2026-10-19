@@ -24,6 +24,7 @@ storage/logs/*
 .cache/
 .phpunit.cache/
 scratch/cookie_*.txt
+cookies*.txt
 
 # Operating System Files
 .DS_Store

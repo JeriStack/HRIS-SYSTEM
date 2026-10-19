@@ -188,6 +188,25 @@ services:
     networks:
       - hris_network
 
+  # -----------------------------------------------------------------------------
+  # 9. Interactive API Documentation: Swagger UI
+  # Interactive browser exploration and testing for HRIS OpenAPI specifications
+  # Available on host: http://localhost:8083 (configurable via SWAGGER_PORT)
+  # -----------------------------------------------------------------------------
+  swagger-ui:
+    container_name: hris_swagger_ui
+    image: swaggerapi/swagger-ui:v5.17.14
+    ports:
+      - "${SWAGGER_PORT:-8083}:8080"
+    environment:
+      SWAGGER_JSON: /openapi/openapi.yaml
+      SUPPORTED_SUBMIT_METHODS: '["get", "post", "put", "delete", "patch"]'
+    volumes:
+      - ./docs/api/openapi.yaml:/openapi/openapi.yaml:ro
+    restart: unless-stopped
+    networks:
+      - hris_network
+
 # -----------------------------------------------------------------------------
 # Storage Volumes (Persistent)
 # -----------------------------------------------------------------------------
