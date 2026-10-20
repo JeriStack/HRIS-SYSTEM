@@ -51,7 +51,6 @@ try {
     $router->post('/verify-otp', [AuthController::class, 'verifyOtp'], [CsrfMiddleware::class]);
     $router->post('/verify-otp/resend', [AuthController::class, 'resendOtp'], [CsrfMiddleware::class]);
     $router->post('/verify-otp/cancel', [AuthController::class, 'cancelOtp'], [CsrfMiddleware::class]);
-    $router->get('/verify-otp/cancel', [AuthController::class, 'cancelOtp']);
     $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->get('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]);
 

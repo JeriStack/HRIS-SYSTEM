@@ -19,7 +19,13 @@
 
         body {
             min-height: 100vh;
-            background: radial-gradient(120% 120% at 50% 10%, #FFFFFF 0%, #F0F6FD 45%, #E3EFFF 100%);
+            background-color: #F0F6FD;
+            background-image: 
+                radial-gradient(ellipse 70% 60% at 50% 48%, #FFFFFF 15%, rgba(255, 255, 255, 0.85) 45%, rgba(240, 246, 253, 0.4) 75%, transparent 100%),
+                radial-gradient(circle at 8% 12%, #DCEBFC 0%, #EBF4FE 35%, transparent 65%),
+                radial-gradient(circle at 92% 88%, #CFE4FB 0%, #E2F0FE 30%, transparent 65%),
+                linear-gradient(135deg, #E6F0FA 0%, #F4F9FD 50%, #E8F2FB 100%);
+            background-attachment: fixed;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #0F172A;
             display: flex;
@@ -35,20 +41,33 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 480px;
-            height: 480px;
+            width: clamp(420px, 45vw, 680px);
+            height: clamp(420px, 45vw, 680px);
             pointer-events: none;
             z-index: 0;
+            filter: drop-shadow(0 15px 35px rgba(37, 99, 235, 0.08));
         }
 
         .bg-wave-br {
             position: fixed;
             bottom: 0;
             right: 0;
-            width: 520px;
-            height: 520px;
+            width: clamp(480px, 50vw, 820px);
+            height: clamp(480px, 50vw, 820px);
             pointer-events: none;
             z-index: 0;
+            filter: drop-shadow(-10px -15px 40px rgba(29, 78, 216, 0.12));
+        }
+
+        .bg-wave-bl {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: clamp(340px, 32vw, 520px);
+            height: clamp(260px, 26vw, 420px);
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.85;
         }
 
         /* 3-Column Page Shell */
@@ -67,27 +86,42 @@
         .left-branding {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            text-align: right;
-            padding-right: 1rem;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
         }
 
         .brand-logo-img {
-            max-width: 290px;
+            max-width: 300px;
             width: 100%;
             height: auto;
             display: block;
-            margin-bottom: 0.85rem;
+            margin: 0 auto 1.25rem;
             filter: drop-shadow(0 4px 12px rgba(15, 46, 92, 0.08));
         }
 
         .brand-tagline {
-            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
             font-weight: 500;
-            color: #4A6382;
-            letter-spacing: 0.04em;
-            word-spacing: 0.1em;
-            opacity: 0.95;
+            color: #4D7EB8;
+            letter-spacing: 0.015em;
+            white-space: nowrap;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .brand-tagline .tagline-dot {
+            color: #60A5FA;
+            font-size: 0.875rem;
+            line-height: 1;
+            display: inline-block;
         }
 
         /* Center Verification Card */
@@ -107,25 +141,27 @@
             overflow: hidden;
         }
 
-        /* Subtle Corner Fluid Accents inside the Card */
+        /* Decorative Fluid Corner Accents inside the Card */
         .card-corner-tr {
             position: absolute;
             top: 0;
             right: 0;
-            width: 130px;
-            height: 130px;
+            width: 155px;
+            height: 155px;
             pointer-events: none;
             z-index: 0;
+            filter: drop-shadow(-2px 4px 10px rgba(29, 78, 216, 0.15));
         }
 
         .card-corner-bl {
             position: absolute;
             bottom: 0;
             left: 0;
-            width: 110px;
-            height: 110px;
+            width: 140px;
+            height: 140px;
             pointer-events: none;
             z-index: 0;
+            filter: drop-shadow(2px -4px 10px rgba(30, 58, 138, 0.12));
         }
 
         .card-inner {
@@ -434,7 +470,28 @@
             }
 
             .brand-logo-img {
-                max-width: 220px;
+                max-width: 240px;
+                margin-bottom: 0.85rem;
+            }
+
+            .brand-tagline {
+                font-size: 0.875rem;
+                gap: 0.5rem;
+            }
+
+            .bg-wave-tl {
+                width: 320px;
+                height: 320px;
+            }
+
+            .bg-wave-br {
+                width: 360px;
+                height: 360px;
+            }
+
+            .bg-wave-bl {
+                width: 260px;
+                height: 200px;
             }
 
             .right-security-art {
@@ -445,6 +502,36 @@
         @media (max-width: 480px) {
             body {
                 padding: 1rem 0.75rem;
+            }
+
+            .bg-wave-tl {
+                width: 220px;
+                height: 220px;
+            }
+
+            .bg-wave-br {
+                width: 260px;
+                height: 260px;
+            }
+
+            .bg-wave-bl {
+                display: none;
+            }
+
+            .card-corner-tr {
+                width: 115px;
+                height: 115px;
+            }
+
+            .card-corner-bl {
+                width: 100px;
+                height: 100px;
+            }
+
+            .brand-tagline {
+                font-size: 0.8125rem;
+                gap: 0.45rem;
+                flex-wrap: wrap;
             }
 
             .verification-card {
@@ -487,30 +574,91 @@
 
     <!-- Ambient Waves in Viewport Corners -->
     <div class="bg-wave-tl" aria-hidden="true">
-        <svg viewBox="0 0 500 500" width="100%" height="100%" fill="none" preserveAspectRatio="none">
-            <path d="M0 0 H 380 C 320 180, 180 320, 0 420 Z" fill="url(#bgWaveGradTL)" />
+        <svg viewBox="0 0 650 650" width="100%" height="100%" fill="none" preserveAspectRatio="none">
+            <!-- Layer 1: Soft broad translucent ice-blue wave -->
+            <path d="M0 0 H 600 C 510 220, 330 460, 0 570 Z" fill="url(#bgWaveGradTL1)" />
+            <!-- Layer 2: Mid azure flowing wave -->
+            <path d="M0 0 H 450 C 380 170, 240 360, 0 440 Z" fill="url(#bgWaveGradTL2)" />
+            <!-- Layer 3: Vibrant enterprise cobalt wave -->
+            <path d="M0 0 H 310 C 260 115, 145 245, 0 300 Z" fill="url(#bgWaveGradTL3)" />
+            <!-- Layer 4: Flowing geometric accent curve -->
+            <path d="M 12 295 C 150 240, 260 110, 305 12" stroke="url(#bgWaveTLStroke)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.45" />
             <defs>
-                <linearGradient id="bgWaveGradTL" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.45" />
-                    <stop offset="70%" stop-color="#BFDBFE" stop-opacity="0.25" />
-                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.05" />
+                <linearGradient id="bgWaveGradTL1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.4" />
+                    <stop offset="60%" stop-color="#BFDBFE" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.04" />
+                </linearGradient>
+                <linearGradient id="bgWaveGradTL2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.65" />
+                    <stop offset="50%" stop-color="#93C5FD" stop-opacity="0.35" />
+                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.08" />
+                </linearGradient>
+                <linearGradient id="bgWaveGradTL3" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.88" />
+                    <stop offset="45%" stop-color="#2563EB" stop-opacity="0.75" />
+                    <stop offset="90%" stop-color="#60A5FA" stop-opacity="0.45" />
+                    <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.15" />
+                </linearGradient>
+                <linearGradient id="bgWaveTLStroke" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.1" />
+                    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.75" />
+                    <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.2" />
                 </linearGradient>
             </defs>
         </svg>
     </div>
 
     <div class="bg-wave-br" aria-hidden="true">
-        <svg viewBox="0 0 600 600" width="100%" height="100%" fill="none" preserveAspectRatio="none">
-            <path d="M600 600 V 220 C 500 300, 320 420, 120 600 Z" fill="url(#bgWaveGradBR1)" />
-            <path d="M600 600 V 340 C 520 400, 420 500, 260 600 Z" fill="url(#bgWaveGradBR2)" />
+        <svg viewBox="0 0 800 800" width="100%" height="100%" fill="none" preserveAspectRatio="none">
+            <!-- Layer 1: Oversized ambient sweeping wave reaching towards center -->
+            <path d="M 800 800 V 160 C 660 290, 390 490, 90 800 Z" fill="url(#bgWaveGradBR1)" />
+            <!-- Layer 2: Secondary flowing azure curve -->
+            <path d="M 800 800 V 290 C 680 400, 490 550, 230 800 Z" fill="url(#bgWaveGradBR2)" />
+            <!-- Layer 3: Primary deep enterprise cobalt wave -->
+            <path d="M 800 800 V 430 C 715 500, 570 630, 370 800 Z" fill="url(#bgWaveGradBR3)" />
+            <!-- Layer 4: Flowing geometric accent line -->
+            <path d="M 385 790 C 575 620, 720 490, 792 422" stroke="url(#bgWaveBRStroke)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.4" />
             <defs>
                 <linearGradient id="bgWaveGradBR1" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.55" />
-                    <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.1" />
+                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.45" />
+                    <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.02" />
                 </linearGradient>
                 <linearGradient id="bgWaveGradBR2" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.85" />
-                    <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.3" />
+                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.78" />
+                    <stop offset="50%" stop-color="#2563EB" stop-opacity="0.55" />
+                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.18" />
+                </linearGradient>
+                <linearGradient id="bgWaveGradBR3" x1="100%" y1="100%" x2="0%" y2="0%">
+                    <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.95" />
+                    <stop offset="40%" stop-color="#1D4ED8" stop-opacity="0.9" />
+                    <stop offset="80%" stop-color="#2563EB" stop-opacity="0.7" />
+                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.3" />
+                </linearGradient>
+                <linearGradient id="bgWaveBRStroke" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.1" />
+                    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.7" />
+                    <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.2" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <div class="bg-wave-bl" aria-hidden="true">
+        <svg viewBox="0 0 520 400" width="100%" height="100%" fill="none" preserveAspectRatio="none">
+            <path d="M 0 400 V 150 C 140 190, 330 280, 500 400 Z" fill="url(#bgWaveGradBL1)" />
+            <path d="M 0 400 V 230 C 110 250, 250 320, 380 400 Z" fill="url(#bgWaveGradBL2)" />
+            <defs>
+                <linearGradient id="bgWaveGradBL1" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.4" />
+                    <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.18" />
+                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.03" />
+                </linearGradient>
+                <linearGradient id="bgWaveGradBL2" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.82" />
+                    <stop offset="50%" stop-color="#2563EB" stop-opacity="0.6" />
+                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.15" />
                 </linearGradient>
             </defs>
         </svg>
@@ -521,9 +669,13 @@
 
         <!-- Column 1: Left Branding -->
         <aside class="left-branding" aria-label="Brand Information">
-            <img src="<?= asset('img/hris-logo.png') ?>" alt="HRIS Logo" class="brand-logo-img">
+            <img src="<?= asset('img/hris-logo.png') ?>" alt="HRIS - Human Resource Information System" class="brand-logo-img">
             <div class="brand-tagline">
-                Secure People &bull; Smarter HR &bull; Better Tomorrow
+                <span>Secure People</span>
+                <span class="tagline-dot" aria-hidden="true">&bull;</span>
+                <span>Smarter HR</span>
+                <span class="tagline-dot" aria-hidden="true">&bull;</span>
+                <span>Better Tomorrow</span>
             </div>
         </aside>
 
@@ -533,26 +685,46 @@
                 
                 <!-- Fluid Corner Overlays inside the card -->
                 <div class="card-corner-tr" aria-hidden="true">
-                    <svg viewBox="0 0 130 130" width="130" height="130" fill="none">
-                        <path d="M130 0 C 90 20, 50 65, 45 130 H 130 V 0 Z" fill="url(#cornerGradTR)" />
+                    <svg viewBox="0 0 155 155" width="155" height="155" fill="none">
+                        <!-- Subtle translucent underlayer for depth -->
+                        <path d="M 155 0 C 95 24, 42 80, 32 155 H 155 V 0 Z" fill="url(#cornerGradTRSubtle)" />
+                        <!-- Main vibrant corner wave -->
+                        <path d="M 155 0 C 112 16, 62 58, 52 155 H 155 V 0 Z" fill="url(#cornerGradTR)" />
+                        <!-- Soft crest line highlight -->
+                        <path d="M 54 155 C 64 60, 114 18, 155 0" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5" fill="none" />
                         <defs>
                             <linearGradient id="cornerGradTR" x1="1" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#2563EB" stop-opacity="0.9" />
-                                <stop offset="50%" stop-color="#60A5FA" stop-opacity="0.6" />
-                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+                                <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.95" />
+                                <stop offset="35%" stop-color="#2563EB" stop-opacity="0.88" />
+                                <stop offset="75%" stop-color="#60A5FA" stop-opacity="0.65" />
+                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.25" />
+                            </linearGradient>
+                            <linearGradient id="cornerGradTRSubtle" x1="1" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.45" />
+                                <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.2" />
+                                <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.05" />
                             </linearGradient>
                         </defs>
                     </svg>
                 </div>
 
                 <div class="card-corner-bl" aria-hidden="true">
-                    <svg viewBox="0 0 110 110" width="110" height="110" fill="none">
-                        <path d="M0 110 C 35 90, 70 50, 75 0 H 0 V 110 Z" fill="url(#cornerGradBL)" />
+                    <svg viewBox="0 0 140 140" width="140" height="140" fill="none">
+                        <!-- Subtle underlayer -->
+                        <path d="M 0 140 C 50 88, 96 38, 108 0 H 0 V 140 Z" fill="url(#cornerGradBLSubtle)" />
+                        <!-- Main vibrant wave -->
+                        <path d="M 0 140 C 36 98, 76 52, 86 0 H 0 V 140 Z" fill="url(#cornerGradBL)" />
                         <defs>
                             <linearGradient id="cornerGradBL" x1="0" y1="1" x2="1" y2="0">
-                                <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.9" />
-                                <stop offset="50%" stop-color="#3B82F6" stop-opacity="0.6" />
-                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0" />
+                                <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.95" />
+                                <stop offset="40%" stop-color="#1D4ED8" stop-opacity="0.85" />
+                                <stop offset="80%" stop-color="#3B82F6" stop-opacity="0.6" />
+                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.2" />
+                            </linearGradient>
+                            <linearGradient id="cornerGradBLSubtle" x1="0" y1="1" x2="1" y2="0">
+                                <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.4" />
+                                <stop offset="70%" stop-color="#93C5FD" stop-opacity="0.15" />
+                                <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.05" />
                             </linearGradient>
                         </defs>
                     </svg>

@@ -75,4 +75,47 @@ class EmailOtpTest extends TestCase
         // Clean up
         $otpModel->invalidateUserChallenges($testUserId);
     }
+
+    public function test_lockout_and_pending_session_policy_constants(): void
+    {
+        $this->assertSame(10, EmailOtp::LOCKOUT_THRESHOLD);
+        $this->assertGreaterThan(
+            EmailOtp::MAX_ATTEMPTS,
+            EmailOtp::LOCKOUT_THRESHOLD,
+            'Lockout threshold must exceed per-challenge attempts so a single exhausted challenge is not itself a lockout.'
+        );
+        $this->assertGreaterThanOrEqual(EmailOtp::OTP_LIFETIME, EmailOtp::PENDING_SESSION_LIFETIME);
+        $this->assertSame(5, EmailOtp::lifetimeMinutes());
+    }
+
+    public function test_requesting_new_codes_cannot_reset_failed_attempt_lockout(): void
+    {
+        $db = Database::getInstance();
+        if (!$db->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this local environment; skipping database integration checks.');
+        }
+
+        $otpModel = new EmailOtp();
+        $testUserId = 3;
+        $challengeIds = [];
+
+        // Two full challenges worth of wrong guesses (5 + 5) = threshold
+        for ($round = 0; $round < 2; $round++) {
+            $challengeIds[] = $otpModel->createChallenge($testUserId, '123456');
+            for ($i = 0; $i < EmailOtp::MAX_ATTEMPTS; $i++) {
+                $otpModel->verifyOtp($testUserId, '000000');
+            }
+        }
+
+        $lockout = $otpModel->checkLockout($testUserId);
+        $this->assertTrue($lockout['locked'], 'Failed attempts must accumulate across challenges.');
+        $this->assertGreaterThan(0, $lockout['retry_after']);
+        $this->assertLessThanOrEqual(EmailOtp::LOCKOUT_WINDOW, $lockout['retry_after']);
+
+        // Reset only the rows created by this test so seed users are not left locked out
+        $pdo = $db->getConnection();
+        $placeholders = implode(',', array_fill(0, count($challengeIds), '?'));
+        $pdo->prepare("UPDATE email_otps SET attempts = 0 WHERE id IN ({$placeholders})")->execute($challengeIds);
+        $otpModel->invalidateUserChallenges($testUserId);
+    }
 }

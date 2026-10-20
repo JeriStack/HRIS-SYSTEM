@@ -17,6 +17,47 @@ class EmailOtp extends Model
     public const OTP_LIFETIME = 300; // 5 minutes
     public const RESEND_COOLDOWN = 60; // 60 seconds
 
+    /** Max failed guesses allowed across ALL challenges for a user within LOCKOUT_WINDOW. */
+    public const LOCKOUT_THRESHOLD = 10;
+    public const LOCKOUT_WINDOW = 900; // 15 minutes
+
+    /** Absolute lifetime of the pending (post-password, pre-OTP) session state. Not extended by resends. */
+    public const PENDING_SESSION_LIFETIME = 900; // 15 minutes
+
+    /**
+     * OTP lifetime expressed in whole minutes, for email templates.
+     */
+    public static function lifetimeMinutes(): int
+    {
+        return (int)ceil(self::OTP_LIFETIME / 60);
+    }
+
+    /**
+     * Determine whether a user is temporarily locked out of OTP flows.
+     * Failed attempts are summed across every challenge in the rolling window, so requesting
+     * a fresh code (which resets the per-challenge counter) cannot be used to keep guessing.
+     *
+     * @param int $userId
+     * @return array ['locked' => bool, 'retry_after' => int seconds]
+     */
+    public function checkLockout(int $userId): array
+    {
+        $cutoff = date('Y-m-d H:i:s', time() - self::LOCKOUT_WINDOW);
+        $row = $this->fetchOne(
+            "SELECT COALESCE(SUM(attempts), 0) AS failed, MIN(created_at) AS oldest
+             FROM email_otps
+             WHERE user_id = :user_id AND attempts > 0 AND created_at > :cutoff",
+            ['user_id' => $userId, 'cutoff' => $cutoff]
+        );
+
+        if (!$row || (int)$row['failed'] < self::LOCKOUT_THRESHOLD) {
+            return ['locked' => false, 'retry_after' => 0];
+        }
+
+        $retryAfter = (strtotime((string)$row['oldest']) + self::LOCKOUT_WINDOW) - time();
+        return ['locked' => true, 'retry_after' => max(1, $retryAfter)];
+    }
+
     /**
      * Create a new secure OTP challenge for a user.
      * Inactive/previous unconsumed challenges for this user are atomically superseded.
@@ -39,6 +80,15 @@ class EmailOtp extends Model
         $expiresAt = date('Y-m-d H:i:s', time() + $lifetimeSeconds);
         $ip = $ipAddress ?? ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
         $ua = substr($userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'), 0, 255);
+
+        // Opportunistic retention cleanup (~1% of issuances); failures must never block sign-in
+        if (random_int(1, 100) === 1) {
+            try {
+                $this->cleanupOldChallenges();
+            } catch (Exception $e) {
+                error_log("[EmailOtp::cleanupOldChallenges Error] " . $e->getMessage());
+            }
+        }
 
         $this->beginTransaction();
         try {

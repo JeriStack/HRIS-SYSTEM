@@ -149,18 +149,21 @@ class AuthController extends ApiController
         $user = $this->userModel->findByEmail($email);
 
         if (!$user || $user['status'] !== 'Active') {
+            // Spend comparable CPU time as a real password check to blunt timing-based enumeration
+            password_hash($password, PASSWORD_DEFAULT);
             $this->userModel->logActivity(null, 'AUTH_FAILED', "Failed API login for unknown or inactive email: {$email}", 'USER', $email);
+            $this->error('Invalid email address or password.', 401);
+        }
+
+        // Password is verified BEFORE any account-state disclosure
+        if (!password_verify($password, $user['password'])) {
+            $this->userModel->logActivity((int)$user['id'], 'AUTH_FAILED', "API password verification failed for: {$email}", 'USER', (string)$user['id']);
             $this->error('Invalid email address or password.', 401);
         }
 
         if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
             $this->userModel->logActivity((int)$user['id'], 'AUTH_BLOCKED', "API login blocked for inactive employee: {$email}", 'USER', (string)$user['id']);
             $this->error('Your employment account is inactive. Please contact Human Resources.', 403);
-        }
-
-        if (!password_verify($password, $user['password'])) {
-            $this->userModel->logActivity((int)$user['id'], 'AUTH_FAILED', "API password verification failed for: {$email}", 'USER', (string)$user['id']);
-            $this->error('Invalid email address or password.', 401);
         }
 
         $role = strtolower((string)$user['role']);
@@ -174,13 +177,25 @@ class AuthController extends ApiController
         }
 
         $recipientEmail = strtolower(trim((string)($user['email'] ?? '')));
+        if ($recipientEmail === '' || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_MISSING_EMAIL', "API login blocked: No valid email address configured for user ID: {$user['id']}", 'USER', (string)$user['id']);
+            $this->error('Your account does not have a valid registered email address. Please contact HR.', 403);
+        }
+
+        // Refuse to issue new codes while the account is locked out from repeated failed guesses
+        $lockout = $this->otpModel->checkLockout((int)$user['id']);
+        if ($lockout['locked']) {
+            $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_LOCKED_OUT', "API login blocked: OTP lockout active for user ID: {$user['id']}", 'USER', (string)$user['id']);
+            $this->error($this->lockoutMessage($lockout['retry_after']), 429);
+        }
+
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->otpModel->createChallenge((int)$user['id'], $plainOtp);
 
         $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         $displayName = $fullName !== '' ? $fullName : ($user['username'] ?? $recipientEmail);
 
-        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, 5);
+        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, EmailOtp::lifetimeMinutes());
 
         if (!$emailSent) {
             $this->otpModel->invalidateUserChallenges((int)$user['id']);
@@ -188,6 +203,8 @@ class AuthController extends ApiController
             $this->error('Unable to dispatch verification code via email. Please check mail service configuration.', 500);
         }
 
+        // Regenerate the session ID so a pre-seeded/fixated session ID cannot ride into the OTP step
+        Session::regenerate(true);
         $this->clearPendingState();
         Session::set('pending_otp_user_id', (int)$user['id']);
         Session::set('pending_otp_email', $recipientEmail);
@@ -273,6 +290,19 @@ class AuthController extends ApiController
             $this->error('No pending authentication request found. Please complete Step 1 login first.', 400);
         }
 
+        if ($this->pendingSessionExpired()) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingState();
+            $this->error('Your verification session has expired. Please initiate sign-in again.', 401);
+        }
+
+        $lockout = $this->otpModel->checkLockout($pendingUserId);
+        if ($lockout['locked']) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingState();
+            $this->error($this->lockoutMessage($lockout['retry_after']), 429);
+        }
+
         $input = $this->getJsonInput();
         $submittedOtp = trim((string)($input['otp'] ?? ''));
 
@@ -288,6 +318,7 @@ class AuthController extends ApiController
                 $this->userModel->logActivity($pendingUserId, 'AUTH_OTP_EXHAUSTED', "API OTP verification exhausted maximum attempts", 'USER', (string)$pendingUserId);
                 $this->error('Maximum verification attempts exceeded. Please initiate sign-in again.', 401);
             }
+            $this->userModel->logActivity($pendingUserId, 'AUTH_OTP_FAILED', "API incorrect or invalid OTP submitted (remaining attempts on challenge: " . ($result['remaining_attempts'] ?? 'n/a') . ")", 'USER', (string)$pendingUserId);
             $this->error($result['error'] ?? 'Invalid or expired verification code.', 401);
         }
 
@@ -372,7 +403,20 @@ class AuthController extends ApiController
             $this->error('No pending sign-in request found.', 400);
         }
 
-        $cooldown = $this->otpModel->checkResendCooldown($pendingUserId, 60);
+        if ($this->pendingSessionExpired()) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingState();
+            $this->error('Your verification session has expired. Please initiate sign-in again.', 401);
+        }
+
+        $lockout = $this->otpModel->checkLockout($pendingUserId);
+        if ($lockout['locked']) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingState();
+            $this->error($this->lockoutMessage($lockout['retry_after']), 429);
+        }
+
+        $cooldown = $this->otpModel->checkResendCooldown($pendingUserId, EmailOtp::RESEND_COOLDOWN);
         if (!$cooldown['allowed']) {
             $this->error("Please wait {$cooldown['remaining_seconds']} seconds before requesting another verification code.", 429);
         }
@@ -383,16 +427,30 @@ class AuthController extends ApiController
             $this->error('User account not found.', 400);
         }
 
+        // Re-validate account state so a deactivated account cannot keep receiving codes
+        $role = strtolower((string)$user['role']);
+        if ($user['status'] !== 'Active' || ($role !== 'hr' && $role !== 'employee')) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingState();
+            $this->error('Your account is inactive or no longer available.', 403);
+        }
+
         $recipientEmail = strtolower(trim((string)($user['email'] ?? '')));
+        if ($recipientEmail === '' || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->error('Your account does not have a valid registered email address. Please contact HR.', 403);
+        }
+
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->otpModel->createChallenge($pendingUserId, $plainOtp);
 
         $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         $displayName = $fullName !== '' ? $fullName : ($user['username'] ?? $recipientEmail);
 
-        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, 5);
+        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, EmailOtp::lifetimeMinutes());
 
         if (!$emailSent) {
+            // Do not leave a live, never-delivered challenge behind
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
             $this->error('Unable to dispatch verification code via email. Please check mail service configuration.', 500);
         }
 
@@ -400,7 +458,7 @@ class AuthController extends ApiController
 
         $this->success([
             'email'              => $recipientEmail,
-            'expires_in_seconds' => 300,
+            'expires_in_seconds' => EmailOtp::OTP_LIFETIME,
         ], 'A fresh verification code has been dispatched to your email.');
     }
 
@@ -443,5 +501,21 @@ class AuthController extends ApiController
         Session::remove('pending_otp_email');
         Session::remove('pending_otp_name');
         Session::remove('pending_otp_time');
+    }
+
+    /**
+     * Whether the pending (post-password) session state has outlived its absolute lifetime.
+     * Resending a code does NOT extend this window; the client must re-submit credentials.
+     */
+    private function pendingSessionExpired(): bool
+    {
+        $startedAt = (int)Session::get('pending_otp_time', 0);
+        return $startedAt <= 0 || (time() - $startedAt) > EmailOtp::PENDING_SESSION_LIFETIME;
+    }
+
+    private function lockoutMessage(int $retryAfterSeconds): string
+    {
+        $minutes = max(1, (int)ceil($retryAfterSeconds / 60));
+        return "Too many incorrect verification codes. Please try again in about {$minutes} minute(s).";
     }
 }
