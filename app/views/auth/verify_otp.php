@@ -67,27 +67,42 @@
         .left-branding {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            text-align: right;
-            padding-right: 1rem;
+            align-items: center;
+            text-align: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
         }
 
         .brand-logo-img {
-            max-width: 290px;
+            max-width: 300px;
             width: 100%;
             height: auto;
             display: block;
-            margin-bottom: 0.85rem;
+            margin: 0 auto 1.25rem;
             filter: drop-shadow(0 4px 12px rgba(15, 46, 92, 0.08));
         }
 
         .brand-tagline {
-            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
             font-weight: 500;
-            color: #4A6382;
-            letter-spacing: 0.04em;
-            word-spacing: 0.1em;
-            opacity: 0.95;
+            color: #4D7EB8;
+            letter-spacing: 0.015em;
+            white-space: nowrap;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .brand-tagline .tagline-dot {
+            color: #60A5FA;
+            font-size: 0.875rem;
+            line-height: 1;
+            display: inline-block;
         }
 
         /* Center Verification Card */
@@ -447,6 +462,12 @@
                 padding: 1rem 0.75rem;
             }
 
+            .brand-tagline {
+                font-size: 0.8125rem;
+                gap: 0.45rem;
+                flex-wrap: wrap;
+            }
+
             .verification-card {
                 padding: 1.75rem 1.25rem 1.5rem;
                 border-radius: 22px;
@@ -521,9 +542,13 @@
 
         <!-- Column 1: Left Branding -->
         <aside class="left-branding" aria-label="Brand Information">
-            <img src="<?= asset('img/hris-logo.png') ?>" alt="HRIS Logo" class="brand-logo-img">
+            <img src="<?= asset('img/hris-logo.png') ?>" alt="HRIS - Human Resource Information System" class="brand-logo-img">
             <div class="brand-tagline">
-                Secure People &bull; Smarter HR &bull; Better Tomorrow
+                <span>Secure People</span>
+                <span class="tagline-dot" aria-hidden="true">&bull;</span>
+                <span>Smarter HR</span>
+                <span class="tagline-dot" aria-hidden="true">&bull;</span>
+                <span>Better Tomorrow</span>
             </div>
         </aside>
 
