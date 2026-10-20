@@ -19,12 +19,13 @@
 
         body {
             min-height: 100vh;
-            background-color: #F0F6FD;
+            min-height: 100dvh;
+            background-color: #F7FBFF;
             background-image: 
-                radial-gradient(ellipse 70% 60% at 50% 48%, #FFFFFF 15%, rgba(255, 255, 255, 0.85) 45%, rgba(240, 246, 253, 0.4) 75%, transparent 100%),
-                radial-gradient(circle at 8% 12%, #DCEBFC 0%, #EBF4FE 35%, transparent 65%),
-                radial-gradient(circle at 92% 88%, #CFE4FB 0%, #E2F0FE 30%, transparent 65%),
-                linear-gradient(135deg, #E6F0FA 0%, #F4F9FD 50%, #E8F2FB 100%);
+                radial-gradient(ellipse 65% 55% at 50% 50%, #FFFFFF 25%, rgba(255, 255, 255, 0.95) 50%, rgba(247, 251, 255, 0.6) 75%, transparent 100%),
+                radial-gradient(circle at 10% 10%, #EAF4FF 0%, rgba(247, 251, 255, 0.5) 50%, transparent 75%),
+                radial-gradient(circle at 90% 90%, #E3EFFF 0%, rgba(247, 251, 255, 0.5) 50%, transparent 75%),
+                linear-gradient(135deg, #F0F6FD 0%, #FFFFFF 45%, #F7FBFF 75%, #EDF5FE 100%);
             background-attachment: fixed;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: #0F172A;
@@ -36,38 +37,27 @@
             padding: 2rem 1.5rem;
         }
 
-        /* Ambient Wave Shapes */
+        /* Ambient Wave Shapes (Graceful Corner Framing) */
         .bg-wave-tl {
             position: fixed;
             top: 0;
             left: 0;
-            width: clamp(420px, 45vw, 680px);
-            height: clamp(420px, 45vw, 680px);
+            width: clamp(320px, 34vw, 520px);
+            height: clamp(320px, 34vw, 520px);
             pointer-events: none;
             z-index: 0;
-            filter: drop-shadow(0 15px 35px rgba(37, 99, 235, 0.08));
+            filter: drop-shadow(0 10px 25px rgba(37, 99, 235, 0.05));
         }
 
         .bg-wave-br {
             position: fixed;
             bottom: 0;
             right: 0;
-            width: clamp(480px, 50vw, 820px);
-            height: clamp(480px, 50vw, 820px);
+            width: clamp(360px, 38vw, 600px);
+            height: clamp(360px, 38vw, 600px);
             pointer-events: none;
             z-index: 0;
-            filter: drop-shadow(-10px -15px 40px rgba(29, 78, 216, 0.12));
-        }
-
-        .bg-wave-bl {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: clamp(340px, 32vw, 520px);
-            height: clamp(260px, 26vw, 420px);
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.85;
+            filter: drop-shadow(-8px -10px 30px rgba(36, 89, 211, 0.06));
         }
 
         /* 3-Column Page Shell */
@@ -133,7 +123,7 @@
         .verification-card {
             background: #FFFFFF;
             border-radius: 28px;
-            box-shadow: 0 25px 60px -15px rgba(23, 76, 155, 0.16), 0 0 1px 1px rgba(219, 234, 254, 0.8);
+            box-shadow: 0 20px 50px -12px rgba(36, 89, 211, 0.12), 0 0 35px rgba(255, 255, 255, 0.95), 0 0 0 1px rgba(207, 229, 255, 0.7);
             max-width: 480px;
             width: 100%;
             padding: 2.5rem 2.25rem 2rem;
@@ -141,32 +131,22 @@
             overflow: hidden;
         }
 
-        /* Decorative Fluid Corner Accents inside the Card */
+        /* Subtle Corner Accent inside Card (Upper-Right only) */
         .card-corner-tr {
             position: absolute;
             top: 0;
             right: 0;
-            width: 155px;
-            height: 155px;
+            width: 95px;
+            height: 95px;
             pointer-events: none;
-            z-index: 0;
-            filter: drop-shadow(-2px 4px 10px rgba(29, 78, 216, 0.15));
-        }
-
-        .card-corner-bl {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 140px;
-            height: 140px;
-            pointer-events: none;
-            z-index: 0;
-            filter: drop-shadow(2px -4px 10px rgba(30, 58, 138, 0.12));
+            z-index: 1;
+            border-top-right-radius: 28px;
+            overflow: hidden;
         }
 
         .card-inner {
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
 
         /* Top Padlock Badge */
@@ -419,44 +399,78 @@
         .right-security-art {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            padding-left: 1rem;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
             position: relative;
+            max-width: 320px;
+            margin: 0 auto;
         }
 
         .orbital-container {
             position: relative;
-            width: 320px;
-            height: 320px;
+            width: 280px;
+            height: 280px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
         .security-cursive-badge {
-            margin-top: -20px;
-            margin-left: 60px;
-            transform: rotate(-7deg);
-            display: inline-block;
+            margin-top: 0.65rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: rotate(-4deg);
         }
 
         .cursive-text {
             font-family: 'Caveat', cursive;
             font-size: 2.15rem;
             font-weight: 700;
-            color: #2563EB;
-            line-height: 0.95;
+            color: #2459D3;
+            line-height: 1.05;
             letter-spacing: -0.01em;
-            text-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
+            text-shadow: 0 2px 6px rgba(36, 89, 211, 0.08);
+            text-align: center;
         }
 
         .cursive-underline {
             display: block;
-            margin-top: 2px;
+            margin-top: 6px;
         }
 
         /* Responsive Breakpoints */
-        @media (max-width: 1080px) {
+        @media (max-width: 1140px) {
+            .page-container {
+                gap: 1.5rem;
+            }
+
+            .left-branding {
+                max-width: 300px;
+            }
+
+            .brand-logo-img {
+                max-width: 240px;
+            }
+
+            .verification-card {
+                max-width: 440px;
+                padding: 2.25rem 1.85rem 1.85rem;
+            }
+
+            .orbital-container {
+                width: 240px;
+                height: 240px;
+            }
+
+            .cursive-text {
+                font-size: 1.95rem;
+            }
+        }
+
+        @media (max-width: 960px) {
             .page-container {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
@@ -466,12 +480,13 @@
             .left-branding {
                 text-align: center;
                 align-items: center;
-                padding-right: 0;
+                max-width: 380px;
+                margin: 0 auto;
             }
 
             .brand-logo-img {
-                max-width: 240px;
-                margin-bottom: 0.85rem;
+                max-width: 220px;
+                margin-bottom: 0.75rem;
             }
 
             .brand-tagline {
@@ -480,18 +495,13 @@
             }
 
             .bg-wave-tl {
-                width: 320px;
-                height: 320px;
+                width: 260px;
+                height: 260px;
             }
 
             .bg-wave-br {
-                width: 360px;
-                height: 360px;
-            }
-
-            .bg-wave-bl {
-                width: 260px;
-                height: 200px;
+                width: 300px;
+                height: 300px;
             }
 
             .right-security-art {
@@ -505,27 +515,19 @@
             }
 
             .bg-wave-tl {
+                width: 190px;
+                height: 190px;
+            }
+
+            .bg-wave-br {
                 width: 220px;
                 height: 220px;
             }
 
-            .bg-wave-br {
-                width: 260px;
-                height: 260px;
-            }
-
-            .bg-wave-bl {
-                display: none;
-            }
-
             .card-corner-tr {
-                width: 115px;
-                height: 115px;
-            }
-
-            .card-corner-bl {
-                width: 100px;
-                height: 100px;
+                width: 75px;
+                height: 75px;
+                border-top-right-radius: 20px;
             }
 
             .brand-tagline {
@@ -535,13 +537,13 @@
             }
 
             .verification-card {
-                padding: 1.75rem 1.25rem 1.5rem;
-                border-radius: 22px;
+                padding: 1.75rem 1.15rem 1.5rem;
+                border-radius: 20px;
             }
 
             .card-footer-strip {
-                margin: 1.25rem -1.25rem -1.5rem;
-                padding: 0.75rem 1rem;
+                margin: 1.25rem -1.15rem -1.5rem;
+                padding: 0.75rem 0.85rem;
             }
 
             .otp-boxes-group {
@@ -560,6 +562,39 @@
             }
         }
 
+        @media (max-width: 360px) {
+            body {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .verification-card {
+                padding: 1.5rem 0.85rem 1.25rem;
+                border-radius: 18px;
+            }
+
+            .card-footer-strip {
+                margin: 1rem -0.85rem -1.25rem;
+                padding: 0.65rem 0.5rem;
+                font-size: 0.625rem;
+            }
+
+            .otp-boxes-group {
+                gap: 0.25rem;
+            }
+
+            .otp-box-digit {
+                width: 38px;
+                height: 46px;
+                font-size: 1.2rem;
+                border-radius: 8px;
+            }
+
+            .btn-secondary-action {
+                font-size: 0.75rem;
+                padding: 0.25rem 0.35rem;
+            }
+        }
+
         /* Animation utilities */
         .spinner {
             animation: spin 0.9s linear infinite;
@@ -574,91 +609,62 @@
 
     <!-- Ambient Waves in Viewport Corners -->
     <div class="bg-wave-tl" aria-hidden="true">
-        <svg viewBox="0 0 650 650" width="100%" height="100%" fill="none" preserveAspectRatio="none">
-            <!-- Layer 1: Soft broad translucent ice-blue wave -->
-            <path d="M0 0 H 600 C 510 220, 330 460, 0 570 Z" fill="url(#bgWaveGradTL1)" />
+        <svg viewBox="0 0 550 550" width="100%" height="100%" fill="none" preserveAspectRatio="none">
+            <!-- Layer 1: Soft broad translucent pale-blue wave -->
+            <path d="M 0 0 H 520 C 440 180, 280 380, 0 460 Z" fill="url(#bgWaveGradTL1)" />
             <!-- Layer 2: Mid azure flowing wave -->
-            <path d="M0 0 H 450 C 380 170, 240 360, 0 440 Z" fill="url(#bgWaveGradTL2)" />
-            <!-- Layer 3: Vibrant enterprise cobalt wave -->
-            <path d="M0 0 H 310 C 260 115, 145 245, 0 300 Z" fill="url(#bgWaveGradTL3)" />
-            <!-- Layer 4: Flowing geometric accent curve -->
-            <path d="M 12 295 C 150 240, 260 110, 305 12" stroke="url(#bgWaveTLStroke)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.45" />
+            <path d="M 0 0 H 380 C 310 140, 190 280, 0 350 Z" fill="url(#bgWaveGradTL2)" />
+            <!-- Layer 3: Smooth primary corner curve -->
+            <path d="M 0 0 H 250 C 200 90, 110 180, 0 230 Z" fill="url(#bgWaveGradTL3)" />
+            <!-- Soft crest line highlight -->
+            <path d="M 10 225 C 105 175, 195 85, 245 10" stroke="rgba(255, 255, 255, 0.55)" stroke-width="2" stroke-linecap="round" fill="none" />
             <defs>
                 <linearGradient id="bgWaveGradTL1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.4" />
-                    <stop offset="60%" stop-color="#BFDBFE" stop-opacity="0.2" />
-                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.04" />
+                    <stop offset="0%" stop-color="#CFE5FF" stop-opacity="0.45" />
+                    <stop offset="60%" stop-color="#EAF4FF" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="#F7FBFF" stop-opacity="0.02" />
                 </linearGradient>
                 <linearGradient id="bgWaveGradTL2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.65" />
-                    <stop offset="50%" stop-color="#93C5FD" stop-opacity="0.35" />
-                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.08" />
+                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.4" />
+                    <stop offset="50%" stop-color="#93C5FD" stop-opacity="0.22" />
+                    <stop offset="100%" stop-color="#EAF4FF" stop-opacity="0.04" />
                 </linearGradient>
                 <linearGradient id="bgWaveGradTL3" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.88" />
-                    <stop offset="45%" stop-color="#2563EB" stop-opacity="0.75" />
-                    <stop offset="90%" stop-color="#60A5FA" stop-opacity="0.45" />
-                    <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.15" />
-                </linearGradient>
-                <linearGradient id="bgWaveTLStroke" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.1" />
-                    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.75" />
-                    <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.2" />
+                    <stop offset="0%" stop-color="#2459D3" stop-opacity="0.75" />
+                    <stop offset="45%" stop-color="#3B82F6" stop-opacity="0.5" />
+                    <stop offset="90%" stop-color="#60A5FA" stop-opacity="0.2" />
+                    <stop offset="100%" stop-color="#CFE5FF" stop-opacity="0.05" />
                 </linearGradient>
             </defs>
         </svg>
     </div>
 
     <div class="bg-wave-br" aria-hidden="true">
-        <svg viewBox="0 0 800 800" width="100%" height="100%" fill="none" preserveAspectRatio="none">
-            <!-- Layer 1: Oversized ambient sweeping wave reaching towards center -->
-            <path d="M 800 800 V 160 C 660 290, 390 490, 90 800 Z" fill="url(#bgWaveGradBR1)" />
-            <!-- Layer 2: Secondary flowing azure curve -->
-            <path d="M 800 800 V 290 C 680 400, 490 550, 230 800 Z" fill="url(#bgWaveGradBR2)" />
-            <!-- Layer 3: Primary deep enterprise cobalt wave -->
-            <path d="M 800 800 V 430 C 715 500, 570 630, 370 800 Z" fill="url(#bgWaveGradBR3)" />
-            <!-- Layer 4: Flowing geometric accent line -->
-            <path d="M 385 790 C 575 620, 720 490, 792 422" stroke="url(#bgWaveBRStroke)" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.4" />
+        <svg viewBox="0 0 600 600" width="100%" height="100%" fill="none" preserveAspectRatio="none">
+            <!-- Layer 1: Inner gentle pale-blue flowing curve -->
+            <path d="M 600 600 V 220 C 510 320, 360 440, 180 600 Z" fill="url(#bgWaveGradBR1)" />
+            <!-- Layer 2: Mid flowing azure curve -->
+            <path d="M 600 600 V 330 C 520 400, 420 490, 290 600 Z" fill="url(#bgWaveGradBR2)" />
+            <!-- Layer 3: Outer primary blue curve near corner -->
+            <path d="M 600 600 V 440 C 540 480, 480 540, 390 600 Z" fill="url(#bgWaveGradBR3)" />
+            <!-- Flowing subtle crest highlight -->
+            <path d="M 395 595 C 482 535, 538 478, 595 435" stroke="rgba(255, 255, 255, 0.6)" stroke-width="2" stroke-linecap="round" fill="none" />
             <defs>
                 <linearGradient id="bgWaveGradBR1" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.45" />
-                    <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.18" />
-                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.02" />
+                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.32" />
+                    <stop offset="60%" stop-color="#CFE5FF" stop-opacity="0.15" />
+                    <stop offset="100%" stop-color="#EAF4FF" stop-opacity="0.02" />
                 </linearGradient>
                 <linearGradient id="bgWaveGradBR2" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.78" />
-                    <stop offset="50%" stop-color="#2563EB" stop-opacity="0.55" />
-                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.18" />
+                    <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.45" />
+                    <stop offset="50%" stop-color="#60A5FA" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#CFE5FF" stop-opacity="0.06" />
                 </linearGradient>
                 <linearGradient id="bgWaveGradBR3" x1="100%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.95" />
-                    <stop offset="40%" stop-color="#1D4ED8" stop-opacity="0.9" />
-                    <stop offset="80%" stop-color="#2563EB" stop-opacity="0.7" />
-                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.3" />
-                </linearGradient>
-                <linearGradient id="bgWaveBRStroke" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#93C5FD" stop-opacity="0.1" />
-                    <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.7" />
-                    <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.2" />
-                </linearGradient>
-            </defs>
-        </svg>
-    </div>
-
-    <div class="bg-wave-bl" aria-hidden="true">
-        <svg viewBox="0 0 520 400" width="100%" height="100%" fill="none" preserveAspectRatio="none">
-            <path d="M 0 400 V 150 C 140 190, 330 280, 500 400 Z" fill="url(#bgWaveGradBL1)" />
-            <path d="M 0 400 V 230 C 110 250, 250 320, 380 400 Z" fill="url(#bgWaveGradBL2)" />
-            <defs>
-                <linearGradient id="bgWaveGradBL1" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.4" />
-                    <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.18" />
-                    <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.03" />
-                </linearGradient>
-                <linearGradient id="bgWaveGradBL2" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.82" />
-                    <stop offset="50%" stop-color="#2563EB" stop-opacity="0.6" />
-                    <stop offset="100%" stop-color="#60A5FA" stop-opacity="0.15" />
+                    <stop offset="0%" stop-color="#2459D3" stop-opacity="0.75" />
+                    <stop offset="40%" stop-color="#3B82F6" stop-opacity="0.55" />
+                    <stop offset="85%" stop-color="#60A5FA" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="#CFE5FF" stop-opacity="0.06" />
                 </linearGradient>
             </defs>
         </svg>
@@ -683,48 +689,25 @@
         <main class="center-card-wrapper" role="main">
             <div class="verification-card">
                 
-                <!-- Fluid Corner Overlays inside the card -->
+                <!-- Subtle Fluid Corner Accent inside the card (Upper-Right only) -->
                 <div class="card-corner-tr" aria-hidden="true">
-                    <svg viewBox="0 0 155 155" width="155" height="155" fill="none">
-                        <!-- Subtle translucent underlayer for depth -->
-                        <path d="M 155 0 C 95 24, 42 80, 32 155 H 155 V 0 Z" fill="url(#cornerGradTRSubtle)" />
-                        <!-- Main vibrant corner wave -->
-                        <path d="M 155 0 C 112 16, 62 58, 52 155 H 155 V 0 Z" fill="url(#cornerGradTR)" />
+                    <svg viewBox="0 0 95 95" width="95" height="95" fill="none">
+                        <!-- Translucent underlayer -->
+                        <path d="M 95 0 C 50 16, 20 52, 10 95 H 95 V 0 Z" fill="url(#cornerGradTRSubtle)" />
+                        <!-- Main gentle curve -->
+                        <path d="M 95 0 C 65 10, 30 42, 20 95 H 95 V 0 Z" fill="url(#cornerGradTR)" />
                         <!-- Soft crest line highlight -->
-                        <path d="M 54 155 C 64 60, 114 18, 155 0" stroke="rgba(255, 255, 255, 0.45)" stroke-width="1.5" fill="none" />
+                        <path d="M 21 95 C 31 43, 66 11, 95 0" stroke="rgba(255, 255, 255, 0.5)" stroke-width="1.2" fill="none" />
                         <defs>
                             <linearGradient id="cornerGradTR" x1="1" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#1D4ED8" stop-opacity="0.95" />
-                                <stop offset="35%" stop-color="#2563EB" stop-opacity="0.88" />
-                                <stop offset="75%" stop-color="#60A5FA" stop-opacity="0.65" />
-                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.25" />
+                                <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.38" />
+                                <stop offset="50%" stop-color="#60A5FA" stop-opacity="0.20" />
+                                <stop offset="100%" stop-color="#CFE5FF" stop-opacity="0.04" />
                             </linearGradient>
                             <linearGradient id="cornerGradTRSubtle" x1="1" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.45" />
-                                <stop offset="60%" stop-color="#93C5FD" stop-opacity="0.2" />
-                                <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.05" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-
-                <div class="card-corner-bl" aria-hidden="true">
-                    <svg viewBox="0 0 140 140" width="140" height="140" fill="none">
-                        <!-- Subtle underlayer -->
-                        <path d="M 0 140 C 50 88, 96 38, 108 0 H 0 V 140 Z" fill="url(#cornerGradBLSubtle)" />
-                        <!-- Main vibrant wave -->
-                        <path d="M 0 140 C 36 98, 76 52, 86 0 H 0 V 140 Z" fill="url(#cornerGradBL)" />
-                        <defs>
-                            <linearGradient id="cornerGradBL" x1="0" y1="1" x2="1" y2="0">
-                                <stop offset="0%" stop-color="#1E3A8A" stop-opacity="0.95" />
-                                <stop offset="40%" stop-color="#1D4ED8" stop-opacity="0.85" />
-                                <stop offset="80%" stop-color="#3B82F6" stop-opacity="0.6" />
-                                <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.2" />
-                            </linearGradient>
-                            <linearGradient id="cornerGradBLSubtle" x1="0" y1="1" x2="1" y2="0">
-                                <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.4" />
-                                <stop offset="70%" stop-color="#93C5FD" stop-opacity="0.15" />
-                                <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.05" />
+                                <stop offset="0%" stop-color="#BFDBFE" stop-opacity="0.25" />
+                                <stop offset="70%" stop-color="#EAF4FF" stop-opacity="0.08" />
+                                <stop offset="100%" stop-color="#F7FBFF" stop-opacity="0.02" />
                             </linearGradient>
                         </defs>
                     </svg>
@@ -903,30 +886,29 @@
         <!-- Column 3: Right Security Graphic & Handwritten Script -->
         <aside class="right-security-art" aria-hidden="true">
             <div class="orbital-container">
-                <svg width="320" height="320" viewBox="0 0 400 400" fill="none">
-                    <!-- Concentric Dotted Orbital Rings -->
-                    <circle cx="200" cy="200" r="165" stroke="#93C5FD" stroke-width="1.2" stroke-dasharray="4 6" opacity="0.65" />
-                    <circle cx="45" cy="160" r="4" fill="#3B82F6" opacity="0.75" />
-                    <circle cx="345" cy="140" r="3.5" fill="#60A5FA" opacity="0.7" />
-                    
-                    <circle cx="200" cy="200" r="115" stroke="#BFDBFE" stroke-width="1.2" opacity="0.6" />
-                    <circle cx="295" cy="245" r="3" fill="#2563EB" opacity="0.8" />
-                    <circle cx="100" cy="240" r="3" fill="#3B82F6" opacity="0.7" />
+                <svg width="280" height="280" viewBox="0 0 320 320" fill="none">
+                    <!-- Concentric Dotted & Solid Orbital Rings centered at (160, 160) -->
+                    <circle cx="160" cy="160" r="130" stroke="#93C5FD" stroke-width="1.5" stroke-dasharray="5 7" opacity="0.65" />
+                    <circle cx="160" cy="160" r="90" stroke="#BFDBFE" stroke-width="1.5" opacity="0.7" />
 
-                    <!-- Translucent Security Shield -->
-                    <g transform="translate(142, 115)">
-                        <path d="M58 5 L12 25 V78 C12 118 58 145 58 145 C58 145 104 118 104 78 V25 Z" fill="url(#shieldTransGrad)" stroke="#93C5FD" stroke-width="3" />
-                        <!-- Padlock Silhouette inside Shield -->
-                        <rect x="42" y="66" width="32" height="26" rx="5" fill="#93C5FD" opacity="0.85" />
-                        <path d="M49 66 V53 a9 9 0 0 1 18 0 v13" stroke="#93C5FD" stroke-width="4.5" stroke-linecap="round" fill="none" opacity="0.85" />
-                        <circle cx="58" cy="78" r="2.8" fill="#FFFFFF" />
-                        <path d="M58 80.8 V85.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
-                    </g>
+                    <!-- Decorative Orbital Accent Dots -->
+                    <circle cx="252" cy="68" r="3.5" fill="#3B82F6" opacity="0.75" />
+                    <circle cx="47" cy="225" r="3" fill="#60A5FA" opacity="0.7" />
+                    <circle cx="224" cy="224" r="3" fill="#2459D3" opacity="0.75" />
+
+                    <!-- Centered Pale-Blue Translucent Security Shield (Centered at 160, 160) -->
+                    <path d="M 160 111 L 125 126 V 164 C 125 192 160 211 160 211 C 160 211 195 192 195 164 V 126 Z" fill="url(#shieldTransGrad)" stroke="#93C5FD" stroke-width="2.5" stroke-linejoin="round" />
+
+                    <!-- Centered Recognizable Blue Padlock Icon inside Shield -->
+                    <rect x="146" y="152" width="28" height="22" rx="4.5" fill="#2459D3" />
+                    <path d="M 152 152 V 142 C 152 136 156 132 160 132 C 164 132 168 136 168 142 V 152" stroke="#2459D3" stroke-width="3.5" stroke-linecap="round" fill="none" />
+                    <circle cx="160" cy="161" r="2.2" fill="#FFFFFF" />
+                    <path d="M 160 163.2 V 167.5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" />
 
                     <defs>
                         <linearGradient id="shieldTransGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#DBEAFE" stop-opacity="0.6" />
-                            <stop offset="100%" stop-color="#BFDBFE" stop-opacity="0.25" />
+                            <stop offset="0%" stop-color="#EAF4FF" stop-opacity="0.8" />
+                            <stop offset="100%" stop-color="#CFE5FF" stop-opacity="0.45" />
                         </linearGradient>
                     </defs>
                 </svg>
@@ -935,8 +917,8 @@
             <!-- "Your Security Matters" in Authentic Cursive Style -->
             <div class="security-cursive-badge">
                 <div class="cursive-text">Your Security<br>Matters</div>
-                <svg class="cursive-underline" width="135" height="18" viewBox="0 0 135 18" fill="none">
-                    <path d="M3 13 C 40 2, 85 16, 130 5" stroke="#2563EB" stroke-width="2.8" stroke-linecap="round" />
+                <svg class="cursive-underline" width="130" height="14" viewBox="0 0 130 14" fill="none">
+                    <path d="M 4 8 C 42 14, 88 2, 126 8" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" />
                 </svg>
             </div>
         </aside>
