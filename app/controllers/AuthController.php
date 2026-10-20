@@ -97,6 +97,9 @@ class AuthController extends Controller
 
         // 5. Validate Account Existence and Status (Generic message prevents account enumeration)
         if (!$user || $user['status'] !== 'Active') {
+            // Spend comparable CPU time as a real password check to blunt timing-based enumeration
+            password_hash($password, PASSWORD_DEFAULT);
+
             $this->userModel->logActivity(
                 null,
                 'AUTH_FAILED',
@@ -111,22 +114,8 @@ class AuthController extends Controller
             return;
         }
 
-        // 6. Validate Associated Employment Status if linked to employee
-        if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
-            $this->userModel->logActivity(
-                (int)$user['id'],
-                'AUTH_BLOCKED',
-                "Login blocked for deactivated employee: {$user['employee_no']} ({$email})",
-                'USER',
-                (string)$user['id']
-            );
-
-            Session::flash('error', 'Your employment account is inactive. Please contact Human Resources.');
-            $this->redirect('/login');
-            return;
-        }
-
-        // 7. Verify Password Hash using password_verify()
+        // 6. Verify Password Hash using password_verify()
+        // (Performed BEFORE any account-state disclosure so status is never revealed to unauthenticated callers)
         if (!password_verify($password, $user['password'])) {
             $this->userModel->logActivity(
                 (int)$user['id'],
@@ -138,6 +127,21 @@ class AuthController extends Controller
 
             Session::flash('error', 'Invalid email address or password. Please verify your credentials and try again.');
             Session::flash('old_email', $rawEmail);
+            $this->redirect('/login');
+            return;
+        }
+
+        // 7. Validate Associated Employment Status if linked to employee
+        if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
+            $this->userModel->logActivity(
+                (int)$user['id'],
+                'AUTH_BLOCKED',
+                "Login blocked for deactivated employee: {$user['employee_no']} ({$email})",
+                'USER',
+                (string)$user['id']
+            );
+
+            Session::flash('error', 'Your employment account is inactive. Please contact Human Resources.');
             $this->redirect('/login');
             return;
         }
@@ -180,6 +184,22 @@ class AuthController extends Controller
             return;
         }
 
+        // 10b. Refuse to issue new codes while the account is locked out from repeated failed guesses
+        $lockout = $this->otpModel->checkLockout((int)$user['id']);
+        if ($lockout['locked']) {
+            $this->userModel->logActivity(
+                (int)$user['id'],
+                'AUTH_OTP_LOCKED_OUT',
+                "Login blocked: OTP lockout active for user ID: {$user['id']}",
+                'USER',
+                (string)$user['id']
+            );
+
+            Session::flash('error', $this->lockoutMessage($lockout['retry_after']));
+            $this->redirect('/login');
+            return;
+        }
+
         // 11. Generate Cryptographically Secure 6-Digit Numeric OTP
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
@@ -190,7 +210,7 @@ class AuthController extends Controller
         $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         $displayName = $fullName !== '' ? $fullName : ($user['username'] ?? $recipientEmail);
 
-        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, 5);
+        $emailSent = $this->mailService->sendOtpEmail($recipientEmail, $displayName, $plainOtp, EmailOtp::lifetimeMinutes());
 
         if (!$emailSent) {
             // Invalidate challenge and clear state if delivery failed
@@ -211,6 +231,8 @@ class AuthController extends Controller
         }
 
         // 14. Establish Pending Challenge State in Session (User is NOT authenticated yet)
+        // Regenerate the session ID so a pre-seeded/fixated session ID cannot ride into the OTP step
+        Session::regenerate(true);
         $this->clearPendingOtpSession();
         Session::set('pending_otp_user_id', (int)$user['id']);
         Session::set('pending_otp_email', $recipientEmail);
@@ -244,6 +266,12 @@ class AuthController extends Controller
         $pendingUserId = (int)Session::get('pending_otp_user_id');
         if (!$pendingUserId) {
             Session::flash('error', 'No pending sign-in request found. Please enter your credentials first.');
+            $this->redirect('/login');
+            return;
+        }
+
+        if ($this->pendingSessionExpired()) {
+            $this->expirePendingSession($pendingUserId);
             $this->redirect('/login');
             return;
         }
@@ -289,6 +317,22 @@ class AuthController extends Controller
             return;
         }
 
+        if ($this->pendingSessionExpired()) {
+            $this->expirePendingSession($pendingUserId);
+            $this->redirect('/login');
+            return;
+        }
+
+        // 2b. Enforce cross-challenge lockout (cannot be reset by requesting a fresh code)
+        $lockout = $this->otpModel->checkLockout($pendingUserId);
+        if ($lockout['locked']) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingOtpSession();
+            Session::flash('error', $this->lockoutMessage($lockout['retry_after']));
+            $this->redirect('/login');
+            return;
+        }
+
         // 3. Validate Submitted OTP Format (6 numeric digits)
         $submittedOtp = trim((string)($_POST['otp'] ?? ''));
         if (!preg_match('/^[0-9]{6}$/', $submittedOtp)) {
@@ -316,6 +360,14 @@ class AuthController extends Controller
                 $this->redirect('/login');
                 return;
             }
+
+            $this->userModel->logActivity(
+                $pendingUserId,
+                'AUTH_OTP_FAILED',
+                "Incorrect or invalid OTP submitted (remaining attempts on challenge: " . ($result['remaining_attempts'] ?? 'n/a') . ")",
+                'USER',
+                (string)$pendingUserId
+            );
 
             Session::flash('error', $result['error'] ?? 'Invalid verification code.');
             $this->redirect('/verify-otp');
@@ -408,6 +460,22 @@ class AuthController extends Controller
             return;
         }
 
+        if ($this->pendingSessionExpired()) {
+            $this->expirePendingSession($pendingUserId);
+            $this->redirect('/login');
+            return;
+        }
+
+        // 2b. Enforce cross-challenge lockout
+        $lockout = $this->otpModel->checkLockout($pendingUserId);
+        if ($lockout['locked']) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingOtpSession();
+            Session::flash('error', $this->lockoutMessage($lockout['retry_after']));
+            $this->redirect('/login');
+            return;
+        }
+
         // 3. Enforce Server-Side Resend Cooldown (60 seconds)
         $cooldown = $this->otpModel->checkResendCooldown($pendingUserId);
         if (!$cooldown['allowed']) {
@@ -424,6 +492,16 @@ class AuthController extends Controller
             return;
         }
 
+        // Re-validate account state so a deactivated account cannot keep receiving codes
+        $resendRole = strtolower((string)$user['role']);
+        if ($user['status'] !== 'Active' || ($resendRole !== 'hr' && $resendRole !== 'employee')) {
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
+            $this->clearPendingOtpSession();
+            Session::flash('error', 'Your account is inactive or no longer available.');
+            $this->redirect('/login');
+            return;
+        }
+
         $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         $displayName = $fullName !== '' ? $fullName : $user['username'];
 
@@ -432,8 +510,10 @@ class AuthController extends Controller
         $this->otpModel->createChallenge($pendingUserId, $plainOtp);
 
         // 6. Dispatch via PHPMailer
-        $emailSent = $this->mailService->sendOtpEmail($user['email'], $displayName, $plainOtp, 5);
+        $emailSent = $this->mailService->sendOtpEmail($user['email'], $displayName, $plainOtp, EmailOtp::lifetimeMinutes());
         if (!$emailSent) {
+            // Do not leave a live, never-delivered challenge behind
+            $this->otpModel->invalidateUserChallenges($pendingUserId);
             Session::flash('error', 'Failed to dispatch replacement code via email. Please check SMTP settings or try again.');
             $this->redirect('/verify-otp');
             return;
@@ -453,7 +533,7 @@ class AuthController extends Controller
 
     /**
      * Cancel or abandon pending sign-in verification.
-     * Route: POST|GET /verify-otp/cancel
+     * Route: POST /verify-otp/cancel
      */
     public function cancelOtp(): void
     {
@@ -476,6 +556,35 @@ class AuthController extends Controller
         Session::remove('pending_otp_email');
         Session::remove('pending_otp_name');
         Session::remove('pending_otp_time');
+    }
+
+    /**
+     * Whether the pending (post-password) session state has outlived its absolute lifetime.
+     * Resending a code does NOT extend this window; the user must re-enter credentials.
+     */
+    private function pendingSessionExpired(): bool
+    {
+        $startedAt = (int)Session::get('pending_otp_time', 0);
+        return $startedAt <= 0 || (time() - $startedAt) > EmailOtp::PENDING_SESSION_LIFETIME;
+    }
+
+    /**
+     * Tear down an expired pending session and flash the explanation.
+     */
+    private function expirePendingSession(int $userId): void
+    {
+        $this->otpModel->invalidateUserChallenges($userId);
+        $this->clearPendingOtpSession();
+        Session::flash('error', 'Your verification session has expired. Please sign in again.');
+    }
+
+    /**
+     * Human-readable lockout notice.
+     */
+    private function lockoutMessage(int $retryAfterSeconds): string
+    {
+        $minutes = max(1, (int)ceil($retryAfterSeconds / 60));
+        return "Too many incorrect verification codes. Please try again in about {$minutes} minute(s).";
     }
 
     /**
