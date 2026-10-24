@@ -9,6 +9,7 @@
             "App\\Controllers\\": "app/controllers/",
             "App\\Models\\": "app/models/",
             "App\\Services\\": "app/services/",
+            "App\\Realtime\\": "app/realtime/",
             "App\\Dsa\\Algorithms\\": "app/dsa/algorithms/",
             "App\\Dsa\\Structures\\": "app/dsa/structures/",
             "App\\Dsa\\": "app/dsa/",
@@ -31,9 +32,11 @@
         "phpunit/phpunit": "^13.4"
     },
     "require": {
+        "php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
         "phpmailer/phpmailer": "^7.1",
         "vlucas/phpdotenv": "^5.7",
-        "zircote/swagger-php": "^6.16"
+        "zircote/swagger-php": "^6.16",
+        "cboden/ratchet": "0.4.4"
     },
     "config": {
         "platform-check": false

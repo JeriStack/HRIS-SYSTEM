@@ -309,6 +309,7 @@ The system includes a pre-configured, production-grade 8-container stack featuri
 - **Prometheus** time-series metrics collection ([http://localhost:9090](http://localhost:9090))
 - **Grafana** performance & health visualization dashboards ([http://localhost:3100](http://localhost:3100))
 - **Specialized Monitoring Exporters:** `nginx-exporter` and `mysqld-exporter`
+- **Real-time WebSocket service** (`realtime`, Ratchet) reachable only through Nginx at `ws://localhost:8080/ws`. Run `docker compose exec app php bin/migrate.php` once after pulling. See [docs/realtime/README.md](docs/realtime/README.md).
 
 #### 1. Prerequisites
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.

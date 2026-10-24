@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/responsive.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/realtime.css') ?>">
 </head>
 <body>
     <div class="app-shell">
@@ -37,5 +38,6 @@
     <script src="<?= asset('js/app.js') ?>"></script>
     <script src="<?= asset('js/navigation.js') ?>"></script>
     <script src="<?= asset('js/forms.js') ?>"></script>
+    <script src="<?= asset('js/realtime.js') ?>"></script>
 </body>
 </html>

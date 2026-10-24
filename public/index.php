@@ -26,6 +26,7 @@ use App\Controllers\ReportController;
 use App\Controllers\ActivityLogController;
 use App\Controllers\DsaController;
 use App\Controllers\NotificationController;
+use App\Controllers\RealtimeController;
 use App\Controllers\Api\AuthController as ApiAuthController;
 use App\Controllers\Api\ProfileController as ApiProfileController;
 use App\Controllers\Api\EmployeeController as ApiEmployeeController;
@@ -141,6 +142,9 @@ try {
     $router->get('/notifications', [NotificationController::class, 'index'], [AuthMiddleware::class]);
     $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Real-time WebSocket connection ticket (fully authenticated sessions only)
+    $router->post('/realtime/ticket', [RealtimeController::class, 'ticket'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Protected Employee Self-Service Routes (Employee Only - Enforces Ownership)
     $router->get('/employee/dashboard', [DashboardController::class, 'employeeDashboard'], [AuthMiddleware::class, $employeeOnly]);

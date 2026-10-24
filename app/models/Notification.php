@@ -50,41 +50,66 @@ class Notification
     }
 
     /**
-     * Create a notification for a user
+     * Create a notification for a user.
+     *
+     * @param string|null $eventType Real-time event key (e.g. 'leave_request.approved'); null for inbox-only
+     * @param int|null $entityId Related record id (e.g. leave request id)
      */
-    public function create(int $userId, string $title, string $message, string $type = 'info'): int
-    {
+    public function create(
+        int $userId,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?string $eventType = null,
+        ?int $entityId = null
+    ): int {
         $validTypes = ['info', 'success', 'warning', 'error'];
         if (!in_array($type, $validTypes, true)) {
             $type = 'info';
         }
 
+        if ($eventType !== null && !preg_match('/^[a-z_]{1,30}\.[a-z_]{1,30}$/D', $eventType)) {
+            $eventType = null;
+        }
+
         $stmt = $this->db->prepare(
-            "INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
-             VALUES (:user_id, :title, :message, :type, 0, NOW())"
+            "INSERT INTO notifications (user_id, title, message, type, event_type, entity_id, is_read, created_at)
+             VALUES (:user_id, :title, :message, :type, :event_type, :entity_id, 0, NOW())"
         );
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':title', $title, PDO::PARAM_STR);
         $stmt->bindValue(':message', $message, PDO::PARAM_STR);
         $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        $stmt->bindValue(':event_type', $eventType, $eventType === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, $entityId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $stmt->execute();
 
         return (int)$this->db->lastInsertId();
     }
 
     /**
-     * Notify all users with a specific role
+     * Notify all active users with a specific role.
+     *
+     * @return int Number of notifications created
      */
-    public function notifyRole(string $role, string $title, string $message, string $type = 'info'): void
-    {
+    public function notifyRole(
+        string $role,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?string $eventType = null,
+        ?int $entityId = null
+    ): int {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE role = :role AND status = 'Active'");
         $stmt->bindValue(':role', $role, PDO::PARAM_STR);
         $stmt->execute();
         $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         foreach ($users as $userId) {
-            $this->create((int)$userId, $title, $message, $type);
+            $this->create((int)$userId, $title, $message, $type, $eventType, $entityId);
         }
+
+        return count($users);
     }
 
     /**

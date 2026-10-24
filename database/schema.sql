@@ -186,6 +186,8 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `title` VARCHAR(150) NOT NULL,
     `message` TEXT NOT NULL,
     `type` ENUM('info', 'success', 'warning', 'error') NOT NULL DEFAULT 'info',
+    `event_type` VARCHAR(64) NULL DEFAULT NULL,
+    `entity_id` INT UNSIGNED NULL DEFAULT NULL,
     `is_read` TINYINT(1) NOT NULL DEFAULT 0,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) 
@@ -211,6 +213,29 @@ CREATE TABLE IF NOT EXISTS `email_otps` (
         REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
     INDEX `idx_email_otps_user_active` (`user_id`, `consumed_at`, `expires_at`),
     INDEX `idx_email_otps_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 11. Real-time (WebSocket) Connection Tickets
+-- Short-lived, single-use tickets issued by the authenticated HTTP application.
+-- Only SHA-256 hashes are stored. See database/migrations/2026_10_23_*.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `realtime_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `token_hash` CHAR(64) NOT NULL,
+    `user_id` INT UNSIGNED NOT NULL,
+    `session_ref` CHAR(32) NOT NULL,
+    `session_expires_at` DATETIME NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `used_at` DATETIME NULL DEFAULT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_realtime_tickets_hash` UNIQUE (`token_hash`),
+    CONSTRAINT `fk_realtime_tickets_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_realtime_tickets_session` (`session_ref`, `revoked_at`),
+    INDEX `idx_realtime_tickets_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
