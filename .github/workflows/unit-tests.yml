@@ -70,7 +70,8 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          # Match the Docker runtime branch (Dockerfile: php:8.5.12-apache-trixie)
+          php-version: "8.5"
           extensions: mbstring, pdo, pdo_mysql, zip, json
           tools: composer
           coverage: none
