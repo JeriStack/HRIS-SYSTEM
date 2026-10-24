@@ -13,6 +13,7 @@ use Core\Session;
 use App\Models\User;
 use App\Models\EmailOtp;
 use App\Services\MailService;
+use App\Services\RealtimeTicketService;
 
 class AuthController extends Controller
 {
@@ -636,6 +637,9 @@ class AuthController extends Controller
                 (string)$userId
             );
         }
+
+        // Revoke real-time (WebSocket) tickets so open sockets are closed
+        RealtimeTicketService::revokeCurrentSession();
 
         // Invalidate session, clear data and destroy cookie
         Session::destroy();

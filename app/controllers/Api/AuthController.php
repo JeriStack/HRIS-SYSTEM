@@ -10,6 +10,7 @@ use Core\Session;
 use App\Models\User;
 use App\Models\EmailOtp;
 use App\Services\MailService;
+use App\Services\RealtimeTicketService;
 use OpenApi\Attributes as OA;
 
 class AuthController extends ApiController
@@ -491,6 +492,7 @@ class AuthController extends ApiController
         if ($userId) {
             $this->userModel->logActivity($userId, 'AUTH_LOGOUT', "User signed out via API", 'USER', (string)$userId);
         }
+        RealtimeTicketService::revokeCurrentSession();
         Session::destroy();
         $this->success(null, 'Signed out successfully.');
     }

@@ -1,9 +1,9 @@
 # =============================================================================
 # Employee HRIS & Leave Management System - Dockerfile
-# Base: PHP 8.2 with Apache
+# Base: PHP 8.5 with Apache
 # =============================================================================
 
-FROM php:8.2-apache
+FROM php:8.5-apache
 
 # Set non-interactive debian frontend
 ENV DEBIAN_FRONTEND=noninteractive

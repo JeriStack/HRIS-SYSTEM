@@ -16,6 +16,7 @@ use App\Models\ActivityLog;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\LeaveCalculator;
+use App\Services\LeaveNotificationService;
 
 class LeaveController extends Controller
 {
@@ -25,6 +26,7 @@ class LeaveController extends Controller
     private ActivityLog $activityLog;
     private Notification $notificationModel;
     private User $userModel;
+    private LeaveNotificationService $leaveNotifications;
 
     public function __construct()
     {
@@ -34,6 +36,7 @@ class LeaveController extends Controller
         $this->activityLog = new ActivityLog();
         $this->notificationModel = new Notification();
         $this->userModel = new User();
+        $this->leaveNotifications = new LeaveNotificationService($this->notificationModel, $this->userModel);
     }
 
     /**
@@ -490,21 +493,30 @@ class LeaveController extends Controller
             return;
         }
 
-        // 6. Create request in database with authoritative server-calculated days
-        $requestId = $this->leaveModel->createRequest([
-            'employee_id'    => (int)$empId,
-            'leave_type_id'  => $leaveTypeId,
-            'start_date'     => $startDate,
-            'end_date'       => $endDate,
-            'number_of_days' => $days,
-            'reason'         => $reason,
-        ]);
+        // 6. Create request and HR notifications atomically (real-time events
+        //    are emitted by the WebSocket service only after this commits)
+        try {
+            $requestId = $this->leaveModel->createRequest([
+                'employee_id'    => (int)$empId,
+                'leave_type_id'  => $leaveTypeId,
+                'start_date'     => $startDate,
+                'end_date'       => $endDate,
+                'number_of_days' => $days,
+                'reason'         => $reason,
+            ], function (int $newId) use ($user, $days): void {
+                $this->leaveNotifications->leaveSubmitted(
+                    $newId,
+                    "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
+                );
+            });
+        } catch (\Throwable $e) {
+            error_log('[LeaveController::store] Leave submission failed: ' . $e->getMessage());
+            Session::flash('error', 'Unable to submit your leave request right now. Please try again.');
+            redirect('/leaves/apply');
+            return;
+        }
 
         $this->activityLog->log($user['id'], 'LEAVE_REQUESTED', "Submitted {$days}-day leave request #{$requestId} for {$leaveType['leave_name']}", 'LeaveRequest', (string)$requestId);
-
-        // Dispatch in-system notification to HR and Admin
-        $this->notificationModel->notifyRole('hr', 'New Leave Application', "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$requestId, 3, '0', STR_PAD_LEFT) . ".", 'info');
-        $this->notificationModel->notifyRole('admin', 'New Leave Application', "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$requestId, 3, '0', STR_PAD_LEFT) . ".", 'info');
 
         Session::flash('success', "Leave request for {$days} working day(s) submitted successfully. Status is Pending HR review.");
         redirect('/employee/dashboard');
@@ -531,23 +543,17 @@ class LeaveController extends Controller
             return;
         }
 
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Approved', (int)$user['id']);
+        // Owner notification is written inside the approval transaction
+        $ok = $this->leaveModel->updateRequestStatus($id, 'Approved', (int)$user['id'], null, function (array $request) use ($id): void {
+            $this->leaveNotifications->leaveDecided(
+                $request,
+                'Approved',
+                "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$request['number_of_days']} days for {$request['leave_name']}) was approved by HR."
+            );
+        });
 
         if ($ok) {
             $this->activityLog->log($user['id'], 'LEAVE_APPROVED', "Approved leave request #{$id} ({$req['number_of_days']} days) for employee #{$req['employee_id']}", 'LeaveRequest', (string)$id);
-
-            // Dispatch notification to requester
-            if (!empty($req['employee_id'])) {
-                $targetUser = $this->userModel->findByEmployeeId((int)$req['employee_id']);
-                if ($targetUser) {
-                    $this->notificationModel->create(
-                        (int)$targetUser['id'],
-                        'Leave Request Approved',
-                        "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$req['number_of_days']} days for {$req['leave_name']}) was approved by HR.",
-                        'success'
-                    );
-                }
-            }
 
             Session::flash('success', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " approved and employee balance updated.");
         } else {
@@ -583,23 +589,17 @@ class LeaveController extends Controller
             $rejectionReason = 'Request declined per HR department review.';
         }
 
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Rejected', (int)$user['id'], $rejectionReason);
+        // Owner notification is written inside the rejection transaction
+        $ok = $this->leaveModel->updateRequestStatus($id, 'Rejected', (int)$user['id'], $rejectionReason, function (array $request) use ($id, $rejectionReason): void {
+            $this->leaveNotifications->leaveDecided(
+                $request,
+                'Rejected',
+                "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}"
+            );
+        });
 
         if ($ok) {
             $this->activityLog->log($user['id'], 'LEAVE_REJECTED', "Rejected leave request #{$id}. Reason: {$rejectionReason}", 'LeaveRequest', (string)$id);
-
-            // Dispatch notification to requester
-            if (!empty($req['employee_id'])) {
-                $targetUser = $this->userModel->findByEmployeeId((int)$req['employee_id']);
-                if ($targetUser) {
-                    $this->notificationModel->create(
-                        (int)$targetUser['id'],
-                        'Leave Request Declined',
-                        "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}",
-                        'warning'
-                    );
-                }
-            }
 
             Session::flash('warning', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Entitlement remains untouched.");
         } else {

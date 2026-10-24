@@ -422,8 +422,37 @@ class Leave
 
     /**
      * Create a new leave request with authoritative calculated days.
+     *
+     * When $withinTransaction is given, the insert and the callback (e.g. writing
+     * HR notifications) run in one transaction: both commit or neither does.
+     *
+     * @param callable(int $requestId): void|null $withinTransaction
+     * @throws \Throwable when the transactional path fails (after rollback)
      */
-    public function createRequest(array $data): int
+    public function createRequest(array $data, ?callable $withinTransaction = null): int
+    {
+        if ($withinTransaction === null) {
+            return $this->insertRequest($data);
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $requestId = $this->insertRequest($data);
+            $withinTransaction($requestId);
+            $this->pdo->commit();
+            return $requestId;
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * Insert a Pending leave request row.
+     */
+    private function insertRequest(array $data): int
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, number_of_days, reason, status)
@@ -445,12 +474,16 @@ class Leave
      * Update request status (Approve or Reject) in an atomic transaction.
      * If approved, updates leave balance and verifies overlap.
      * If rejected, persists rejection reason and does not deduct balance.
+     *
+     * @param callable(array $request, string $status): void|null $withinTransaction
+     *        Runs before COMMIT; throwing rolls back the whole decision.
      */
     public function updateRequestStatus(
         int $id, 
         string $status, 
         int $reviewerUserId, 
-        ?string $rejectionReason = null
+        ?string $rejectionReason = null,
+        ?callable $withinTransaction = null
     ): bool {
         if (!in_array($status, ['Approved', 'Rejected'], true)) {
             return false;
@@ -500,6 +533,12 @@ class Leave
                 'id'               => $id,
             ]);
 
+            // Guard against concurrent reviewers: exactly one transition may win
+            if ($stmt->rowCount() !== 1) {
+                $this->pdo->rollBack();
+                return false;
+            }
+
             // 2. If approved, update employee leave balance
             if ($status === 'Approved') {
                 $days = (int)$request['number_of_days'];
@@ -521,10 +560,17 @@ class Leave
                 ]);
             }
 
+            // 3. Transactional side effects (e.g. owner notification / outbox row)
+            if ($withinTransaction !== null) {
+                $withinTransaction($request, $status);
+            }
+
             $this->pdo->commit();
             return true;
-        } catch (Exception $e) {
-            $this->pdo->rollBack();
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log("Leave status update error: " . $e->getMessage());
             return false;
         }
