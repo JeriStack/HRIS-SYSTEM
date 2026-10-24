@@ -303,7 +303,7 @@ You can run the Employee HRIS & Leave Management System either via **Docker (Rec
 
 The system includes a pre-configured, production-grade 8-container stack featuring:
 - **Nginx Reverse Proxy** at the edge ([http://localhost:8080](http://localhost:8080))
-- **PHP 8.2 + Apache Application Server** (shielded internally behind Nginx)
+- **PHP 8.5.12 + Apache Application Server** (`php:8.5.12-apache-trixie`, shielded internally behind Nginx)
 - **MySQL 8.0 Database** with persistent storage volume ([localhost:3307](http://localhost:3307))
 - **phpMyAdmin** for browser database management ([http://localhost:8081](http://localhost:8081))
 - **Prometheus** time-series metrics collection ([http://localhost:9090](http://localhost:9090))

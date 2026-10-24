@@ -1,9 +1,13 @@
 # =============================================================================
 # Employee HRIS & Leave Management System - Dockerfile
-# Base: PHP 8.5 with Apache
+# Base: PHP 8.5.12 with Apache (Debian 13 "trixie")
+#
+# Pinned to an exact PHP patch release and Debian suite so every build ships
+# the same runtime. To apply a new PHP security release, bump the tag below
+# (see https://www.php.net/supported-versions.php), rebuild, and run the tests.
 # =============================================================================
 
-FROM php:8.5-apache
+FROM php:8.5.12-apache-trixie
 
 # Set non-interactive debian frontend
 ENV DEBIAN_FRONTEND=noninteractive
@@ -32,8 +36,8 @@ COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.con
 # Copy custom PHP configuration
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom-php.ini
 
-# Install Composer from official image
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Install Composer from official image (pinned; bump deliberately)
+COPY --from=composer:2.10.3 /usr/bin/composer /usr/bin/composer
 
 # Set container working directory
 WORKDIR /var/www/html
