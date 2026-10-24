@@ -199,7 +199,12 @@ class RealtimeDatabaseTest extends TestCase
         $first = $service->issueForCurrentSession();
         $this->assertTrue($first['ok']);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $first['ticket']);
-        $this->assertSame('ws://localhost:8080/ws', $first['url']);
+        // The service derives the browser URL from the live application config
+        // (config.base_url), not the injected test config, so assert against the
+        // same source rather than a hardcoded host that CI does not provide.
+        $expectedUrl = $config->browserUrl((string)config('config.base_url', ''));
+        $this->assertSame($expectedUrl, $first['url']);
+        $this->assertStringEndsWith('/ws', $first['url']);
 
         // Ticket identity resolves to the session user
         $identity = $this->store->consumeTicket(hash('sha256', $first['ticket']));
