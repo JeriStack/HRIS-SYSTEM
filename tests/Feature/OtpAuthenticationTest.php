@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use PHPUnit\Framework\TestCase;
+use Core\Database;
 use Core\Session;
 use Core\Permission;
 use App\Models\EmailOtp;
@@ -142,6 +143,10 @@ class OtpAuthenticationTest extends TestCase
 
     public function test_otp_challenge_hashes_stored_code_and_prevents_plaintext_exposure(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $otpModel = new EmailOtp();
         $plainOtp = '654321';
         $testUserId = 3; // Sofia Reyes
@@ -150,7 +155,7 @@ class OtpAuthenticationTest extends TestCase
         $this->assertGreaterThan(0, $challengeId);
 
         // Verify stored challenge has a bcrypt/argon2 hash and not plaintext
-        $db = \Core\Database::getInstance()->getConnection();
+        $db = Database::getInstance()->getConnection();
         $stmt = $db->prepare("SELECT otp_hash FROM email_otps WHERE id = :id");
         $stmt->execute(['id' => $challengeId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -165,6 +170,10 @@ class OtpAuthenticationTest extends TestCase
 
     public function test_otp_exhaustion_after_five_failed_attempts(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $otpModel = new EmailOtp();
         $testUserId = 3;
         $plainOtp = '888999';
@@ -195,6 +204,10 @@ class OtpAuthenticationTest extends TestCase
 
     public function test_otp_single_use_atomically_consumes_challenge(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $otpModel = new EmailOtp();
         $testUserId = 4;
         $plainOtp = '777111';

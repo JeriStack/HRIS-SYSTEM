@@ -71,8 +71,12 @@ class RealtimeEndToEndTest extends TestCase
             return;
         }
         foreach ($this->leaveIds as $id) {
+            $this->pdo->prepare("DELETE FROM activity_logs WHERE entity_id = ? AND entity_type = 'LeaveRequest'")->execute([(string)$id]);
             $this->pdo->prepare("DELETE FROM notifications WHERE entity_id = ? AND event_type LIKE 'leave\\_request.%'")->execute([$id]);
             $this->pdo->prepare("DELETE FROM leave_requests WHERE id = ?")->execute([$id]);
+        }
+        if (!empty($this->users['empA']['employee_id'])) {
+            $this->pdo->prepare("DELETE FROM leave_balances WHERE employee_id = ? AND year = 2099")->execute([(int)$this->users['empA']['employee_id']]);
         }
         foreach ($this->refs as $ref) {
             $this->pdo->prepare("DELETE FROM realtime_tickets WHERE session_ref = ?")->execute([$ref]);

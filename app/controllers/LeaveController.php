@@ -529,35 +529,31 @@ class LeaveController extends Controller
     public function approve(int $id): void
     {
         $user = currentUser();
-        $req = $this->leaveModel->getRequestById($id);
-
-        if (!$req) {
-            Session::flash('error', "Leave request #{$id} does not exist.");
-            redirect('/leaves');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+            redirect('/dashboard');
             return;
         }
 
-        if ($req['status'] !== 'Pending') {
-            Session::flash('error', "Cannot approve request #{$id}: Request has already been processed (Current Status: {$req['status']}).");
-            redirect('/leaves');
-            return;
-        }
+        // Execute full atomic approval transaction (status, balance, activity log, persistent notification)
+        $result = $this->leaveModel->approveRequest(
+            $id,
+            (int)$user['id'],
+            function (array $request) use ($id): void {
+                if (!$this->leaveNotifications->leaveDecided(
+                    $request,
+                    'Approved',
+                    "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$request['number_of_days']} days for {$request['leave_name']}) was approved by HR."
+                )) {
+                    throw new \RuntimeException('Failed to create approval notification for employee.');
+                }
+            }
+        );
 
-        // Owner notification is written inside the approval transaction
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Approved', (int)$user['id'], null, function (array $request) use ($id): void {
-            $this->leaveNotifications->leaveDecided(
-                $request,
-                'Approved',
-                "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$request['number_of_days']} days for {$request['leave_name']}) was approved by HR."
-            );
-        });
-
-        if ($ok) {
-            $this->activityLog->log($user['id'], 'LEAVE_APPROVED', "Approved leave request #{$id} ({$req['number_of_days']} days) for employee #{$req['employee_id']}", 'LeaveRequest', (string)$id);
-
-            Session::flash('success', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " approved and employee balance updated.");
+        if ($result['ok']) {
+            Session::flash('success', $result['message']);
         } else {
-            Session::flash('error', "Failed to approve leave request #{$id}. There may be an overlapping approved request or insufficient balance.");
+            Session::flash('error', $result['message']);
         }
 
         redirect('/leaves');
@@ -570,17 +566,9 @@ class LeaveController extends Controller
     public function reject(int $id): void
     {
         $user = currentUser();
-        $req = $this->leaveModel->getRequestById($id);
-
-        if (!$req) {
-            Session::flash('error', "Leave request #{$id} does not exist.");
-            redirect('/leaves');
-            return;
-        }
-
-        if ($req['status'] !== 'Pending') {
-            Session::flash('error', "Cannot reject request #{$id}: Request has already been processed (Current Status: {$req['status']}).");
-            redirect('/leaves');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may reject leave requests.');
+            redirect('/dashboard');
             return;
         }
 
@@ -589,21 +577,26 @@ class LeaveController extends Controller
             $rejectionReason = 'Request declined per HR department review.';
         }
 
-        // Owner notification is written inside the rejection transaction
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Rejected', (int)$user['id'], $rejectionReason, function (array $request) use ($id, $rejectionReason): void {
-            $this->leaveNotifications->leaveDecided(
-                $request,
-                'Rejected',
-                "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}"
-            );
-        });
+        // Execute atomic rejection transaction (status, activity log, persistent notification)
+        $result = $this->leaveModel->rejectRequest(
+            $id,
+            (int)$user['id'],
+            $rejectionReason,
+            function (array $request) use ($id, $rejectionReason): void {
+                if (!$this->leaveNotifications->leaveDecided(
+                    $request,
+                    'Rejected',
+                    "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}"
+                )) {
+                    throw new \RuntimeException('Failed to create rejection notification for employee.');
+                }
+            }
+        );
 
-        if ($ok) {
-            $this->activityLog->log($user['id'], 'LEAVE_REJECTED', "Rejected leave request #{$id}. Reason: {$rejectionReason}", 'LeaveRequest', (string)$id);
-
-            Session::flash('warning', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Entitlement remains untouched.");
+        if ($result['ok']) {
+            Session::flash('warning', $result['message']);
         } else {
-            Session::flash('error', "Failed to reject leave request #{$id}.");
+            Session::flash('error', $result['message']);
         }
 
         redirect('/leaves');

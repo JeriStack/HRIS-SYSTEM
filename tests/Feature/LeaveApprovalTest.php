@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Leave;
+use Core\Database;
+use PDO;
 use PHPUnit\Framework\TestCase;
 
 class LeaveApprovalTest extends TestCase
@@ -89,5 +92,41 @@ class LeaveApprovalTest extends TestCase
 
         $this->assertSame(6, $updatedUsed);
         $this->assertSame(9, $updatedRemaining);
+    }
+
+    public function test_leave_model_rejects_invalid_or_nested_transaction_approval_requests(): void
+    {
+        $db = Database::getInstance();
+        if (!$db->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
+        $pdo = $db->getConnection();
+        $leaveModel = new Leave($pdo);
+
+        // Invalid request ID (0 or negative)
+        $invalidIdRes = $leaveModel->approveRequest(0, 2);
+        $this->assertFalse($invalidIdRes['ok']);
+        $this->assertSame('request_not_found', $invalidIdRes['code']);
+        $this->assertSame(404, $invalidIdRes['http_status']);
+
+        // Invalid reviewer user ID (0 or negative)
+        $invalidUserRes = $leaveModel->approveRequest(1, 0);
+        $this->assertFalse($invalidUserRes['ok']);
+        $this->assertSame('unauthorized_reviewer', $invalidUserRes['code']);
+        $this->assertSame(403, $invalidUserRes['http_status']);
+
+        // Accidental nested transaction is safely blocked without corrupting outer transaction
+        $pdo->beginTransaction();
+        try {
+            $nestedRes = $leaveModel->approveRequest(1, 2);
+            $this->assertFalse($nestedRes['ok']);
+            $this->assertSame('nested_transaction', $nestedRes['code']);
+            $this->assertTrue($pdo->inTransaction(), 'Outer transaction must remain intact when nested transaction is refused.');
+        } finally {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+        }
     }
 }

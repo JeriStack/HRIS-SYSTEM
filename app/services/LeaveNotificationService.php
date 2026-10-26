@@ -58,13 +58,13 @@ class LeaveNotificationService
         }
 
         $owner = $this->users()->findByEmployeeId($employeeId);
-        if (!$owner) {
+        if (!$owner || ($owner['status'] ?? 'Active') !== 'Active') {
             return false;
         }
 
         $approved = $status === 'Approved';
 
-        $this->notifications()->create(
+        $notificationId = $this->notifications()->create(
             (int)$owner['id'],
             $approved ? 'Leave Request Approved' : 'Leave Request Rejected',
             $message,
@@ -73,7 +73,7 @@ class LeaveNotificationService
             (int)$request['id']
         );
 
-        return true;
+        return $notificationId > 0;
     }
 
     private function notifications(): Notification
