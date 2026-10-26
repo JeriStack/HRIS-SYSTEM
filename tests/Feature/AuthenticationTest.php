@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use PHPUnit\Framework\TestCase;
+use Core\Database;
 use Core\Session;
 use App\Models\User;
 
@@ -74,6 +75,10 @@ class AuthenticationTest extends TestCase
 
     public function test_email_lookup_normalizes_case_and_whitespace(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $userModel = new User();
         // Database has marcus.tan@company.local
         $user = $userModel->findByEmail('  MARCUS.TAN@COMPANY.LOCAL  ');
@@ -84,6 +89,10 @@ class AuthenticationTest extends TestCase
 
     public function test_invalid_email_format_is_rejected(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $userModel = new User();
         $this->assertNull($userModel->findByEmail('not-an-email'));
         $this->assertNull($userModel->findByEmail(''));
@@ -92,6 +101,10 @@ class AuthenticationTest extends TestCase
 
     public function test_email_exists_check_returns_accurate_boolean(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $userModel = new User();
         $this->assertTrue($userModel->emailExists('marcus.tan@company.local'));
         $this->assertTrue($userModel->emailExists('MARCUS.TAN@COMPANY.LOCAL'));
@@ -124,6 +137,10 @@ class AuthenticationTest extends TestCase
 
     public function test_user_creation_enforces_strict_roles_and_hashes_passwords(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
         $userModel = new User();
 
         // Unsupported role must throw InvalidArgumentException

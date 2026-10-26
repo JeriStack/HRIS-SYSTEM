@@ -82,6 +82,7 @@ class RealtimeDatabaseTest extends TestCase
         }
 
         foreach ($this->leaveIds as $leaveId) {
+            $this->pdo->prepare("DELETE FROM activity_logs WHERE entity_id = ? AND entity_type = 'LeaveRequest'")->execute([(string)$leaveId]);
             $this->pdo->prepare("DELETE FROM notifications WHERE entity_id = ? AND event_type LIKE 'leave\\_request.%'")->execute([$leaveId]);
             $this->pdo->prepare("DELETE FROM leave_requests WHERE id = ?")->execute([$leaveId]);
         }
