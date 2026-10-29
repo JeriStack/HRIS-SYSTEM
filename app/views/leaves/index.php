@@ -10,6 +10,17 @@
         <p>Review, approve, or reject employee absence applications. Manage workforce availability.</p>
     </div>
     <div class="page-actions">
+        <?php if (!empty($nextInLine)): ?>
+            <form method="POST" action="<?= url('/leaves/queue/next') ?>" style="display: inline-block; margin: 0;">
+                <?= csrf_field() ?>
+                <?php if (!empty($selectedDept)): ?>
+                    <input type="hidden" name="dept_id" value="<?= (int)$selectedDept ?>">
+                <?php endif; ?>
+                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;" onclick="return confirm('Approve next pending request in FIFO sequence (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)?');">
+                    ⚡ Process Next in FIFO Queue (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)
+                </button>
+            </form>
+        <?php endif; ?>
         <a href="<?= url('/leaves/balances') ?>" class="btn btn-secondary btn-sm">
             <span>⚖️</span> Workforce Balances
         </a>
@@ -79,10 +90,15 @@
 
 <!-- Leave Requests Table Card -->
 <div class="card">
-    <div class="card-header">
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
         <h2 class="card-title">
             <span>📋</span> Applications Queue (<?= count($requests) ?> Record<?= count($requests) === 1 ? '' : 's' ?>)
         </h2>
+        <?php if (isset($queueDepth) && $queueDepth > 0): ?>
+            <span class="badge badge-info" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">
+                ⏳ FIFO Review Queue: <strong><?= (int)$queueDepth ?></strong> Pending Application<?= $queueDepth === 1 ? '' : 's' ?>
+            </span>
+        <?php endif; ?>
     </div>
     <div class="table-responsive">
         <table class="table table-hover" aria-label="Leave Applications Review Table">
