@@ -39,16 +39,39 @@ class EmployeeController extends Controller
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $deptId = !empty($_GET['dept']) ? (int)$_GET['dept'] : null;
 
-        // Load the authorized, filtered dataset (HR-only route; SQL applies the
-        // WHERE filters so only permitted rows ever enter PHP).
-        $employees = $this->employeeModel->getAll($search, $status, $deptId);
+        // Phase 10: optional custom DSA searching and sorting over the authorized dataset.
+        // Every selector is validated against a server-side allowlist; invalid
+        // values fall back to default SQL searching/ordering without error.
+        $directory     = new \App\Services\EmployeeDirectoryService();
+        $searchAlgo    = isset($_GET['search_algo']) ? trim((string)$_GET['search_algo']) : '';
+        $searchField   = isset($_GET['search_field']) ? trim((string)$_GET['search_field']) : 'last_name';
+        $dsaSearchMeta = null;
+
+        // If custom DSA search is chosen and a query is supplied:
+        if ($search !== null && $search !== '' && $searchAlgo !== '') {
+            if (
+                \App\Services\EmployeeDirectoryService::isValidSearchAlgorithm($searchAlgo)
+                && \App\Services\EmployeeDirectoryService::isValidSearchField($searchField)
+            ) {
+                // Fetch authorized rows filtered by status/department, bypassing SQL text filtering
+                $employees = $this->employeeModel->getAll(null, $status, $deptId);
+                $searchResult = $directory->search($employees, $searchField, $search, $searchAlgo);
+                $employees = $searchResult['employees'];
+                $dsaSearchMeta = $searchResult['meta'];
+            } else {
+                Session::flash('error', 'Invalid search option. Showing default search results.');
+                $employees = $this->employeeModel->getAll($search, $status, $deptId);
+                $searchAlgo = '';
+            }
+        } else {
+            // Default SQL search
+            $employees = $this->employeeModel->getAll($search, $status, $deptId);
+        }
+
         $departments = $this->departmentModel->getAll();
         $counts = $this->employeeModel->getCounts();
 
         // Phase 10: optional custom DSA sorting over the authorized dataset.
-        // Every selector is validated against a server-side allowlist; invalid
-        // values fall back to the default SQL ordering without error.
-        $directory = new \App\Services\EmployeeDirectoryService();
         $sortField = isset($_GET['sort']) ? trim((string)$_GET['sort']) : '';
         $sortDir   = isset($_GET['dir']) ? trim((string)$_GET['dir']) : 'asc';
         $sortAlgo  = isset($_GET['algo']) ? trim((string)$_GET['algo']) : 'quick';
@@ -70,19 +93,24 @@ class EmployeeController extends Controller
         }
 
         $this->view('employees.index', [
-            'pageTitle'       => 'Employees Directory',
-            'employees'       => $employees,
-            'departments'     => $departments,
-            'counts'          => $counts,
-            'searchQuery'     => $search,
-            'selectedStatus'  => $status,
-            'selectedDept'    => $deptId,
-            'sortField'       => $sortField,
-            'sortDir'         => strtolower($sortDir) === 'desc' ? 'desc' : 'asc',
-            'sortAlgo'        => $sortAlgo,
-            'sortFields'      => \App\Services\EmployeeDirectoryService::sortFields(),
-            'sortAlgorithms'  => \App\Services\EmployeeDirectoryService::sortAlgorithmChoices(),
-            'dsaMeta'         => $dsaMeta,
+            'pageTitle'        => 'Employees Directory',
+            'employees'        => $employees,
+            'departments'      => $departments,
+            'counts'           => $counts,
+            'searchQuery'      => $search,
+            'selectedStatus'   => $status,
+            'selectedDept'     => $deptId,
+            'searchAlgo'       => $searchAlgo,
+            'searchField'      => $searchField,
+            'searchFields'     => \App\Services\EmployeeDirectoryService::searchFields(),
+            'searchAlgorithms' => \App\Services\EmployeeDirectoryService::searchAlgorithmChoices(),
+            'dsaSearchMeta'    => $dsaSearchMeta,
+            'sortField'        => $sortField,
+            'sortDir'          => strtolower($sortDir) === 'desc' ? 'desc' : 'asc',
+            'sortAlgo'         => $sortAlgo,
+            'sortFields'       => \App\Services\EmployeeDirectoryService::sortFields(),
+            'sortAlgorithms'   => \App\Services\EmployeeDirectoryService::sortAlgorithmChoices(),
+            'dsaMeta'          => $dsaMeta,
         ], 'hr');
     }
 

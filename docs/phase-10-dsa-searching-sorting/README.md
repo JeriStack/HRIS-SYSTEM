@@ -45,12 +45,12 @@ Every search and sort routes through one comparator so behavior is identical:
 
 **Flow:**
 ```
-GET /hr/employees?...&sort=<field>&dir=<asc|desc>&algo=<bubble|selection|insertion|merge|quick>
+GET /hr/employees?...&q=<term>&search_algo=<linear|binary>&search_field=<field>&sort=<field>&dir=<asc|desc>&algo=<bubble|selection|insertion|merge|quick>
   -> AuthMiddleware + RoleMiddleware(hr)
-  -> Employee::getAll() applies search/status/department filters in SQL (authorized rows only)
-  -> EmployeeDirectoryService::sort() validates field/dir/algo against allowlists
-  -> custom algorithm sorts the in-memory records via ArrayUtils
-  -> view renders sorted rows + "ran <Algorithm> in <ms>" indicator
+  -> If custom search: Employee::getAll(null, status, dept) loads authorized scope; EmployeeDirectoryService::search() filters via LinearSearch/BinarySearch
+  -> If default search: Employee::getAll(search, status, dept) filters in SQL
+  -> If sort requested: EmployeeDirectoryService::sort() validates and orders in-memory via ArrayUtils
+  -> view renders sorted/filtered rows + search/sort badges with elapsed execution time
 ```
 
 **Search pipeline (service `search()`):**

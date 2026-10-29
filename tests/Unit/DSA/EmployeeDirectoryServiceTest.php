@@ -158,4 +158,40 @@ class EmployeeDirectoryServiceTest extends TestCase
         $this->assertSame([], $result['employees']);
         $this->assertSame(0, $result['meta']['count']);
     }
+
+    public function test_chained_search_and_sort_pipeline(): void
+    {
+        $records = [
+            ['id' => 1, 'employee_no' => 'EMP-003', 'department_name' => 'IT', 'last_name' => 'Torres'],
+            ['id' => 2, 'employee_no' => 'EMP-001', 'department_name' => 'IT', 'last_name' => 'Alvarez'],
+            ['id' => 3, 'employee_no' => 'EMP-002', 'department_name' => 'Finance', 'last_name' => 'Bautista'],
+            ['id' => 4, 'employee_no' => 'EMP-004', 'department_name' => 'IT', 'last_name' => 'Mendoza'],
+        ];
+
+        // 1. Search IT department using linear search
+        $searchRes = $this->service->search($records, 'department', 'IT', 'linear');
+        $this->assertCount(3, $searchRes['employees']);
+
+        // 2. Sort results by last_name ascending using merge sort
+        $sortRes = $this->service->sort($searchRes['employees'], 'last_name', 'asc', 'merge');
+        $this->assertSame(['Alvarez', 'Mendoza', 'Torres'], array_column($sortRes['employees'], 'last_name'));
+    }
+
+    public function test_binary_search_finds_all_duplicate_records(): void
+    {
+        $records = [
+            ['id' => 1, 'department_name' => 'Engineering', 'employee_no' => 'EMP-001'],
+            ['id' => 2, 'department_name' => 'Finance', 'employee_no' => 'EMP-002'],
+            ['id' => 3, 'department_name' => 'Engineering', 'employee_no' => 'EMP-003'],
+            ['id' => 4, 'department_name' => 'HR', 'employee_no' => 'EMP-004'],
+            ['id' => 5, 'department_name' => 'Engineering', 'employee_no' => 'EMP-005'],
+        ];
+
+        $result = $this->service->search($records, 'department', 'Engineering', 'binary');
+        $this->assertCount(3, $result['employees']);
+        $this->assertSame(
+            ['EMP-001', 'EMP-003', 'EMP-005'],
+            array_column($result['employees'], 'employee_no')
+        );
+    }
 }
