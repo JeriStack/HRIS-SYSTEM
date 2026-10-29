@@ -12,10 +12,11 @@ namespace App\Realtime;
 
 final class EventAuthorizer
 {
-    public const LEAVE_CREATED  = 'leave_request.created';
-    public const LEAVE_APPROVED = 'leave_request.approved';
-    public const LEAVE_REJECTED = 'leave_request.rejected';
-    public const UNREAD_COUNT   = 'notification.unread_count';
+    public const LEAVE_CREATED      = 'leave_request.created';
+    public const LEAVE_APPROVED     = 'leave_request.approved';
+    public const LEAVE_REJECTED     = 'leave_request.rejected';
+    public const PROFILE_UPDATED    = 'employee.profile_updated';
+    public const UNREAD_COUNT       = 'notification.unread_count';
 
     public const LEAVE_EVENTS = [
         self::LEAVE_CREATED,
@@ -50,6 +51,8 @@ final class EventAuthorizer
             self::LEAVE_CREATED => $recipient->isHr(),
             // Decisions are only for the employee who owns the leave request
             self::LEAVE_APPROVED, self::LEAVE_REJECTED => (int)($row['owner_matches'] ?? 0) === 1,
+            // Profile updates are delivered to the recipient employee
+            self::PROFILE_UPDATED => true,
             default => false,
         };
     }

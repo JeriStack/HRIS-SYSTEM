@@ -248,6 +248,38 @@
     text-decoration: none;
 }
 
+.rt-toast-reload-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px dashed var(--color-border);
+}
+
+.rt-toast-reload-hint {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+}
+
+.rt-toast-reload-btn {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: background-color 0.15s ease;
+}
+
+.rt-toast-reload-btn:hover,
+.rt-toast-reload-btn:focus-visible {
+    background-color: var(--color-primary-dark, #0056b3);
+}
+
 .rt-toast-close {
     background: none;
     border: none;

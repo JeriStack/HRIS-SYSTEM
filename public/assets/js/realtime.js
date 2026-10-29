@@ -171,7 +171,33 @@
         }
     }
 
-    function toast(item) {
+    function isDashboardOrWorkflowPage() {
+        var p = (window.location.pathname || '').toLowerCase();
+        return p === '/' ||
+               p === '/index.php' ||
+               p.indexOf('/dashboard') !== -1 ||
+               p.indexOf('/leaves') !== -1 ||
+               p.indexOf('/employee/profile') !== -1 ||
+               p.indexOf('/activity-logs') !== -1 ||
+               p.indexOf('/reports') !== -1 ||
+               p.indexOf('/notifications') !== -1;
+    }
+
+    function isUserActivelyInputting() {
+        var active = document.activeElement;
+        if (active) {
+            var tag = (active.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                return true;
+            }
+        }
+        if (document.querySelector('.modal.is-open, .modal-backdrop.is-open, .modal.show, [role="dialog"]:not([hidden])')) {
+            return true;
+        }
+        return false;
+    }
+
+    function toast(item, willAutoReload) {
         var stack = document.getElementById('rtToasts');
         if (!stack) {
             stack = document.createElement('div');
@@ -198,6 +224,26 @@
         body.appendChild(title);
         body.appendChild(msg);
         body.appendChild(link);
+
+        if (isDashboardOrWorkflowPage()) {
+            var reloadBar = document.createElement('div');
+            reloadBar.className = 'rt-toast-reload-bar';
+
+            var reloadHint = document.createElement('span');
+            reloadHint.className = 'rt-toast-reload-hint';
+            reloadHint.textContent = willAutoReload ? '🔄 Updating view in 1.5s…' : '🔄 Live update available:';
+            reloadBar.appendChild(reloadHint);
+
+            var reloadBtn = document.createElement('button');
+            reloadBtn.type = 'button';
+            reloadBtn.className = 'rt-toast-reload-btn';
+            reloadBtn.textContent = 'Refresh Now';
+            reloadBtn.addEventListener('click', function () {
+                window.location.reload();
+            });
+            reloadBar.appendChild(reloadBtn);
+            body.appendChild(reloadBar);
+        }
 
         var close = document.createElement('button');
         close.type = 'button';
@@ -259,11 +305,28 @@
     // ------------------------------------------------------------------
     // HTTP: history sync (authoritative source after reconnects)
     // ------------------------------------------------------------------
+    function resolveHttpUrl(url) {
+        if (!url) {
+            return '';
+        }
+        try {
+            var parsed = new URL(url, window.location.href);
+            // If ticket or history URL points to the same hostname (e.g. localhost or 127.0.0.1) as current page,
+            // return path-relative URL so requests use the active port/proxy (preserving same-origin cookies)
+            if (parsed.hostname === window.location.hostname) {
+                return parsed.pathname + parsed.search;
+            }
+        } catch (e) {
+            // fallback to original URL
+        }
+        return url;
+    }
+
     function refreshHistory() {
         if (!cfg.historyUrl) {
             return Promise.resolve();
         }
-        return fetch(cfg.historyUrl, {
+        return fetch(resolveHttpUrl(cfg.historyUrl), {
             credentials: 'same-origin',
             cache: 'no-store',
             headers: { 'Accept': 'application/json', 'X-HRIS-Background': '1' }
@@ -316,7 +379,7 @@
         clearTimeout(retryTimer);
         setState(attempt === 0 ? 'connecting' : 'reconnecting');
 
-        fetch(cfg.ticketUrl, {
+        fetch(resolveHttpUrl(cfg.ticketUrl), {
             method: 'POST',
             credentials: 'same-origin',
             cache: 'no-store',
@@ -405,6 +468,8 @@
         }
     }
 
+    var autoReloadTimer = null;
+
     function handleEvent(msg) {
         var data = msg.data || {};
         var id = msg.id || ('notification:' + data.notification_id);
@@ -420,7 +485,27 @@
             href: safeLink(data.link)
         };
         prependItem(item);
-        toast(item);
+
+        var onWorkflowPage = isDashboardOrWorkflowPage();
+        var userBusy = isUserActivelyInputting();
+        var shouldAutoReload = onWorkflowPage && !userBusy;
+
+        toast(item, shouldAutoReload);
+
+        // Notify any page scripts via standard DOM custom event
+        try {
+            window.dispatchEvent(new CustomEvent('hris:notification', {
+                detail: { msg: msg, item: item, data: data, autoReloading: shouldAutoReload }
+            }));
+        } catch (e) {}
+
+        // Automatically update the dashboard / workflow page
+        if (shouldAutoReload) {
+            clearTimeout(autoReloadTimer);
+            autoReloadTimer = setTimeout(function () {
+                window.location.reload();
+            }, 1500);
+        }
     }
 
     function handleClose(code) {

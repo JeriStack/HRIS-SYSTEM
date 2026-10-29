@@ -11,7 +11,8 @@ class LeaveHistoryLinkedListTest extends TestCase
     public function test_build_employee_leave_history_chain(): void
     {
         $mockLeave = $this->createMock(Leave::class);
-        $mockLeave->method('getAllRequests')
+        $mockLeave->expects($this->once())
+            ->method('getAllRequests')
             ->with(null, null, 10)
             ->willReturn([
                 ['id' => 102, 'employee_id' => 10, 'applied_at' => '2026-06-01', 'leave_type_name' => 'Sick Leave'],

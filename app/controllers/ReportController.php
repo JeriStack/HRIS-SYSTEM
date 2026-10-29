@@ -15,9 +15,9 @@ class ReportController extends Controller
 {
     private PDO $pdo;
 
-    public function __construct()
+    public function __construct(?PDO $pdo = null)
     {
-        $this->pdo = Database::getInstance()->getConnection();
+        $this->pdo = $pdo ?? Database::getInstance()->getConnection();
     }
 
     /**

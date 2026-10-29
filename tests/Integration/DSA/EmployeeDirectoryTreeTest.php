@@ -10,7 +10,7 @@ class EmployeeDirectoryTreeTest extends TestCase
 {
     public function test_build_tree_search_and_inorder_extraction(): void
     {
-        $mockEmployee = $this->createMock(Employee::class);
+        $mockEmployee = $this->createStub(Employee::class);
         $mockEmployee->method('getAll')->willReturn([
             ['id' => 3, 'employee_no' => 'EMP-050', 'first_name' => 'Charlie', 'last_name' => 'Cruz', 'department_name' => 'IT', 'position_name' => 'Dev', 'employment_status' => 'Active'],
             ['id' => 1, 'employee_no' => 'EMP-010', 'first_name' => 'Alice', 'last_name' => 'Alvarez', 'department_name' => 'HR', 'position_name' => 'Specialist', 'employment_status' => 'Active'],

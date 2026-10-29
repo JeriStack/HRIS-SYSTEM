@@ -10,7 +10,7 @@ class EmployeeLookupHashTableTest extends TestCase
 {
     public function test_build_index_and_lookup(): void
     {
-        $mockEmployee = $this->createMock(Employee::class);
+        $mockEmployee = $this->createStub(Employee::class);
         $mockEmployee->method('getAll')->willReturn([
             ['id' => 1, 'employee_no' => 'EMP-001', 'first_name' => 'Alice', 'last_name' => 'Alvarez', 'email' => 'alice@hris.test', 'department_name' => 'HR', 'position_name' => 'Manager', 'employment_status' => 'Active'],
             ['id' => 2, 'employee_no' => 'EMP-002', 'first_name' => 'Bob', 'last_name' => 'Bautista', 'email' => 'bob@hris.test', 'department_name' => 'IT', 'position_name' => 'Dev', 'employment_status' => 'Active'],
