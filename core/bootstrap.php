@@ -15,6 +15,7 @@ spl_autoload_register(function (string $class) {
         'App\\Realtime\\'       => __DIR__ . '/../app/realtime/',
         'App\\Dsa\\Algorithms\\' => __DIR__ . '/../app/dsa/algorithms/',
         'App\\Dsa\\Structures\\' => __DIR__ . '/../app/dsa/structures/',
+        'App\\Dsa\\Arrays\\'     => __DIR__ . '/../app/dsa/arrays/',
         'App\\Dsa\\'            => __DIR__ . '/../app/dsa/',
         'App\\'                 => __DIR__ . '/../app/',
     ];
