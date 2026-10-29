@@ -137,6 +137,8 @@ try {
 
     // Data Structures & Algorithms Laboratory (Administrator & HR Access)
     $router->get('/dsa', [DsaController::class, 'playground'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/dsa/visualizer', [DsaController::class, 'visualizer'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/dsa/execute', [DsaController::class, 'execute'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
     // In-System Notifications & Alerts (Authenticated - All Roles)
     $router->get('/notifications', [NotificationController::class, 'index'], [AuthMiddleware::class]);

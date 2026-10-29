@@ -1,128 +1,129 @@
 <?php
 /**
  * Data Structures & Algorithms (DSA) Laboratory Controller
- * Interactive demonstrations of custom Queue, Stack, LinkedList, HashTable, BST, and Recursion
- * Employee HRIS & Leave Management System — Phase 11
+ * Powers the interactive DSA Playground, Step-by-Step Visualizer, and Execution API
+ * Employee HRIS & Leave Management System — Phase 12
  */
 
 namespace App\Controllers;
 
 use Core\Controller;
-use App\Dsa\Structures\Queue;
-use App\Dsa\Structures\Stack;
-use App\Dsa\Structures\LinkedList;
-use App\Dsa\Structures\HashTable;
-use App\Dsa\Structures\BinarySearchTree;
-use App\Dsa\Algorithms\RecursionHelper;
-use App\Dsa\Algorithms\QuickSort;
-use App\Dsa\Algorithms\MergeSort;
-use App\Dsa\Algorithms\BubbleSort;
+use Core\Session;
+use App\Services\DsaTraceService;
+use InvalidArgumentException;
 
 class DsaController extends Controller
 {
+    private DsaTraceService $traceService;
+
+    public function __construct()
+    {
+        $this->traceService = new DsaTraceService();
+    }
+
     /**
-     * Display the DSA Laboratory & Algorithm Demonstrator
+     * Display the interactive DSA Playground (Screen A)
      * Route: GET /dsa
      */
     public function playground(): void
     {
-        // 1. Live Demonstration of FIFO Leave Queue
-        $queue = new Queue();
-        $sampleRequests = [
-            ['id' => 1, 'name' => 'Maria Santos', 'type' => 'Vacation', 'days' => 3],
-            ['id' => 2, 'name' => 'David Cruz', 'type' => 'Sick', 'days' => 1],
-            ['id' => 3, 'name' => 'Juan Dela Cruz', 'type' => 'Emergency', 'days' => 2],
-        ];
-        foreach ($sampleRequests as $item) {
-            $queue->enqueue($item);
-        }
-
-        // 2. Live Demonstration of LIFO Activity Stack
-        $stack = new Stack();
-        $sampleLogs = [
-            ['id' => 101, 'action' => 'LOGIN', 'desc' => 'User admin authenticated'],
-            ['id' => 102, 'action' => 'DEPT_CREATE', 'desc' => 'Created Department [IT]'],
-            ['id' => 103, 'action' => 'EMP_UPDATE', 'desc' => 'Updated Employee EMP-004'],
-            ['id' => 104, 'action' => 'LEAVE_APPROVE', 'desc' => 'Approved Leave #LR-001'],
-        ];
-        foreach ($sampleLogs as $log) {
-            $stack->push($log);
-        }
-
-        // 3. Live Demonstration of Singly Linked List (Sequential History)
-        $linkedList = new LinkedList();
-        $historyEvents = [
-            ['seq' => 1, 'event' => 'Onboarding Initialized', 'date' => '2024-01-15'],
-            ['seq' => 2, 'event' => 'Probation Passed', 'date' => '2024-07-15'],
-            ['seq' => 3, 'event' => 'Promoted to Senior Engineer', 'date' => '2025-06-01'],
-            ['seq' => 4, 'event' => 'Vacation Leave Utilized (5d)', 'date' => '2026-03-10'],
-        ];
-        foreach ($historyEvents as $evt) {
-            $linkedList->append($evt);
-        }
-
-        // 4. Live Demonstration of Hash Table (Separate Chaining Lookup)
-        $hashTable = new HashTable(16);
-        $employees = [
-            'EMP-001' => ['name' => 'Alice Alvarez', 'role' => 'HR Director', 'dept' => 'HR'],
-            'EMP-002' => ['name' => 'Bob Bautista', 'role' => 'Lead Architect', 'dept' => 'IT'],
-            'EMP-003' => ['name' => 'Carol Cruz', 'role' => 'Financial Analyst', 'dept' => 'Finance'],
-            'EMP-004' => ['name' => 'David Domingo', 'role' => 'Software Engineer', 'dept' => 'IT'],
-        ];
-        foreach ($employees as $key => $val) {
-            $hashTable->set($key, $val);
-        }
-
-        // 5. Live Demonstration of Binary Search Tree & Recursive Traversals
-        $bst = new BinarySearchTree();
-        $bstItems = ['EMP-050', 'EMP-025', 'EMP-075', 'EMP-010', 'EMP-040', 'EMP-060', 'EMP-090'];
-        foreach ($bstItems as $empId) {
-            $bst->insert($empId, "Record {$empId}");
-        }
-
-        $inOrder = $bst->inOrderTraversal();
-        $preOrder = $bst->preOrderTraversal();
-        $postOrder = $bst->postOrderTraversal();
-        $treeHeight = RecursionHelper::treeHeight($bst->getRoot());
-
-        // 6. Algorithm Benchmarks
-        $randomDataset = [];
-        for ($i = 0; $i < 200; $i++) {
-            $randomDataset[] = rand(1000, 9999);
-        }
-
-        $t0 = microtime(true);
-        $bubbleSorted = BubbleSort::sort($randomDataset);
-        $bubbleTime = round((microtime(true) - $t0) * 1000, 4);
-
-        $t1 = microtime(true);
-        $quickSorted = QuickSort::sort($randomDataset);
-        $quickTime = round((microtime(true) - $t1) * 1000, 4);
-
-        $t2 = microtime(true);
-        $mergeSorted = MergeSort::sort($randomDataset);
-        $mergeTime = round((microtime(true) - $t2) * 1000, 4);
+        $topic = isset($_GET['topic']) ? trim((string)$_GET['topic']) : 'bubble';
+        $example = DsaTraceService::getExample($topic);
+        $complexity = DsaTraceService::getComplexity($topic);
 
         $this->view('dsa.playground', [
-            'pageTitle'      => 'DSA Laboratory & Advanced Demonstrations',
-            'queue'          => $queue,
-            'stack'          => $stack,
-            'linkedList'     => $linkedList,
-            'hashTable'      => $hashTable,
-            'bst'            => $bst,
-            'traversals'     => [
-                'inOrder'    => $inOrder,
-                'preOrder'   => $preOrder,
-                'postOrder'  => $postOrder,
-                'height'     => $treeHeight,
-            ],
-            'benchmarks'     => [
-                'bubble' => $bubbleTime,
-                'quick'  => $quickTime,
-                'merge'  => $mergeTime,
-                'size'   => count($randomDataset),
-            ],
-            'user'           => currentUser(),
+            'pageTitle'    => 'DSA Laboratory & Interactive Playground',
+            'activeTab'    => 'playground',
+            'currentTopic' => $topic,
+            'example'      => $example,
+            'complexity'   => $complexity,
+            'user'         => currentUser(),
         ], 'hr');
+    }
+
+    /**
+     * Display the animated DSA Visualizer (Screen B)
+     * Route: GET /dsa/visualizer
+     */
+    public function visualizer(): void
+    {
+        $topic = isset($_GET['topic']) ? trim((string)$_GET['topic']) : 'quick';
+        $example = DsaTraceService::getExample($topic);
+        $complexity = DsaTraceService::getComplexity($topic);
+
+        $this->view('dsa.visualizer', [
+            'pageTitle'    => 'DSA Step-by-Step Visualizer',
+            'activeTab'    => 'visualizer',
+            'currentTopic' => $topic,
+            'example'      => $example,
+            'complexity'   => $complexity,
+            'user'         => currentUser(),
+        ], 'hr');
+    }
+
+    /**
+     * Execute algorithm or structure operation and return structured JSON trace.
+     * Route: POST /dsa/execute
+     */
+    public function execute(): void
+    {
+        // Parse input from JSON body or standard $_POST
+        $raw = file_get_contents('php://input');
+        $data = !empty($raw) ? json_decode($raw, true) : $_POST;
+
+        if (!is_array($data)) {
+            $data = $_POST;
+        }
+
+        $category = trim((string)($data['category'] ?? 'sort'));
+        $topic    = trim((string)($data['topic'] ?? 'bubble'));
+
+        try {
+            $response = match ($category) {
+                'sort' => $this->traceService->traceSort(
+                    $topic,
+                    is_array($data['input'] ?? null) ? $data['input'] : [42, 17, 89, 5, 23, 64]
+                ),
+                'search' => $this->traceService->traceSearch(
+                    $topic,
+                    is_array($data['input'] ?? null) ? $data['input'] : [5, 12, 19, 27, 34, 48],
+                    $data['target'] ?? 27
+                ),
+                'stack' => $this->traceService->traceStack(
+                    is_array($data['initial'] ?? null) ? $data['initial'] : ['Task 1', 'Task 2'],
+                    (string)($data['operation'] ?? 'push'),
+                    $data['value'] ?? 'New Item'
+                ),
+                'queue' => $this->traceService->traceQueue(
+                    is_array($data['initial'] ?? null) ? $data['initial'] : ['#LR-001', '#LR-002'],
+                    (string)($data['operation'] ?? 'enqueue'),
+                    $data['value'] ?? '#LR-003'
+                ),
+                'linked_list' => $this->traceService->traceLinkedList(
+                    is_array($data['initial'] ?? null) ? $data['initial'] : ['Node A', 'Node B'],
+                    (string)($data['operation'] ?? 'append'),
+                    $data['value'] ?? 'Node C'
+                ),
+                'hash_table' => $this->traceService->traceHashTable(
+                    is_array($data['initial'] ?? null) ? $data['initial'] : [],
+                    (string)($data['operation'] ?? 'set'),
+                    (string)($data['key'] ?? 'EMP-001'),
+                    $data['value'] ?? 'Sample Value'
+                ),
+                'bst' => $this->traceService->traceBst(
+                    is_array($data['keys'] ?? null) ? $data['keys'] : [50, 25, 75],
+                    (string)($data['operation'] ?? 'in_order'),
+                    $data['target'] ?? 25
+                ),
+                default => throw new InvalidArgumentException("Invalid execution category '{$category}'."),
+            };
+
+            $this->json($response);
+        } catch (\Throwable $e) {
+            $this->json([
+                'success' => false,
+                'error'   => $e->getMessage(),
+            ], 400);
+        }
     }
 }
