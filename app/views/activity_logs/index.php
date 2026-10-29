@@ -16,6 +16,25 @@
     </div>
 </div>
 
+<?php if (!empty($latestActivity)): ?>
+    <!-- LIFO Recent Activity Stack Inspection Banner (Phase 11/13) -->
+    <div class="card" style="margin-bottom: var(--space-4); padding: 0.85rem 1.25rem; background: var(--color-bg-muted); border-left: 4px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+            <div style="font-size: 0.7rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase;">
+                ▲ LIFO Stack Top Event (Most Recent Audit Entry &bull; <?= (int)($stackDepth ?? 0) ?> Items in Stack)
+            </div>
+            <div style="font-size: 0.875rem; color: var(--color-text-primary); font-weight: 600; margin-top: 0.2rem;">
+                <span class="badge badge-info" style="font-size: 0.7rem;"><?= e($latestActivity['action'] ?? '') ?></span>
+                <?= e($latestActivity['description'] ?? '') ?>
+            </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--color-text-muted); text-align: right;">
+            <div>by <strong><?= e($latestActivity['username'] ?? 'System') ?></strong></div>
+            <div><?= !empty($latestActivity['created_at']) ? date('M d, Y h:i A', strtotime($latestActivity['created_at'])) : '' ?></div>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Search & Filter Bar -->
 <div class="filter-bar">
     <form method="GET" action="<?= url('/activity-logs') ?>" style="display: flex; gap: var(--space-3); width: 100%; flex-wrap: wrap; align-items: center;">

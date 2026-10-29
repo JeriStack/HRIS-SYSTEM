@@ -17,6 +17,7 @@ use App\Models\Notification;
 use App\Models\User;
 use App\Services\LeaveCalculator;
 use App\Services\LeaveNotificationService;
+use App\Services\LeaveApprovalQueueService;
 
 class LeaveController extends Controller
 {
@@ -54,6 +55,12 @@ class LeaveController extends Controller
         $requests = $this->leaveModel->getAllRequests($status, $empId, 200, $startDate, $endDate, $deptId);
         $departments = $this->departmentModel->getAll();
 
+        // Build deterministic FIFO Pending Approval Queue using custom Queue data structure (Phase 11/13)
+        $queueService = new LeaveApprovalQueueService($this->leaveModel);
+        $approvalQueue = $queueService->buildPendingApprovalQueue($deptId, 100);
+        $nextInLine = $queueService->getNextInLine($approvalQueue);
+        $queueDepth = $approvalQueue->size();
+
         $this->view('leaves.index', [
             'pageTitle'      => 'Leave Requests Review Queue',
             'requests'       => $requests,
@@ -63,6 +70,8 @@ class LeaveController extends Controller
             'startDate'      => $startDate,
             'endDate'        => $endDate,
             'departments'    => $departments,
+            'queueDepth'     => $queueDepth,
+            'nextInLine'     => $nextInLine,
             'user'           => currentUser(),
         ], 'hr');
     }
@@ -396,6 +405,13 @@ class LeaveController extends Controller
             return;
         }
 
+        $employee = $this->employeeModel->findById((int)$empId);
+        if (!$employee || ($employee['employment_status'] ?? '') !== 'Active') {
+            Session::flash('error', 'Unable to file leave: Your employment account is inactive. Please contact HR.');
+            redirect('/dashboard');
+            return;
+        }
+
         $leaveTypes = $this->leaveModel->getLeaveTypes();
         $balances = $this->leaveModel->getBalancesByEmployee((int)$empId);
 
@@ -418,6 +434,13 @@ class LeaveController extends Controller
 
         if (!$empId) {
             Session::flash('error', 'Unable to submit leave: No linked employee record.');
+            redirect('/dashboard');
+            return;
+        }
+
+        $employee = $this->employeeModel->findById((int)$empId);
+        if (!$employee || ($employee['employment_status'] ?? '') !== 'Active') {
+            Session::flash('error', 'Unable to submit leave request: Your employment account is inactive. Please contact HR.');
             redirect('/dashboard');
             return;
         }
@@ -557,6 +580,40 @@ class LeaveController extends Controller
         }
 
         redirect('/leaves');
+    }
+
+    /**
+     * Process Next Pending Leave Request in FIFO Queue Order (HR & Admin Access)
+     * Route: POST /leaves/queue/next
+     */
+    public function processNextQueue(): void
+    {
+        $user = currentUser();
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+            redirect('/dashboard');
+            return;
+        }
+
+        $deptId = !empty($_POST['dept_id']) ? (int)$_POST['dept_id'] : null;
+        $queueService = new LeaveApprovalQueueService($this->leaveModel);
+        $queue = $queueService->buildPendingApprovalQueue($deptId, 50);
+
+        if ($queue->isEmpty()) {
+            Session::flash('info', 'No pending leave requests in the queue to process.');
+            redirect('/leaves?status=Pending');
+            return;
+        }
+
+        $result = $queueService->processNextApproval($queue, (int)$user['id']);
+
+        if ($result['success']) {
+            Session::flash('success', "FIFO Queue Success: {$result['message']}");
+        } else {
+            Session::flash('error', "FIFO Queue Processing Error: {$result['message']}");
+        }
+
+        redirect('/leaves?status=Pending');
     }
 
     /**

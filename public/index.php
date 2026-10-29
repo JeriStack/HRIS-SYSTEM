@@ -122,6 +122,7 @@ try {
     $router->post('/hr/leave-types/{id}/toggle-status', [LeaveController::class, 'toggleTypeStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/approve', [LeaveController::class, 'approve'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/reject', [LeaveController::class, 'reject'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/leaves/queue/next', [LeaveController::class, 'processNextQueue'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
     // Leave Application, Show & Self-Service (Authenticated)
     $router->get('/leaves/apply', [LeaveController::class, 'apply'], [AuthMiddleware::class]);
@@ -131,6 +132,9 @@ try {
 
     // Operational Reports & Analytics (Administrator & HR Access)
     $router->get('/reports', [ReportController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/reports/employees', [ReportController::class, 'employees'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/reports/leaves', [ReportController::class, 'leaves'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/reports/departments', [ReportController::class, 'departments'], [AuthMiddleware::class, $workforceRoles]);
 
     // System Security Audit Activity Trail (Administrator & HR Access)
     $router->get('/activity-logs', [ActivityLogController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);

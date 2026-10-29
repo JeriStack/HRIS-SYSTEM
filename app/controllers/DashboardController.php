@@ -260,12 +260,18 @@ class DashboardController extends Controller
         $stmt->execute(['emp_id' => $myEmpId]);
         $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Build chronological leave sequence using custom Linked List (Phase 11/13)
+        $historyService = new \App\Services\LeaveHistorySequenceService();
+        $historyChain = $myEmpId ? $historyService->buildEmployeeLeaveHistoryChain((int)$myEmpId, 25) : new \App\Dsa\Structures\LinkedList();
+        $historyArray = $historyService->getHistoryArray($historyChain);
+
         // Render full HTML view when requested by browser
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
             $this->view('dashboard.employee_requests', [
-                'pageTitle' => 'My Leave Applications - Employee Self-Service',
-                'user'      => $user,
-                'requests'  => $requests,
+                'pageTitle'    => 'My Leave Applications - Employee Self-Service',
+                'user'         => $user,
+                'requests'     => $requests,
+                'historyArray' => $historyArray,
             ], 'hr');
             return;
         }

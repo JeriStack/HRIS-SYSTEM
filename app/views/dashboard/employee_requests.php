@@ -26,6 +26,26 @@ $empNo = $user['employee_no'] ?? 'EMP-Self';
     </div>
 </div>
 
+<?php if (!empty($historyArray)): ?>
+    <!-- Linked List Chronological Chain Display (Phase 11/13) -->
+    <div class="card" style="margin-bottom: var(--space-4); padding: 0.85rem 1.25rem; background: var(--color-bg-muted);">
+        <div style="font-size: 0.725rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
+            🔗 Sequential Leave Timeline (Linked List Traversal &bull; <?= count($historyArray) ?> Record<?= count($historyArray) === 1 ? '' : 's' ?>)
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center; overflow-x: auto; padding-bottom: 0.25rem;">
+            <?php foreach ($historyArray as $idx => $node): ?>
+                <div style="background: var(--color-bg-surface); border: 1px solid var(--color-border); padding: 0.35rem 0.65rem; border-radius: var(--radius-md); font-size: 0.8125rem; white-space: nowrap;">
+                    <strong style="color: var(--color-primary);">#LR-<?= str_pad((string)$node['id'], 3, '0', STR_PAD_LEFT) ?></strong>
+                    <span style="color: var(--color-text-muted); margin-left: 0.25rem;"><?= e($node['leave_name'] ?? 'Leave') ?> (<?= (int)$node['number_of_days'] ?>d)</span>
+                </div>
+                <?php if ($idx < count($historyArray) - 1): ?>
+                    <span style="color: var(--color-text-muted); font-weight: 700;">&rarr;</span>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Requests Table Card -->
 <div class="card">
     <div class="card-header">

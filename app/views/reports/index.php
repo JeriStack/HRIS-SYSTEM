@@ -16,6 +16,22 @@
     </div>
 </div>
 
+<!-- Reports Hub Sub-Navigation Tabs -->
+<div class="report-nav-tabs" style="display: flex; gap: 0.5rem; margin-bottom: var(--space-6); border-bottom: 1px solid var(--color-border); padding-bottom: 0.75rem; flex-wrap: wrap;">
+    <a href="<?= url('/reports') ?>" class="btn btn-sm <?= ($activeReportTab ?? 'overview') === 'overview' ? 'btn-primary' : 'btn-secondary' ?>">
+        📊 Executive Overview
+    </a>
+    <a href="<?= url('/reports/employees') ?>" class="btn btn-sm <?= ($activeReportTab ?? '') === 'employees' ? 'btn-primary' : 'btn-secondary' ?>">
+        👥 Employee Workforce
+    </a>
+    <a href="<?= url('/reports/leaves') ?>" class="btn btn-sm <?= ($activeReportTab ?? '') === 'leaves' ? 'btn-primary' : 'btn-secondary' ?>">
+        📅 Leave Utilization
+    </a>
+    <a href="<?= url('/reports/departments') ?>" class="btn btn-sm <?= ($activeReportTab ?? '') === 'departments' ? 'btn-primary' : 'btn-secondary' ?>">
+        🏢 Department Distribution
+    </a>
+</div>
+
 <!-- Executive Summary Cards -->
 <div class="grid grid-cols-3" style="margin-bottom: var(--space-6);">
     <div class="stat-card">
