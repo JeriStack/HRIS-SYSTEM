@@ -10,7 +10,7 @@ class LeaveApprovalQueueTest extends TestCase
 {
     public function test_build_queue_enforces_fifo_chronological_ordering(): void
     {
-        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave = $this->createStub(Leave::class);
         $mockLeave->method('getAllRequests')->willReturn([
             ['id' => 3, 'employee_name' => 'Charlie', 'applied_at' => '2026-10-29 11:00:00', 'status' => 'Pending'],
             ['id' => 1, 'employee_name' => 'Alice', 'applied_at' => '2026-10-29 08:00:00', 'status' => 'Pending'],
@@ -69,7 +69,7 @@ class LeaveApprovalQueueTest extends TestCase
 
     public function test_process_empty_queue_returns_safe_error(): void
     {
-        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave = $this->createStub(Leave::class);
         $service = new LeaveApprovalQueueService($mockLeave);
         $emptyQueue = new \App\Dsa\Structures\Queue();
 

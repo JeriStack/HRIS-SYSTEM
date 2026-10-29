@@ -96,8 +96,8 @@ services:
       WS_LISTEN_HOST: 0.0.0.0
       WS_PORT: 8090
       WS_PATH: /ws
-      # Browser origins allowed to connect (must match BASE_URL / APP_PORT)
-      WS_ALLOWED_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080"
+      # Browser origins allowed to connect (must match BASE_URL / APP_PORT and local dev proxies)
+      WS_ALLOWED_ORIGINS: "http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
       WS_TRUSTED_PROXIES: "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
       WS_MAX_CONNECTIONS: ${WS_MAX_CONNECTIONS:-1000}
       WS_MAX_CONNECTIONS_PER_USER: ${WS_MAX_CONNECTIONS_PER_USER:-5}

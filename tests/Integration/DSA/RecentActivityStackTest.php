@@ -13,7 +13,7 @@ class RecentActivityStackTest extends TestCase
     protected function setUp(): void
     {
         // Mock or real model
-        $mockModel = $this->createMock(ActivityLog::class);
+        $mockModel = $this->createStub(ActivityLog::class);
         $mockModel->method('getAll')->willReturn([
             ['id' => 103, 'action' => 'LOGIN', 'description' => 'User Alice logged in', 'created_at' => '2026-10-29 10:00:00'],
             ['id' => 102, 'action' => 'LEAVE_APPLY', 'description' => 'Applied for vacation leave', 'created_at' => '2026-10-29 09:30:00'],

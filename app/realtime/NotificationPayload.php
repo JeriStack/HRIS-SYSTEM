@@ -28,6 +28,11 @@ final class NotificationPayload
             'message' => 'Your leave request %s was not approved. Open it for details.',
             'level'   => 'warning',
         ],
+        EventAuthorizer::PROFILE_UPDATED => [
+            'title'   => 'Profile updated',
+            'message' => 'Your employee profile record was updated by Human Resources.',
+            'level'   => 'info',
+        ],
     ];
 
     /**
@@ -42,8 +47,20 @@ final class NotificationPayload
 
         $template = self::TEMPLATES[$event];
         $entityId = isset($row['entity_id']) ? (int)$row['entity_id'] : 0;
-        $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
         $createdTs = isset($row['created_ts']) ? (int)$row['created_ts'] : time();
+
+        if ($event === EventAuthorizer::PROFILE_UPDATED) {
+            $reference = $entityId > 0 ? 'EMP-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
+            $link = 'employee/profile';
+        } else {
+            $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
+            $link = $entityId > 0 ? 'leaves/' . $entityId : 'notifications';
+        }
+
+        $message = $template['message'];
+        if (str_contains($message, '%s')) {
+            $message = sprintf($message, $reference !== null ? "#{$reference}" : '');
+        }
 
         return [
             'type'  => 'event',
@@ -52,10 +69,10 @@ final class NotificationPayload
             'data'  => [
                 'notification_id' => (int)$row['id'],
                 'title'           => $template['title'],
-                'message'         => sprintf($template['message'], $reference !== null ? "#{$reference}" : ''),
+                'message'         => $message,
                 'level'           => $template['level'],
                 'reference'       => $reference,
-                'link'            => $entityId > 0 ? 'leaves/' . $entityId : 'notifications',
+                'link'            => $link,
                 'created_at'      => gmdate('Y-m-d\TH:i:s\Z', $createdTs),
             ],
         ];

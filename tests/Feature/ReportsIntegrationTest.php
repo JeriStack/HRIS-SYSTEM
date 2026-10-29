@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use PHPUnit\Framework\TestCase;
 use App\Controllers\ReportController;
+use Core\Database;
 use Core\Permission;
 use Core\Session;
 
@@ -21,7 +22,7 @@ class TestableReportController extends ReportController
 
 class ReportsIntegrationTest extends TestCase
 {
-    private TestableReportController $controller;
+    private ?TestableReportController $controller = null;
 
     protected function setUp(): void
     {
@@ -31,15 +32,27 @@ class ReportsIntegrationTest extends TestCase
         Session::set('user_id', 1);
         Session::set('role', 'hr');
         Session::set('auth_time', time());
-
-        $this->controller = new TestableReportController();
     }
 
     protected function tearDown(): void
     {
         Session::destroy();
         $_GET = [];
+        $this->controller = null;
         parent::tearDown();
+    }
+
+    private function getController(): TestableReportController
+    {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database is not connected in this environment.');
+        }
+
+        if ($this->controller === null) {
+            $this->controller = new TestableReportController();
+        }
+
+        return $this->controller;
     }
 
     public function test_reports_permission_restricted_to_hr_role(): void
@@ -50,54 +63,58 @@ class ReportsIntegrationTest extends TestCase
 
     public function test_index_renders_overview_hub_with_kpi_metrics(): void
     {
-        $this->controller->index();
+        $controller = $this->getController();
+        $controller->index();
 
-        $this->assertSame('reports.index', $this->controller->lastView);
-        $this->assertSame('overview', $this->controller->lastViewData['activeReportTab']);
-        $this->assertArrayHasKey('deptDistribution', $this->controller->lastViewData);
-        $this->assertArrayHasKey('leaveSummary', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalEmployees', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalLeavesApproved', $this->controller->lastViewData);
+        $this->assertSame('reports.index', $controller->lastView);
+        $this->assertSame('overview', $controller->lastViewData['activeReportTab']);
+        $this->assertArrayHasKey('deptDistribution', $controller->lastViewData);
+        $this->assertArrayHasKey('leaveSummary', $controller->lastViewData);
+        $this->assertArrayHasKey('totalEmployees', $controller->lastViewData);
+        $this->assertArrayHasKey('totalLeavesApproved', $controller->lastViewData);
     }
 
     public function test_employees_report_renders_with_filters_and_aggregates(): void
     {
+        $controller = $this->getController();
         $_GET['status'] = 'Active';
         $_GET['page']   = '1';
 
-        $this->controller->employees();
+        $controller->employees();
 
-        $this->assertSame('reports.employee', $this->controller->lastView);
-        $this->assertSame('employees', $this->controller->lastViewData['activeReportTab']);
-        $this->assertArrayHasKey('employees', $this->controller->lastViewData);
-        $this->assertArrayHasKey('statusCounts', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalRows', $this->controller->lastViewData);
-        $this->assertSame(1, $this->controller->lastViewData['currentPage']);
+        $this->assertSame('reports.employee', $controller->lastView);
+        $this->assertSame('employees', $controller->lastViewData['activeReportTab']);
+        $this->assertArrayHasKey('employees', $controller->lastViewData);
+        $this->assertArrayHasKey('statusCounts', $controller->lastViewData);
+        $this->assertArrayHasKey('totalRows', $controller->lastViewData);
+        $this->assertSame(1, $controller->lastViewData['currentPage']);
     }
 
     public function test_leaves_report_renders_with_aggregates(): void
     {
+        $controller = $this->getController();
         $_GET['status'] = 'Approved';
 
-        $this->controller->leaves();
+        $controller->leaves();
 
-        $this->assertSame('reports.leave', $this->controller->lastView);
-        $this->assertSame('leaves', $this->controller->lastViewData['activeReportTab']);
-        $this->assertArrayHasKey('leaveRecords', $this->controller->lastViewData);
-        $this->assertArrayHasKey('aggregates', $this->controller->lastViewData);
-        $this->assertArrayHasKey('typeUtilization', $this->controller->lastViewData);
+        $this->assertSame('reports.leave', $controller->lastView);
+        $this->assertSame('leaves', $controller->lastViewData['activeReportTab']);
+        $this->assertArrayHasKey('leaveRecords', $controller->lastViewData);
+        $this->assertArrayHasKey('aggregates', $controller->lastViewData);
+        $this->assertArrayHasKey('typeUtilization', $controller->lastViewData);
     }
 
     public function test_departments_report_renders_with_summaries(): void
     {
-        $this->controller->departments();
+        $controller = $this->getController();
+        $controller->departments();
 
-        $this->assertSame('reports.department', $this->controller->lastView);
-        $this->assertSame('departments', $this->controller->lastViewData['activeReportTab']);
-        $this->assertArrayHasKey('departmentSummaries', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalHeadcount', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalActive', $this->controller->lastViewData);
-        $this->assertArrayHasKey('totalLeaveDays', $this->controller->lastViewData);
+        $this->assertSame('reports.department', $controller->lastView);
+        $this->assertSame('departments', $controller->lastViewData['activeReportTab']);
+        $this->assertArrayHasKey('departmentSummaries', $controller->lastViewData);
+        $this->assertArrayHasKey('totalHeadcount', $controller->lastViewData);
+        $this->assertArrayHasKey('totalActive', $controller->lastViewData);
+        $this->assertArrayHasKey('totalLeaveDays', $controller->lastViewData);
     }
 
     public function test_formula_injection_prevention(): void
@@ -120,4 +137,3 @@ class ReportsIntegrationTest extends TestCase
         }
     }
 }
-

@@ -77,6 +77,8 @@ class RealtimePolicyTest extends TestCase
 
         $this->assertTrue($auth->canDeliver($emp, $row(7, 'employee', EventAuthorizer::LEAVE_APPROVED, 1)));
         $this->assertTrue($auth->canDeliver($emp, $row(7, 'employee', EventAuthorizer::LEAVE_REJECTED, 1)));
+        $this->assertTrue($auth->canDeliver($emp, $row(7, 'employee', EventAuthorizer::PROFILE_UPDATED)));
+        $this->assertFalse($auth->canDeliver($emp, $row(8, 'employee', EventAuthorizer::PROFILE_UPDATED)), 'Profile event belongs to matching user only.');
         $this->assertFalse($auth->canDeliver($emp, $row(7, 'employee', EventAuthorizer::LEAVE_APPROVED, 0)), 'Leave must belong to recipient.');
         $this->assertFalse($auth->canDeliver($emp, $row(8, 'employee', EventAuthorizer::LEAVE_APPROVED, 1)));
 
@@ -98,6 +100,15 @@ class RealtimePolicyTest extends TestCase
         $this->assertStringNotContainsString('user_id', $json);
         $this->assertSame('Leave request approved', $payload['data']['title']);
         $this->assertSame('Your leave request #LR-042 was approved.', $payload['data']['message']);
+
+        $profilePayload = NotificationPayload::fromRow([
+            'id' => 16, 'event_type' => EventAuthorizer::PROFILE_UPDATED, 'entity_id' => 5, 'created_ts' => 1790000000,
+            'title' => 'Personal details changed', 'message' => 'New address: Secret Road', 'user_id' => 7,
+        ]);
+        $this->assertSame('Profile updated', $profilePayload['data']['title']);
+        $this->assertSame('Your employee profile record was updated by Human Resources.', $profilePayload['data']['message']);
+        $this->assertSame('employee/profile', $profilePayload['data']['link']);
+
         $this->assertNull(NotificationPayload::fromRow(['id' => 1, 'event_type' => null]));
     }
 

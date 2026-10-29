@@ -239,6 +239,24 @@ class EmployeeController extends Controller
         // Execute database update
         $this->employeeModel->update($id, $data);
 
+        // Find linked user account for this employee and dispatch real-time notification
+        $linkedUser = $this->userModel->findByEmployeeId($id);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            try {
+                $notificationModel = new \App\Models\Notification();
+                $notificationModel->create(
+                    (int)$linkedUser['id'],
+                    'Profile Updated',
+                    'Your employee profile record was updated by Human Resources.',
+                    'info',
+                    \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                    $id
+                );
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController] Failed to dispatch profile update notification: ' . $e->getMessage());
+            }
+        }
+
         // Audit Logging
         $empName = trim("{$data['first_name']} {$data['last_name']}");
         $this->userModel->logActivity(

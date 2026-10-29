@@ -14,7 +14,7 @@ class DsaWorkflowIntegrationTest extends TestCase
 {
     public function test_leave_approval_queue_fifo_pipeline(): void
     {
-        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave = $this->createStub(Leave::class);
         $mockLeave->method('getAllRequests')->willReturn([
             ['id' => 10, 'applied_at' => '2026-10-29 10:00:00', 'employee_name' => 'Charlie'],
             ['id' => 5,  'applied_at' => '2026-10-29 08:30:00', 'employee_name' => 'Alice'],
@@ -44,7 +44,7 @@ class DsaWorkflowIntegrationTest extends TestCase
 
     public function test_leave_history_linked_list_chain(): void
     {
-        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave = $this->createStub(Leave::class);
         $mockLeave->method('getAllRequests')->willReturn([
             ['id' => 201, 'applied_at' => '2026-06-01', 'leave_name' => 'Vacation Leave', 'number_of_days' => 3],
             ['id' => 202, 'applied_at' => '2026-08-15', 'leave_name' => 'Sick Leave', 'number_of_days' => 1],
@@ -71,7 +71,7 @@ class DsaWorkflowIntegrationTest extends TestCase
 
     public function test_recent_activity_lifo_stack(): void
     {
-        $mockLog = $this->createMock(ActivityLog::class);
+        $mockLog = $this->createStub(ActivityLog::class);
         $mockLog->method('getAll')->willReturn([
             ['id' => 103, 'action' => 'LEAVE_APPROVED', 'description' => 'HR approved leave', 'created_at' => '2026-10-29 10:00:00'],
             ['id' => 102, 'action' => 'LEAVE_REQUESTED', 'description' => 'Applied for leave', 'created_at' => '2026-10-29 09:00:00'],
