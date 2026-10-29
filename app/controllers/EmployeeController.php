@@ -39,18 +39,50 @@ class EmployeeController extends Controller
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $deptId = !empty($_GET['dept']) ? (int)$_GET['dept'] : null;
 
+        // Load the authorized, filtered dataset (HR-only route; SQL applies the
+        // WHERE filters so only permitted rows ever enter PHP).
         $employees = $this->employeeModel->getAll($search, $status, $deptId);
         $departments = $this->departmentModel->getAll();
         $counts = $this->employeeModel->getCounts();
 
+        // Phase 10: optional custom DSA sorting over the authorized dataset.
+        // Every selector is validated against a server-side allowlist; invalid
+        // values fall back to the default SQL ordering without error.
+        $directory = new \App\Services\EmployeeDirectoryService();
+        $sortField = isset($_GET['sort']) ? trim((string)$_GET['sort']) : '';
+        $sortDir   = isset($_GET['dir']) ? trim((string)$_GET['dir']) : 'asc';
+        $sortAlgo  = isset($_GET['algo']) ? trim((string)$_GET['algo']) : 'quick';
+        $dsaMeta   = null;
+
+        if ($sortField !== '') {
+            if (
+                \App\Services\EmployeeDirectoryService::isValidSortField($sortField)
+                && \App\Services\EmployeeDirectoryService::isValidSortAlgorithm($sortAlgo)
+                && in_array(strtolower($sortDir), ['asc', 'desc'], true)
+            ) {
+                $result = $directory->sort($employees, $sortField, $sortDir, $sortAlgo);
+                $employees = $result['employees'];
+                $dsaMeta = $result['meta'];
+            } else {
+                Session::flash('error', 'Invalid sort option. Showing the default ordering.');
+                $sortField = '';
+            }
+        }
+
         $this->view('employees.index', [
-            'pageTitle'      => 'Employees Directory',
-            'employees'      => $employees,
-            'departments'    => $departments,
-            'counts'         => $counts,
-            'searchQuery'    => $search,
-            'selectedStatus' => $status,
-            'selectedDept'   => $deptId,
+            'pageTitle'       => 'Employees Directory',
+            'employees'       => $employees,
+            'departments'     => $departments,
+            'counts'          => $counts,
+            'searchQuery'     => $search,
+            'selectedStatus'  => $status,
+            'selectedDept'    => $deptId,
+            'sortField'       => $sortField,
+            'sortDir'         => strtolower($sortDir) === 'desc' ? 'desc' : 'asc',
+            'sortAlgo'        => $sortAlgo,
+            'sortFields'      => \App\Services\EmployeeDirectoryService::sortFields(),
+            'sortAlgorithms'  => \App\Services\EmployeeDirectoryService::sortAlgorithmChoices(),
+            'dsaMeta'         => $dsaMeta,
         ], 'hr');
     }
 

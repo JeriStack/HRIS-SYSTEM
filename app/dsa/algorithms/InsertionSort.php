@@ -1,41 +1,47 @@
 <?php
 /**
- * InsertionSort Algorithm Implementation (O(n²), Best O(n))
- * Efficient for small or nearly sorted collections
+ * InsertionSort Algorithm Implementation
  * Employee HRIS & Leave Management System
+ *
+ * Time:  Best O(n) (already ordered), Average/Worst O(n²)
+ * Space: O(1) auxiliary beyond the returned copy
+ * Stable: yes (equal keys are not shifted past one another)
+ * Mutates input: no (operates on a re-indexed copy, returns a new array)
+ *
+ * Supports scalar arrays and associative records via $attribute, ascending or
+ * descending, using the shared App\Dsa\Arrays\ArrayUtils comparison contract.
  */
 
 namespace App\Dsa\Algorithms;
 
+use App\Dsa\Arrays\ArrayUtils;
+
 class InsertionSort
 {
     /**
-     * Sort an array in ascending order using insertion sort.
-     *
-     * @param array $arr
-     * @param string|null $attribute Optional array key for associative sorting
-     * @return array Sorted array
+     * @param array $arr Scalars, or associative records when $attribute is given
+     * @param string|null $attribute Record key to sort on (null = sort scalars)
+     * @param string $direction ArrayUtils::ASC or ArrayUtils::DESC
+     * @return array A new sorted array, re-indexed from 0
      */
-    public static function sort(array $arr, ?string $attribute = null): array
+    public static function sort(array $arr, ?string $attribute = null, string $direction = ArrayUtils::ASC): array
     {
-        $n = count($arr);
+        $direction = ArrayUtils::normalizeDirection($direction);
+        $items = ArrayUtils::toList($arr);
+        $n = count($items);
+
         for ($i = 1; $i < $n; $i++) {
-            $keyItem = $arr[$i];
-            $keyVal = $attribute !== null ? ($keyItem[$attribute] ?? null) : $keyItem;
+            $keyItem = $items[$i];
             $j = $i - 1;
 
-            while ($j >= 0) {
-                $currVal = $attribute !== null ? ($arr[$j][$attribute] ?? null) : $arr[$j];
-                if ($currVal > $keyVal) {
-                    $arr[$j + 1] = $arr[$j];
-                    $j--;
-                } else {
-                    break;
-                }
+            // Shift larger (per direction) elements one position to the right
+            while ($j >= 0 && ArrayUtils::compare($items[$j], $keyItem, $attribute, $direction) > 0) {
+                $items[$j + 1] = $items[$j];
+                $j--;
             }
-            $arr[$j + 1] = $keyItem;
+            $items[$j + 1] = $keyItem;
         }
 
-        return $arr;
+        return $items;
     }
 }
