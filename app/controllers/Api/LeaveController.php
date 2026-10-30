@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Notification;
 use App\Services\LeaveCalculator;
 use App\Services\LeaveNotificationService;
+use App\Application\Leave\Adapters\LeaveControllerAdapter;
 use OpenApi\Attributes as OA;
 
 class LeaveController extends ApiController
@@ -22,19 +23,22 @@ class LeaveController extends ApiController
     private User $userModel;
     private Notification $notificationModel;
     private LeaveNotificationService $leaveNotifications;
+    private LeaveControllerAdapter $leaveAdapter;
 
     public function __construct(
         ?Leave $leaveModel = null,
         ?Employee $employeeModel = null,
         ?User $userModel = null,
         ?Notification $notificationModel = null,
-        ?LeaveNotificationService $leaveNotifications = null
+        ?LeaveNotificationService $leaveNotifications = null,
+        ?LeaveControllerAdapter $leaveAdapter = null
     ) {
         $this->leaveModel         = $leaveModel ?? new Leave();
-        $this->employeeModel     = $employeeModel ?? new Employee();
-        $this->userModel         = $userModel ?? new User();
-        $this->notificationModel = $notificationModel ?? new Notification();
+        $this->employeeModel      = $employeeModel ?? new Employee();
+        $this->userModel          = $userModel ?? new User();
+        $this->notificationModel  = $notificationModel ?? new Notification();
         $this->leaveNotifications = $leaveNotifications ?? new LeaveNotificationService($this->notificationModel, $this->userModel);
+        $this->leaveAdapter       = $leaveAdapter ?? new LeaveControllerAdapter();
     }
 
     // =========================================================================
@@ -566,28 +570,16 @@ class LeaveController extends ApiController
         $user = $this->requireEmployeeUser();
         $empId = (int)$user['employee_id'];
 
-        $request = $this->leaveModel->getRequestById($id);
-        if (!$request) {
-            $this->error('Leave request not found.', 404);
-        }
+        $result = $this->leaveAdapter->cancel($id, $empId, false);
 
-        if ((int)$request['employee_id'] !== $empId) {
-            $this->error("Forbidden: You are not authorized to cancel another employee's leave request.", 403);
-        }
-
-        if ($request['status'] !== 'Pending') {
-            $this->error("Only leave requests in Pending status can be cancelled. Current status is '{$request['status']}'.", 400);
-        }
-
-        $ok = $this->leaveModel->cancelRequest($id, $empId);
-        if (!$ok) {
-            $this->error('Failed to cancel leave request.', 500);
+        if (!$result->success) {
+            $this->error($result->message, $result->statusCode);
         }
 
         $this->userModel->logActivity(
             (int)$user['id'],
             'LEAVE_CANCELLED',
-            "Cancelled leave request #{$id} ({$request['leave_name']})",
+            "Cancelled leave request #{$id}",
             'LEAVE_REQUEST',
             (string)$id
         );
@@ -658,26 +650,30 @@ class LeaveController extends ApiController
     {
         $currentUser = $this->requireRole('hr');
 
-        // Execute full atomic approval transaction (status, balance, activity log, persistent notification)
-        $result = $this->leaveModel->approveRequest(
-            $id,
-            (int)$currentUser['id'],
-            function (array $req): void {
-                if (!$this->leaveNotifications->leaveDecided(
-                    $req,
-                    'Approved',
-                    "Your {$req['leave_name']} request for {$req['start_date']} to {$req['end_date']} has been approved."
-                )) {
-                    throw new \RuntimeException('Failed to create approval notification for employee.');
-                }
-            }
-        );
+        $result = $this->leaveAdapter->approve($id, (int)$currentUser['id']);
 
-        if (!$result['ok']) {
-            $this->error($result['message'], $result['http_status']);
+        if (!$result->success) {
+            $this->error($result->message, $result->statusCode);
         }
 
-        $this->success($result['data'] ?? null, "Leave request #{$id} approved successfully.");
+        $req = $this->leaveModel->getRequestById($id);
+        if ($req) {
+            $this->leaveNotifications->leaveDecided(
+                $req,
+                'Approved',
+                "Your {$req['leave_name']} request for {$req['start_date']} to {$req['end_date']} has been approved."
+            );
+        }
+
+        $this->userModel->logActivity(
+            (int)$currentUser['id'],
+            'LEAVE_APPROVED',
+            "Approved leave request #{$id}",
+            'LEAVE_REQUEST',
+            (string)$id
+        );
+
+        $this->success($result->data, "Leave request #{$id} approved successfully.");
     }
 
     #[OA\Post(
@@ -714,25 +710,32 @@ class LeaveController extends ApiController
         $currentUser = $this->requireRole('hr');
         $input = $this->getJsonInput();
         $reason = trim((string)($input['rejection_reason'] ?? ''));
-
-        $result = $this->leaveModel->rejectRequest(
-            $id,
-            (int)$currentUser['id'],
-            $reason,
-            function (array $req) use ($reason): void {
-                if (!$this->leaveNotifications->leaveDecided(
-                    $req,
-                    'Rejected',
-                    "Your {$req['leave_name']} request was rejected." . ($reason ? " Reason: {$reason}" : "")
-                )) {
-                    throw new \RuntimeException('Failed to create rejection notification for employee.');
-                }
-            }
-        );
-
-        if (!$result['ok']) {
-            $this->error($result['message'], $result['http_status']);
+        if (empty($reason)) {
+            $reason = 'Request declined per HR department review.';
         }
+
+        $result = $this->leaveAdapter->reject($id, (int)$currentUser['id'], $reason);
+
+        if (!$result->success) {
+            $this->error($result->message, $result->statusCode);
+        }
+
+        $req = $this->leaveModel->getRequestById($id);
+        if ($req) {
+            $this->leaveNotifications->leaveDecided(
+                $req,
+                'Rejected',
+                "Your {$req['leave_name']} request was rejected." . ($reason ? " Reason: {$reason}" : "")
+            );
+        }
+
+        $this->userModel->logActivity(
+            (int)$currentUser['id'],
+            'LEAVE_REJECTED',
+            "Rejected leave request #{$id}. Reason: {$reason}",
+            'LEAVE_REQUEST',
+            (string)$id
+        );
 
         $this->success(null, "Leave request #{$id} rejected.");
     }
