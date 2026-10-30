@@ -238,5 +238,55 @@ CREATE TABLE IF NOT EXISTS `realtime_tickets` (
     INDEX `idx_realtime_tickets_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- 12. Transactional Outbox Events
+-- Durable outbox pattern for transactional event persistence & async dispatch.
+-- See database/migrations/2026_10_31_create_outbox_events_table.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `outbox_events` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `event_id` VARCHAR(36) NOT NULL,
+    `event_type` VARCHAR(191) NOT NULL,
+    `aggregate_type` VARCHAR(100) NOT NULL,
+    `aggregate_id` VARCHAR(100) NOT NULL,
+    `payload` JSON NOT NULL,
+    `status` ENUM('PENDING', 'PROCESSING', 'PROCESSED', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+    `max_attempts` INT UNSIGNED NOT NULL DEFAULT 5,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `next_attempt_at` DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `processed_at` DATETIME(6) NULL,
+    `claimed_at` DATETIME(6) NULL,
+    `claimed_by` VARCHAR(191) NULL,
+    `last_error` TEXT NULL,
+    `last_error_code` VARCHAR(100) NULL,
+    UNIQUE KEY `uq_outbox_event_id` (`event_id`),
+    INDEX `idx_outbox_status_next_attempt` (`status`, `next_attempt_at`),
+    INDEX `idx_outbox_claimed` (`status`, `claimed_at`),
+    INDEX `idx_outbox_aggregate` (`aggregate_type`, `aggregate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 13. User TOTP Two-Factor Authentication
+-- RFC 6238 time-based one-time password secrets and single-use recovery codes.
+-- See database/migrations/2026_10_31_create_user_totp_table.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_totp` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `encrypted_secret` VARCHAR(500) NOT NULL,
+    `is_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `confirmed_at` DATETIME NULL,
+    `last_used_timestep` BIGINT UNSIGNED NULL,
+    `recovery_codes` JSON NULL,
+    `failed_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+    `locked_until` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_user_totp_user_id` (`user_id`),
+    CONSTRAINT `fk_user_totp_users` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 

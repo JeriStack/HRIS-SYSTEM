@@ -132,6 +132,16 @@ jobs:
           echo "Importing database schema into hris_test..."
           mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/schema.sql
 
+          if [ -d database/migrations ]; then
+            echo "Applying incremental database migrations..."
+            for migration in database/migrations/*.sql; do
+              if [ -f "$migration" ]; then
+                echo "Applying $migration..."
+                mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < "$migration"
+              fi
+            done
+          fi
+
           if [ -f database/seed.sql ]; then
             echo "Importing seed data into hris_test..."
             mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/seed.sql
