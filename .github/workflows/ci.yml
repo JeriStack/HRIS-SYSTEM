@@ -269,7 +269,7 @@ jobs:
           echo "Docker container built successfully."
 
       - name: Run Trivy container vulnerability scanner
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.30.0
         with:
           image-ref: 'hris-app:ci'
           format: 'table'
