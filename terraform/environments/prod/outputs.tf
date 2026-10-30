@@ -6,11 +6,12 @@
 output "vps_target_specifications" {
   description = "Target VPS host specifications."
   value = {
-    os      = var.vps_os
-    vcpu    = var.vps_vcpu
-    ram_gb  = var.vps_ram_gb
-    disk_gb = var.vps_disk_gb
-    domain  = var.app_domain
+    hostname = var.vps_hostname
+    os       = var.vps_os
+    vcpu     = var.vps_vcpu
+    ram_gb   = var.vps_ram_gb
+    disk_gb  = var.vps_disk_gb
+    domain   = var.app_domain
   }
 }
 
@@ -34,4 +35,3 @@ output "production_volumes" {
     docker_volume.certbot_www.name
   ]
 }
-
