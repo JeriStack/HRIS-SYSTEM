@@ -76,7 +76,21 @@ jobs:
             echo "::error::.env file is tracked in Git! Keep secrets, .env files, and credentials out of Git."
             exit 1
           fi
-          echo "Secrets check passed: .env is excluded."
+
+          echo "Scanning tracked files for potential credentials or private keys..."
+          FOUND=0
+          if git grep -E -I -n "BEGIN (RSA|OPENSSH|DSA|EC|PGP) PRIVATE KEY" -- . ":(exclude)vendor" ":(exclude).git" 2>/dev/null; then
+            echo "::error::Private cryptographic key found in tracked repository files!"
+            FOUND=1
+          fi
+          if git grep -E -I -n "(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35})" -- . ":(exclude)vendor" ":(exclude).git" 2>/dev/null; then
+            echo "::error::Potential hardcoded cloud API credential detected!"
+            FOUND=1
+          fi
+          if [ "$FOUND" -eq 1 ]; then
+            exit 1
+          fi
+          echo "Secrets check passed: .env is excluded and no exposed keys detected."
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -208,6 +222,12 @@ jobs:
           terraform -chdir=terraform/environments/dev init -backend=false
           terraform -chdir=terraform/environments/dev validate
 
+      - name: Initialize and validate Production Environment configuration
+        run: |
+          echo "Validating production environment configuration in terraform/environments/prod/..."
+          terraform -chdir=terraform/environments/prod init -backend=false
+          terraform -chdir=terraform/environments/prod validate
+
       - name: Set up TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
@@ -221,6 +241,8 @@ jobs:
           tflint --chdir=terraform
           echo "Running TFLint on dev environment..."
           tflint --chdir=terraform/environments/dev
+          echo "Running TFLint on prod environment..."
+          tflint --chdir=terraform/environments/prod
           echo "TFLint checks completed successfully!"
 
   docker-build:
@@ -245,3 +267,13 @@ jobs:
           echo "Validating Docker container build..."
           docker build -t hris-app:ci .
           echo "Docker container built successfully."
+
+      - name: Run Trivy container vulnerability scanner
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: 'hris-app:ci'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

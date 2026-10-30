@@ -12,8 +12,9 @@ global:
 alerting:
   alertmanagers: []
 
-# Rule files (optional / extensible)
-rule_files: []
+# Rule files (Alerting & Recording)
+rule_files:
+  - "/etc/prometheus/alert_rules.yml"
 
 # -----------------------------------------------------------------------------
 # Scrape Configurations

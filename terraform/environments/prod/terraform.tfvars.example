@@ -1,0 +1,15 @@
+# ==============================================================================
+# Production Environment Terraform Variables Example
+# HRIS-SYSTEM
+# ==============================================================================
+
+environment             = "production"
+vps_hostname            = "hris-prod-vps"
+vps_os                  = "Ubuntu 24.04 LTS"
+vps_vcpu                = 2
+vps_ram_gb              = 4
+vps_disk_gb             = 80
+docker_host             = "unix:///var/run/docker.sock"
+production_network_name = "hris_network"
+app_domain              = "hris.example.com"
+
