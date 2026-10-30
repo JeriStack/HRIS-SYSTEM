@@ -1,0 +1,14 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 1
+    paths:
+        - app
+        - core
+        - public/index.php
+    excludePaths:
+        - app/views/*
+        - scratch/*
+        - tests/*
+    treatPhpDocTypesAsCertain: false

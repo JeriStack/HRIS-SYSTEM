@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install required PHP extensions
-RUN docker-php-ext-install -j$(nproc) \
+RUN docker-php-ext-install -j"$(nproc)" \
     pdo \
     pdo_mysql \
     zip
