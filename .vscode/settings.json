@@ -1,11 +1,14 @@
 {
   "cSpell.words": [
     "actionlint",
+    "AKIA",
+    "analyse",
     "aquasecurity",
     "buildx",
     "cadvisor",
     "cboden",
     "certbot",
+    "chdir",
     "checkov",
     "csrf",
     "dsa",
@@ -14,6 +17,9 @@
     "hadolint",
     "hris",
     "kreuzwerker",
+    "mapfile",
+    "mbstring",
+    "mysqladmin",
     "mysqld",
     "npipe",
     "opcache",
@@ -23,6 +29,7 @@
     "phpmailer",
     "phpstan",
     "phpunit",
+    "ptest",
     "ratchet",
     "rhysd",
     "shivammathur",
@@ -32,6 +39,7 @@
     "trivy",
     "trufflehog",
     "tsdb",
+    "unmatch",
     "vlucas",
     "zircote"
   ]
