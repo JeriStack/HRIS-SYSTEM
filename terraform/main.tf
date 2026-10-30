@@ -1,9 +1,9 @@
 # ==============================================================================
-# Isolated Demonstration Resources
+# Isolated Demonstration Resources (Modular Architecture Composition)
 # HRIS-SYSTEM — Local Infrastructure as Code
 # ==============================================================================
 # This configuration demonstrates the Terraform lifecycle (init, plan, apply,
-# state inspection, destroy) using an isolated, non-disruptive Docker container.
+# state inspection, destroy) using reusable child modules.
 #
 # Boundary Safeguards:
 # - Connects exclusively to dedicated test network 'hris_tf_test_network'
@@ -12,68 +12,39 @@
 # - Operates with restart="no" and unprivileged execution
 # ==============================================================================
 
-# 1. Isolated Bridge Network for Demonstration Resource
-resource "docker_network" "test_network" {
-  name   = var.test_network_name
-  driver = "bridge"
+# 1. Reusable Network Child Module
+module "network" {
+  source = "./modules/network"
 
-  labels {
-    label = "managed_by"
-    value = "terraform"
-  }
-
-  labels {
-    label = "project"
-    value = "hris-system"
-  }
-
-  labels {
-    label = "environment"
-    value = var.environment
-  }
+  network_name = var.test_network_name
+  environment  = var.environment
 }
 
-# 2. Pinned Lightweight Image
-resource "docker_image" "test_image" {
-  name         = var.test_image_name
-  keep_locally = true
+# 2. Reusable Sandbox Container Child Module
+module "sandbox" {
+  source = "./modules/sandbox"
+
+  container_name = var.test_container_name
+  image_name     = var.test_image_name
+  network_name   = module.network.name
+  environment    = var.environment
 }
 
-# 3. Isolated Test Sandbox Container
-resource "docker_container" "test_sandbox" {
-  name    = var.test_container_name
-  image   = docker_image.test_image.image_id
-  restart = "no"
+# ==============================================================================
+# State Migration (Declarative Refactoring Mappings)
+# Maps legacy flat resource addresses to modular child paths without recreation
+# ==============================================================================
+moved {
+  from = docker_network.test_network
+  to   = module.network.docker_network.network
+}
 
-  # Non-destructive sleep command keeping the container alive for lifecycle inspection
-  command = ["sleep", "3600"]
+moved {
+  from = docker_image.test_image
+  to   = module.sandbox.docker_image.image
+}
 
-  # Isolated network attachment (strictly isolated from 'hris_network')
-  network_mode = "bridge"
-  networks_advanced {
-    name = docker_network.test_network.name
-  }
-
-  # Security: unprivileged execution, zero host port publishing, zero volume mounts
-  privileged = false
-
-  labels {
-    label = "managed_by"
-    value = "terraform"
-  }
-
-  labels {
-    label = "project"
-    value = "hris-system"
-  }
-
-  labels {
-    label = "environment"
-    value = var.environment
-  }
-
-  labels {
-    label = "purpose"
-    value = "iac-lifecycle-demonstration"
-  }
+moved {
+  from = docker_container.test_sandbox
+  to   = module.sandbox.docker_container.container
 }
