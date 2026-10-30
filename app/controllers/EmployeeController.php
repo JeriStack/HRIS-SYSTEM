@@ -39,18 +39,78 @@ class EmployeeController extends Controller
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $deptId = !empty($_GET['dept']) ? (int)$_GET['dept'] : null;
 
-        $employees = $this->employeeModel->getAll($search, $status, $deptId);
+        // Phase 10: optional custom DSA searching and sorting over the authorized dataset.
+        // Every selector is validated against a server-side allowlist; invalid
+        // values fall back to default SQL searching/ordering without error.
+        $directory     = new \App\Services\EmployeeDirectoryService();
+        $searchAlgo    = isset($_GET['search_algo']) ? trim((string)$_GET['search_algo']) : '';
+        $searchField   = isset($_GET['search_field']) ? trim((string)$_GET['search_field']) : 'last_name';
+        $dsaSearchMeta = null;
+
+        // If custom DSA search is chosen and a query is supplied:
+        if ($search !== null && $search !== '' && $searchAlgo !== '') {
+            if (
+                \App\Services\EmployeeDirectoryService::isValidSearchAlgorithm($searchAlgo)
+                && \App\Services\EmployeeDirectoryService::isValidSearchField($searchField)
+            ) {
+                // Fetch authorized rows filtered by status/department, bypassing SQL text filtering
+                $employees = $this->employeeModel->getAll(null, $status, $deptId);
+                $searchResult = $directory->search($employees, $searchField, $search, $searchAlgo);
+                $employees = $searchResult['employees'];
+                $dsaSearchMeta = $searchResult['meta'];
+            } else {
+                Session::flash('error', 'Invalid search option. Showing default search results.');
+                $employees = $this->employeeModel->getAll($search, $status, $deptId);
+                $searchAlgo = '';
+            }
+        } else {
+            // Default SQL search
+            $employees = $this->employeeModel->getAll($search, $status, $deptId);
+        }
+
         $departments = $this->departmentModel->getAll();
         $counts = $this->employeeModel->getCounts();
 
+        // Phase 10: optional custom DSA sorting over the authorized dataset.
+        $sortField = isset($_GET['sort']) ? trim((string)$_GET['sort']) : '';
+        $sortDir   = isset($_GET['dir']) ? trim((string)$_GET['dir']) : 'asc';
+        $sortAlgo  = isset($_GET['algo']) ? trim((string)$_GET['algo']) : 'quick';
+        $dsaMeta   = null;
+
+        if ($sortField !== '') {
+            if (
+                \App\Services\EmployeeDirectoryService::isValidSortField($sortField)
+                && \App\Services\EmployeeDirectoryService::isValidSortAlgorithm($sortAlgo)
+                && in_array(strtolower($sortDir), ['asc', 'desc'], true)
+            ) {
+                $result = $directory->sort($employees, $sortField, $sortDir, $sortAlgo);
+                $employees = $result['employees'];
+                $dsaMeta = $result['meta'];
+            } else {
+                Session::flash('error', 'Invalid sort option. Showing the default ordering.');
+                $sortField = '';
+            }
+        }
+
         $this->view('employees.index', [
-            'pageTitle'      => 'Employees Directory',
-            'employees'      => $employees,
-            'departments'    => $departments,
-            'counts'         => $counts,
-            'searchQuery'    => $search,
-            'selectedStatus' => $status,
-            'selectedDept'   => $deptId,
+            'pageTitle'        => 'Employees Directory',
+            'employees'        => $employees,
+            'departments'      => $departments,
+            'counts'           => $counts,
+            'searchQuery'      => $search,
+            'selectedStatus'   => $status,
+            'selectedDept'     => $deptId,
+            'searchAlgo'       => $searchAlgo,
+            'searchField'      => $searchField,
+            'searchFields'     => \App\Services\EmployeeDirectoryService::searchFields(),
+            'searchAlgorithms' => \App\Services\EmployeeDirectoryService::searchAlgorithmChoices(),
+            'dsaSearchMeta'    => $dsaSearchMeta,
+            'sortField'        => $sortField,
+            'sortDir'          => strtolower($sortDir) === 'desc' ? 'desc' : 'asc',
+            'sortAlgo'         => $sortAlgo,
+            'sortFields'       => \App\Services\EmployeeDirectoryService::sortFields(),
+            'sortAlgorithms'   => \App\Services\EmployeeDirectoryService::sortAlgorithmChoices(),
+            'dsaMeta'          => $dsaMeta,
         ], 'hr');
     }
 
@@ -178,6 +238,24 @@ class EmployeeController extends Controller
 
         // Execute database update
         $this->employeeModel->update($id, $data);
+
+        // Find linked user account for this employee and dispatch real-time notification
+        $linkedUser = $this->userModel->findByEmployeeId($id);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            try {
+                $notificationModel = new \App\Models\Notification();
+                $notificationModel->create(
+                    (int)$linkedUser['id'],
+                    'Profile Updated',
+                    'Your employee profile record was updated by Human Resources.',
+                    'info',
+                    \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                    $id
+                );
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController] Failed to dispatch profile update notification: ' . $e->getMessage());
+            }
+        }
 
         // Audit Logging
         $empName = trim("{$data['first_name']} {$data['last_name']}");

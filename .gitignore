@@ -8,6 +8,7 @@
 .env.*
 !.env.example
 !.env.docker.example
+!.env.production.example
 config/*.local.php
 
 # Server & Application Logs
@@ -23,7 +24,11 @@ storage/logs/*
 *~
 .cache/
 .phpunit.cache/
+.phpcs.cache
+.phpstan.cache/
+.tflint.d/
 scratch/cookie_*.txt
+cookies*.txt
 
 # Operating System Files
 .DS_Store
@@ -53,3 +58,24 @@ yarn-error.log*
 # Public Uploads (preserve directory via .gitkeep)
 public/uploads/*
 !public/uploads/.gitkeep
+
+
+# ==============================================================================
+# Terraform (Infrastructure as Code)
+# ==============================================================================
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.rc
+terraform.rc
+# Note: terraform.lock.hcl is explicitly TRACKED (do not ignore)

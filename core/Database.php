@@ -82,7 +82,10 @@ class Database
             $this->lastError = $e->getMessage();
 
             // Log detailed error internally without exposing credentials to end users
-            error_log("[Database Connection Error] " . $e->getMessage());
+            $appEnv = getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? 'production');
+            if ($appEnv !== 'testing') {
+                error_log("[Database Connection Error] " . $e->getMessage());
+            }
         }
     }
 

@@ -71,10 +71,86 @@
             <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1rem;">
                 🔍 Search
             </button>
-            <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus)): ?>
+            <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus) || !empty($sortField) || !empty($searchAlgo)): ?>
                 <a href="<?= url('/hr/employees') ?>" class="btn btn-secondary" style="padding: 0.55rem 0.85rem;" title="Reset Filters">
                     ✕ Reset
                 </a>
+            <?php endif; ?>
+        </div>
+
+        <!-- Phase 10: Custom DSA Search Controls -->
+        <div style="flex-basis: 100%; height: 0;"></div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%; padding-top: 0.75rem; margin-top: 0.25rem; border-top: 1px dashed #E2E8F0;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Search (custom algorithm):</span>
+
+            <select name="search_algo" class="form-input" aria-label="Search algorithm" style="min-width: 170px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <option value="">Default (SQL LIKE)</option>
+                <?php foreach (($searchAlgorithms ?? []) as $key => $label): ?>
+                    <option value="<?= e($key) ?>" <?= (($searchAlgo ?? '') === $key) ? 'selected' : '' ?>>
+                        <?= e($label) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <select name="search_field" class="form-input" aria-label="Search field" style="min-width: 150px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <?php foreach (($searchFields ?? []) as $key => $col): ?>
+                    <option value="<?= e($key) ?>" <?= (($searchField ?? 'last_name') === $key) ? 'selected' : '' ?>>
+                        <?= e(ucwords(str_replace('_', ' ', $key))) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?php if (!empty($dsaSearchMeta)): ?>
+                <span class="badge badge-info" title="Executed by custom DSA search engine over authorized records" style="margin-left: auto;">
+                    🔍 <?= e($dsaSearchMeta['algorithm_name']) ?> &middot;
+                    <?= e(ucwords(str_replace('_', ' ', $dsaSearchMeta['field']))) ?> &middot;
+                    <?= e((string)$dsaSearchMeta['count']) ?> match<?= $dsaSearchMeta['count'] === 1 ? '' : 'es' ?> &middot;
+                    <?= e((string)$dsaSearchMeta['elapsed_ms']) ?> ms
+                    <?php if (!empty($dsaSearchMeta['sort_ms'])): ?>
+                        (pre-sorted in <?= e((string)$dsaSearchMeta['sort_ms']) ?> ms)
+                    <?php endif; ?>
+                </span>
+            <?php endif; ?>
+        </div>
+
+        <!-- Phase 10: Custom DSA Sorting Controls -->
+        <div style="flex-basis: 100%; height: 0;"></div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%; padding-top: 0.75rem; margin-top: 0.25rem; border-top: 1px dashed #E2E8F0;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Sort (custom algorithm):</span>
+
+            <select name="sort" class="form-input" aria-label="Sort field" style="min-width: 160px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <option value="">Default (Name)</option>
+                <?php foreach (($sortFields ?? []) as $key => $col): ?>
+                    <option value="<?= e($key) ?>" <?= (($sortField ?? '') === $key) ? 'selected' : '' ?>>
+                        <?= e(ucwords(str_replace('_', ' ', $key))) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <select name="dir" class="form-input" aria-label="Sort direction" style="min-width: 120px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <option value="asc" <?= (($sortDir ?? 'asc') === 'asc') ? 'selected' : '' ?>>Ascending</option>
+                <option value="desc" <?= (($sortDir ?? 'asc') === 'desc') ? 'selected' : '' ?>>Descending</option>
+            </select>
+
+            <select name="algo" class="form-input" aria-label="Sorting algorithm" style="min-width: 150px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <?php foreach (($sortAlgorithms ?? []) as $key => $label): ?>
+                    <option value="<?= e($key) ?>" <?= (($sortAlgo ?? 'quick') === $key) ? 'selected' : '' ?>>
+                        <?= e($label) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.45rem 0.85rem;">Apply Sort</button>
+
+            <?php if (!empty($dsaMeta)): ?>
+                <span class="badge badge-info" title="Executed by the custom DSA engine over the authorized dataset" style="margin-left: auto;">
+                    <?= e($dsaMeta['algorithm_name']) ?> &middot;
+                    <?= e(ucwords(str_replace('_', ' ', $dsaMeta['field']))) ?>
+                    (<?= e($dsaMeta['direction'] === 'desc' ? '↓' : '↑') ?>) &middot;
+                    <?= e((string)$dsaMeta['count']) ?> rows &middot;
+                    <?= e((string)$dsaMeta['elapsed_ms']) ?> ms
+                    <?= !empty($dsaMeta['capped']) ? '&middot; capped at ' . e((string)$dsaMeta['cap']) : '' ?>
+                </span>
             <?php endif; ?>
         </div>
     </form>

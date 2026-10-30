@@ -4,8 +4,9 @@
             <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">User Account & Role Management</h1>
             <p style="color: #64748B; font-size: 0.875rem; margin: 0;">HR management console for maintaining authentication accounts, roles, and status.</p>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
             <a href="<?= url('/hr/dashboard') ?>" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+            <a href="<?= url('/hr/users/create') ?>" class="btn btn-primary btn-sm">+ Provision User Account</a>
         </div>
     </div>
 
@@ -73,7 +74,6 @@
                                 <td style="padding: 0.75rem 1rem;">
                                     <?php
                                         $roleBadgeStyle = match($u['role']) {
-                                            'admin'    => 'background: #EEF2FF; color: #4338CA; border: 1px solid #C7D2FE;',
                                             'hr'       => 'background: #FEF3C7; color: #B45309; border: 1px solid #FDE68A;',
                                             'employee' => 'background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;',
                                             default    => 'background: #F1F5F9; color: #475569;'

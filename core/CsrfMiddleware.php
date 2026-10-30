@@ -16,8 +16,22 @@ class CsrfMiddleware extends Middleware
         if (in_array($method, ['POST', 'PUT', 'DELETE', 'PATCH'], true)) {
             $token = $_POST['_csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null);
 
+            // If not found in $_POST or header, check JSON request body
+            if ($token === null) {
+                $rawBody = file_get_contents('php://input');
+                if (!empty($rawBody)) {
+                    $json = json_decode($rawBody, true);
+                    if (is_array($json) && isset($json['_csrf_token'])) {
+                        $token = (string)$json['_csrf_token'];
+                    }
+                }
+            }
+
             if (!verify_csrf_token($token)) {
-                if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+                $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                    || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+                if ($isJson) {
                     json_response([
                         'status'  => 'error',
                         'code'    => 403,

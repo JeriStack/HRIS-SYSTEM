@@ -50,27 +50,43 @@ providers:
 
 ---
 
-## 3. Provisioned Dashboard: `HRIS Stack Monitoring & Performance`
+## 3. Provisioned Dashboards
+
+### Dashboard 1: `HRIS Infrastructure Overview` (Recommended Executive View)
+
+**File:** `docker/grafana/dashboards/infrastructure-overview.json`  
+**UID:** `hris-infrastructure-overview`  
+**URL:** [http://localhost:3100/d/hris-infrastructure-overview/hris-infrastructure-overview](http://localhost:3100/d/hris-infrastructure-overview/hris-infrastructure-overview)
+
+- **Row 1 — Stack & Service Health Overview:** Nginx Proxy Gateway, MySQL 8.0 Database, Prometheus Server status cards with dynamic green/red badges and Database Uptime duration.
+- **Row 2 — Inbound Traffic & Web Gateway Analytics (Nginx):** Total HTTP requests processed counter, real-time HTTP inbound request rate (`req/sec`), active connections breakdown (Active, Reading, Writing, Waiting), and connection drop verification (`accepted` vs `handled`).
+- **Row 3 — MySQL Database Performance & Operations:** Query execution rate (QPS) with slow queries rate alert, connection saturation gauge against max ceiling (151 connections), and InnoDB buffer pool memory utilization.
+- **Row 4 — SQL Commands Breakdown & Network Throughput:** Live operations breakdown by command (`SELECT`, `INSERT`, `UPDATE`, `DELETE`, `COMMIT`) and inbound/outbound network I/O bandwidth (`Bytes/sec`).
+- **Row 5 — Monitoring Engine Health & Scraping Metrics (Prometheus):** Scrape latency per exporter target and metric samples processed per cycle.
+
+---
+
+### Dashboard 2: `HRIS MySQL Database Deep-Dive`
+
+**File:** `docker/grafana/dashboards/mysql-deep-dive.json`  
+**UID:** `hris-mysql-deep-dive`  
+**URL:** [http://localhost:3100/d/hris-mysql-deep-dive/hris-mysql-database-deep-dive](http://localhost:3100/d/hris-mysql-deep-dive/hris-mysql-database-deep-dive)
+
+- **Instance Health & KPIs:** Instance status, server uptime, cumulative queries processed counter, and slow query tally.
+- **Throughput & CRUD Operations:** Total QPS time series and detailed multi-series CRUD command distribution.
+- **Memory & Connections:** Connection pool saturation gauge, InnoDB buffer pool data vs total size, and network bandwidth in/out.
+
+---
+
+### Dashboard 3: `HRIS Stack Monitoring & Performance`
 
 **File:** `docker/grafana/dashboards/stack-overview.json`  
 **UID:** `hris-stack-overview`  
 **URL:** [http://localhost:3100/d/hris-stack-overview/hris-stack-monitoring-and-performance](http://localhost:3100/d/hris-stack-overview/hris-stack-monitoring-and-performance)
 
-### Row 1: Stack & Service Health Overview
-- **Nginx Proxy Status:** Single-stat panel querying `up{job="nginx"}` (Healthy = 1, Down = 0).
-- **MySQL Database Status:** Single-stat panel querying `up{job="mysql"}`.
-- **Prometheus Monitor Status:** Single-stat panel querying `up{job="prometheus"}`.
-
-### Row 2: Nginx Reverse Proxy Metrics
-- **Nginx Inbound Request Rate:** Time series tracking `rate(nginx_http_requests_total[1m])` in requests per second.
-- **Nginx Active Connections Breakdown:** Time series displaying `nginx_connections_active`, `nginx_connections_reading`, `nginx_connections_writing`, and `nginx_connections_waiting`.
-
-### Row 3: MySQL Database Performance & Resource Metrics
-- **MySQL Query Execution Rate:** Time series tracking total queries/sec (`rate(mysql_global_status_queries[1m])`) and slow queries/sec.
-- **MySQL Client Connections:** Gauge panel tracking `mysql_global_status_threads_connected` against max allowable ceiling (151).
-- **MySQL InnoDB Buffer Pool:** Time series tracking buffer pool used (`mysql_global_status_innodb_buffer_pool_bytes_data`) against total pool size (`mysql_global_variables_innodb_buffer_pool_size`).
-- **MySQL Network Throughput:** Time series measuring inbound (`rate(mysql_global_status_bytes_received[1m])`) and outbound bandwidth (`rate(mysql_global_status_bytes_sent[1m])`).
-- **MySQL Database Uptime:** Stat panel tracking total server uptime in seconds (`mysql_global_status_uptime`).
+- **Row 1:** Stack & Service Health Overview (Nginx, MySQL, Prometheus).
+- **Row 2:** Nginx Inbound Request Rate and Connections Breakdown.
+- **Row 3:** MySQL Query Execution Rate, Client Connections Gauge, InnoDB Buffer Pool, Network Throughput, and Database Uptime.
 
 ---
 

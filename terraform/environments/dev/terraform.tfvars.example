@@ -1,0 +1,6 @@
+environment         = "dev"
+test_container_name = "hris_dev_test_sandbox"
+test_network_name   = "hris_dev_test_network"
+test_image_name     = "alpine:3.21.3"
+docker_host         = "npipe:////./pipe/docker_engine"
+

@@ -1,0 +1,34 @@
+# ==============================================================================
+# Terraform Git Ignore Rules (Localized)
+# HRIS-SYSTEM — Local Infrastructure as Code
+# ==============================================================================
+
+# Local .terraform execution cache & provider binaries
+.terraform/
+.terraform.lock.hcl.backup
+
+# State files & backups (prevent credential & state leakage)
+*.tfstate
+*.tfstate.*
+
+# Execution plan binaries
+*.tfplan
+*.tfplan.*
+
+# Crash diagnostic logs
+crash.log
+crash.*.log
+
+# Variable files that may contain local secrets
+*.tfvars
+!*.tfvars.example
+
+# Local overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Explicitly track dependency lock file (REQUIRED for reproducibility)
+!terraform.lock.hcl
+

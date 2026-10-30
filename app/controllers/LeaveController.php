@@ -16,6 +16,9 @@ use App\Models\ActivityLog;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\LeaveCalculator;
+use App\Services\LeaveNotificationService;
+use App\Services\LeaveApprovalQueueService;
+use App\Application\Leave\Adapters\LeaveControllerAdapter;
 
 class LeaveController extends Controller
 {
@@ -25,15 +28,21 @@ class LeaveController extends Controller
     private ActivityLog $activityLog;
     private Notification $notificationModel;
     private User $userModel;
+    private LeaveNotificationService $leaveNotifications;
+    private LeaveControllerAdapter $leaveAdapter;
 
-    public function __construct()
-    {
-        $this->leaveModel = new Leave();
+    public function __construct(
+        ?Leave $leaveModel = null,
+        ?LeaveControllerAdapter $leaveAdapter = null
+    ) {
+        $this->leaveModel = $leaveModel ?? new Leave();
         $this->employeeModel = new Employee();
         $this->departmentModel = new Department();
         $this->activityLog = new ActivityLog();
         $this->notificationModel = new Notification();
         $this->userModel = new User();
+        $this->leaveNotifications = new LeaveNotificationService($this->notificationModel, $this->userModel);
+        $this->leaveAdapter = $leaveAdapter ?? new LeaveControllerAdapter();
     }
 
     /**
@@ -51,6 +60,12 @@ class LeaveController extends Controller
         $requests = $this->leaveModel->getAllRequests($status, $empId, 200, $startDate, $endDate, $deptId);
         $departments = $this->departmentModel->getAll();
 
+        // Build deterministic FIFO Pending Approval Queue using custom Queue data structure (Phase 11/13)
+        $queueService = new LeaveApprovalQueueService($this->leaveModel);
+        $approvalQueue = $queueService->buildPendingApprovalQueue($deptId, 100);
+        $nextInLine = $queueService->getNextInLine($approvalQueue);
+        $queueDepth = $approvalQueue->size();
+
         $this->view('leaves.index', [
             'pageTitle'      => 'Leave Requests Review Queue',
             'requests'       => $requests,
@@ -60,6 +75,8 @@ class LeaveController extends Controller
             'startDate'      => $startDate,
             'endDate'        => $endDate,
             'departments'    => $departments,
+            'queueDepth'     => $queueDepth,
+            'nextInLine'     => $nextInLine,
             'user'           => currentUser(),
         ], 'hr');
     }
@@ -393,6 +410,13 @@ class LeaveController extends Controller
             return;
         }
 
+        $employee = $this->employeeModel->findById((int)$empId);
+        if (!$employee || ($employee['employment_status'] ?? '') !== 'Active') {
+            Session::flash('error', 'Unable to file leave: Your employment account is inactive. Please contact HR.');
+            redirect('/dashboard');
+            return;
+        }
+
         $leaveTypes = $this->leaveModel->getLeaveTypes();
         $balances = $this->leaveModel->getBalancesByEmployee((int)$empId);
 
@@ -415,6 +439,13 @@ class LeaveController extends Controller
 
         if (!$empId) {
             Session::flash('error', 'Unable to submit leave: No linked employee record.');
+            redirect('/dashboard');
+            return;
+        }
+
+        $employee = $this->employeeModel->findById((int)$empId);
+        if (!$employee || ($employee['employment_status'] ?? '') !== 'Active') {
+            Session::flash('error', 'Unable to submit leave request: Your employment account is inactive. Please contact HR.');
             redirect('/dashboard');
             return;
         }
@@ -490,21 +521,30 @@ class LeaveController extends Controller
             return;
         }
 
-        // 6. Create request in database with authoritative server-calculated days
-        $requestId = $this->leaveModel->createRequest([
-            'employee_id'    => (int)$empId,
-            'leave_type_id'  => $leaveTypeId,
-            'start_date'     => $startDate,
-            'end_date'       => $endDate,
-            'number_of_days' => $days,
-            'reason'         => $reason,
-        ]);
+        // 6. Create request and HR notifications atomically (real-time events
+        //    are emitted by the WebSocket service only after this commits)
+        try {
+            $requestId = $this->leaveModel->createRequest([
+                'employee_id'    => (int)$empId,
+                'leave_type_id'  => $leaveTypeId,
+                'start_date'     => $startDate,
+                'end_date'       => $endDate,
+                'number_of_days' => $days,
+                'reason'         => $reason,
+            ], function (int $newId) use ($user, $days): void {
+                $this->leaveNotifications->leaveSubmitted(
+                    $newId,
+                    "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
+                );
+            });
+        } catch (\Throwable $e) {
+            error_log('[LeaveController::store] Leave submission failed: ' . $e->getMessage());
+            Session::flash('error', 'Unable to submit your leave request right now. Please try again.');
+            redirect('/leaves/apply');
+            return;
+        }
 
         $this->activityLog->log($user['id'], 'LEAVE_REQUESTED', "Submitted {$days}-day leave request #{$requestId} for {$leaveType['leave_name']}", 'LeaveRequest', (string)$requestId);
-
-        // Dispatch in-system notification to HR and Admin
-        $this->notificationModel->notifyRole('hr', 'New Leave Application', "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$requestId, 3, '0', STR_PAD_LEFT) . ".", 'info');
-        $this->notificationModel->notifyRole('admin', 'New Leave Application', "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$requestId, 3, '0', STR_PAD_LEFT) . ".", 'info');
 
         Session::flash('success', "Leave request for {$days} working day(s) submitted successfully. Status is Pending HR review.");
         redirect('/employee/dashboard');
@@ -517,44 +557,65 @@ class LeaveController extends Controller
     public function approve(int $id): void
     {
         $user = currentUser();
-        $req = $this->leaveModel->getRequestById($id);
-
-        if (!$req) {
-            Session::flash('error', "Leave request #{$id} does not exist.");
-            redirect('/leaves');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+            redirect('/dashboard');
             return;
         }
 
-        if ($req['status'] !== 'Pending') {
-            Session::flash('error', "Cannot approve request #{$id}: Request has already been processed (Current Status: {$req['status']}).");
-            redirect('/leaves');
-            return;
-        }
+        // Delegate to verified application use case via adapter
+        $result = $this->leaveAdapter->approve($id, (int)$user['id']);
 
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Approved', (int)$user['id']);
-
-        if ($ok) {
-            $this->activityLog->log($user['id'], 'LEAVE_APPROVED', "Approved leave request #{$id} ({$req['number_of_days']} days) for employee #{$req['employee_id']}", 'LeaveRequest', (string)$id);
-
-            // Dispatch notification to requester
-            if (!empty($req['employee_id'])) {
-                $targetUser = $this->userModel->findByEmployeeId((int)$req['employee_id']);
-                if ($targetUser) {
-                    $this->notificationModel->create(
-                        (int)$targetUser['id'],
-                        'Leave Request Approved',
-                        "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$req['number_of_days']} days for {$req['leave_name']}) was approved by HR.",
-                        'success'
-                    );
-                }
+        if ($result->success) {
+            $req = $this->leaveModel->getRequestById($id);
+            if ($req) {
+                $this->leaveNotifications->leaveDecided(
+                    $req,
+                    'Approved',
+                    "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$req['number_of_days']} days for {$req['leave_name']}) was approved by HR."
+                );
             }
-
-            Session::flash('success', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " approved and employee balance updated.");
+            $this->activityLog->log($user['id'], 'LEAVE_APPROVED', "Approved leave request #{$id}", 'LeaveRequest', (string)$id);
+            Session::flash('success', $result->message);
         } else {
-            Session::flash('error', "Failed to approve leave request #{$id}. There may be an overlapping approved request or insufficient balance.");
+            Session::flash('error', $result->message);
         }
 
         redirect('/leaves');
+    }
+
+    /**
+     * Process Next Pending Leave Request in FIFO Queue Order (HR & Admin Access)
+     * Route: POST /leaves/queue/next
+     */
+    public function processNextQueue(): void
+    {
+        $user = currentUser();
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+            redirect('/dashboard');
+            return;
+        }
+
+        $deptId = !empty($_POST['dept_id']) ? (int)$_POST['dept_id'] : null;
+        $queueService = new LeaveApprovalQueueService($this->leaveModel);
+        $queue = $queueService->buildPendingApprovalQueue($deptId, 50);
+
+        if ($queue->isEmpty()) {
+            Session::flash('info', 'No pending leave requests in the queue to process.');
+            redirect('/leaves?status=Pending');
+            return;
+        }
+
+        $result = $queueService->processNextApproval($queue, (int)$user['id']);
+
+        if ($result['success']) {
+            Session::flash('success', "FIFO Queue Success: {$result['message']}");
+        } else {
+            Session::flash('error', "FIFO Queue Processing Error: {$result['message']}");
+        }
+
+        redirect('/leaves?status=Pending');
     }
 
     /**
@@ -564,17 +625,9 @@ class LeaveController extends Controller
     public function reject(int $id): void
     {
         $user = currentUser();
-        $req = $this->leaveModel->getRequestById($id);
-
-        if (!$req) {
-            Session::flash('error', "Leave request #{$id} does not exist.");
-            redirect('/leaves');
-            return;
-        }
-
-        if ($req['status'] !== 'Pending') {
-            Session::flash('error', "Cannot reject request #{$id}: Request has already been processed (Current Status: {$req['status']}).");
-            redirect('/leaves');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may reject leave requests.');
+            redirect('/dashboard');
             return;
         }
 
@@ -583,27 +636,22 @@ class LeaveController extends Controller
             $rejectionReason = 'Request declined per HR department review.';
         }
 
-        $ok = $this->leaveModel->updateRequestStatus($id, 'Rejected', (int)$user['id'], $rejectionReason);
+        // Delegate to verified application use case via adapter
+        $result = $this->leaveAdapter->reject($id, (int)$user['id'], $rejectionReason);
 
-        if ($ok) {
-            $this->activityLog->log($user['id'], 'LEAVE_REJECTED', "Rejected leave request #{$id}. Reason: {$rejectionReason}", 'LeaveRequest', (string)$id);
-
-            // Dispatch notification to requester
-            if (!empty($req['employee_id'])) {
-                $targetUser = $this->userModel->findByEmployeeId((int)$req['employee_id']);
-                if ($targetUser) {
-                    $this->notificationModel->create(
-                        (int)$targetUser['id'],
-                        'Leave Request Declined',
-                        "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}",
-                        'warning'
-                    );
-                }
+        if ($result->success) {
+            $req = $this->leaveModel->getRequestById($id);
+            if ($req) {
+                $this->leaveNotifications->leaveDecided(
+                    $req,
+                    'Rejected',
+                    "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}"
+                );
             }
-
-            Session::flash('warning', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Entitlement remains untouched.");
+            $this->activityLog->log($user['id'], 'LEAVE_REJECTED', "Rejected leave request #{$id}. Reason: {$rejectionReason}", 'LeaveRequest', (string)$id);
+            Session::flash('warning', $result->message);
         } else {
-            Session::flash('error', "Failed to reject leave request #{$id}.");
+            Session::flash('error', $result->message);
         }
 
         redirect('/leaves');
@@ -620,33 +668,10 @@ class LeaveController extends Controller
         $userRole = strtolower($user['role'] ?? 'employee');
         $myEmpId = (int)($user['employee_id'] ?? 0);
 
-        $req = $this->leaveModel->getRequestById($id);
-        if (!$req) {
-            Session::flash('error', "Leave request #{$id} not found.");
-            redirect('/dashboard');
-            return;
-        }
+        $isHrOrAdmin = ($userRole === 'hr' || $userRole === 'admin');
+        $result = $this->leaveAdapter->cancel($id, $myEmpId, $isHrOrAdmin);
 
-        // Ownership enforcement for employees
-        if ($userRole === 'employee' && (int)$req['employee_id'] !== $myEmpId) {
-            Session::flash('error', 'Unauthorized action: You cannot cancel another employee\'s leave request.');
-            redirect('/employee/dashboard');
-            return;
-        }
-
-        if ($req['status'] !== 'Pending') {
-            Session::flash('error', "Cannot cancel request #{$id}: Only Pending requests can be cancelled (Current status: {$req['status']}).");
-            if ($userRole === 'employee') {
-                redirect('/employee/leave-requests');
-            } else {
-                redirect('/leaves');
-            }
-            return;
-        }
-
-        $ok = $this->leaveModel->cancelRequest($id, (int)$req['employee_id']);
-
-        if ($ok) {
+        if ($result->success) {
             $this->activityLog->log($user['id'], 'LEAVE_CANCELLED', "Cancelled leave request #{$id}", 'LeaveRequest', (string)$id);
 
             // Notify HR if cancelled by employee
@@ -659,9 +684,9 @@ class LeaveController extends Controller
                 );
             }
 
-            Session::flash('info', "Leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " has been cancelled.");
+            Session::flash('info', $result->message);
         } else {
-            Session::flash('error', "Failed to cancel request #{$id}.");
+            Session::flash('error', $result->message);
         }
 
         if ($userRole === 'employee') {

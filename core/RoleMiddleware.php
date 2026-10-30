@@ -25,7 +25,10 @@ class RoleMiddleware extends Middleware
     {
         // 1. Must be authenticated
         if (!isAuthenticated()) {
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 401,
@@ -45,7 +48,10 @@ class RoleMiddleware extends Middleware
         if (!$userRole || !in_array(strtolower($userRole), $normalizedAllowed, true)) {
             http_response_code(403);
 
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 403,

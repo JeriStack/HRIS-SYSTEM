@@ -232,21 +232,66 @@ Employee-HRIS-Leave-Management-System/
 
 ---
 
-## 6. Demonstration Accounts & Local Testing
+## 6. Production Authentication & Real Account Provisioning
 
-The database (`database/seed.sql`) includes pre-hashed development accounts configured for local testing:
+The application uses an enterprise-grade **Email Address + Password → Email OTP Verification → Role-Based Dashboard** flow. All demonstration login buttons, hardcoded demo credentials (`hr01`, `emp004`), quick-login shortcuts, and authentication bypasses have been completely removed.
 
-| Username | Password | Assigned Role | Associated Employee | Dedicated Dashboard | Permitted Operational Scope |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `hr01` | `Admin@123` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
-| `hr02` | `Admin@123` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | Full HR Management: Workforce Directory, Depts, Positions, Leaves, User Accounts (`/hr/users`), Reports, Audit Trail, DSA Lab |
-| `emp004` | `Employee@123` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp005` | `Employee@123` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp006` | `Employee@123` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
-| `emp007` | `Employee@123` | `employee` | Beatrice Gomez (EMP007)| `/employee/dashboard` | Employee Self-Service Only: Personal Profile, Balances, File Requests, My Applications |
+### Authentication Flow
+
+1. **Step 1: Email & Password Submission** (`/login`)
+   - Users submit their registered email address and password.
+   - Server-side email normalization (`trim` and lowercase), CSRF verification, rate limiting, and password verification (`password_verify`).
+   - Account must be `active` and assigned to one of the two supported roles: `hr` or `employee`.
+2. **Step 2: Cryptographic OTP Dispatch** (`/login/otp`)
+   - A cryptographically secure 6-digit numeric OTP is generated (`random_int(100000, 999999)`).
+   - Only a SHA-256 hash of the OTP is persisted in `email_otps`. The plaintext code is never stored in the database.
+   - The OTP is dispatched via PHPMailer SMTP to the account's registered email address.
+   - Strict security controls: 5-minute expiry, max 5 failed attempts per challenge, 60-second resend cooldown.
+3. **Step 3: Role-Based Dashboard Entry**
+   - Upon successful verification, the challenge is consumed atomically, the session ID is regenerated (`session_regenerate_id(true)`), and the user is redirected to their dedicated dashboard:
+     - **HR Officers (`hr`)** → `/hr/dashboard`
+     - **Employees (`employee`)** → `/employee/dashboard`
+
+---
+
+### Provisioning Accounts
+
+No public registration exists. Accounts are provisioned through strictly controlled mechanisms:
+
+#### 1. Provisioning the First HR Account (CLI Bootstrapper)
+For fresh installations or provisioning privileged HR users without accessing the web UI:
+```bash
+# Interactive mode (prompts for email, password, and username)
+php bin/create_hr_user.php
+
+# Non-interactive CLI flags
+php bin/create_hr_user.php --email="hr.admin@company.com" --password="StrongPassword123!" --username="hr.admin"
+```
+
+#### 2. Provisioning Employee and HR Accounts (HR Portal)
+Authenticated HR Officers can provision portal accounts for active workforce members:
+1. Navigate to **HR Operational Portal → User Accounts (`/hr/users`)**.
+2. Click **"+ Provision User Account"** or select **"Provision Portal Account"** on any employee record (`/hr/employees/{id}`).
+3. Select the unlinked employee, verify their official email address, assign the role (`hr` or `employee`), and set a secure initial password.
+
+---
+
+### Pre-Seeded Development Accounts (Local Testing)
+
+For local development and testing, accounts are registered to actual employee profile emails:
+
+| Registered Email | Assigned Role | Associated Employee | Dedicated Dashboard | Permitted Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| `marcus.tan@company.local` | `hr` | Marcus Tan (EMP002) | `/hr/dashboard` | HR Management: Workforce, Departments, Positions, Leaves, User Provisioning (`/hr/users`), Reports, Audit Trail |
+| `sofia.reyes@company.local` | `hr` | Sofia Reyes (EMP003) | `/hr/dashboard` | HR Management: Workforce, Departments, Positions, Leaves, User Provisioning (`/hr/users`), Reports, Audit Trail |
+| `david.cruz@company.local` | `employee` | David Cruz (EMP004) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `maria.santos@company.local` | `employee` | Maria Santos (EMP005) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `juan.delacruz@company.local` | `employee` | Juan Dela Cruz (EMP006) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
+| `beatrice.gomez@company.local` | `employee` | Beatrice Gomez (EMP007) | `/employee/dashboard` | Employee Self-Service: Personal Profile, Balances, Leave Requests, My Applications |
 
 > [!NOTE]
-> The former `admin` user account has been deleted as part of the 2-role system refinement. All system management, user governance, and role assignments are now safely administered by **HR Officers**.
+> During local testing without an active external SMTP relay, enable mock mode (`MAIL_MOCK=true`) in `.env` or inspect OTPs generated during automated test suites. To test real email delivery with Gmail or custom SMTP, run `php bin/test_smtp.php`.
+
 
 ---
 
@@ -258,12 +303,13 @@ You can run the Employee HRIS & Leave Management System either via **Docker (Rec
 
 The system includes a pre-configured, production-grade 8-container stack featuring:
 - **Nginx Reverse Proxy** at the edge ([http://localhost:8080](http://localhost:8080))
-- **PHP 8.2 + Apache Application Server** (shielded internally behind Nginx)
+- **PHP 8.5.12 + Apache Application Server** (`php:8.5.12-apache-trixie`, shielded internally behind Nginx)
 - **MySQL 8.0 Database** with persistent storage volume ([localhost:3307](http://localhost:3307))
 - **phpMyAdmin** for browser database management ([http://localhost:8081](http://localhost:8081))
 - **Prometheus** time-series metrics collection ([http://localhost:9090](http://localhost:9090))
 - **Grafana** performance & health visualization dashboards ([http://localhost:3100](http://localhost:3100))
 - **Specialized Monitoring Exporters:** `nginx-exporter` and `mysqld-exporter`
+- **Real-time WebSocket service** (`realtime`, Ratchet) reachable only through Nginx at `ws://localhost:8080/ws`. Run `docker compose exec app php bin/migrate.php` once after pulling. See [docs/realtime/README.md](docs/realtime/README.md).
 
 #### 1. Prerequisites
 * [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
@@ -328,7 +374,119 @@ Access the application through your browser:
 
 ---
 
-## 8. Automated Test Execution & Quality Assurance
+## 8. REST API Documentation & Swagger UI
+
+The HRIS enterprise system features an official **OpenAPI 3.0** REST API layer under `/api/v1` along with **Swagger UI** for interactive exploration and client integration.
+
+### Accessing Swagger UI
+
+| Interface | URL | Description |
+| :--- | :--- | :--- |
+| **Docker Compose Swagger UI** | `http://localhost:8083` | Dedicated container (`hris_swagger_ui`) mounting `docs/api/openapi.yaml` |
+| **Application Embedded Swagger UI** | `http://localhost:8080/docs` | Built-in Swagger UI portal (active in `development` environment) |
+| **Alternative App Docs Route** | `http://localhost:8080/api/docs` | Standard `/api/docs` route alias |
+| **OpenAPI YAML Specification** | `http://localhost:8080/api/docs/openapi.yaml` | Raw OpenAPI 3.0.0 YAML schema definition |
+| **OpenAPI JSON Specification** | `http://localhost:8080/api/docs/openapi.json` | Raw OpenAPI 3.0.0 JSON schema definition |
+
+> **Production Security Note:** Swagger UI and specification inspection endpoints are environment-gated and disabled in `production` unless explicitly authorized.
+
+### Regenerating OpenAPI Specifications
+
+Source documentation annotations are maintained using native **PHP 8 attributes** (`OpenApi\Attributes`) directly within controllers in `app/controllers/Api/`.
+
+To regenerate `docs/api/openapi.yaml` and `docs/api/openapi.json`:
+
+```bash
+# Option 1: Using Composer script (generates both YAML and JSON)
+composer swagger:generate
+
+# Option 2: Using the CLI generator script directly
+php bin/generate_docs.php
+
+# Option 3: Using the zircote/swagger-php binary directly
+vendor/bin/openapi app -o docs/api/openapi.yaml
+vendor/bin/openapi app -f json -o docs/api/openapi.json
+```
+
+### API Endpoint Groups & Tags
+
+The API specification is organized into 9 structured functional tags:
+
+1. **`Authentication`**:
+   - `GET /api/v1/auth/csrf`: Retrieve active session CSRF token for testing and client headers.
+   - `POST /api/v1/auth/login`: Stage 1 password challenge; dispatches 6-digit email OTP.
+   - `POST /api/v1/auth/verify-otp`: Stage 2 OTP verification; establishes session cookie (`PHPSESSID`).
+   - `POST /api/v1/auth/resend-otp`: Resend fresh OTP (subject to 60-second rate-limiting cooldown).
+   - `POST /api/v1/auth/logout`: Invalidate and destroy active authenticated session.
+2. **`Account and Profile`**:
+   - `GET /api/v1/profile`: Retrieve authenticated user identity, assigned role, and linked employee record.
+   - `GET /api/v1/notifications`: List personal notifications and unread alert counts.
+   - `POST /api/v1/notifications/{id}/read`: Mark notification as read.
+   - `POST /api/v1/notifications/mark-all-read`: Mark all notifications as read.
+3. **`Employee Management`** *(HR Role Only)*:
+   - `GET /api/v1/employees`: Search and list workforce directory with department and status filters.
+   - `GET /api/v1/employees/{id}`: Detailed individual employee record inspection.
+   - `POST /api/v1/employees`: Register new workforce member (enforces unique employee number and email).
+   - `PUT /api/v1/employees/{id}`: Update employee demographic and departmental alignment.
+   - `POST /api/v1/employees/{id}/deactivate`: Soft-deactivate employee while preserving historical audit trails.
+4. **`Department Management`**:
+   - `GET /api/v1/departments`: List organizational departments with position counts and headcount.
+   - `GET /api/v1/departments/{id}`: Department profile details.
+   - `POST /api/v1/departments`: Create new department *(HR only)*.
+   - `PUT /api/v1/departments/{id}`: Update department *(HR only)*.
+5. **`Position Management`**:
+   - `GET /api/v1/positions`: List job positions with optional department filter.
+   - `GET /api/v1/positions/{id}`: Job position classification details.
+   - `POST /api/v1/positions`: Create position classification *(HR only)*.
+   - `PUT /api/v1/positions/{id}`: Update position classification *(HR only)*.
+   - `GET /hr/api/positions-by-department/{id}`: Operational dynamic dropdown feed.
+6. **`Leave Types and Balances`**:
+   - `GET /api/v1/leave-types`: Active leave policy classifications for employee submission.
+   - `GET /api/v1/hr/leave-types`: All leave classifications with usage statistics *(HR only)*.
+   - `POST /api/v1/hr/leave-types`: Create leave policy classification *(HR only)*.
+   - `GET /api/v1/leave-balances/my`: Personal leave balances for current calendar year.
+   - `GET /api/v1/hr/leave-balances`: Organization-wide leave balances *(HR only)*.
+   - `POST /api/v1/hr/leave-balances/adjust`: Adjust employee allocated leave days *(HR only)*.
+7. **`Leave Requests`**:
+   - `GET /api/v1/leaves/my`: Personal leave submission history (enforces strict employee ownership).
+   - `POST /api/v1/leaves`: Submit new leave application (calculates Mon–Fri working days, validates quota and overlap).
+   - `GET /api/v1/leaves/{id}`: View leave request (restricted to submitting employee or HR).
+   - `POST /api/v1/leaves/{id}/cancel`: Cancel pending leave request (owner employee only).
+8. **`HR Approvals`** *(HR Role Only)*:
+   - `GET /api/v1/hr/leaves`: Review queue with status, employee, department, and date range filters.
+   - `POST /api/v1/hr/leaves/{id}/approve`: Transaction-safe approval with balance quota deduction and collision defense.
+   - `POST /api/v1/hr/leaves/{id}/reject`: Rejection with administrative reason recording.
+9. **`Health and Diagnostics`**:
+   - `GET /api/v1/health`: Clean operational health check without sensitive environment or database credentials.
+   - `GET /health`: Operational telemetry endpoint.
+
+### Testing Endpoints via Swagger UI or cURL
+
+1. **Obtain CSRF Token:**
+   ```bash
+   curl -s -c cookies.txt http://localhost:8080/api/v1/auth/csrf
+   ```
+2. **Initiate Login (Stage 1):**
+   ```bash
+   curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
+     -H "Content-Type: application/json" \
+     -d '{"email":"your-email@company.local","password":"YourPassword"}'
+   ```
+3. **Verify OTP (Stage 2):**
+   ```bash
+   curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/v1/auth/verify-otp \
+     -H "Content-Type: application/json" \
+     -d '{"otp":"123456"}'
+   ```
+4. **Access Protected Endpoints:**
+   ```bash
+   curl -s -b cookies.txt http://localhost:8080/api/v1/profile
+   ```
+   For state-changing operations (`POST`, `PUT`, `DELETE`), pass the CSRF token in the `X-CSRF-Token` header.
+
+---
+
+## 9. Automated Test Execution & Quality Assurance
 
 The system includes 4 automated test suites validating authentication, authorization, CRUD operations, HTTP routes, ownership enforcement, and deployment workflows:
 
@@ -362,6 +520,8 @@ TOTAL AUTOMATED ASSERTIONS         -> 171 Passed, 0 Failed (100% Pass Rate)
 
 ## 9. Security & Governance Policies
 
+* **Two-Factor Email OTP Authentication:** Login requires the user's registered email address and password, followed by a time-limited 6-digit numeric OTP dispatched via PHPMailer SMTP with row-locked atomic consumption, 5-minute expiry, and 60-second resend cooldown.
+* **Account Provisioning & Onboarding:** Controlled onboarding via authenticated HR management (`/hr/users/create`) and restricted initial setup CLI tool (`bin/create_hr_user.php`). All demo accounts, shortcuts, and bypasses are removed.
 * **Authentication:** Parameterized PDO queries against SQL injection, native BCRYPT password hashing (`password_hash`, `password_verify`).
 * **Session Hardening:** Strict session regeneration on privilege escalation (`session_regenerate_id(true)`), `HttpOnly` and `SameSite=Lax` cookies, 30-minute inactivity timeout.
 * **Access Control:** Centralized `Core\Permission` policy and server-side `RoleMiddleware` enforcing strict boundary isolation between HR and Employee dashboards.

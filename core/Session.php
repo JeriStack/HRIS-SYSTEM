@@ -53,12 +53,15 @@ class Session
             if ($inactiveDuration > $timeoutSeconds) {
                 // Invalidate session due to inactivity
                 unset($_SESSION['user']);
+                // Rotate the real-time session reference so a later login never
+                // shares WebSocket revocation state with the expired one
+                unset($_SESSION['_realtime_ref']);
                 if (session_status() === PHP_SESSION_ACTIVE) {
                     session_regenerate_id(true);
                 }
                 self::flash('timeout', 'Your session has expired due to 30 minutes of inactivity. Please sign in again.');
-            } else {
-                // Refresh activity timestamp
+            } elseif (!self::isBackgroundRequest()) {
+                // Refresh activity timestamp (user-initiated requests only)
                 $_SESSION['last_activity'] = time();
             }
         }
@@ -67,6 +70,16 @@ class Session
         if (empty($_SESSION['_csrf_token'])) {
             $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
         }
+    }
+
+    /**
+     * Background requests (real-time ticket refresh, notification history
+     * sync) send "X-HRIS-Background: 1" so they do not extend the inactivity
+     * timeout. The header can only withhold a refresh, never grant access.
+     */
+    public static function isBackgroundRequest(): bool
+    {
+        return ($_SERVER['HTTP_X_HRIS_BACKGROUND'] ?? '') === '1';
     }
 
     /**
