@@ -12,6 +12,9 @@ namespace App\Domain\Leave\Entities;
 use App\Domain\Leave\ValueObjects\LeaveDateRange;
 use App\Domain\Leave\ValueObjects\LeaveStatus;
 use App\Domain\Leave\Exceptions\InvalidStatusTransitionException;
+use App\Domain\Leave\Events\LeaveApprovedEvent;
+use App\Domain\Leave\Events\LeaveRejectedEvent;
+use App\Domain\Common\DomainEventInterface;
 use InvalidArgumentException;
 use DateTimeImmutable;
 
@@ -27,6 +30,8 @@ class LeaveRequest
     private ?int $approvedBy;
     private ?DateTimeImmutable $approvedAt;
     private ?DateTimeImmutable $createdAt;
+    /** @var DomainEventInterface[] */
+    private array $recordedEvents = [];
 
     private function __construct(
         ?int $id,
@@ -134,6 +139,15 @@ class LeaveRequest
         $this->status = $targetStatus;
         $this->approvedBy = $approverUserId;
         $this->approvedAt = $approvedAt ?? new DateTimeImmutable();
+
+        $this->recordEvent(new LeaveApprovedEvent(
+            $this->id ?? 0,
+            $this->employeeId,
+            $this->leaveTypeId,
+            $this->numberOfDays(),
+            $this->approvedBy,
+            $this->approvedAt
+        ));
     }
 
     public function reject(int $approverUserId, string $rejectionReason, ?DateTimeImmutable $rejectedAt = null): void
@@ -157,6 +171,31 @@ class LeaveRequest
         $this->rejectionReason = $trimmedRejectionReason;
         $this->approvedBy = $approverUserId;
         $this->approvedAt = $rejectedAt ?? new DateTimeImmutable();
+
+        $this->recordEvent(new LeaveRejectedEvent(
+            $this->id ?? 0,
+            $this->employeeId,
+            $this->leaveTypeId,
+            $this->numberOfDays(),
+            $this->approvedBy,
+            $this->rejectionReason,
+            $this->approvedAt
+        ));
+    }
+
+    /**
+     * @return DomainEventInterface[]
+     */
+    public function releaseEvents(): array
+    {
+        $events = $this->recordedEvents;
+        $this->recordedEvents = [];
+        return $events;
+    }
+
+    private function recordEvent(DomainEventInterface $event): void
+    {
+        $this->recordedEvents[] = $event;
     }
 
     public function cancel(): void
