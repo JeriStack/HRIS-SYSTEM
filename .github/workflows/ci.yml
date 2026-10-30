@@ -6,6 +6,7 @@ on:
       - main
       - development
       - develop
+      - 'HRIS-*'
   pull_request:
     branches:
       - main
@@ -52,7 +53,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Verify secrets are not tracked
         shell: bash
@@ -151,12 +152,45 @@ jobs:
             echo "PHPUnit is not installed; automated tests are skipped."
           fi
 
+  terraform-validation:
+    name: Terraform Formatting and Validation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+
+      - name: Verify Terraform version
+        run: terraform version
+
+      - name: Check Terraform formatting (recursive)
+        run: |
+          echo "Checking canonical Terraform formatting across all configurations..."
+          terraform fmt -check -recursive
+
+      - name: Initialize and validate Root Terraform configuration
+        run: |
+          echo "Validating root Terraform configuration in terraform/..."
+          terraform -chdir=terraform init -backend=false
+          terraform -chdir=terraform validate
+
+      - name: Initialize and validate Development Environment configuration
+        run: |
+          echo "Validating development environment configuration in terraform/environments/dev/..."
+          terraform -chdir=terraform/environments/dev init -backend=false
+          terraform -chdir=terraform/environments/dev validate
+
   docker-build:
     name: Docker Container Build
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -166,4 +200,3 @@ jobs:
           echo "Validating Docker container build..."
           docker build -t hris-app:ci .
           echo "Docker container built successfully."
-

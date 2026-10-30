@@ -44,6 +44,7 @@ try {
     $router->get('/', [HomeController::class, 'index']);
     $router->get('/health', [HomeController::class, 'health']);
     $router->get('/status', [HomeController::class, 'health']);
+    $router->get('/metrics', [HomeController::class, 'metrics']);
 
     // Authentication Routes
     $router->get('/login', [AuthController::class, 'showLoginForm']);
