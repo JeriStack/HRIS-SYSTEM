@@ -120,6 +120,7 @@ jobs:
             echo "Deploying release to ${SSH_USER}@${SSH_HOST}:${SERVER_PATH}..."
             scp dist/*.tar.gz "${SSH_USER}@${SSH_HOST}:${SERVER_PATH}/"
             
+            # shellcheck disable=SC2029
             ssh "${SSH_USER}@${SSH_HOST}" "set -e; cd ${SERVER_PATH} && tar -xzf hris-system-release-*.tar.gz && rm -f hris-system-release-*.tar.gz && chown -R www-data:www-data ${SERVER_PATH} && find ${SERVER_PATH} -type d -exec chmod 755 {} + && find ${SERVER_PATH} -type f -exec chmod 644 {} + && [ -f .env ] && chmod 600 .env; chmod 700 config && echo 'Deployment completed and permissions secured.'"
 
             echo "Deployment to $SSH_HOST succeeded!"

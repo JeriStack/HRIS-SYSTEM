@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<ruleset name="HRIS-SYSTEM Coding Standards" namespace="HRIS\CS\Standard">
+    <description>PSR-12 coding standard for HRIS-SYSTEM.</description>
+
+    <!-- Display progress, show sniff names, and enable colors -->
+    <arg value="sp"/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="8"/>
+    <arg name="cache" value=".phpcs.cache"/>
+
+    <!-- Enforce PSR-12 standard -->
+    <rule ref="PSR12"/>
+
+    <!-- Allow snake_case test method names in PHPUnit test classes (e.g., test_user_can_login) -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName.NotCamelCaps">
+        <exclude-pattern>*/tests/*</exclude-pattern>
+    </rule>
+
+    <!-- Exclude line-ending sniff so Windows CRLF checkout does not generate false positives -->
+    <rule ref="Generic.Files.LineEndings">
+        <exclude name="Generic.Files.LineEndings.InvalidEOLChar"/>
+    </rule>
+
+    <!-- Paths to check -->
+    <file>app</file>
+    <file>core</file>
+    <file>public/index.php</file>
+    <file>tests</file>
+
+    <!-- Exclude third-party, cache, views, and scratch directories -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/scratch/*</exclude-pattern>
+    <exclude-pattern>*/app/views/*</exclude-pattern>
+    <exclude-pattern>*/docker/*</exclude-pattern>
+</ruleset>

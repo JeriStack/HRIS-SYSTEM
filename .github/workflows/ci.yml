@@ -22,8 +22,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workflow-lint:
+    name: GitHub Actions Workflow Lint (actionlint)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        run: |
+          echo "Linting GitHub Actions workflow definitions..."
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest
+          echo "All GitHub Actions workflows passed actionlint validation!"
+
   php-checks:
-    name: PHP Syntax and Tests
+    name: PHP Syntax, Linting, Static Analysis, and Tests
     runs-on: ubuntu-24.04
 
     services:
@@ -68,7 +81,6 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          # Match the Docker runtime branch (Dockerfile: php:8.5.12-apache-trixie)
           php-version: "8.5"
           extensions: mbstring, pdo, pdo_mysql, zip, json
           tools: composer
@@ -105,10 +117,21 @@ jobs:
 
           echo "Validating syntax across ${#files[@]} tracked PHP files..."
           for file in "${files[@]}"; do
-            echo "Checking $file"
             php -l "$file" || exit 1
           done
           echo "All tracked PHP files passed syntax check!"
+
+      - name: Run PHP_CodeSniffer PSR-12 check
+        shell: bash
+        run: |
+          echo "Validating PHP code style against PSR-12 standard and baseline..."
+          php bin/check-phpcs-baseline.php
+
+      - name: Run PHPStan static analysis
+        shell: bash
+        run: |
+          echo "Running PHPStan static analysis at configured level with baseline..."
+          vendor/bin/phpstan analyse --memory-limit 512M --no-progress
 
       - name: Run DSA automated unit tests
         shell: bash
@@ -153,7 +176,7 @@ jobs:
           fi
 
   terraform-validation:
-    name: Terraform Formatting and Validation
+    name: Terraform Formatting, Validation, and TFLint
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -185,12 +208,34 @@ jobs:
           terraform -chdir=terraform/environments/dev init -backend=false
           terraform -chdir=terraform/environments/dev validate
 
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: "v0.55.0"
+
+      - name: Run TFLint on Terraform configurations
+        run: |
+          echo "Initializing TFLint plugins..."
+          tflint --init
+          echo "Running TFLint on root module..."
+          tflint --chdir=terraform
+          echo "Running TFLint on dev environment..."
+          tflint --chdir=terraform/environments/dev
+          echo "TFLint checks completed successfully!"
+
   docker-build:
-    name: Docker Container Build
+    name: Dockerfile Lint and Container Build
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Run Hadolint Dockerfile Linter
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: error
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
