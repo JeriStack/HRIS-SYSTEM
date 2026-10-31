@@ -12,6 +12,7 @@ namespace App\Application\Leave\UseCases;
 use App\Application\Leave\Commands\ApproveLeaveCommand;
 use App\Domain\Common\TransactionManagerInterface;
 use App\Domain\Common\EventDispatcherInterface;
+use App\Domain\Common\OutboxRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveRequestRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveBalanceRepositoryInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
@@ -23,7 +24,8 @@ class ApproveLeaveRequestUseCase
         private readonly LeaveRequestRepositoryInterface $leaveRequestRepository,
         private readonly LeaveBalanceRepositoryInterface $leaveBalanceRepository,
         private readonly TransactionManagerInterface $transactionManager,
-        private readonly ?EventDispatcherInterface $eventDispatcher = null
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
+        private readonly ?OutboxRepositoryInterface $outboxRepository = null
     ) {
     }
 
@@ -67,10 +69,19 @@ class ApproveLeaveRequestUseCase
             // 6. Persist state within transaction boundary
             $this->leaveRequestRepository->save($request);
             $this->leaveBalanceRepository->save($balance);
+
+            // 6b. Persist Outbox events atomically within the active transaction
+            if ($this->outboxRepository !== null) {
+                foreach ($events as $event) {
+                    $this->outboxRepository->record($event, 'LeaveRequest', (string)$request->id());
+                }
+            }
         });
 
-        // 7. Strictly Post-Commit Publication: Dispatched only after database transaction commits
-        if ($this->eventDispatcher !== null) {
+        // 7. Post-Commit Dispatch:
+        // When Outbox is configured, events are delivered asynchronously by the outbox worker.
+        // Fallback to direct synchronous dispatch only when outbox is omitted.
+        if ($this->outboxRepository === null && $this->eventDispatcher !== null) {
             foreach ($events as $event) {
                 $this->eventDispatcher->dispatch($event);
             }

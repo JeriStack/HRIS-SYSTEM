@@ -12,6 +12,7 @@ namespace App\Application\Leave\UseCases;
 use App\Application\Leave\Commands\RejectLeaveCommand;
 use App\Domain\Common\TransactionManagerInterface;
 use App\Domain\Common\EventDispatcherInterface;
+use App\Domain\Common\OutboxRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveRequestRepositoryInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
 
@@ -20,7 +21,8 @@ class RejectLeaveRequestUseCase
     public function __construct(
         private readonly LeaveRequestRepositoryInterface $leaveRequestRepository,
         private readonly TransactionManagerInterface $transactionManager,
-        private readonly ?EventDispatcherInterface $eventDispatcher = null
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
+        private readonly ?OutboxRepositoryInterface $outboxRepository = null
     ) {
     }
 
@@ -46,10 +48,19 @@ class RejectLeaveRequestUseCase
 
             // 3. Persist state
             $this->leaveRequestRepository->save($request);
+
+            // 3b. Persist Outbox events atomically within the active transaction
+            if ($this->outboxRepository !== null) {
+                foreach ($events as $event) {
+                    $this->outboxRepository->record($event, 'LeaveRequest', (string)$request->id());
+                }
+            }
         });
 
-        // 4. Strictly Post-Commit Publication
-        if ($this->eventDispatcher !== null) {
+        // 4. Post-Commit Dispatch:
+        // When Outbox is configured, events are delivered asynchronously by the outbox worker.
+        // Fallback to direct synchronous dispatch only when outbox is omitted.
+        if ($this->outboxRepository === null && $this->eventDispatcher !== null) {
             foreach ($events as $event) {
                 $this->eventDispatcher->dispatch($event);
             }
