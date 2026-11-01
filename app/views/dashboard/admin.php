@@ -1,6 +1,6 @@
 <?php
 /**
- * System Administrator Dashboard View
+ * System Administrator / HR Console Dashboard View
  * Employee HRIS & Leave Management System
  */
 
@@ -10,8 +10,8 @@ $userStats = $metrics['users'] ?? [];
 <div class="page-header">
     <div class="page-title-group">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
-            <h1>Administrator Console</h1>
-            <span class="badge badge-info" style="font-weight: 700; letter-spacing: 0.05em;">ADMINISTRATOR CONSOLE</span>
+            <h1>HR Administration Console</h1>
+            <span class="badge badge-info" style="font-weight: 700; letter-spacing: 0.05em;">HR MANAGEMENT</span>
         </div>
         <p>System-wide operational oversight, role governance, workforce metrics, and security audit log.</p>
     </div>
@@ -19,7 +19,7 @@ $userStats = $metrics['users'] ?? [];
         <span style="font-size: 0.8125rem; color: var(--color-text-muted); background: var(--color-bg-surface); padding: 0.45rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
             📅 <?= date('l, F j, Y') ?>
         </span>
-        <a href="<?= url('/admin/users') ?>" class="btn btn-primary btn-sm">
+        <a href="<?= url('/hr/users') ?>" class="btn btn-primary btn-sm">
             <span>👥</span> Manage User Accounts
         </a>
     </div>
@@ -33,7 +33,7 @@ $userStats = $metrics['users'] ?? [];
             <span class="stat-label">User Accounts</span>
             <span class="stat-value"><?= (int)($userStats['total'] ?? 0) ?></span>
             <span class="stat-subtext">
-                <strong><?= (int)($userStats['active'] ?? 0) ?> Active</strong> &bull; <?= (int)($userStats['admin_count'] ?? 0) ?> Admins, <?= (int)($userStats['hr_count'] ?? 0) ?> HR
+                <strong><?= (int)($userStats['active'] ?? 0) ?> Active</strong> &bull; <?= (int)($userStats['hr_count'] ?? 0) ?> HR
             </span>
         </div>
         <div class="stat-icon-wrapper icon-purple" aria-hidden="true">👥</div>
@@ -79,14 +79,14 @@ $userStats = $metrics['users'] ?? [];
 <!-- Administrative Control Hub Shortcuts -->
 <div class="card" style="margin-bottom: var(--space-6);">
     <div class="card-header">
-        <h2 class="card-title"><span>⚡</span> Privileged Administration Hub</h2>
+        <h2 class="card-title"><span>⚡</span> HR Administration Hub</h2>
         <span style="font-size: 0.8125rem; color: var(--color-text-muted);">Strict Server-Enforced RBAC Governance</span>
     </div>
     <div class="card-body" style="padding: 1.25rem;">
         <div class="grid grid-cols-4">
-            <a href="<?= url('/admin/users') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
+            <a href="<?= url('/hr/users') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">👥 User Accounts & Roles</div>
-                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Assign roles, review status, and prevent administrator lockouts.</div>
+                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Assign roles, review status, and manage user credentials.</div>
             </a>
             <a href="<?= url('/hr/employees') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">📋 Employee Directory</div>
@@ -96,9 +96,9 @@ $userStats = $metrics['users'] ?? [];
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">📅 Leave Management</div>
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">Review organization-wide leave requests and annual balances.</div>
             </a>
-            <a href="<?= url('/dsa') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
-                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">⚡ DSA Laboratory</div>
-                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Interactive performance benchmarks for BST, Queue, and Stack.</div>
+            <a href="<?= url('/reports') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
+                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">📈 Reports &amp; Analytics</div>
+                <div style="font-size: 0.775rem; color: var(--color-text-muted);">View workforce distribution, department metrics, and leave insights.</div>
             </a>
         </div>
     </div>
@@ -110,7 +110,7 @@ $userStats = $metrics['users'] ?? [];
     <div class="card">
         <div class="card-header">
             <h2 class="card-title"><span>👥</span> Recent User Accounts</h2>
-            <a href="<?= url('/admin/users') ?>" class="btn btn-secondary btn-sm">View All Users</a>
+            <a href="<?= url('/hr/users') ?>" class="btn btn-secondary btn-sm">View All Users</a>
         </div>
         <div class="table-responsive">
             <table class="table table-hover" aria-label="Recent User Accounts">

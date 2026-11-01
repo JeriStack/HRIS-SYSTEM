@@ -81,10 +81,6 @@ if ($rawRole === 'hr' || $rawRole === 'admin') {
                 <span class="icon" aria-hidden="true">📜</span>
                 <span>Audit Activity Logs</span>
             </a>
-            <a href="<?= url('/dsa') ?>" class="nav-item <?= str_contains($currentPath, '/dsa') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">⚡</span>
-                <span>DSA Laboratory</span>
-            </a>
         <?php endif; ?>
 
         <?php if ($rawRole === 'employee'): ?>
