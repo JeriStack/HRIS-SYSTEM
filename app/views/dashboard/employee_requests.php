@@ -27,10 +27,10 @@ $empNo = $user['employee_no'] ?? 'EMP-Self';
 </div>
 
 <?php if (!empty($historyArray)): ?>
-    <!-- Linked List Chronological Chain Display (Phase 11/13) -->
+    <!-- Chronological Leave Timeline Display -->
     <div class="card" style="margin-bottom: var(--space-4); padding: 0.85rem 1.25rem; background: var(--color-bg-muted);">
         <div style="font-size: 0.725rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
-            🔗 Sequential Leave Timeline (Linked List Traversal &bull; <?= count($historyArray) ?> Record<?= count($historyArray) === 1 ? '' : 's' ?>)
+            📅 Chronological Leave Timeline (<?= count($historyArray) ?> Record<?= count($historyArray) === 1 ? '' : 's' ?>)
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; overflow-x: auto; padding-bottom: 0.25rem;">
             <?php foreach ($historyArray as $idx => $node): ?>

@@ -14,7 +14,7 @@ class StackTest extends TestCase
         $this->stack = new Stack();
     }
 
-    public function test_empty_stack_behavior(): void
+    public function test_empty_stack_behavior_and_underflow_safety(): void
     {
         $this->assertTrue($this->stack->isEmpty());
         $this->assertSame(0, $this->stack->size());
@@ -29,11 +29,12 @@ class StackTest extends TestCase
         $this->assertFalse($this->stack->isEmpty());
         $this->assertSame(1, $this->stack->size());
         $this->assertSame('Task 1', $this->stack->peek());
-        $this->assertSame(1, $this->stack->size()); // Peek does not remove
+        $this->assertSame(1, $this->stack->size());
 
         $item = $this->stack->pop();
         $this->assertSame('Task 1', $item);
         $this->assertTrue($this->stack->isEmpty());
+        $this->assertNull($this->stack->pop());
     }
 
     public function test_lifo_ordering(): void
@@ -47,6 +48,22 @@ class StackTest extends TestCase
         $this->assertSame('B', $this->stack->pop());
         $this->assertSame('A', $this->stack->pop());
         $this->assertTrue($this->stack->isEmpty());
+    }
+
+    public function test_reversible_operation_tracking(): void
+    {
+        $this->stack->pushOperation(
+            'EMPLOYEE_STATUS_CHANGE',
+            ['employment_status' => 'Active'],
+            ['employment_status' => 'Inactive']
+        );
+
+        $this->assertSame(1, $this->stack->size());
+        $frame = $this->stack->pop();
+        $this->assertIsArray($frame);
+        $this->assertSame('EMPLOYEE_STATUS_CHANGE', $frame['operation']);
+        $this->assertSame('Active', $frame['before']['employment_status']);
+        $this->assertSame('Inactive', $frame['after']['employment_status']);
     }
 
     public function test_clear(): void
@@ -70,4 +87,3 @@ class StackTest extends TestCase
         $this->assertSame([10, 20, 30], $this->stack->toArray());
     }
 }
-

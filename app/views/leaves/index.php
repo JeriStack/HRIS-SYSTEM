@@ -1,6 +1,6 @@
 <?php
 /**
- * Leave Requests Review Queue View (HR & Admin Access)
+ * Leave Requests Review Queue View (HR Access)
  * Employee HRIS & Leave Management System - Phase 8
  */
 ?>
@@ -16,8 +16,8 @@
                 <?php if (!empty($selectedDept)): ?>
                     <input type="hidden" name="dept_id" value="<?= (int)$selectedDept ?>">
                 <?php endif; ?>
-                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;" onclick="return confirm('Approve next pending request in FIFO sequence (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)?');">
-                    ⚡ Process Next in FIFO Queue (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)
+                <button type="submit" class="btn btn-primary btn-sm" style="font-weight: 600;" onclick="return confirm('Approve next pending request (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)?');">
+                    ⚡ Process Next Pending (#LR-<?= str_pad((string)$nextInLine['id'], 3, '0', STR_PAD_LEFT) ?>)
                 </button>
             </form>
         <?php endif; ?>
@@ -96,7 +96,7 @@
         </h2>
         <?php if (isset($queueDepth) && $queueDepth > 0): ?>
             <span class="badge badge-info" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">
-                ⏳ FIFO Review Queue: <strong><?= (int)$queueDepth ?></strong> Pending Application<?= $queueDepth === 1 ? '' : 's' ?>
+                ⏳ Pending Review Queue: <strong><?= (int)$queueDepth ?></strong> Application<?= $queueDepth === 1 ? '' : 's' ?>
             </span>
         <?php endif; ?>
     </div>

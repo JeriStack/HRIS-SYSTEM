@@ -1,6 +1,6 @@
 <?php
 /**
- * System Audit & Activity Logs View (HR & Admin Access)
+ * System Audit & Activity Logs View (HR Access)
  * Employee HRIS & Leave Management System
  */
 ?>
@@ -17,11 +17,11 @@
 </div>
 
 <?php if (!empty($latestActivity)): ?>
-    <!-- LIFO Recent Activity Stack Inspection Banner (Phase 11/13) -->
+    <!-- Recent Activity Inspection Banner -->
     <div class="card" style="margin-bottom: var(--space-4); padding: 0.85rem 1.25rem; background: var(--color-bg-muted); border-left: 4px solid var(--color-primary); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
         <div>
             <div style="font-size: 0.7rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase;">
-                ▲ LIFO Stack Top Event (Most Recent Audit Entry &bull; <?= (int)($stackDepth ?? 0) ?> Items in Stack)
+                🔔 Latest Audit Event (Most Recent Entry)
             </div>
             <div style="font-size: 0.875rem; color: var(--color-text-primary); font-weight: 600; margin-top: 0.2rem;">
                 <span class="badge badge-info" style="font-size: 0.7rem;"><?= e($latestActivity['action'] ?? '') ?></span>

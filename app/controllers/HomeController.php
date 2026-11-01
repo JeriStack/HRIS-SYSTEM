@@ -22,17 +22,19 @@ class HomeController extends Controller
         $dbStatus = $dbConnected ? "Database Connected" : "Database Offline: " . ($db->getLastError() ?? 'Unreachable');
 
         $stats = [
-            'total_employees' => 8,
-            'active_employees' => 7,
-            'pending_leaves'   => 3,
-            'departments'      => 5,
+            'total_employees'   => 248,
+            'active_employees'  => 236,
+            'pending_leaves'    => 12,
+            'approved_leaves'   => 185,
+            'departments'       => 8,
+            'total_departments' => 8,
         ];
 
         // If database is live, attempt a safe lightweight query to verify live table statistics
         if ($dbConnected) {
             try {
                 $pdo = $db->getConnection();
-                
+
                 // Safe read counts if tables are populated
                 $empStmt = $pdo->query("SELECT COUNT(*) AS total, SUM(CASE WHEN employment_status='Active' THEN 1 ELSE 0 END) AS active FROM employees");
                 if ($empRow = $empStmt->fetch()) {
@@ -40,14 +42,16 @@ class HomeController extends Controller
                     $stats['active_employees'] = (int)($empRow['active'] ?? 0);
                 }
 
-                $leaveStmt = $pdo->query("SELECT COUNT(*) AS pending FROM leave_requests WHERE status = 'Pending'");
+                $leaveStmt = $pdo->query("SELECT SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved FROM leave_requests");
                 if ($leaveRow = $leaveStmt->fetch()) {
-                    $stats['pending_leaves'] = (int)$leaveRow['pending'];
+                    $stats['pending_leaves'] = (int)($leaveRow['pending'] ?? 0);
+                    $stats['approved_leaves'] = (int)($leaveRow['approved'] ?? 0);
                 }
 
                 $deptStmt = $pdo->query("SELECT COUNT(*) AS depts FROM departments");
                 if ($deptRow = $deptStmt->fetch()) {
                     $stats['departments'] = (int)$deptRow['depts'];
+                    $stats['total_departments'] = (int)$deptRow['depts'];
                 }
             } catch (PDOException $e) {
                 // Fail gracefully and retain baseline synthetic counts
@@ -56,7 +60,7 @@ class HomeController extends Controller
         }
 
         $this->view('home.index', [
-            'appName'     => config('config.app_name', 'Employee HRIS & Leave Management System'),
+            'appName'     => config('config.app_name', 'NEXORA HR'),
             'dbConnected' => $dbConnected,
             'dbStatus'    => $dbStatus,
             'dbName'      => config('database.database', 'hris_db'),

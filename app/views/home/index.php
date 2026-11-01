@@ -1,98 +1,142 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <meta
     name="description"
-    content="Employee HRIS and Leave Management System with practical Data Structures and Algorithms demonstrations."
-  >
+    content="NEXORA HR — People. Processes. Progress. A modern enterprise Human Resource Information System that centralizes employee information and organizes essential HR operations.">
 
-  <title><?= e($appName) ?> — Enterprise HRIS &amp; DSA</title>
+  <title>NEXORA &mdash; People. Processes. Progress.</title>
+
+  <link rel="icon" type="image/png" href="<?= e(asset('img/nexora-logo-icon.png')) ?>">
+
+  <!-- Prevent FOUC: Set White Mode (Light) as default, clear legacy dark cache, and restore user theme if explicitly set -->
+  <script>
+    (function() {
+      try {
+        // Guarantee white mode by clearing legacy test key
+        localStorage.removeItem('hris_landing_theme');
+        var savedTheme = localStorage.getItem('nexora_theme');
+        if (savedTheme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
+  <?php
+  $cssPath = __DIR__ . '/../../../public/assets/css/landing.css';
+  $cssVer = file_exists($cssPath) ? filemtime($cssPath) : '2.0';
+  $jsPath = __DIR__ . '/../../../public/assets/js/landing.js';
+  $jsVer = file_exists($jsPath) ? filemtime($jsPath) : '2.0';
+  $totalEmployees = (int)($stats['total_employees'] ?? 248);
+  $activeEmployees = (int)($stats['active_employees'] ?? 236);
+  $pendingLeaves = (int)($stats['pending_leaves'] ?? 12);
+  $approvedLeaves = (int)($stats['approved_leaves'] ?? 185);
+  $totalDepartments = (int)($stats['total_departments'] ?? $stats['departments'] ?? 8);
+  ?>
 
   <link
     rel="stylesheet"
-    href="<?= e(asset('css/landing.css')) ?>"
-  >
+    href="<?= e(asset('css/landing.css')) ?>?v=<?= e((string)$cssVer) ?>">
 </head>
 
 <body class="landing-page">
 
-  <!-- Fixed navigation -->
+  <!-- Accessible Skip to Content Link -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- A. Navigation Header -->
   <header class="site-header" id="navbar">
     <div class="container nav-container">
 
       <a
         class="brand-wrapper"
         href="#home"
-        aria-label="EmployeeHRIS home"
-      >
+        aria-label="NEXORA HR Home">
         <img
           class="brand-symbol"
-          src="<?= e(asset('icon/610ca.svg')) ?>"
-          alt=""
-        >
-
+          src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
+          alt="NEXORA HR emblem"
+          width="42"
+          height="42">
         <span class="brand-text-block">
-          <strong class="brand-title">EmployeeHRIS</strong>
-          <span class="brand-subtitle">
-            HRIS &amp; Leave Management
+          <span class="brand-title">
+            <span class="brand-title-navy">NEXORA</span>
+            <span class="brand-title-blue">HR</span>
           </span>
         </span>
       </a>
 
       <nav class="desktop-nav" aria-label="Main navigation">
-        <ul class="site-nav-links">
+        <ul class="site-nav-links" id="desktopNavLinks">
           <li>
-            <a class="nav-link active" href="#home">
+            <a class="nav-link active" href="#home" aria-current="page">
               Home
             </a>
           </li>
-
           <li>
             <a class="nav-link" href="#features">
               Features
             </a>
           </li>
-
-          <li>
-            <a class="nav-link" href="#how-it-works">
-              How It Works
-            </a>
-          </li>
-
-          <li>
-            <a class="nav-link" href="#dsa-laboratory">
-              DSA Laboratory
-            </a>
-          </li>
-
-          <li>
-            <a class="nav-link" href="#roles">
-              Roles
-            </a>
-          </li>
-
           <li>
             <a class="nav-link" href="#about">
               About
             </a>
           </li>
+          <li>
+            <a class="nav-link" href="#how-it-works">
+              How It Works
+            </a>
+          </li>
+          <li class="nav-indicator-item" aria-hidden="true">
+            <span class="nav-scroll-indicator" id="navScrollIndicator"></span>
+          </li>
         </ul>
       </nav>
 
       <div class="header-actions">
+        <!-- Light / Dark Theme Toggle Button -->
+        <button
+          id="themeToggleBtn"
+          class="theme-toggle-btn"
+          type="button"
+          aria-label="Switch to dark mode"
+          title="Switch to dark mode">
+          <!-- Moon Icon (shown in Light Mode to switch to Dark Mode) -->
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <!-- Sun Icon (shown in Dark Mode to switch to Light Mode) -->
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
         <a
           class="btn btn-primary header-cta"
-          href="<?= e(url('/login')) ?>"
-        >
-          Sign In
-
-          <img
-            src="<?= e(asset('icon/49e26.svg')) ?>"
-            alt=""
-          >
+          href="<?= e(url('/login')) ?>">
+          Login
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
         </a>
 
         <button
@@ -101,8 +145,7 @@
           type="button"
           aria-label="Open navigation"
           aria-controls="mobileDrawer"
-          aria-expanded="false"
-        >
+          aria-expanded="false">
           <span></span>
           <span></span>
           <span></span>
@@ -111,596 +154,242 @@
 
     </div>
 
-    <!-- Mobile navigation -->
+    <!-- Mobile Navigation Drawer -->
     <nav
       id="mobileDrawer"
       class="mobile-drawer"
-      aria-label="Mobile navigation"
-    >
+      aria-label="Mobile navigation">
       <a class="mobile-nav-link active" href="#home">
         Home
       </a>
-
       <a class="mobile-nav-link" href="#features">
         Features
       </a>
-
+      <a class="mobile-nav-link" href="#about">
+        About
+      </a>
       <a class="mobile-nav-link" href="#how-it-works">
         How It Works
       </a>
 
-      <a class="mobile-nav-link" href="#dsa-laboratory">
-        DSA Laboratory
-      </a>
+      <div class="mobile-drawer-footer">
+        <a
+          class="btn btn-primary mobile-drawer-cta"
+          href="<?= e(url('/login')) ?>">
+          Login to NEXORA HR
+        </a>
 
-      <a class="mobile-nav-link" href="#roles">
-        Roles
-      </a>
-
-      <a class="mobile-nav-link" href="#about">
-        About
-      </a>
+        <button
+          id="mobileThemeToggleBtn"
+          class="mobile-theme-toggle"
+          type="button"
+          aria-label="Switch to dark mode">
+          <span class="mobile-theme-label-wrap">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+            </svg>
+            <span class="theme-mode-text">Theme: Light</span>
+          </span>
+          <span class="mobile-theme-toggle-hint">Switch</span>
+        </button>
+      </div>
     </nav>
   </header>
 
-  <main>
+  <main id="main-content">
 
-    <!-- Home -->
-    <section id="home" class="hero-section">
-
-      <div class="ambient ambient-one"></div>
-      <div class="ambient ambient-two"></div>
-
+    <!-- B. Hero Section -->
+    <section id="home" data-nav-section="home" class="hero-section">
       <div class="container hero-grid">
 
+        <!-- Left Column: Brand Messaging & Actions -->
         <div class="hero-content">
-          <span class="hero-eyebrow">
-            Employee Management · Leave Management · DSA
-          </span>
+          <p class="hero-eyebrow">
+            HUMAN RESOURCE INFORMATION SYSTEM
+          </p>
 
           <h1 class="hero-title">
-            Simplify HR Management.
-            <span>Organize Every Record.</span>
+            People Management, Made More Organized.
           </h1>
 
           <p class="hero-paragraph">
-            An Employee Human Resource Information System designed
-            to organize employee records, manage leave requests,
-            track leave balances, and demonstrate the practical
-            application of Data Structures and Algorithms.
+            NEXORA HR brings essential human resource operations together in one centralized platform. Manage employee information, simplify leave administration, and make everyday HR processes more organized.
           </p>
 
           <div class="hero-actions">
             <a
               class="btn btn-primary btn-lg"
-              href="<?= e(url('/login')) ?>"
-            >
+              href="<?= e(url('/login')) ?>">
               Get Started
-
-              <img
-                src="<?= e(asset('icon/49e26.svg')) ?>"
-                alt=""
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
             </a>
 
             <a
               class="btn btn-secondary btn-lg"
-              href="#features"
-            >
+              href="#features">
               Explore Features
             </a>
           </div>
 
-          <div class="hero-meta-line">
-            <code>Native PHP 8.x</code>
-            <span></span>
-            <code>MySQL PDO</code>
-            <span></span>
-            <code>Custom DSA</code>
-          </div>
-        </div>
-
-        <!-- Dashboard preview -->
-        <div
-          class="browser-mockup"
-          aria-label="HR portal dashboard preview"
-        >
-          <div class="browser-header">
-            <div class="browser-controls">
-              <span class="browser-dot dot-red"></span>
-              <span class="browser-dot dot-yellow"></span>
-              <span class="browser-dot dot-green"></span>
-            </div>
-
-            <div class="browser-address-bar">
-              https://hris.local/admin/dashboard
-            </div>
-          </div>
-
-          <div class="browser-body">
-
-            <aside class="mockup-sidebar">
-              <strong class="mockup-brand">
-                <img
-                  src="<?= e(asset('icon/32208.svg')) ?>"
-                  alt=""
-                >
-                HR PORTAL
-              </strong>
-
-              <button
-                class="mockup-nav-item active"
-                type="button"
-              >
-                <img
-                  src="<?= e(asset('icon/d332b.svg')) ?>"
-                  alt=""
-                >
-                Dashboard
-              </button>
-
-              <button class="mockup-nav-item" type="button">
-                <img
-                  src="<?= e(asset('icon/6144b.svg')) ?>"
-                  alt=""
-                >
-                Employees
-              </button>
-
-              <button class="mockup-nav-item" type="button">
-                <img
-                  src="<?= e(asset('icon/9df7d.svg')) ?>"
-                  alt=""
-                >
-                Leave Queue
-              </button>
-
-              <button class="mockup-nav-item" type="button">
-                <img
-                  src="<?= e(asset('icon/75d07.svg')) ?>"
-                  alt=""
-                >
-                Balances
-              </button>
-
-              <button class="mockup-nav-item" type="button">
-                <img
-                  src="<?= e(asset('icon/0a16f.svg')) ?>"
-                  alt=""
-                >
-                Reports
-              </button>
-
-              <button class="mockup-nav-item" type="button">
-                <img
-                  src="<?= e(asset('icon/df59a.svg')) ?>"
-                  alt=""
-                >
-                DSA Lab
-              </button>
-            </aside>
-
-            <div class="mockup-content">
-
-              <div class="mockup-header-strip">
-                <p class="mockup-title">
-                  HR Portal / Administrator Dashboard
-                  (Demo Preview)
-                </p>
-
-                <span class="mockup-user-pill">
-                  Administrator
-                </span>
-              </div>
-
-              <div class="mockup-stats-row">
-                <div class="mockup-stat-card">
-                  <span class="mockup-stat-label">
-                    Total Staff
-                  </span>
-
-                  <strong class="mockup-stat-value">
-                    <?= e((string)($stats['total_employees'] ?? 8)) ?>
-                  </strong>
-                </div>
-
-                <div class="mockup-stat-card">
-                  <span class="mockup-stat-label">
-                    Active Staff
-                  </span>
-
-                  <strong class="mockup-stat-value success">
-                    <?= e((string)($stats['active_employees'] ?? 7)) ?>
-                  </strong>
-                </div>
-
-                <div class="mockup-stat-card">
-                  <span class="mockup-stat-label">
-                    Pending Leaves
-                  </span>
-
-                  <strong class="mockup-stat-value warning">
-                    <?= e((string)($stats['pending_leaves'] ?? 3)) ?>
-                  </strong>
-                </div>
-              </div>
-
-              <div class="mockup-table-card">
-                <div class="mockup-table-title">
-                  <span>Pending Leave Applications</span>
-                  <span>FIFO Queue</span>
-                </div>
-
-                <table class="mockup-table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Employee</th>
-                      <th>Type</th>
-                      <th>Days</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    <tr>
-                      <td>#001</td>
-                      <td>John Cruz</td>
-                      <td>Vacation</td>
-                      <td>5d</td>
-                      <td><span>Pending</span></td>
-                    </tr>
-
-                    <tr>
-                      <td>#002</td>
-                      <td>Ana Reyes</td>
-                      <td>Sick</td>
-                      <td>2d</td>
-                      <td><span>Pending</span></td>
-                    </tr>
-
-                    <tr>
-                      <td>#003</td>
-                      <td>Mark Lee</td>
-                      <td>Emergency</td>
-                      <td>3d</td>
-                      <td><span>Pending</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <p class="mockup-watermark">
-                Product preview using synthetic demo data.
-              </p>
-            </div>
+          <div class="hero-brand-pillars" aria-label="Brand pillars">
+            <span class="pillar-pill">
+              <span class="pillar-dot"></span>
+              Employee Management
+            </span>
+            <span class="pillar-pill">
+              <span class="pillar-dot teal"></span>
+              Leave Administration
+            </span>
+            <span class="pillar-pill">
+              <span class="pillar-dot navy"></span>
+              HR Operations
+            </span>
           </div>
         </div>
 
       </div>
     </section>
 
-    <!-- Product highlights -->
-    <section
-      class="trust-section"
-      aria-label="Product highlights"
-    >
-      <div class="container trust-grid">
-
-        <article class="trust-card">
-          <span class="trust-icon-box">
-            <img
-              src="<?= e(asset('icon/29f2b.svg')) ?>"
-              alt=""
-            >
-          </span>
-
-          <div>
-            <h3>Organized Employee Records</h3>
-            <p>
-              Keep profiles, departments, positions,
-              and employment status structured.
-            </p>
-          </div>
-        </article>
-
-        <article class="trust-card">
-          <span class="trust-icon-box amber">
-            <img
-              src="<?= e(asset('icon/be178.svg')) ?>"
-              alt=""
-            >
-          </span>
-
-          <div>
-            <h3>Streamlined Leave Management</h3>
-            <p>
-              Support filing, review, approval,
-              and leave-history tracking.
-            </p>
-          </div>
-        </article>
-
-        <article class="trust-card">
-          <span class="trust-icon-box green">
-            <img
-              src="<?= e(asset('icon/55784.svg')) ?>"
-              alt=""
-            >
-          </span>
-
-          <div>
-            <h3>Clear Leave Balances</h3>
-            <p>
-              Present allocated, used, and remaining
-              leave days clearly.
-            </p>
-          </div>
-        </article>
-
-        <article class="trust-card">
-          <span class="trust-icon-box indigo">
-            <img
-              src="<?= e(asset('icon/81853.svg')) ?>"
-              alt=""
-            >
-          </span>
-
-          <div>
-            <h3>Practical DSA Learning</h3>
-            <p>
-              Connect algorithms and data structures
-              to real HR operations.
-            </p>
-          </div>
-        </article>
-
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section
-      id="features"
-      class="features-section section-padding"
-    >
+    <!-- D. Core Features (#features) -->
+    <section id="features" data-nav-section="features" class="features-section section-padding">
       <div class="container">
 
         <div class="section-header">
-          <span class="section-eyebrow">Features</span>
-
           <h2 class="section-title">
-            Everything Organized in One HRIS
+            Everything Essential for Organized HR Operations
           </h2>
-
           <p class="section-desc">
-            Explore modules designed to support employee
-            administration, leave management, reporting,
-            and algorithm demonstrations.
+            Designed around the core workflows that HR teams and employees rely on every day.
           </p>
         </div>
 
         <div class="features-grid">
 
+          <!-- 1. Employee Management -->
           <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper">
-                <img
-                  src="<?= e(asset('icon/a8481.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                Employee Management
-              </h3>
-
-              <p class="feature-desc">
-                Maintain employee profiles, department
-                assignments, positions, and employment status.
-              </p>
-            </div>
-
-            <div class="feature-preview-box employee-preview">
-              <img
-                src="<?= e(asset('icon/d2495.svg')) ?>"
-                alt=""
-              >
-
-              <span>
-                <strong>David J. Cruz</strong>
-                <small>Full Engineer · IT Department</small>
-              </span>
-
-              <b>Active</b>
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper indigo">
-                <img
-                  src="<?= e(asset('icon/8e7fa.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                Department &amp; Position Management
-              </h3>
-
-              <p class="feature-desc">
-                Organize departments and positions with
-                MySQL foreign-key safeguards.
-              </p>
-            </div>
-
-            <div class="feature-preview-box">
-              <strong>Information Technology</strong>
-              <span>Integrity protected</span>
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper amber">
-                <img
-                  src="<?= e(asset('icon/a423e.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                Leave Management
-              </h3>
-
-              <p class="feature-desc">
-                Submit leave requests and support approval
-                workflows with working-day calculations.
-              </p>
-            </div>
-
-            <div class="feature-preview-box">
-              <strong>Vacation Leave · Nov 02–06</strong>
-              <span>5 working days</span>
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper green">
-                <img
-                  src="<?= e(asset('icon/14df8.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                Leave Balance Tracking
-              </h3>
-
-              <p class="feature-desc">
-                View allocated, used, and remaining leave days
-                by employee, leave type, and year.
-              </p>
-            </div>
-
-            <div class="feature-preview-box mono">
-              Vacation: 15 allocated · 3 used · 12 remaining
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper">
-                <img
-                  src="<?= e(asset('icon/178f1.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                Reports &amp; Activity Logs
-              </h3>
-
-              <p class="feature-desc">
-                Present workforce reports while preserving
-                an immutable activity audit trail.
-              </p>
-            </div>
-
-            <div class="feature-preview-box mono">
-              REPORT_READY · AUDIT_LOGGED
-            </div>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-top">
-              <span class="feature-icon-wrapper red">
-                <img
-                  src="<?= e(asset('icon/08ac2.svg')) ?>"
-                  alt=""
-                >
-              </span>
-
-              <h3 class="feature-title">
-                DSA Laboratory
-              </h3>
-
-              <p class="feature-desc">
-                Explore custom data structures and compare
-                searching and sorting algorithms.
-              </p>
-            </div>
-
-            <div class="feature-preview-box mono">
-              Stack · Queue · HashMap · BST
-            </div>
-          </article>
-
-        </div>
-      </div>
-    </section>
-
-    <!-- How it works -->
-    <section
-      id="how-it-works"
-      class="how-it-works-section section-padding"
-    >
-      <div class="container">
-
-        <div class="section-header">
-          <span class="section-eyebrow">
-            How It Works
-          </span>
-
-          <h2 class="section-title">
-            How the HRIS Workflow Operates
-          </h2>
-
-          <p class="section-desc">
-            A structured employee-to-leave workflow
-            protected by role-based access.
-          </p>
-        </div>
-
-        <div class="steps-sequence-grid">
-
-          <article class="step-card">
-            <span class="step-badge">01</span>
-
-            <h3 class="step-title">
-              Organize Employee Information
-            </h3>
-
-            <p class="step-desc">
-              HR creates departments, positions,
-              employee profiles, and annual leave allocations.
+            <span class="feature-icon-box blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+            </span>
+            <h3 class="feature-title">Employee Management</h3>
+            <p class="feature-desc">
+              Create, update, search, and maintain complete employee profiles including employee codes, contact records, and active employment status.
             </p>
           </article>
 
-          <article class="step-card">
-            <span class="step-badge">02</span>
-
-            <h3 class="step-title">
-              Submit and Review Leave
-            </h3>
-
-            <p class="step-desc">
-              Employees file leave requests while HR processes
-              the FIFO review queue with balance validation.
+          <!-- 2. Leave Management -->
+          <article class="feature-card">
+            <span class="feature-icon-box teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </span>
+            <h3 class="feature-title">Leave Management</h3>
+            <p class="feature-desc">
+              Submit, review, approve, or reject leave applications with working-day calculations, overlap detection, and documented review remarks.
             </p>
           </article>
 
-          <article class="step-card">
-            <span class="step-badge">03</span>
+          <!-- 3. Leave Balances -->
+          <article class="feature-card">
+            <span class="feature-icon-box navy" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <h3 class="feature-title">Leave Balances</h3>
+            <p class="feature-desc">
+              Monitor annual leave allocations, used credits, and remaining days across leave types with automatic balance updates upon approval.
+            </p>
+          </article>
 
-            <h3 class="step-title">
-              Preserve and Report
-            </h3>
+          <!-- 4. Department Management -->
+          <article class="feature-card">
+            <span class="feature-icon-box blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V7l8-4v18"></path>
+                <path d="M19 21V11l-6-4"></path>
+              </svg>
+            </span>
+            <h3 class="feature-title">Department Management</h3>
+            <p class="feature-desc">
+              Structure your organization into departments, track assigned workforce counts, and protect referential integrity across employee records.
+            </p>
+          </article>
 
-            <p class="step-desc">
-              Approved deductions, history, reports,
-              and security activities remain traceable.
+          <!-- 5. Position Management -->
+          <article class="feature-card">
+            <span class="feature-icon-box teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+              </svg>
+            </span>
+            <h3 class="feature-title">Position Management</h3>
+            <p class="feature-desc">
+              Define job titles and organizational roles linked to departments so every employee record reflects accurate position assignments.
+            </p>
+          </article>
+
+          <!-- 6. Employee Self-Service -->
+          <article class="feature-card">
+            <span class="feature-icon-box navy" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <h3 class="feature-title">Employee Self-Service</h3>
+            <p class="feature-desc">
+              Provide employees with a dedicated portal to view their personal HR profile, check available leave credits, and submit or cancel pending requests.
+            </p>
+          </article>
+
+          <!-- 7. Notifications -->
+          <article class="feature-card">
+            <span class="feature-icon-box blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </span>
+            <h3 class="feature-title">Notifications</h3>
+            <p class="feature-desc">
+              Keep both HR personnel and employees informed with in-app notifications whenever leave requests are submitted, approved, or rejected.
+            </p>
+          </article>
+
+          <!-- 8. Reporting and Records -->
+          <article class="feature-card">
+            <span class="feature-icon-box teal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </span>
+            <h3 class="feature-title">Reporting and Records</h3>
+            <p class="feature-desc">
+              Access workforce summaries, department distributions, leave utilization reports, and recorded system activity logs for operational accountability.
             </p>
           </article>
 
@@ -708,596 +397,476 @@
       </div>
     </section>
 
-    <!-- DSA Laboratory -->
-    <section
-      id="dsa-laboratory"
-      class="dsa-showcase-section"
-    >
+    <!-- C. Product Introduction (#about) -->
+    <section id="about" data-nav-section="about" class="about-intro-section section-padding">
       <div class="container">
 
-        <div class="section-header">
-          <span class="section-eyebrow">
-            DSA Laboratory
-          </span>
+        <div class="about-intro-layout">
+          <div class="about-intro-header">
+            <h2 class="section-title">
+              A Better Way to Manage Your Workforce
+            </h2>
+            <p class="section-desc">
+              NEXORA HR replaces scattered spreadsheets and manual leave tracking with a structured, role-aware platform built for everyday human resource administration.
+            </p>
+          </div>
 
-          <h2 class="section-title">
-            Beyond HR Management: DSA in Action
-          </h2>
+          <div class="about-pillars-grid">
+            <article class="about-pillar-card">
+              <div class="pillar-icon-wrap navy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <h3 class="pillar-card-title">Centralized Employee Records</h3>
+              <p class="pillar-card-desc">
+                Keep employee profiles, contact details, department placements, job positions, and employment status organized in a single authoritative directory.
+              </p>
+            </article>
 
-          <p class="section-desc">
-            Explore practical algorithm behavior using
-            realistic employee and leave datasets.
-          </p>
+            <article class="about-pillar-card">
+              <div class="pillar-icon-wrap blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                  <path d="M9 16l2 2 4-4"></path>
+                </svg>
+              </div>
+              <h3 class="pillar-card-title">Structured Leave Administration</h3>
+              <p class="pillar-card-desc">
+                Streamline the complete leave lifecycle from employee request submission and date validation to HR decision making and automated balance adjustments.
+              </p>
+            </article>
+
+            <article class="about-pillar-card">
+              <div class="pillar-icon-wrap teal" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+              </div>
+              <h3 class="pillar-card-title">Clear Operational Visibility</h3>
+              <p class="pillar-card-desc">
+                Give HR personnel immediate insight into workforce distribution, pending leave queues, and recorded system activities while empowering employees with self-service access.
+              </p>
+            </article>
+          </div>
         </div>
 
-        <div class="dsa-pipeline-banner">
-          <span class="pipeline-node">HRIS Dataset</span>
-          <span class="pipeline-arrow">→</span>
-          <span class="pipeline-node">Data Structure</span>
-          <span class="pipeline-arrow">→</span>
-          <span class="pipeline-node">Algorithm</span>
-          <span class="pipeline-arrow">→</span>
-          <span class="pipeline-node">Measured Result</span>
-        </div>
-
-        <div class="dsa-cards-grid">
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/df59a.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">O(1)</span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Activity Log Stack
-              </h3>
-
-              <p class="dsa-card-desc">
-                LIFO processing for recent administrative
-                and security activities.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              CustomStack.php
-            </span>
-          </article>
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/9df7d.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">O(1)</span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Leave Approval Queue
-              </h3>
-
-              <p class="dsa-card-desc">
-                FIFO processing ensures leave applications
-                are reviewed fairly.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              CustomQueue.php
-            </span>
-          </article>
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/6144b.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">O(n)</span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Linked Employee List
-              </h3>
-
-              <p class="dsa-card-desc">
-                Sequential employee traversal with node
-                insertion and deletion operations.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              LinkedList.php
-            </span>
-          </article>
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/29f2b.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">
-                  O(1) average
-                </span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Employee Hash Table
-              </h3>
-
-              <p class="dsa-card-desc">
-                Fast employee lookup with custom hashing
-                and collision handling.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              HashTable.php
-            </span>
-          </article>
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/0a16f.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">
-                  O(log n)
-                </span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Search &amp; Sort Benchmarks
-              </h3>
-
-              <p class="dsa-card-desc">
-                Compare linear and binary search plus
-                bubble and merge sort performance.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              Search · Sort
-            </span>
-          </article>
-
-          <article class="dsa-card">
-            <div>
-              <div class="dsa-card-header">
-                <img
-                  class="dsa-card-icon"
-                  src="<?= e(asset('icon/81853.svg')) ?>"
-                  alt=""
-                >
-                <span class="dsa-complexity-pill">
-                  O(log n)
-                </span>
-              </div>
-
-              <h3 class="dsa-card-title">
-                Binary Search Tree
-              </h3>
-
-              <p class="dsa-card-desc">
-                Hierarchical employee indexing with
-                recursive tree traversals.
-              </p>
-            </div>
-
-            <span class="dsa-tech-tag">
-              BST · Recursion
-            </span>
-          </article>
-
-        </div>
-
-        <div class="dsa-cta-box">
-          <a
-            class="btn btn-primary"
-            href="<?= e(url('/dsa')) ?>"
-          >
-            Explore the DSA Laboratory
-
-            <img
-              src="<?= e(asset('icon/49e26.svg')) ?>"
-              alt=""
-            >
-          </a>
-        </div>
       </div>
     </section>
 
-    <!-- Roles -->
-    <section
-      id="roles"
-      class="roles-section section-padding"
-    >
+    <!-- F. User Experiences (#roles) -->
+    <section id="roles" data-nav-section="about" class="roles-section section-padding">
       <div class="container">
 
         <div class="section-header">
-          <span class="section-eyebrow">
-            User Experience
-          </span>
-
           <h2 class="section-title">
-            Tailored Experiences for Every Role
+            The Right Experience for Every User
           </h2>
-
           <p class="section-desc">
-            Distinct role-specific interfaces protected
-            by authentication and authorization.
+            NEXORA HR provides dedicated, role-appropriate workspaces tailored to the responsibilities of HR personnel and employees.
           </p>
         </div>
 
         <div class="roles-grid">
 
-          <article class="role-card">
-            <div>
+          <!-- HR Experience -->
+          <article class="role-card role-card-hr">
+            <div class="role-card-body">
               <div class="role-card-header">
-                <span class="role-icon-box">
-                  <img
-                    src="<?= e(asset('icon/32208.svg')) ?>"
-                    alt=""
-                  >
+                <span class="role-icon-badge navy" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                  </svg>
                 </span>
-
-                <h3 class="role-title">
-                  Administrator / HR
-                </h3>
+                <div>
+                  <span class="role-tag">Administrative Role</span>
+                  <h3 class="role-title">HR</h3>
+                </div>
               </div>
 
-              <p class="role-desc">
-                Manage employee records, organizational
-                structure, leave approvals, and audit logs.
+              <p class="role-summary">
+                Full operational control over workforce records, organizational structure, and leave administration.
               </p>
 
-              <ul class="role-features-list">
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Master workforce directory
+              <ul class="role-checklist">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Manage employee information.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  FIFO leave approval queue
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Maintain departments and positions.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Department and position configuration
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Review leave requests.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Reports, balances, audit logs, and DSA access
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Process approvals and rejections.</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Access available HR information.</span>
                 </li>
               </ul>
             </div>
 
-            <a
-              class="btn btn-secondary"
-              href="<?= e(url('/hr/dashboard')) ?>"
-            >
-              Preview HR Dashboard
-            </a>
+            <div class="role-card-footer">
+              <a class="btn btn-primary role-cta" href="<?= e(url('/login')) ?>">
+                Sign In to HR Workspace
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </div>
           </article>
 
-          <article class="role-card">
-            <div>
+          <!-- Employees Experience -->
+          <article class="role-card role-card-employee">
+            <div class="role-card-body">
               <div class="role-card-header">
-                <span class="role-icon-box">
-                  <img
-                    src="<?= e(asset('icon/a8481.svg')) ?>"
-                    alt=""
-                  >
+                <span class="role-icon-badge teal" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
                 </span>
-
-                <h3 class="role-title">
-                  Authenticated Employee
-                </h3>
+                <div>
+                  <span class="role-tag teal">Self-Service Role</span>
+                  <h3 class="role-title">Employees</h3>
+                </div>
               </div>
 
-              <p class="role-desc">
-                View employment details, leave balances,
-                file applications, and track request status.
+              <p class="role-summary">
+                Streamlined self-service access to personal employment records, leave balances, and request tracking.
               </p>
 
-              <ul class="role-features-list">
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Personal profile and employment status
+              <ul class="role-checklist">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>View authorized employee information.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Leave balances with visual meters
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Submit leave requests.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Working-day leave calculator
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Track request status.</span>
                 </li>
-
-                <li class="role-feature-item">
-                  <span class="check">✓</span>
-                  Application status and history
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span>Access available personal information.</span>
                 </li>
               </ul>
             </div>
 
-            <a
-              class="btn btn-secondary"
-              href="<?= e(url('/employee/dashboard')) ?>"
-            >
-              Preview Employee View
-            </a>
+            <div class="role-card-footer">
+              <a class="btn btn-secondary role-cta" href="<?= e(url('/login')) ?>">
+                Sign In to Employee Portal
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </a>
+            </div>
           </article>
 
         </div>
       </div>
     </section>
 
-    <!-- About -->
-    <section
-      id="about"
-      class="about-section section-padding"
-    >
+    <!-- G. Security and Reliability (#security) -->
+    <section id="security" data-nav-section="about" class="security-section section-padding">
       <div class="container">
 
         <div class="section-header">
-          <span class="section-eyebrow">
-            Academic Rationale
-          </span>
-
           <h2 class="section-title">
-            Designed for Practical HRIS and DSA Learning
+            Built Around Responsible Information Management
           </h2>
-
           <p class="section-desc">
-            A dual-purpose architecture combining workforce
-            management with computer science outcomes.
+            Every layer of NEXORA HR is engineered to safeguard employee records, enforce role boundaries, and maintain accurate leave data.
           </p>
         </div>
 
-        <div class="about-grid">
+        <div class="security-grid">
 
-          <article class="about-box">
-            <h3 class="about-box-title">
-              <img
-                src="<?= e(asset('icon/8e7fa.svg')) ?>"
-                alt=""
-              >
-              Enterprise HRIS Purpose
-            </h3>
-
-            <p class="about-box-desc">
-              Provide organizations with a reliable platform
-              to maintain employee information, manage
-              departments, calculate working-day leave
-              deductions, and preserve audit histories.
-            </p>
+          <article class="security-card">
+            <span class="security-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </span>
+            <div>
+              <h3 class="security-card-title">Authenticated Access &amp; Session Security</h3>
+              <p class="security-card-desc">
+                Protects accounts with bcrypt password hashing, session identifier regeneration upon login, configurable two-factor authentication, and automatic idle timeout controls.
+              </p>
+            </div>
           </article>
 
-          <article class="about-box">
-            <h3 class="about-box-title">
-              <img
-                src="<?= e(asset('icon/81853.svg')) ?>"
-                alt=""
-              >
-              Academic Computer Science Purpose
-            </h3>
+          <article class="security-card">
+            <span class="security-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+            </span>
+            <div>
+              <h3 class="security-card-title">Strict Two-Role Authorization</h3>
+              <p class="security-card-desc">
+                Server-side middleware enforces clear separation between HR and Employee permissions on every route, ensuring users only access authorized records and actions.
+              </p>
+            </div>
+          </article>
 
-            <p class="about-box-desc">
-              Bridge theory and enterprise software through
-              custom stacks, queues, hash tables, trees,
-              searching, sorting, and benchmarking.
-            </p>
+          <article class="security-card">
+            <span class="security-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+              </svg>
+            </span>
+            <div>
+              <h3 class="security-card-title">Input Validation &amp; Request Protection</h3>
+              <p class="security-card-desc">
+                State-changing forms are guarded by synchronizer CSRF tokens, server-side business rule validation, and context-aware HTML output escaping.
+              </p>
+            </div>
+          </article>
+
+          <article class="security-card">
+            <span class="security-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+              </svg>
+            </span>
+            <div>
+              <h3 class="security-card-title">Transactional Database Integrity</h3>
+              <p class="security-card-desc">
+                Uses parameterized PDO prepared statements, relational foreign-key constraints, and atomic database transactions when approving leave requests and deducting balances.
+              </p>
+            </div>
           </article>
 
         </div>
       </div>
     </section>
 
-    <!-- CTA -->
-    <section class="cta-section">
-      <div class="container cta-container">
+    <!-- E. How It Works (#how-it-works) -->
+    <section id="how-it-works" data-nav-section="how-it-works" class="workflow-section section-padding">
+      <span id="workflow" class="anchor-target" aria-hidden="true"></span>
+      <div class="container">
 
-        <h2 class="cta-title">
-          Your HRIS Workspace Starts Here.
-        </h2>
-
-        <p class="cta-desc">
-          Sign in to access employee and leave-management
-          features available to your assigned role.
-        </p>
-
-        <div class="cta-actions">
-          <a
-            class="btn btn-primary"
-            href="<?= e(url('/login')) ?>"
-          >
-            Sign In to HRIS
-
-            <img
-              src="<?= e(asset('icon/49e26.svg')) ?>"
-              alt=""
-            >
-          </a>
-
-          <a
-            class="btn btn-secondary"
-            href="<?= e(url('/dashboard')) ?>"
-          >
-            Open App Dashboard
-          </a>
+        <div class="section-header">
+          <h2 class="section-title">
+            Simplifying Everyday HR Processes
+          </h2>
+          <p class="section-desc">
+            NEXORA HR connects workforce organization, leave administration, and operational tracking in three clear steps.
+          </p>
         </div>
 
+        <ol class="workflow-steps-grid">
+
+          <li class="workflow-step-card">
+            <div class="workflow-step-top">
+              <span class="workflow-step-badge">Step 1</span>
+              <span class="workflow-step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </span>
+            </div>
+            <h3 class="workflow-step-title">
+              1. Organize Employee Information
+            </h3>
+            <p class="workflow-step-desc">
+              HR establishes departments and positions, creates employee profiles, assigns user accounts, and initializes annual leave allocations in one centralized directory.
+            </p>
+          </li>
+
+          <li class="workflow-step-card">
+            <div class="workflow-step-top">
+              <span class="workflow-step-badge">Step 2</span>
+              <span class="workflow-step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </span>
+            </div>
+            <h3 class="workflow-step-title">
+              2. Manage Leave Requests
+            </h3>
+            <p class="workflow-step-desc">
+              Employees submit leave applications through their self-service workspace. The system validates available credits, working days, and date overlaps before queuing requests for HR.
+            </p>
+          </li>
+
+          <li class="workflow-step-card">
+            <div class="workflow-step-top">
+              <span class="workflow-step-badge">Step 3</span>
+              <span class="workflow-step-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+              </span>
+            </div>
+            <h3 class="workflow-step-title">
+              3. Review and Track
+            </h3>
+            <p class="workflow-step-desc">
+              HR reviews pending requests and processes approvals or rejections. Leave balances, employee notifications, operational reports, and activity records update immediately.
+            </p>
+          </li>
+
+        </ol>
+
+      </div>
+    </section>
+
+    <!-- H. Final Call to Action -->
+    <section data-nav-section="how-it-works" class="cta-section">
+      <div class="container">
+        <div class="cta-banner">
+          <div class="cta-content">
+            <h2 class="cta-title">
+              Bring Your HR Operations Together.
+            </h2>
+            <p class="cta-desc">
+              Make employee management and leave administration more organized with NEXORA HR.
+            </p>
+          </div>
+
+          <div class="cta-actions">
+            <a
+              class="btn btn-cta-white btn-lg"
+              href="<?= e(url('/login')) ?>">
+              Access NEXORA HR
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
 
   </main>
 
-  <!-- Footer -->
+  <!-- I. Footer -->
   <footer class="site-footer">
     <div class="container">
 
       <div class="footer-grid">
 
-        <div>
-          <h2 class="footer-brand-title">
-            HRIS Portal
-          </h2>
+        <div class="footer-brand-col">
+          <a class="brand-wrapper footer-brand-link" href="#home" aria-label="NEXORA HR Home">
+            <img
+              class="brand-symbol"
+              src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
+              alt="NEXORA HR emblem"
+              width="40"
+              height="40">
+            <span class="brand-text-block">
+              <span class="brand-title">
+                <span class="brand-title-navy">NEXORA</span>
+                <span class="brand-title-blue">HR</span>
+              </span>
+            </span>
+          </a>
 
           <p class="footer-brand-desc">
-            Employee Human Resource Information System
-            and Leave Management System using PHP,
-            MySQL, and Data Structures &amp; Algorithms.
+            A modern enterprise Human Resource Information System that centralizes employee information and organizes essential HR operations.
           </p>
 
-          <p class="footer-code">
-            Database: <?= e($dbName) ?> (MySQL/InnoDB)
+          <p class="footer-tagline-badge">
+            People. Processes. Progress.
           </p>
         </div>
 
         <div>
-          <h3 class="footer-col-title">
-            Navigation
-          </h3>
-
+          <h3 class="footer-col-title">Navigation</h3>
           <ul class="footer-links-list">
-            <li>
-              <a class="footer-link" href="#home">
-                Home
-              </a>
-            </li>
-
-            <li>
-              <a class="footer-link" href="#features">
-                Features
-              </a>
-            </li>
-
-            <li>
-              <a class="footer-link" href="#how-it-works">
-                How It Works
-              </a>
-            </li>
-
-            <li>
-              <a class="footer-link" href="#dsa-laboratory">
-                DSA Laboratory
-              </a>
-            </li>
-
-            <li>
-              <a class="footer-link" href="#roles">
-                Role-Based Access
-              </a>
-            </li>
+            <li><a class="footer-link" href="#home">Home</a></li>
+            <li><a class="footer-link" href="#about">About</a></li>
+            <li><a class="footer-link" href="#features">Features</a></li>
+            <li><a class="footer-link" href="#how-it-works">How It Works</a></li>
           </ul>
         </div>
 
         <div>
-          <h3 class="footer-col-title">
-            Prototype Views
-          </h3>
-
+          <h3 class="footer-col-title">Platform</h3>
           <ul class="footer-links-list">
-            <li>
-              <a
-                class="footer-link"
-                href="<?= e(url('/login')) ?>"
-              >
-                Sign In
-              </a>
-            </li>
-
-            <li>
-              <a
-                class="footer-link"
-                href="<?= e(url('/hr/dashboard')) ?>"
-              >
-                HR Dashboard
-              </a>
-            </li>
-
-            <li>
-              <a
-                class="footer-link"
-                href="<?= e(url('/employee/dashboard')) ?>"
-              >
-                Employee Dashboard
-              </a>
-            </li>
-
-            <li>
-              <a
-                class="footer-link"
-                href="<?= e(url('/dsa')) ?>"
-              >
-                DSA Laboratory
-              </a>
-            </li>
-
-            <li>
-              <a
-                class="footer-link"
-                href="<?= e(url('/dashboard')) ?>"
-              >
-                App Dashboard
-              </a>
-            </li>
+            <li><a class="footer-link" href="#roles">HR &amp; Employee Roles</a></li>
+            <li><a class="footer-link" href="#security">Security &amp; Reliability</a></li>
+            <li><a class="footer-link" href="<?= e(url('/login')) ?>">Sign In</a></li>
           </ul>
         </div>
 
         <div>
-          <h3 class="footer-col-title">
-            Technical Foundation
-          </h3>
-
-          <p class="footer-brand-desc">
-            Built with Native PHP, MySQL, HTML5, CSS3,
-            JavaScript, and Data Structures &amp; Algorithms.
-          </p>
-
-          <p class="footer-status">
-            Status: Project Foundation Active
-          </p>
+          <h3 class="footer-col-title">System Access</h3>
+          <ul class="footer-links-list">
+            <li><a class="footer-link" href="<?= e(url('/login')) ?>">Account Login</a></li>
+            <li><a class="footer-link" href="<?= e(url('/health')) ?>">System Health Check</a></li>
+          </ul>
         </div>
 
       </div>
 
       <div class="footer-bottom">
         <p>
-          &copy; <?= date('Y') ?>
-          <?= e($appName) ?>.
-          Academic Software Project.
+          &copy; <?= date('Y') ?> NEXORA HR. All rights reserved. People. Processes. Progress.
         </p>
 
-        <p>
-          Developed in compliance with approved
-          system requirements and specifications.
-        </p>
+        <div class="footer-bottom-links">
+          <a href="#home">Back to Top</a>
+          <span aria-hidden="true">&bull;</span>
+          <a href="<?= e(url('/login')) ?>">Login</a>
+        </div>
       </div>
 
     </div>
   </footer>
 
-  <script src="<?= e(asset('js/landing.js')) ?>"></script>
+  <script src="<?= e(asset('js/landing.js')) ?>?v=<?= e((string)$jsVer) ?>"></script>
 </body>
+
 </html>

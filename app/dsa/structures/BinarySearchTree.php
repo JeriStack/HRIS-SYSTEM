@@ -1,26 +1,38 @@
 <?php
+
 /**
- * Binary Search Tree (BST) Data Structure
- * Used for logarithmic employee search by identifier and ordered traversal
- * Employee HRIS & Leave Management System — Phase 11
+ * Custom Binary Search Tree (BST) Data Structure
+ * Employee HRIS & Leave Management System
+ *
+ * Duplicate Key Policy:
+ * - Keys are unique per node. Inserting a key that already exists in the tree
+ *   updates that node's payload ($value) in place without incrementing size()
+ *   or creating duplicate key nodes.
+ *
+ * Complexity & Balancing Notes:
+ * - Insert / Search / Delete:
+ *   - Average Case (reasonably balanced tree): O(log n) time, O(log n) recursion stack space
+ *   - Worst Case (monotonically ordered / skewed input): O(n) time, O(n) recursion stack space
+ *   - Because this academic BST is not self-balancing (unlike AVL or Red-Black trees),
+ *     inserting pre-sorted keys produces a degenerate linked-list-like tree of height n.
+ * - Traversals (inOrder, preOrder, postOrder): O(n) time, O(n) output space.
  */
 
 namespace App\Dsa\Structures;
 
-use App\Dsa\Algorithms\RecursionHelper;
 use App\Dsa\Arrays\ArrayUtils;
 
 class BSTNode
 {
-    public string|int $key;
+    public mixed $key;
     public mixed $value;
     public ?BSTNode $left = null;
     public ?BSTNode $right = null;
 
-    public function __construct(string|int $key, mixed $value = null)
+    public function __construct(mixed $key, mixed $value = null)
     {
         $this->key = $key;
-        $this->value = $value;
+        $this->value = $value ?? $key;
     }
 }
 
@@ -30,106 +42,83 @@ class BinarySearchTree
     private int $count = 0;
 
     /**
-     * Insert a key-value pair into the BST.
-     * Duplicate keys update the existing node's value.
-     * Average O(log n), Worst O(n).
+     * Insert a key-value pair into the Binary Search Tree.
+     * If the key already exists, updates its value in place (Duplicate Policy).
+     *
+     * Time Complexity: O(log n) average, O(n) worst case (skewed tree)
+     * Space Complexity: O(h) recursion stack where h is tree height
      */
-    public function insert(string|int $key, mixed $value = null): void
+    public function insert(mixed $key, mixed $value = null): void
     {
-        $newNode = new BSTNode($key, $value);
-        if ($this->root === null) {
-            $this->root = $newNode;
-            $this->count++;
-            return;
-        }
-
-        $this->insertNode($this->root, $newNode);
+        $this->root = $this->insertNode($this->root, $key, $value ?? $key);
     }
 
-    private function insertNode(BSTNode $node, BSTNode $newNode): void
+    private function insertNode(?BSTNode $node, mixed $key, mixed $value): BSTNode
     {
-        $cmp = ArrayUtils::compareValues($newNode->key, $node->key);
-
-        if ($cmp < 0) {
-            if ($node->left === null) {
-                $node->left = $newNode;
-                $this->count++;
-            } else {
-                $this->insertNode($node->left, $newNode);
-            }
-        } elseif ($cmp > 0) {
-            if ($node->right === null) {
-                $node->right = $newNode;
-                $this->count++;
-            } else {
-                $this->insertNode($node->right, $newNode);
-            }
-        } else {
-            // Duplicate key policy: update stored value
-            $node->value = $newNode->value;
+        if ($node === null) {
+            $this->count++;
+            return new BSTNode($key, $value);
         }
+
+        $cmp = ArrayUtils::compareValues($key, $node->key);
+        if ($cmp < 0) {
+            $node->left = $this->insertNode($node->left, $key, $value);
+        } elseif ($cmp > 0) {
+            $node->right = $this->insertNode($node->right, $key, $value);
+        } else {
+            // Duplicate key policy: update existing node's value in place
+            $node->value = $value;
+        }
+
+        return $node;
     }
 
     /**
-     * Search for a value by key in the BST.
-     * Returns the stored value or null if absent.
-     * Average O(log n), Worst O(n).
+     * Search for a node by key and return its associated value, or null if not found.
+     *
+     * Time Complexity: O(log n) average, O(n) worst case
+     * Space Complexity: O(1) (iterative search)
      */
-    public function search(string|int $key): mixed
+    public function search(mixed $key): mixed
     {
-        return $this->searchNode($this->root, $key);
+        $node = $this->findNode($this->root, $key);
+        return $node?->value;
     }
 
     /**
      * Check whether a key exists in the BST.
-     * Average O(log n), Worst O(n).
+     *
+     * Time Complexity: O(log n) average, O(n) worst case
+     * Space Complexity: O(1)
      */
-    public function contains(string|int $key): bool
+    public function contains(mixed $key): bool
     {
-        return $this->containsNode($this->root, $key);
+        return $this->findNode($this->root, $key) !== null;
     }
 
-    private function searchNode(?BSTNode $node, string|int $key): mixed
+    private function findNode(?BSTNode $node, mixed $key): ?BSTNode
     {
-        if ($node === null) {
-            return null;
+        $current = $node;
+        while ($current !== null) {
+            $cmp = ArrayUtils::compareValues($key, $current->key);
+            if ($cmp === 0) {
+                return $current;
+            }
+            $current = $cmp < 0 ? $current->left : $current->right;
         }
-
-        $cmp = ArrayUtils::compareValues($key, $node->key);
-
-        if ($cmp < 0) {
-            return $this->searchNode($node->left, $key);
-        } elseif ($cmp > 0) {
-            return $this->searchNode($node->right, $key);
-        } else {
-            return $node->value;
-        }
-    }
-
-    private function containsNode(?BSTNode $node, string|int $key): bool
-    {
-        if ($node === null) {
-            return false;
-        }
-
-        $cmp = ArrayUtils::compareValues($key, $node->key);
-
-        if ($cmp < 0) {
-            return $this->containsNode($node->left, $key);
-        } elseif ($cmp > 0) {
-            return $this->containsNode($node->right, $key);
-        } else {
-            return true;
-        }
+        return null;
     }
 
     /**
      * Delete a node by key from the BST.
-     * Handles leaf, single-child, and two-child nodes (using in-order successor).
-     * Returns true if deleted; false if absent.
-     * Average O(log n), Worst O(n).
+     * Handles all three structural cases:
+     *   1. Leaf node (no children)
+     *   2. Node with one child (left or right)
+     *   3. Node with two children (replaced with in-order successor — minimum in right subtree)
+     *
+     * Time Complexity: O(log n) average, O(n) worst case
      */
-    public function delete(string|int $key): bool
+    public function delete(mixed $key): bool
     {
         $deleted = false;
         $this->root = $this->deleteNode($this->root, $key, $deleted);
@@ -139,14 +128,13 @@ class BinarySearchTree
         return $deleted;
     }
 
-    private function deleteNode(?BSTNode $node, string|int $key, bool &$deleted): ?BSTNode
+    private function deleteNode(?BSTNode $node, mixed $key, bool &$deleted): ?BSTNode
     {
         if ($node === null) {
             return null;
         }
 
         $cmp = ArrayUtils::compareValues($key, $node->key);
-
         if ($cmp < 0) {
             $node->left = $this->deleteNode($node->left, $key, $deleted);
         } elseif ($cmp > 0) {
@@ -154,18 +142,21 @@ class BinarySearchTree
         } else {
             $deleted = true;
 
-            // Case 1 & 2: Leaf node or single-child node
+            // Case 1 & 2: Node with zero or one child
             if ($node->left === null) {
                 return $node->right;
-            } elseif ($node->right === null) {
+            }
+            if ($node->right === null) {
                 return $node->left;
             }
 
-            // Case 3: Two children -> replace with in-order successor (min in right subtree)
-            $minRight = $this->findMin($node->right);
-            $node->key = $minRight->key;
-            $node->value = $minRight->value;
-            $node->right = $this->deleteNode($node->right, $minRight->key, $deleted);
+            // Case 3: Node with two children — replace with in-order successor
+            $successor = $this->findMin($node->right);
+            $node->key = $successor->key;
+            $node->value = $successor->value;
+
+            $dummy = false;
+            $node->right = $this->deleteNode($node->right, $successor->key, $dummy);
         }
 
         return $node;
@@ -173,81 +164,153 @@ class BinarySearchTree
 
     private function findMin(BSTNode $node): BSTNode
     {
-        while ($node->left !== null) {
-            $node = $node->left;
+        $current = $node;
+        while ($current->left !== null) {
+            $current = $current->left;
         }
-        return $node;
+        return $current;
     }
 
     /**
-     * Return the total node count.
-     * O(1) time complexity.
+     * In-Order Traversal (Left -> Root -> Right).
+     * Produces elements sorted in ascending key order.
+     *
+     * Time Complexity: O(n) | Space Complexity: O(n)
+     *
+     * @return list<array{key: mixed, value: mixed}>
      */
+    public function inOrderTraversal(): array
+    {
+        $result = [];
+        $this->inOrderRecursive($this->root, $result);
+        return $result;
+    }
+
+    /**
+     * Alias for inOrderTraversal().
+     *
+     * @return list<array{key: mixed, value: mixed}>
+     */
+    public function inOrder(): array
+    {
+        return $this->inOrderTraversal();
+    }
+
+    private function inOrderRecursive(?BSTNode $node, array &$result): void
+    {
+        if ($node === null) {
+            return;
+        }
+        $this->inOrderRecursive($node->left, $result);
+        $result[] = ['key' => $node->key, 'value' => $node->value];
+        $this->inOrderRecursive($node->right, $result);
+    }
+
+    /**
+     * Pre-Order Traversal (Root -> Left -> Right).
+     * Useful for cloning/serializing tree hierarchy from root downward.
+     *
+     * Time Complexity: O(n) | Space Complexity: O(n)
+     *
+     * @return list<array{key: mixed, value: mixed}>
+     */
+    public function preOrderTraversal(): array
+    {
+        $result = [];
+        $this->preOrderRecursive($this->root, $result);
+        return $result;
+    }
+
+    /**
+     * Alias for preOrderTraversal().
+     *
+     * @return list<array{key: mixed, value: mixed}>
+     */
+    public function preOrder(): array
+    {
+        return $this->preOrderTraversal();
+    }
+
+    private function preOrderRecursive(?BSTNode $node, array &$result): void
+    {
+        if ($node === null) {
+            return;
+        }
+        $result[] = ['key' => $node->key, 'value' => $node->value];
+        $this->preOrderRecursive($node->left, $result);
+        $this->preOrderRecursive($node->right, $result);
+    }
+
+    /**
+     * Post-Order Traversal (Left -> Right -> Root).
+     * Processes child subtrees before their parent node.
+     *
+     * Time Complexity: O(n) | Space Complexity: O(n)
+     *
+     * @return list<array{key: mixed, value: mixed}>
+     */
+    public function postOrderTraversal(): array
+    {
+        $result = [];
+        $this->postOrderRecursive($this->root, $result);
+        return $result;
+    }
+
+    /**
+     * Alias for postOrderTraversal().
+     *
+     * @return list<array{key: mixed, value: mixed}>
+     */
+    public function postOrder(): array
+    {
+        return $this->postOrderTraversal();
+    }
+
+    private function postOrderRecursive(?BSTNode $node, array &$result): void
+    {
+        if ($node === null) {
+            return;
+        }
+        $this->postOrderRecursive($node->left, $result);
+        $this->postOrderRecursive($node->right, $result);
+        $result[] = ['key' => $node->key, 'value' => $node->value];
+    }
+
+    /**
+     * Compute the height of the BST (0 for empty tree, 1 for single root node).
+     * Time Complexity: O(n) | Space Complexity: O(h)
+     */
+    public function height(): int
+    {
+        return $this->computeHeight($this->root);
+    }
+
+    private function computeHeight(?BSTNode $node): int
+    {
+        if ($node === null) {
+            return 0;
+        }
+        return 1 + max($this->computeHeight($node->left), $this->computeHeight($node->right));
+    }
+
     public function size(): int
     {
         return $this->count;
     }
 
-    /**
-     * Check whether the tree has no nodes.
-     * O(1) time complexity.
-     */
     public function isEmpty(): bool
     {
         return $this->root === null;
     }
 
-    /**
-     * Clear all nodes from the tree.
-     * O(1) pointer reset.
-     */
     public function clear(): void
     {
         $this->root = null;
         $this->count = 0;
     }
 
-    /**
-     * Get root node reference for external traversals.
-     */
     public function getRoot(): ?BSTNode
     {
         return $this->root;
-    }
-
-    /**
-     * Recursive In-Order Traversal (LNR) producing sorted entries.
-     * Delegates to RecursionHelper.
-     * Time: O(n), Space: O(h).
-     *
-     * @return array<int, array{key: string|int, value: mixed}>
-     */
-    public function inOrderTraversal(): array
-    {
-        return RecursionHelper::inOrderTraversal($this->root);
-    }
-
-    /**
-     * Recursive Pre-Order Traversal (NLR).
-     * Delegates to RecursionHelper.
-     * Time: O(n), Space: O(h).
-     *
-     * @return array<int, array{key: string|int, value: mixed}>
-     */
-    public function preOrderTraversal(): array
-    {
-        return RecursionHelper::preOrderTraversal($this->root);
-    }
-
-    /**
-     * Recursive Post-Order Traversal (LRN).
-     * Delegates to RecursionHelper.
-     * Time: O(n), Space: O(h).
-     *
-     * @return array<int, array{key: string|int, value: mixed}>
-     */
-    public function postOrderTraversal(): array
-    {
-        return RecursionHelper::postOrderTraversal($this->root);
     }
 }

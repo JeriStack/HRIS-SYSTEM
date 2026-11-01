@@ -18,13 +18,14 @@ class BinarySearchTreeTest extends TestCase
     {
         $this->assertTrue($this->bst->isEmpty());
         $this->assertSame(0, $this->bst->size());
+        $this->assertSame(0, $this->bst->height());
         $this->assertNull($this->bst->search('missing'));
         $this->assertFalse($this->bst->contains('missing'));
         $this->assertFalse($this->bst->delete('missing'));
         $this->assertNull($this->bst->getRoot());
-        $this->assertSame([], $this->bst->inOrderTraversal());
-        $this->assertSame([], $this->bst->preOrderTraversal());
-        $this->assertSame([], $this->bst->postOrderTraversal());
+        $this->assertSame([], $this->bst->inOrder());
+        $this->assertSame([], $this->bst->preOrder());
+        $this->assertSame([], $this->bst->postOrder());
     }
 
     public function test_insert_and_search_single_and_multiple(): void
@@ -35,6 +36,7 @@ class BinarySearchTreeTest extends TestCase
 
         $this->assertFalse($this->bst->isEmpty());
         $this->assertSame(3, $this->bst->size());
+        $this->assertSame(2, $this->bst->height());
         $this->assertTrue($this->bst->contains('EMP-050'));
         $this->assertTrue($this->bst->contains('EMP-025'));
         $this->assertTrue($this->bst->contains('EMP-075'));
@@ -57,7 +59,6 @@ class BinarySearchTreeTest extends TestCase
 
     public function test_traversals(): void
     {
-        // Insert keys: 50, 25, 75, 10, 30
         $this->bst->insert(50, 'Fifty');
         $this->bst->insert(25, 'TwentyFive');
         $this->bst->insert(75, 'SeventyFive');
@@ -65,26 +66,20 @@ class BinarySearchTreeTest extends TestCase
         $this->bst->insert(30, 'Thirty');
 
         // In-Order Traversal (LNR) -> Ascending Sorted Order: 10, 25, 30, 50, 75
-        $inOrder = $this->bst->inOrderTraversal();
+        $inOrder = $this->bst->inOrder();
         $this->assertSame([10, 25, 30, 50, 75], array_column($inOrder, 'key'));
 
         // Pre-Order Traversal (NLR) -> 50, 25, 10, 30, 75
-        $preOrder = $this->bst->preOrderTraversal();
+        $preOrder = $this->bst->preOrder();
         $this->assertSame([50, 25, 10, 30, 75], array_column($preOrder, 'key'));
 
         // Post-Order Traversal (LRN) -> 10, 30, 25, 75, 50
-        $postOrder = $this->bst->postOrderTraversal();
+        $postOrder = $this->bst->postOrder();
         $this->assertSame([10, 30, 25, 75, 50], array_column($postOrder, 'key'));
     }
 
     public function test_delete_leaf_single_child_and_two_children(): void
     {
-        // Build tree:
-        //        50
-        //       /  \
-        //     25    75
-        //    /  \     \
-        //   10  30     85
         $this->bst->insert(50, 'Fifty');
         $this->bst->insert(25, 'TwentyFive');
         $this->bst->insert(75, 'SeventyFive');
@@ -125,4 +120,3 @@ class BinarySearchTreeTest extends TestCase
         $this->assertNull($this->bst->search('K1'));
     }
 }
-

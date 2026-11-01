@@ -1,11 +1,14 @@
 <?php
 /**
  * Employee Directory DSA Integration Service
- * Employee HRIS & Leave Management System — Phase 10
+ * Employee HRIS & Leave Management System — Phase 10 / Phase 11
  *
- * Bridges the authorized employee dataset to the custom DSA search/sort
- * algorithms. All field, direction, and algorithm choices pass through explicit
- * server-side allowlists; client input never names a class or method.
+ * Bridges the authorized employee dataset to custom DSA structures (ArrayStructure,
+ * LinkedList, Stack) and search/sort algorithms (LinearSearch, BinarySearch,
+ * BubbleSort, SelectionSort, InsertionSort, MergeSort, QuickSort).
+ *
+ * All field, direction, and algorithm choices pass through explicit server-side
+ * allowlists; client input never names a class or method.
  *
  * Dataset safety: application-level DSA runs only on a bounded, pre-filtered
  * dataset (see MAX_DSA_DATASET). Beyond that cap the directory falls back to
@@ -22,6 +25,9 @@ use App\Dsa\Algorithms\MergeSort;
 use App\Dsa\Algorithms\QuickSort;
 use App\Dsa\Algorithms\SelectionSort;
 use App\Dsa\Arrays\ArrayUtils;
+use App\Dsa\Structures\ArrayStructure;
+use App\Dsa\Structures\LinkedList;
+use App\Dsa\Structures\Stack;
 
 class EmployeeDirectoryService
 {
@@ -126,6 +132,51 @@ class EmployeeDirectoryService
     public static function isValidSearchAlgorithm(string $algo): bool
     {
         return array_key_exists($algo, self::SEARCH_ALGORITHMS);
+    }
+
+    /**
+     * Wrap a bounded employee dataset in the custom ArrayStructure abstraction
+     * for indexed access, iteration, filtering, searching, and sorting.
+     *
+     * @param array<mixed> $employees
+     */
+    public function wrapCollection(array $employees): ArrayStructure
+    {
+        $capped = $this->cap($employees);
+        return new ArrayStructure($capped['records']);
+    }
+
+    /**
+     * Build a bounded LinkedList of employee records for sequential node-based
+     * traversal and dynamic insertion/deletion without array re-indexing.
+     *
+     * @param array<mixed> $employees
+     */
+    public function buildSequentialRoster(array $employees): LinkedList
+    {
+        $capped = $this->cap($employees);
+        $list = new LinkedList();
+        foreach ($capped['records'] as $emp) {
+            $list->append($emp);
+        }
+        return $list;
+    }
+
+    /**
+     * Record a reversible in-memory directory operation onto a LIFO Stack.
+     *
+     * @param Stack $stack
+     * @param string $operation
+     * @param array<string, mixed> $beforeState
+     * @param array<string, mixed> $afterState
+     */
+    public function recordReversibleOperation(
+        Stack $stack,
+        string $operation,
+        array $beforeState,
+        array $afterState = []
+    ): void {
+        $stack->pushOperation($operation, $beforeState, $afterState);
     }
 
     /**
