@@ -32,7 +32,7 @@ class TestLogin:
 
     def test_login_with_empty_credentials(self, driver):
         """Validates client-side validation prevents submission when fields are empty."""
-        page = LoginPage(driver).open()
+        page = LoginPage(driver).open().ensure_modal_open()
         email_el = page.find_visible(page.EMAIL_INPUT)
         assert email_el.get_attribute("required") is not None, "Email field should be marked required"
 
