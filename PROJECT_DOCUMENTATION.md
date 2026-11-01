@@ -133,6 +133,7 @@
   - [26.1 Branching Convention (`HRIS-*`)](#261-branching-convention-hris-)
   - [26.2 Jira Issue Synchronization](#262-jira-issue-synchronization)
   - [26.3 Pull Request Protocol and Review Criteria](#263-pull-request-protocol-and-review-criteria)
+  - [26.4 GNU Make Development Automation](#264-gnu-make-development-automation)
 - [27. Coding Standards](#27-coding-standards)
   - [27.1 PSR-12 Coding Style Compliance](#271-psr-12-coding-style-compliance)
   - [27.2 Static Analysis Standards (PHPStan Level 5+)](#272-static-analysis-standards-phpstan-level-5)
@@ -1489,6 +1490,87 @@ Branch commits referencing Jira issue keys trigger automated status transitions 
 - All CI checks (`unit-tests`, `e2e-tests`, `terraform`, `docker`) must pass.
 - Zero regression in PHPUnit or Selenium test suites.
 - Code must adhere to PSR-12 and pass PHPStan analysis.
+
+### 26.4 GNU Make Development Automation
+
+The repository provides a root [`Makefile`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/Makefile) serving as a lightweight task automation layer. It wraps routine Docker Compose, Composer, database migration, linting, and testing commands without modifying or abstracting away existing underlying tools.
+
+#### 26.4.1 Execution Flow
+
+When a developer triggers a target (e.g., `make test`), GNU Make reads the root `Makefile`, locates the target recipe, and executes the configured command:
+
+```text
+Developer                    GNU Make                  Recipe Execution                  Result
+┌───────────┐             ┌───────────┐             ┌───────────────────────────────┐  ┌───────────────────┐
+│ make test │ ──────────> │   test:   │ ──────────> │ docker compose exec app       │─>│ PHPUnit executes  │
+│           │             │           │             │ vendor/bin/phpunit            │  │ the HRIS tests    │
+└───────────┘             └───────────┘             └───────────────────────────────┘  └───────────────────┘
+```
+
+#### 26.4.2 Target Reference
+
+| Target | Category | Description | Underlying Command |
+|---|---|---|---|
+| `make help` | General | Display available targets and formatted usage guide | Built-in target summary |
+| `make up` | Docker | Start all application and monitoring containers in background | `docker compose up -d` |
+| `make down` | Docker | Safely stop containers (**strictly preserves database volume**) | `docker compose down` |
+| `make restart` | Docker | Restart all Docker services | `docker compose restart` |
+| `make ps` | Docker | Display container health and exposed ports | `docker compose ps` |
+| `make logs` | Docker | Follow application container stdout/stderr logs | `docker compose logs -f app` |
+| `make build` | Docker | Build or rebuild application Docker images | `docker compose build` |
+| `make install` | Dependencies | Install Composer dependencies inside app container | `docker compose exec app composer install` |
+| `make migrate` | Database | Execute pending database migrations idempotently | `docker compose exec app php bin/migrate.php` |
+| `make test` | Testing | Run PHPUnit backend test suite inside app container | `docker compose exec app vendor/bin/phpunit` |
+| `make lint` | Quality | Run PHP_CodeSniffer PSR-12 and PHPStan static analysis | `docker compose exec app composer lint` |
+| `make e2e` | Testing | Run Selenium UI test suite in headless mode | `pytest e2e-tests/tests/ -v --headless` |
+
+#### 26.4.3 Host Installation & Verification
+
+##### Windows 11 (Host Terminal)
+Install via Windows Package Manager (Winget):
+```powershell
+winget install ezwinports.make
+```
+*Or via Chocolatey:*
+```powershell
+choco install make
+```
+
+##### Linux / WSL Ubuntu
+```bash
+sudo apt update && sudo apt install -y make
+```
+
+##### Verification
+```bash
+make --version
+# Output: GNU Make 4.4.1
+```
+
+#### 26.4.4 Standard Daily Development Workflow
+
+```powershell
+# 1. Start application stack in background
+make up
+
+# 2. Verify all containers are healthy
+make ps
+
+# 3. Apply any pending database migrations
+make migrate
+
+# 4. Run backend unit and integration test suite
+make test
+
+# 5. Validate code style and static analysis
+make lint
+
+# 6. Run browser UI test automation
+make e2e
+
+# 7. Safely stop containers at end of day (preserves database volume)
+make down
+```
 
 ---
 
