@@ -22,7 +22,8 @@ class LinkedListTest extends TestCase
         $this->assertSame([], $this->list->toArray());
         $this->assertNull($this->list->getAt(0));
         $this->assertNull($this->list->find('anything'));
-        $this->assertFalse($this->list->search('anything'));
+        $this->assertNull($this->list->search('anything'));
+        $this->assertFalse($this->list->indexOf('anything'));
         $this->assertFalse($this->list->remove('missing'));
         $this->assertNull($this->list->removeAt(0));
         $this->assertFalse($this->list->deleteAt(0));
@@ -81,10 +82,16 @@ class LinkedListTest extends TestCase
         $this->assertIsArray($foundRecord);
         $this->assertSame('Leave #2', $foundRecord['title']);
 
-        $this->assertSame(1, $this->list->search('EMP-020', 'employee_no'));
-        $this->assertSame(2, $this->list->search('Simple String'));
-        $this->assertFalse($this->list->search(999));
+        $searchedRecord = $this->list->search('EMP-020', 'employee_no');
+        $this->assertIsArray($searchedRecord);
+        $this->assertSame('Leave #2', $searchedRecord['title']);
+        $this->assertSame('Simple String', $this->list->search('Simple String'));
+        $this->assertNull($this->list->search(999));
         $this->assertNull($this->list->find(999));
+
+        $this->assertSame(1, $this->list->indexOf('EMP-020', 'employee_no'));
+        $this->assertSame(2, $this->list->indexOf('Simple String'));
+        $this->assertFalse($this->list->indexOf(999));
     }
 
     public function test_remove_by_value_and_position(): void

@@ -76,15 +76,36 @@ class ArrayWrapper implements Countable, IteratorAggregate
     /**
      * Insert an element at a specific zero-based index by shifting subsequent
      * elements one position to the right manually (no array_splice).
+     * Supports both insert($index, $item) and legacy insert($item, $index).
      *
      * Time Complexity: O(n) | Space Complexity: O(1)
      *
-     * @param int $index Target index in [0 .. size]
-     * @param mixed $item Element to insert
+     * @param mixed $indexOrItem Target index in [0 .. size] or item when called in legacy order
+     * @param mixed $itemOrIndex Element to insert or target index when called in legacy order
      * @return bool True if inserted, false if index is out of bounds
      */
-    public function insert(int $index, mixed $item): bool
+    public function insert(mixed $indexOrItem, mixed $itemOrIndex = null): bool
     {
+        if (func_num_args() === 1) {
+            $this->add($indexOrItem);
+            return true;
+        }
+
+        if (
+            is_int($itemOrIndex)
+            && $itemOrIndex >= 0
+            && $itemOrIndex <= $this->length
+            && (!is_int($indexOrItem) || $indexOrItem < 0 || $indexOrItem > $this->length)
+        ) {
+            $index = $itemOrIndex;
+            $item = $indexOrItem;
+        } elseif (is_int($indexOrItem)) {
+            $index = $indexOrItem;
+            $item = $itemOrIndex;
+        } else {
+            return false;
+        }
+
         if ($index < 0 || $index > $this->length) {
             return false;
         }

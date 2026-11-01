@@ -151,10 +151,22 @@ class LinkedList
     }
 
     /**
+     * Search for the first node matching a target value, associative record 'id',
+     * specific $attribute, or custom predicate callable.
+     * Returns the matching node value or null if absent.
+     *
+     * Time Complexity: O(n) | Space Complexity: O(1)
+     */
+    public function search(mixed $criteria, ?string $attribute = null): mixed
+    {
+        return $this->find($criteria, $attribute);
+    }
+
+    /**
      * Search for the zero-based position of the first matching node, or false if absent.
      * Time Complexity: O(n) | Space Complexity: O(1)
      */
-    public function search(mixed $criteria, ?string $attribute = null): int|false
+    public function indexOf(mixed $criteria, ?string $attribute = null): int|false
     {
         $current = $this->head;
         $index = 0;
