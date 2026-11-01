@@ -47,14 +47,19 @@ class AuthController extends Controller
         $success = Session::getFlash('success');
         $timeout = Session::getFlash('timeout');
         $oldEmail = Session::getFlash('old_email', '');
+        $oldPortalRole = strtolower(trim((string)Session::getFlash('old_portal_role', '')));
+        if ($oldPortalRole !== 'hr' && $oldPortalRole !== 'employee') {
+            $oldPortalRole = '';
+        }
 
         $this->view('auth.login', [
-            'pageTitle'   => 'Sign In - Employee HRIS & Leave Management System',
-            'error'       => $error,
-            'success'     => $success,
-            'timeout'     => $timeout,
-            'oldEmail'    => $oldEmail,
-            'csrfToken'   => csrf_token(),
+            'pageTitle'     => 'Sign In - NEXORA HR',
+            'error'         => $error,
+            'success'       => $success,
+            'timeout'       => $timeout,
+            'oldEmail'      => $oldEmail,
+            'oldPortalRole' => $oldPortalRole,
+            'csrfToken'     => csrf_token(),
         ], null); // Render standalone without outer layout
     }
 
@@ -64,10 +69,16 @@ class AuthController extends Controller
      */
     public function login(): void
     {
+        $rawPortalRole = strtolower(trim((string)($_POST['portal_role'] ?? $_POST['selected_role'] ?? '')));
+        $portalRole = ($rawPortalRole === 'hr' || $rawPortalRole === 'employee') ? $rawPortalRole : '';
+
         // 1. Validate CSRF Protection
         $submittedToken = $_POST['_csrf_token'] ?? null;
         if (!verify_csrf_token($submittedToken)) {
             Session::flash('error', 'Security token expired or invalid. Please try submitting again.');
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -79,6 +90,9 @@ class AuthController extends Controller
         if ($rawEmail === '' || $password === '') {
             Session::flash('error', 'Please provide both email address and password.');
             Session::flash('old_email', $rawEmail);
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -87,6 +101,9 @@ class AuthController extends Controller
         if (!filter_var($rawEmail, FILTER_VALIDATE_EMAIL)) {
             Session::flash('error', 'Please provide a valid email address.');
             Session::flash('old_email', $rawEmail);
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -111,6 +128,9 @@ class AuthController extends Controller
 
             Session::flash('error', 'Invalid email address or password. Please verify your credentials and try again.');
             Session::flash('old_email', $rawEmail);
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -128,6 +148,9 @@ class AuthController extends Controller
 
             Session::flash('error', 'Invalid email address or password. Please verify your credentials and try again.');
             Session::flash('old_email', $rawEmail);
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -143,6 +166,9 @@ class AuthController extends Controller
             );
 
             Session::flash('error', 'Your employment account is inactive. Please contact Human Resources.');
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -159,6 +185,33 @@ class AuthController extends Controller
             );
 
             Session::flash('error', 'Unauthorized role assignment. Access is restricted to HR and Employee accounts.');
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
+            $this->redirect('/login');
+            return;
+        }
+
+        // 8b. Server-Side Portal Role Verification (HR vs Employee Portal Selection)
+        if ($portalRole !== '' && $portalRole !== $role) {
+            $selectedPortalLabel = $portalRole === 'hr' ? 'HR Portal' : 'Employee Portal';
+            $correctPortalLabel = $role === 'hr' ? 'HR Portal' : 'Employee Portal';
+
+            $this->userModel->logActivity(
+                (int)$user['id'],
+                'AUTH_PORTAL_MISMATCH',
+                "Portal mismatch: User with role '{$role}' attempted sign-in via '{$portalRole}' portal ({$email})",
+                'USER',
+                (string)$user['id']
+            );
+
+            Session::flash(
+                'error',
+                "Access denied: Your account is not authorized for the {$selectedPortalLabel}. "
+                . "Please sign in through the {$correctPortalLabel}."
+            );
+            Session::flash('old_email', $rawEmail);
+            Session::flash('old_portal_role', $portalRole);
             $this->redirect('/login');
             return;
         }
@@ -181,6 +234,9 @@ class AuthController extends Controller
             );
 
             Session::flash('error', 'Your account does not have a valid registered email address. Please contact HR.');
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -197,6 +253,9 @@ class AuthController extends Controller
             );
 
             Session::flash('error', $this->lockoutMessage($lockout['retry_after']));
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }
@@ -227,6 +286,9 @@ class AuthController extends Controller
             );
 
             Session::flash('error', 'Unable to dispatch verification code via email. Please verify SMTP settings or try again.');
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
             $this->redirect('/login');
             return;
         }

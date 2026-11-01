@@ -1,273 +1,386 @@
+<?php
+$resolvedRole = ($oldPortalRole ?? '') === 'employee' ? 'employee' : (($oldPortalRole ?? '') === 'hr' ? 'hr' : '');
+$shouldOpenModal = !empty($error) || $resolvedRole !== '' || !empty($oldEmail);
+$activeVisualRole = $resolvedRole !== '' ? $resolvedRole : 'hr';
+$modalHeaderTitle = $activeVisualRole === 'employee' ? 'Employee Portal Login' : 'HR Portal Login';
+$modalPillLabel = $activeVisualRole === 'employee' ? 'Employee Workspace' : 'HR Workspace';
+$modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Portal' : 'Sign In to HR Portal';
+?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle ?? 'Sign In - Employee HRIS & Leave Management System') ?></title>
-    <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
-    <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
-    <link rel="stylesheet" href="<?= asset('css/responsive.css') ?>">
-    <style>
-        .login-page {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            background: radial-gradient(circle at top right, #EEF2FF, #F8FAFC);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        .login-card {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 1rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            max-width: 440px;
-            width: 100%;
-            padding: 2.25rem;
-        }
-        .login-brand {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .login-brand-icon {
-            width: 48px;
-            height: 48px;
-            background: #4F46E5;
-            color: #FFFFFF;
-            border-radius: 0.75rem;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
-        }
-        .login-brand h1 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: #0F172A;
-            margin: 0 0 0.35rem 0;
-        }
-        .login-brand p {
-            font-size: 0.8125rem;
-            color: #64748B;
-            margin: 0;
-        }
-        .alert-banner {
-            padding: 0.75rem 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1.25rem;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            line-height: 1.4;
-        }
-        .alert-error {
-            background-color: #FEF2F2;
-            border: 1px solid #FCA5A5;
-            color: #991B1B;
-        }
-        .alert-warning {
-            background-color: #FFFBEB;
-            border: 1px solid #FCD34D;
-            color: #92400E;
-        }
-        .alert-success {
-            background-color: #ECFDF5;
-            border: 1px solid #6EE7B7;
-            color: #065F46;
-        }
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #1E293B;
-            margin-bottom: 0.375rem;
-        }
-        .form-label.required::after {
-            content: " *";
-            color: #EF4444;
-        }
-        .form-input {
-            width: 100%;
-            padding: 0.625rem 0.875rem;
-            border: 1px solid #CBD5E1;
-            border-radius: 0.5rem;
-            font-size: 0.875rem;
-            color: #0F172A;
-            box-sizing: border-box;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-        .form-input:focus {
-            outline: none;
-            border-color: #4F46E5;
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-        }
-        .btn-submit {
-            width: 100%;
-            padding: 0.75rem;
-            background: #4F46E5;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 0.9375rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.15s ease, transform 0.05s ease;
-            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
-            margin-top: 0.5rem;
-        }
-        .btn-submit:hover {
-            background: #4338CA;
-        }
-        .btn-submit:active {
-            transform: scale(0.99);
-        }
-        .btn-submit:disabled {
-            background: #94A3B8;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        .login-footer {
-            margin-top: 1.75rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid #F1F5F9;
-            text-align: center;
-        }
-        .back-link {
-            font-size: 0.8125rem;
-            color: #4F46E5;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            transition: color 0.15s ease;
-        }
-        .back-link:hover {
-            color: #3730A3;
-            text-decoration: underline;
-        }
-        .security-badge {
-            margin-top: 0.875rem;
-            font-size: 0.75rem;
-            color: #94A3B8;
-            line-height: 1.4;
-        }
-    </style>
+    <title><?= e($pageTitle ?? 'Sign In - NEXORA HR') ?></title>
+    <link rel="icon" type="image/png" href="<?= asset('img/nexora-logo-icon.png') ?>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('nexora_theme');
+                var resolved = savedTheme === 'dark' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', resolved);
+            } catch (err) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="<?= asset('css/auth.css') ?>">
 </head>
-<body class="login-page">
 
-    <main class="login-card" role="main">
+<body class="auth-landing-page">
+    <a href="#mainAuthContent" class="skip-link">Skip to authentication content</a>
+
+    <!-- Decorative NEXORA HR Wave Accents -->
+    <div class="auth-bg-decor" aria-hidden="true">
+        <svg class="auth-wave-top" viewBox="0 0 560 460" fill="none" preserveAspectRatio="none">
+            <path d="M0 0H560C465 165 300 350 0 430V0Z" fill="url(#nexoraTopWave1)" />
+            <path d="M0 0H400C325 125 200 250 0 320V0Z" fill="url(#nexoraTopWave2)" />
+            <path d="M0 0H260C205 80 115 165 0 210V0Z" fill="url(#nexoraTopWave3)" />
+            <defs>
+                <linearGradient id="nexoraTopWave1" x1="0" y1="0" x2="560" y2="460" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#2563EB" stop-opacity="0.16" />
+                    <stop offset="65%" stop-color="#14B8A6" stop-opacity="0.06" />
+                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="nexoraTopWave2" x1="0" y1="0" x2="400" y2="320" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.22" />
+                    <stop offset="65%" stop-color="#2563EB" stop-opacity="0.10" />
+                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="nexoraTopWave3" x1="0" y1="0" x2="260" y2="210" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.32" />
+                    <stop offset="100%" stop-color="#2563EB" stop-opacity="0.04" />
+                </linearGradient>
+            </defs>
+        </svg>
+
+        <svg class="auth-wave-bottom" viewBox="0 0 620 500" fill="none" preserveAspectRatio="none">
+            <path d="M620 500V120C515 245 350 385 110 500H620Z" fill="url(#nexoraBotWave1)" />
+            <path d="M620 500V240C530 330 415 420 240 500H620Z" fill="url(#nexoraBotWave2)" />
+            <defs>
+                <linearGradient id="nexoraBotWave1" x1="620" y1="500" x2="110" y2="120" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#2563EB" stop-opacity="0.18" />
+                    <stop offset="60%" stop-color="#14B8A6" stop-opacity="0.08" />
+                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="nexoraBotWave2" x1="620" y1="500" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.26" />
+                    <stop offset="100%" stop-color="#2563EB" stop-opacity="0.04" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <!-- Top Utility Header -->
+    <header class="auth-header">
+        <div class="auth-header-inner">
+            <a href="<?= url('/') ?>" class="back-link" aria-label="Back to Public Landing Page" title="Back to Public Landing Page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+            </a>
+
+            <div class="auth-header-right">
+                <button type="button" id="themeToggleBtn" class="theme-toggle-btn" aria-label="Switch to dark mode" title="Switch to dark mode">
+                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="4" />
+                        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </svg>
+                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Authentication Landing View -->
+    <main id="mainAuthContent" class="auth-main" role="main">
         <div class="login-brand">
-            <div class="login-brand-icon" aria-hidden="true">H</div>
-            <h1>HRIS & Leave System</h1>
-            <p>Employee HRIS & Leave Management System</p>
+            <h1>Welcome to NEXORA HR</h1>
+            <p class="login-brand-desc">Your centralized workspace for organized human resource management.</p>
+            <div class="login-tagline-pill">
+                <span class="login-tagline-dot" aria-hidden="true"></span>
+                <span>People. Processes. Progress.</span>
+            </div>
         </div>
 
-        <!-- Alert Notices -->
-        <?php if (!empty($error)): ?>
-            <div class="alert-banner alert-error" role="alert">
-                <span aria-hidden="true">✕</span>
-                <div><?= e($error) ?></div>
+        <?php if (!empty($timeout) || !empty($success)): ?>
+            <div class="page-alerts-container">
+                <?php if (!empty($timeout)): ?>
+                    <div class="alert-banner alert-warning" role="alert">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                            <path d="M12 9v4M12 17h.01" />
+                        </svg>
+                        <div><?= e($timeout) ?></div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($success)): ?>
+                    <div class="alert-banner alert-success" role="alert">
+                        <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <path d="m9 11 3 3L22 4" />
+                        </svg>
+                        <div><?= e($success) ?></div>
+                    </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
-        <?php if (!empty($timeout)): ?>
-            <div class="alert-banner alert-warning" role="alert">
-                <span aria-hidden="true">⚠️</span>
-                <div><?= e($timeout) ?></div>
+        <!-- Role Selection Cards (HR & Employee Only) -->
+        <section class="role-selection-grid" aria-label="Select your application role">
+            <!-- CARD 1: HR LOGIN -->
+            <article class="role-card role-card-hr <?= $activeVisualRole === 'hr' ? 'is-selected' : '' ?>" data-role-card="hr">
+                <div class="role-card-top">
+                    <div class="role-card-header-row">
+                        <div class="role-card-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                            </svg>
+                        </div>
+                        <span class="role-card-badge">HR Administration</span>
+                    </div>
+
+                    <h2 class="role-card-title">HR Portal</h2>
+                    <p class="role-card-desc">
+                        Access employee management, leave administration, and authorized HR operations.
+                    </p>
+                </div>
+
+                <button type="button" id="continueAsHrBtn" class="role-card-btn role-card-btn-hr" data-open-role-modal="hr">
+                    <span>Continue as HR</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </button>
+            </article>
+
+            <!-- CARD 2: EMPLOYEE LOGIN -->
+            <article class="role-card role-card-employee <?= $activeVisualRole === 'employee' ? 'is-selected' : '' ?>" data-role-card="employee">
+                <div class="role-card-top">
+                    <div class="role-card-header-row">
+                        <div class="role-card-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <span class="role-card-badge">Self-Service Workspace</span>
+                    </div>
+
+                    <h2 class="role-card-title">Employee Portal</h2>
+                    <p class="role-card-desc">
+                        Access your employee information, submit leave requests, and review available leave information.
+                    </p>
+                </div>
+
+                <button type="button" id="continueAsEmployeeBtn" class="role-card-btn role-card-btn-employee" data-open-role-modal="employee">
+                    <span>Continue as Employee</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </button>
+            </article>
+        </section>
+
+        <!-- Security Information Footer -->
+        <footer class="auth-security-footer">
+            <div class="security-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span>Protected by Two-Factor Email OTP Verification &bull; Strict Role-Based Access</span>
             </div>
-        <?php endif; ?>
+        </footer>
+    </main>
 
-        <?php if (!empty($success)): ?>
-            <div class="alert-banner alert-success" role="alert">
-                <span aria-hidden="true">✓</span>
-                <div><?= e($success) ?></div>
+    <!-- Pop-Up Login Modal Dialog -->
+    <div id="loginModalBackdrop"
+        class="login-modal-backdrop <?= $shouldOpenModal ? 'is-open' : '' ?>"
+        data-initial-open="<?= $shouldOpenModal ? 'true' : 'false' ?>"
+        aria-hidden="<?= $shouldOpenModal ? 'false' : 'true' ?>">
+        <div id="loginModalDialog"
+            class="login-modal-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="loginModalTitle"
+            data-active-role="<?= e($activeVisualRole) ?>"
+            data-initial-role="<?= e($resolvedRole) ?>">
+
+            <div class="modal-top-bar">
+                <div class="modal-role-pill">
+                    <span class="modal-role-pill-dot" aria-hidden="true"></span>
+                    <span id="modalRolePillText"><?= e($modalPillLabel) ?></span>
+                </div>
+
+                <button type="button"
+                    id="closeLoginModalBtn"
+                    class="modal-close-btn"
+                    aria-label="Close login modal"
+                    title="Close login modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6 6 18" />
+                        <path d="m6 6 12 12" />
+                    </svg>
+                </button>
             </div>
-        <?php endif; ?>
 
-        <!-- Authentication Form -->
-        <form method="POST" action="<?= url('/login') ?>" id="loginForm" autocomplete="on">
-            <!-- CSRF Protection Field -->
-            <?= csrf_field() ?>
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <div class="modal-role-icon-box" aria-hidden="true">
+                    <svg class="icon-role-hr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    <svg class="icon-role-employee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </div>
 
-            <div class="form-group">
-                <label for="loginEmail" class="form-label required">Email Address</label>
-                <input type="email" 
-                       id="loginEmail" 
-                       name="email" 
-                       class="form-input" 
-                       placeholder="e.g. name@company.local" 
-                       value="<?= e($oldEmail ?? '') ?>"
-                       required 
-                       autofocus 
-                       autocomplete="email">
-            </div>
-
-            <div class="form-group">
-                <label for="loginPassword" class="form-label required">Password</label>
-                <div style="position: relative;">
-                    <input type="password" 
-                           id="loginPassword" 
-                           name="password" 
-                           class="form-input" 
-                           style="padding-right: 40px;" 
-                           placeholder="Enter your password" 
-                           required 
-                           autocomplete="current-password">
-                    <button type="button" 
-                            id="togglePasswordBtn"
-                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 4px; font-size: 1rem;" 
-                            aria-label="Toggle password visibility">👁️</button>
+                <div class="modal-header-text">
+                    <h2 id="loginModalTitle"><?= e($modalHeaderTitle) ?></h2>
                 </div>
             </div>
 
-            <button type="submit" id="loginSubmitBtn" class="btn-submit">
-                Sign In
-            </button>
-        </form>
-
-        <!-- Secure Form Footer -->
-        <div class="login-footer">
-            <div>
-                <a href="<?= url('/') ?>" class="back-link">
-                    ← Back to Public Landing Page
-                </a>
+            <!-- Quick Role Switcher -->
+            <div class="modal-role-switcher" role="tablist" aria-label="Switch login portal">
+                <button type="button"
+                    role="tab"
+                    aria-selected="<?= $activeVisualRole === 'hr' ? 'true' : 'false' ?>"
+                    class="role-switch-tab <?= $activeVisualRole === 'hr' ? 'is-active' : '' ?>"
+                    data-switch-role="hr">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    <span>HR Portal</span>
+                </button>
+                <button type="button"
+                    role="tab"
+                    aria-selected="<?= $activeVisualRole === 'employee' ? 'true' : 'false' ?>"
+                    class="role-switch-tab <?= $activeVisualRole === 'employee' ? 'is-active' : '' ?>"
+                    data-switch-role="employee">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    <span>Employee Portal</span>
+                </button>
             </div>
-            <div class="security-badge">
-                🔒 Protected by Two-Factor Email OTP Verification • Strict Role-Based Access
+
+            <!-- Alert Notices Inside Modal -->
+            <?php if (!empty($error)): ?>
+                <div class="alert-banner alert-error" role="alert">
+                    <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="m15 9-6 6M9 9l6 6" />
+                    </svg>
+                    <div><?= e($error) ?></div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Authentication Form -->
+            <form method="POST" action="<?= url('/login') ?>" id="loginForm" autocomplete="on">
+                <?= csrf_field() ?>
+                <input type="hidden" name="portal_role" id="portalRoleInput" value="<?= e($resolvedRole) ?>">
+
+                <div class="form-group">
+                    <label for="loginEmail" class="form-label">Email Address</label>
+                    <div class="input-wrapper">
+                        <svg class="input-leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                        </svg>
+                        <input type="email"
+                            id="loginEmail"
+                            name="email"
+                            class="form-input"
+                            placeholder="hr.name@company.local"
+                            value="<?= e($oldEmail ?? '') ?>"
+                            required
+                            autofocus
+                            autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <div class="input-wrapper">
+                        <svg class="input-leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <input type="password"
+                            id="loginPassword"
+                            name="password"
+                            class="form-input input-password"
+                            placeholder="Enter your password"
+                            required
+                            autocomplete="current-password">
+                        <button type="button"
+                            id="togglePasswordBtn"
+                            class="password-toggle-btn"
+                            data-visible="false"
+                            aria-label="Show password"
+                            title="Show password">
+                            <svg class="icon-eye-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            <svg class="icon-eye-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                <line x1="2" x2="22" y1="2" y2="22" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="loginSubmitBtn" class="btn-submit">
+                    <svg class="btn-spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                    <span id="loginSubmitBtnText"><?= e($modalSubmitLabel) ?></span>
+                </button>
+            </form>
+
+            <!-- Modal Footer -->
+            <div class="modal-footer">
+                <button type="button" id="backToRolesBtn" class="modal-back-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg>
+                    <span>Back to Role Selection</span>
+                </button>
+
+                <span class="modal-otp-note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
+                    <span>2FA Email OTP Enabled</span>
+                </span>
             </div>
         </div>
-    </main>
+    </div>
 
-    <script>
-        // Password Visibility Toggle
-        const toggleBtn = document.getElementById('togglePasswordBtn');
-        const passInput = document.getElementById('loginPassword');
-        if (toggleBtn && passInput) {
-            toggleBtn.addEventListener('click', function() {
-                const isPassword = passInput.getAttribute('type') === 'password';
-                passInput.setAttribute('type', isPassword ? 'text' : 'password');
-                toggleBtn.textContent = isPassword ? '🙈' : '👁️';
-            });
-        }
-
-        // Form Submission UX
-        const form = document.getElementById('loginForm');
-        const submitBtn = document.getElementById('loginSubmitBtn');
-        if (form && submitBtn) {
-            form.addEventListener('submit', function() {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Authenticating...';
-            });
-        }
-    </script>
+    <script src="<?= asset('js/auth.js') ?>" defer></script>
 </body>
+
 </html>

@@ -66,6 +66,17 @@ html:not([data-theme="dark"]) {
   /* Ambient Hero Wash */
   --hero-radial-1: rgba(37, 99, 235, 0.08);
   --hero-radial-2: rgba(20, 184, 166, 0.08);
+
+  /* Global Motion Design Tokens */
+  --motion-fast: 150ms;
+  --motion-normal: 220ms;
+  --motion-smooth: 300ms;
+  --motion-slow: 450ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-emphasis: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html[data-theme="dark"] {
@@ -387,6 +398,14 @@ section[id] {
   height: 4.75rem;
   display: flex;
   align-items: center;
+  transition:
+    background-color var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) var(--ease-standard),
+    box-shadow var(--motion-normal) var(--ease-standard);
+}
+
+.site-header.is-scrolled {
+  box-shadow: var(--shadow-md);
 }
 
 .nav-container {
@@ -401,6 +420,11 @@ section[id] {
   align-items: center;
   gap: 0.75rem;
   min-height: 44px;
+  transition: transform var(--motion-normal) var(--ease-standard);
+}
+
+.brand-wrapper:hover .brand-symbol {
+  transform: scale(1.06) rotate(-3deg);
 }
 
 .brand-symbol {
@@ -408,6 +432,7 @@ section[id] {
   height: 2.625rem;
   object-fit: contain;
   flex-shrink: 0;
+  transition: transform var(--motion-normal) var(--ease-emphasis);
 }
 
 .brand-text-block {
@@ -594,7 +619,7 @@ html[data-theme="dark"] .theme-toggle-btn .moon-icon {
 }
 
 .mobile-drawer {
-  display: none;
+  display: flex;
   position: absolute;
   top: 4.75rem;
   left: 0;
@@ -606,10 +631,21 @@ html[data-theme="dark"] .theme-toggle-btn .moon-icon {
   flex-direction: column;
   gap: 0.5rem;
   z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition:
+    opacity var(--motion-normal) var(--ease-standard),
+    transform var(--motion-normal) var(--ease-emphasis),
+    visibility var(--motion-normal) var(--ease-standard);
 }
 
 .mobile-drawer.is-open {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .mobile-drawer .mobile-nav-link {
@@ -820,13 +856,16 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   text-align: center;
   transition:
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
 }
 
 .about-pillar-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--brand-blue);
 }
 
 .pillar-icon-wrap {
@@ -837,6 +876,14 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   justify-content: center;
   margin-bottom: 1.25rem;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasis),
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease;
+}
+
+.about-pillar-card:hover .pillar-icon-wrap {
+  transform: translateY(-2px) scale(1.05);
 }
 
 .pillar-icon-wrap svg {
@@ -905,14 +952,15 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   text-align: center;
   transition:
-    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    transform var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
   border-color: var(--brand-blue);
 }
 
@@ -924,6 +972,14 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   justify-content: center;
   margin-bottom: 1.125rem;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasis),
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease;
+}
+
+.feature-card:hover .feature-icon-box {
+  transform: translateY(-2px) scale(1.06);
 }
 
 .feature-icon-box svg {
@@ -992,6 +1048,17 @@ html[data-theme="dark"] .hero-section {
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
+  transition:
+    transform var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
+}
+
+.workflow-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--brand-blue);
 }
 
 .workflow-step-top {
@@ -1023,6 +1090,16 @@ html[data-theme="dark"] .hero-section {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasis),
+    border-color var(--motion-normal) ease,
+    color var(--motion-normal) ease;
+}
+
+.workflow-step-card:hover .workflow-step-icon {
+  transform: scale(1.06);
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
 }
 
 .workflow-step-icon svg {
@@ -1069,6 +1146,24 @@ html[data-theme="dark"] .hero-section {
   flex-direction: column;
   justify-content: space-between;
   gap: 2rem;
+  transition:
+    transform var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
+}
+
+.role-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.role-card-hr:hover {
+  border-color: var(--brand-blue);
+}
+
+.role-card-employee:hover {
+  border-color: var(--brand-teal);
 }
 
 .role-card-header {
@@ -1086,6 +1181,14 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasis),
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease;
+}
+
+.role-card:hover .role-icon-badge {
+  transform: translateY(-2px) scale(1.05);
 }
 
 .role-icon-badge svg {
@@ -1192,6 +1295,17 @@ html[data-theme="dark"] .hero-section {
   align-items: flex-start;
   gap: 1.25rem;
   box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--motion-normal) var(--ease-standard),
+    border-color var(--motion-normal) ease,
+    box-shadow var(--motion-normal) ease,
+    background-color var(--motion-normal) ease;
+}
+
+.security-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--brand-blue);
 }
 
 .security-icon {
@@ -1205,6 +1319,14 @@ html[data-theme="dark"] .hero-section {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition:
+    transform var(--motion-normal) var(--ease-emphasis),
+    background-color var(--motion-normal) ease,
+    border-color var(--motion-normal) ease;
+}
+
+.security-card:hover .security-icon {
+  transform: translateY(-2px) scale(1.05);
 }
 
 .security-icon svg {
@@ -1247,6 +1369,13 @@ html[data-theme="dark"] .hero-section {
   gap: 2.5rem;
   box-shadow: var(--shadow-xl);
   color: #ffffff;
+  transition:
+    transform var(--motion-smooth) var(--ease-standard),
+    box-shadow var(--motion-smooth) ease;
+}
+
+.cta-banner:hover {
+  transform: translateY(-2px);
 }
 
 .cta-content {
@@ -1468,5 +1597,144 @@ html[data-theme="dark"] .hero-section {
 
   .hero-actions .btn {
     width: 100%;
+  }
+}
+
+/* ==========================================================================
+   15. Coordinated Hero Entrance, Scroll Reveals & Theme Transitions
+   ========================================================================== */
+
+@keyframes nexoraFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes nexoraFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Coordinated Hero Entrance Sequence */
+.hero-eyebrow {
+  animation: nexoraFadeIn var(--motion-smooth) var(--ease-enter) both;
+}
+
+.hero-title {
+  animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) 70ms both;
+}
+
+.hero-paragraph {
+  animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) 140ms both;
+}
+
+.hero-actions {
+  animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) 210ms both;
+}
+
+.hero-brand-pillars .pillar-pill:nth-child(1) {
+  animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 270ms both;
+}
+
+.hero-brand-pillars .pillar-pill:nth-child(2) {
+  animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 330ms both;
+}
+
+.hero-brand-pillars .pillar-pill:nth-child(3) {
+  animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 390ms both;
+}
+
+.btn svg {
+  transition: transform var(--motion-normal) var(--ease-emphasis);
+}
+
+.btn:hover svg {
+  transform: translateX(3px);
+}
+
+.footer-link {
+  transition:
+    color var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.footer-link:hover {
+  transform: translateY(-1px);
+}
+
+/* Scroll-Triggered Reveal System (Safe if JS is disabled: only active when .js-motion-ready is on html) */
+html.js-motion-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity var(--motion-slow) var(--ease-emphasis),
+    transform var(--motion-slow) var(--ease-emphasis);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+html.js-motion-ready [data-reveal].is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  html.js-motion-ready [data-reveal] {
+    transform: translateY(10px);
+    transition-duration: var(--motion-smooth);
+    transition-delay: min(var(--reveal-delay, 0ms), 120ms);
+  }
+}
+
+/* Smooth Theme Switch Transitions (Applied during user theme toggle, never on page load) */
+html.theme-transitioning,
+html.theme-transitioning body,
+html.theme-transitioning .site-header,
+html.theme-transitioning .about-intro-section,
+html.theme-transitioning .features-section,
+html.theme-transitioning .roles-section,
+html.theme-transitioning .security-section,
+html.theme-transitioning .workflow-section,
+html.theme-transitioning .cta-section,
+html.theme-transitioning .site-footer,
+html.theme-transitioning .feature-card,
+html.theme-transitioning .about-pillar-card,
+html.theme-transitioning .role-card,
+html.theme-transitioning .security-card,
+html.theme-transitioning .workflow-step-card,
+html.theme-transitioning .pillar-pill,
+html.theme-transitioning .theme-toggle-btn,
+html.theme-transitioning .mobile-menu-btn,
+html.theme-transitioning .mobile-drawer {
+  transition:
+    background-color 240ms var(--ease-standard),
+    color 240ms var(--ease-standard),
+    border-color 240ms var(--ease-standard),
+    box-shadow 240ms var(--ease-standard) !important;
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html.js-motion-ready [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }

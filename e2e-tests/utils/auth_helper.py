@@ -71,7 +71,7 @@ class AuthHelper:
         Navigates /login -> /verify-otp -> /hr/dashboard.
         """
         login_page = LoginPage(driver).open()
-        login_page.login(settings.HR_EMAIL, settings.HR_PASSWORD)
+        login_page.login(settings.HR_EMAIL, settings.HR_PASSWORD, role="hr")
 
         # Wait for redirect to /verify-otp
         login_page.wait_for_url_contains("/verify-otp", timeout=15)
@@ -94,7 +94,7 @@ class AuthHelper:
         Navigates /login -> /verify-otp -> /employee/dashboard.
         """
         login_page = LoginPage(driver).open()
-        login_page.login(settings.EMP_EMAIL, settings.EMP_PASSWORD)
+        login_page.login(settings.EMP_EMAIL, settings.EMP_PASSWORD, role="employee")
 
         # Wait for redirect to /verify-otp
         login_page.wait_for_url_contains("/verify-otp", timeout=15)
