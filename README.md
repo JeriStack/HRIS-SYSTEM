@@ -185,6 +185,7 @@ make --version
 | `make test`    | Run PHPUnit backend test suite inside container  | `docker compose exec app vendor/bin/phpunit`  |
 | `make lint`    | Run PHP_CodeSniffer and PHPStan inside container | `docker compose exec app composer lint`       |
 | `make e2e`     | Run Selenium browser UI tests in headless mode   | `pytest e2e-tests/tests/ -v --headless`       |
+| `make clean`   | Purge disposable test caches and reports safely  | `powershell Remove-Item` / `rm -rf` caches    |
 
 ### Example Daily Workflow
 
@@ -207,9 +208,20 @@ make lint
 # 6. Run browser UI automation
 make e2e
 
-# 7. Stop services safely at end of work (preserves database volume)
+# 7. Clean test reports and cache artifacts (disposable files only)
+make clean
+
+# 8. Stop services safely at end of work (preserves database volume)
 make down
 ```
+
+### Operational Hardening & Backup Scheduling
+
+- **Log Rotation:** Enforced across all containers using Docker's `json-file` driver (`max-size: 10m`, `max-file: 3`).
+- **Network Isolation:** Development tools (phpMyAdmin, Swagger UI, Prometheus, Grafana, MySQL) are bound to `127.0.0.1`. In production, use [`compose.production.yaml`](compose.production.yaml) where only Nginx exposes ports `80`/`443`.
+- **Automated Backups:**
+  - **Windows 11:** Run via Task Scheduler using [`scripts/backup/backup-db.bat`](scripts/backup/backup-db.bat) (logs to `storage/logs/backup.log`).
+  - **Linux / Production:** Schedule daily at 2:00 AM via crontab using [`scripts/backup/backup-db.sh`](scripts/backup/backup-db.sh).
 
 ---
 

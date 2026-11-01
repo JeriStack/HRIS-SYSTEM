@@ -27,6 +27,8 @@ storage/logs/*
 .phpcs.cache
 .phpstan.cache/
 .tflint.d/
+backups/
+*.sql.gz
 scratch/cookie_*.txt
 cookies*.txt
 

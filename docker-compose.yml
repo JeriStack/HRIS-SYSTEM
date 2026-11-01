@@ -15,6 +15,11 @@ services:
       - app
       - realtime
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -60,6 +65,11 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -117,6 +127,11 @@ services:
       start_period: 20s
     stop_grace_period: 10s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -138,7 +153,7 @@ services:
       MYSQL_USER: hris_user
       MYSQL_PASSWORD: hris_password
     ports:
-      - "${DB_HOST_PORT:-3307}:3306"
+      - "127.0.0.1:${DB_HOST_PORT:-3307}:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
@@ -149,6 +164,11 @@ services:
       retries: 10
       start_period: 10s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -160,7 +180,7 @@ services:
     container_name: hris_phpmyadmin
     image: phpmyadmin:latest
     ports:
-      - "${PMA_PORT:-8081}:80"
+      - "127.0.0.1:${PMA_PORT:-8081}:80"
     environment:
       PMA_HOST: db
       PMA_PORT: 3306
@@ -171,6 +191,11 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -187,6 +212,11 @@ services:
     depends_on:
       - nginx
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -206,6 +236,11 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -223,7 +258,7 @@ services:
       - --storage.tsdb.retention.time=15d
       - --web.enable-lifecycle
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./docker/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
@@ -232,6 +267,11 @@ services:
       - nginx-exporter
       - mysqld-exporter
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -244,7 +284,7 @@ services:
     container_name: hris_grafana
     image: grafana/grafana:10.4.1
     ports:
-      - "${GRAFANA_PORT:-3100}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3100}:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
@@ -256,6 +296,11 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
@@ -268,13 +313,18 @@ services:
     container_name: hris_swagger_ui
     image: swaggerapi/swagger-ui:v5.17.14
     ports:
-      - "${SWAGGER_PORT:-8083}:8080"
+      - "127.0.0.1:${SWAGGER_PORT:-8083}:8080"
     environment:
       SWAGGER_JSON: /openapi/openapi.yaml
       SUPPORTED_SUBMIT_METHODS: '["get", "post", "put", "delete", "patch"]'
     volumes:
       - ./docs/api/openapi.yaml:/openapi/openapi.yaml:ro
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - hris_network
 
