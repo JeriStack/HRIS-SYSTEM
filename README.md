@@ -3,8 +3,8 @@
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20--%208.5-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%208.0-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC%20%7C%202--Role%20RBAC-green.svg)]()
-[![Backend Tests](https://img.shields.io/badge/PHPUnit-357%20Passed%20(100%25)-brightgreen.svg)]()
-[![UI Tests](https://img.shields.io/badge/Selenium%20E2E-29%20Passed%20(Brave%20%7C%20Chrome)-success.svg)]()
+[![Backend Tests](<https://img.shields.io/badge/PHPUnit-357%20Passed%20(100%25)-brightgreen.svg>)]()
+[![UI Tests](<https://img.shields.io/badge/Selenium%20E2E-29%20Passed%20(Brave%20%7C%20Chrome)-success.svg>)]()
 
 > A robust, production-ready Human Resource Information and Leave Management System built with native PHP and MySQL, featuring an integrated Computer Science Data Structures & Algorithms (DSA) laboratory, real-time WebSocket notifications, and automated Selenium end-to-end testing with Brave Browser.
 
@@ -72,25 +72,25 @@ docker compose exec app php bin/migrate.php
 
 ### Accessing Services
 
-| Interface | URL | Default Credentials |
-|---|---|---|
-| **HRIS Web Application** | [http://localhost:8080](http://localhost:8080) | See pre-seeded accounts below |
-| **phpMyAdmin** | [http://localhost:8081](http://localhost:8081) | Host: `db`, User: `root`, Pass: `root_password` |
-| **Swagger UI Documentation** | [http://localhost:8083](http://localhost:8083) | *No authentication required* |
-| **Prometheus Telemetry** | [http://localhost:9090](http://localhost:9090) | *No authentication required* |
-| **Grafana Dashboards** | [http://localhost:3100](http://localhost:3100) | User: `admin` / Password: `admin` |
-| **Mailpit (Local Email Capture)** | [http://localhost:8025](http://localhost:8025) | *Inspect OTPs during testing* |
+| Interface                         | URL                                            | Default Credentials                             |
+| --------------------------------- | ---------------------------------------------- | ----------------------------------------------- |
+| **HRIS Web Application**          | [http://localhost:8080](http://localhost:8080) | See pre-seeded accounts below                   |
+| **phpMyAdmin**                    | [http://localhost:8081](http://localhost:8081) | Host: `db`, User: `root`, Pass: `root_password` |
+| **Swagger UI Documentation**      | [http://localhost:8083](http://localhost:8083) | _No authentication required_                    |
+| **Prometheus Telemetry**          | [http://localhost:9090](http://localhost:9090) | _No authentication required_                    |
+| **Grafana Dashboards**            | [http://localhost:3100](http://localhost:3100) | User: `admin` / Password: `admin`               |
+| **Mailpit (Local Email Capture)** | [http://localhost:8025](http://localhost:8025) | _Inspect OTPs during testing_                   |
 
 ### Pre-Seeded Test Accounts
 
-| Account Email | Role | Password | Target Dashboard |
-|---|---|---|---|
-| `marcus.tan@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
-| `sofia.reyes@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
-| `david.cruz@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
-| `maria.santos@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
+| Account Email                | Role                   | Password       | Target Dashboard      |
+| ---------------------------- | ---------------------- | -------------- | --------------------- |
+| `marcus.tan@company.local`   | Human Resources (`hr`) | `Admin@123`    | `/hr/dashboard`       |
+| `sofia.reyes@company.local`  | Human Resources (`hr`) | `Admin@123`    | `/hr/dashboard`       |
+| `david.cruz@company.local`   | Employee (`employee`)  | `Employee@123` | `/employee/dashboard` |
+| `maria.santos@company.local` | Employee (`employee`)  | `Employee@123` | `/employee/dashboard` |
 
-*Note: During 2FA login, check the Mailpit interface ([http://localhost:8025](http://localhost:8025)) to retrieve the dispatched 6-digit OTP.*
+_Note: During 2FA login, check the Mailpit interface ([http://localhost:8025](http://localhost:8025)) to retrieve the dispatched 6-digit OTP._
 
 ---
 
@@ -137,13 +137,90 @@ pytest tests/ -v --html=reports/report.html --self-contained-html
 
 ---
 
-## 7. Project Documentation
+## 7. Development Automation with GNU Make
+
+The repository provides a root `Makefile` that simplifies common Docker, Composer, migration, and testing workflows into single commands.
+
+### Installing GNU Make
+
+#### Windows 11 (PowerShell)
+
+Using Windows Package Manager (Winget):
+
+```powershell
+winget install ezwinports.make
+```
+
+_Or using Chocolatey:_
+
+```powershell
+choco install make
+```
+
+#### Linux / WSL Ubuntu
+
+```bash
+sudo apt update && sudo apt install -y make
+```
+
+#### Verify Installation
+
+```bash
+make --version
+```
+
+### Available Makefile Targets
+
+| Target         | Description                                      | Executed Command                              |
+| -------------- | ------------------------------------------------ | --------------------------------------------- |
+| `make help`    | Display available targets and descriptions       | Built-in target reference                     |
+| `make up`      | Start all Docker services in background          | `docker compose up -d`                        |
+| `make down`    | Stop Docker services safely (preserves database) | `docker compose down`                         |
+| `make restart` | Restart all Docker services                      | `docker compose restart`                      |
+| `make ps`      | Display running container health and ports       | `docker compose ps`                           |
+| `make logs`    | Follow application container logs                | `docker compose logs -f app`                  |
+| `make build`   | Build or rebuild application Docker images       | `docker compose build`                        |
+| `make install` | Install Composer dependencies inside container   | `docker compose exec app composer install`    |
+| `make migrate` | Run pending database migrations inside container | `docker compose exec app php bin/migrate.php` |
+| `make test`    | Run PHPUnit backend test suite inside container  | `docker compose exec app vendor/bin/phpunit`  |
+| `make lint`    | Run PHP_CodeSniffer and PHPStan inside container | `docker compose exec app composer lint`       |
+| `make e2e`     | Run Selenium browser UI tests in headless mode   | `pytest e2e-tests/tests/ -v --headless`       |
+
+### Example Daily Workflow
+
+```powershell
+# 1. Start application stack
+make up
+
+# 2. Verify containers are healthy
+make ps
+
+# 3. Apply any pending database migrations
+make migrate
+
+# 4. Run backend tests inside container
+make test
+
+# 5. Validate code style and static analysis
+make lint
+
+# 6. Run browser UI automation
+make e2e
+
+# 7. Stop services safely at end of work (preserves database volume)
+make down
+```
+
+---
+
+## 8. Project Documentation
 
 For comprehensive technical documentation, refer to:
 
 👉 **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
 
 ### Documentation Contents
+
 - **System Requirements & Business Rules:** Detailed leave policies, overlap checks, working-day calculations.
 - **Relational Database Design:** Complete data dictionary for all 13 tables, ER diagrams, foreign key policies.
 - **Authentication & Security:** 2FA OTP mechanics, session hardening, CSRF defense, IDOR protection.
@@ -155,6 +232,6 @@ For comprehensive technical documentation, refer to:
 
 ---
 
-## 8. License & Governance
+## 9. License & Governance
 
 This project is proprietary and maintained for enterprise human resource operations and academic demonstrations. All rights reserved.
