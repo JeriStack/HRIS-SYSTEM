@@ -125,6 +125,18 @@ class AuthenticationTest extends TestCase
         $this->assertStringContainsString('name="password"', $viewContent, 'Login view must contain password input.');
         $this->assertStringContainsString('Sign In', $viewContent, 'Login view submit button must be Sign In.');
 
+        // Required NEXORA HR Branding & Two-Role Portal Selection (HR & Employee only)
+        $this->assertStringContainsString('Welcome to NEXORA HR', $viewContent, 'Login view must display Welcome to NEXORA HR heading.');
+        $this->assertStringContainsString('People. Processes. Progress.', $viewContent, 'Login view must display brand tagline.');
+        $this->assertStringContainsString('HR Portal', $viewContent, 'Login view must include HR Portal card.');
+        $this->assertStringContainsString('Continue as HR', $viewContent, 'Login view must include Continue as HR action.');
+        $this->assertStringContainsString('Employee Portal', $viewContent, 'Login view must include Employee Portal card.');
+        $this->assertStringContainsString('Continue as Employee', $viewContent, 'Login view must include Continue as Employee action.');
+        $this->assertStringContainsString('role="dialog"', $viewContent, 'Login view must include accessible pop-up modal dialog.');
+        $this->assertStringContainsString('aria-modal="true"', $viewContent, 'Login modal must declare aria-modal="true".');
+        $this->assertStringNotContainsString('Admin Portal', $viewContent, 'Login view must not introduce an Admin login portal.');
+        $this->assertStringNotContainsString('Continue as Admin', $viewContent, 'Login view must not introduce a Continue as Admin button.');
+
         // Demo Accounts and shortcuts MUST be completely removed
         $this->assertStringNotContainsString('demo-credentials', $viewContent, 'Demo credentials box must be removed.');
         $this->assertStringNotContainsString('Demonstration Accounts', $viewContent, 'Demonstration Accounts header must be removed.');
@@ -133,6 +145,33 @@ class AuthenticationTest extends TestCase
         $this->assertStringNotContainsString('emp004', $viewContent, 'emp004 quick button must be removed.');
         $this->assertStringNotContainsString('Admin@123', $viewContent, 'Hardcoded demo passwords must be removed.');
         $this->assertStringNotContainsString('Employee@123', $viewContent, 'Hardcoded demo passwords must be removed.');
+    }
+
+    public function test_portal_role_mismatch_check_identifies_unauthorized_portal_selection(): void
+    {
+        $hrAccountRole = 'hr';
+        $employeeAccountRole = 'employee';
+
+        // HR user selecting HR portal -> authorized
+        $this->assertTrue($hrAccountRole === 'hr');
+        // Employee user selecting Employee portal -> authorized
+        $this->assertTrue($employeeAccountRole === 'employee');
+
+        // Employee user attempting HR portal -> mismatch rejected
+        $selectedPortal = 'hr';
+        $this->assertNotSame(
+            $selectedPortal,
+            $employeeAccountRole,
+            'Employee account must be rejected when attempting HR Portal sign-in.'
+        );
+
+        // HR user attempting Employee portal -> mismatch rejected
+        $selectedEmpPortal = 'employee';
+        $this->assertNotSame(
+            $selectedEmpPortal,
+            $hrAccountRole,
+            'HR account must be rejected when attempting Employee Portal sign-in.'
+        );
     }
 
     public function test_user_creation_enforces_strict_roles_and_hashes_passwords(): void

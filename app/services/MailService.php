@@ -292,7 +292,6 @@ class MailService
                     <!-- Footer -->
                     <tr>
                         <td align="center" style="background-color: #EDF2F7; padding: 24px 32px; text-align: center; border-top: 1px solid #E2E8F0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-                            <img src="cid:hris_logo" alt="HRIS" width="90" style="max-width: 90px; width: 100%; height: auto; display: block; margin: 0 auto 12px auto; opacity: 0.9; border: 0;">
                             <div style="font-size: 11.5px; color: #64748B; line-height: 1.6;">
                                 &copy; {$year} {$appName}. All rights reserved.<br>
                                 This is an automated system notification. Please do not reply directly to this email.

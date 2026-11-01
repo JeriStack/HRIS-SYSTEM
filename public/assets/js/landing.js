@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
      -------------------------------------------------------------------------- */
 
   const THEME_STORAGE_KEY = "nexora_theme";
+  let themeTransitionTimer = null;
 
   const updateThemeUI = (theme) => {
     const isDark = theme === "dark";
@@ -48,8 +49,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const setTheme = (theme) => {
+  const setTheme = (theme, animate = false) => {
     const nextTheme = theme === "dark" ? "dark" : "light";
+    if (animate) {
+      document.documentElement.classList.add("theme-transitioning");
+      if (themeTransitionTimer) {
+        window.clearTimeout(themeTransitionTimer);
+      }
+      themeTransitionTimer = window.setTimeout(() => {
+        document.documentElement.classList.remove("theme-transitioning");
+      }, 280);
+    }
     document.documentElement.setAttribute("data-theme", nextTheme);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
@@ -70,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.documentElement.getAttribute("data-theme") === "dark"
         ? "light"
         : "dark";
-    setTheme(active);
+    setTheme(active, true);
   };
 
   if (themeToggleBtn) {
@@ -161,6 +171,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const setActiveNavigation = () => {
     const headerHeight = header?.offsetHeight || 76;
     const triggerLine = headerHeight + 120;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+
+    if (header) {
+      header.classList.toggle("is-scrolled", scrollTop > 12);
+    }
 
     let activeId = "home";
 
@@ -172,7 +187,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // If scrolled near the bottom of the document, activate the final nav item
-    const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
     const viewportBottom = scrollTop + window.innerHeight;
     const docHeight = Math.max(
       document.body.scrollHeight,
@@ -262,4 +276,71 @@ document.addEventListener("DOMContentLoaded", () => {
       closeMobileNavigation();
     }
   });
+
+  /* --------------------------------------------------------------------------
+     6. Scroll-Triggered Content Section Reveal (IntersectionObserver)
+     -------------------------------------------------------------------------- */
+
+  const initScrollReveal = () => {
+    const prefersReducedMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const revealGroups = [
+      { selector: ".about-intro-header, .section-header, .cta-banner" },
+      { parent: ".about-pillars-grid", children: ".about-pillar-card", stepMs: 70 },
+      { parent: ".features-grid", children: ".feature-card", stepMs: 65 },
+      { parent: ".roles-grid", children: ".role-card", stepMs: 85 },
+      { parent: ".security-grid", children: ".security-card", stepMs: 70 },
+      { parent: ".workflow-steps-grid", children: ".workflow-step-card", stepMs: 90 },
+    ];
+
+    revealGroups.forEach((group) => {
+      if (group.selector) {
+        document.querySelectorAll(group.selector).forEach((el) => {
+          el.setAttribute("data-reveal", "");
+        });
+        return;
+      }
+
+      const container = document.querySelector(group.parent);
+      if (!container) return;
+
+      container.querySelectorAll(group.children).forEach((card, index) => {
+        card.setAttribute("data-reveal", "");
+        if (index > 0) {
+          card.style.setProperty("--reveal-delay", `${index * group.stepMs}ms`);
+        }
+      });
+    });
+
+    const revealTargets = document.querySelectorAll("[data-reveal]");
+    if (revealTargets.length === 0) return;
+
+    document.documentElement.classList.add("js-motion-ready");
+
+    const revealObserver = new IntersectionObserver(
+      (entries, observer) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("is-revealed");
+          observer.unobserve(entry.target);
+        });
+      },
+      {
+        threshold: 0.12,
+        rootMargin: "0px 0px -36px 0px",
+      }
+    );
+
+    revealTargets.forEach((target) => {
+      revealObserver.observe(target);
+    });
+  };
+
+  initScrollReveal();
 });
