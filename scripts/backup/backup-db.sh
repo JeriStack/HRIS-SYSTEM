@@ -13,7 +13,10 @@
 
 set -euo pipefail
 
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/hris}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+BACKUP_DIR="${BACKUP_DIR:-${PROJECT_ROOT}/backups}"
 DB_CONTAINER="${DB_CONTAINER:-hris_db}"
 DB_NAME="${DB_NAME:-hris_db}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
@@ -23,7 +26,7 @@ CHECKSUM_FILE="${BACKUP_FILE}.sha256"
 
 # Ensure backup directory exists with restricted permissions
 mkdir -p "${BACKUP_DIR}"
-chmod 700 "${BACKUP_DIR}"
+chmod 700 "${BACKUP_DIR}" 2>/dev/null || true
 
 echo "[$(date -u +"%Y-%m-%d %H:%M:%SZ")] Starting HRIS database backup..."
 
@@ -62,8 +65,8 @@ if [ ! -s "${BACKUP_FILE}" ]; then
 fi
 
 # Generate SHA-256 checksum
-sha256sum "${BACKUP_FILE}" > "${CHECKSUM_FILE}"
-chmod 600 "${BACKUP_FILE}" "${CHECKSUM_FILE}"
+(cd "${BACKUP_DIR}" && sha256sum "$(basename "${BACKUP_FILE}")" > "$(basename "${CHECKSUM_FILE}")")
+chmod 600 "${BACKUP_FILE}" "${CHECKSUM_FILE}" 2>/dev/null || true
 
 FILE_SIZE="$(du -h "${BACKUP_FILE}" | cut -f1)"
 echo "[$(date -u +"%Y-%m-%d %H:%M:%SZ")] Backup completed successfully: ${BACKUP_FILE} (${FILE_SIZE})"
@@ -71,8 +74,7 @@ echo "[$(date -u +"%Y-%m-%d %H:%M:%SZ")] SHA-256 Checksum: $(cat "${CHECKSUM_FIL
 
 # Prune old backups past retention threshold
 echo "[$(date -u +"%Y-%m-%d %H:%M:%SZ")] Pruning backups older than ${RETENTION_DAYS} days..."
-find "${BACKUP_DIR}" -type f -name "hris_db_*.sql.gz*" -mtime +"${RETENTION_DAYS}" -delete
+find "${BACKUP_DIR}" -type f -name "hris_db_*.sql.gz*" -mtime +"${RETENTION_DAYS}" -delete 2>/dev/null || true
 
 echo "[$(date -u +"%Y-%m-%d %H:%M:%SZ")] Backup routine finished successfully."
 exit 0
-

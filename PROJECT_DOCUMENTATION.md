@@ -92,8 +92,10 @@
 - [18. Docker and Container Infrastructure](#18-docker-and-container-infrastructure)
   - [18.1 Multi-Container Compose Stack](#181-multi-container-compose-stack)
   - [18.2 Port Bindings and Security Isolation](#182-port-bindings-and-security-isolation)
-  - [18.3 Persistent Volumes and Data Retention](#183-persistent-volumes-and-data-retention)
-  - [18.4 Dedicated E2E Test Stack (`docker-compose.e2e.yml`)](#184-dedicated-e2e-test-stack-docker-composee2eyml)
+  - [18.3 Docker Container Log Rotation Policy](#183-docker-container-log-rotation-policy)
+  - [18.4 Production Hardening Profile (`compose.production.yaml`)](#184-production-hardening-profile-composeproductionyaml)
+  - [18.5 Persistent Volumes and Data Retention](#185-persistent-volumes-and-data-retention)
+  - [18.6 Dedicated E2E Test Stack (`docker-compose.e2e.yml`)](#186-dedicated-e2e-test-stack-docker-composee2eyml)
 - [19. Nginx Configuration](#19-nginx-configuration)
   - [19.1 Edge Reverse Proxy Architecture](#191-edge-reverse-proxy-architecture)
   - [19.2 WebSocket Protocol Upgrade Configuration (`/ws`)](#192-websocket-protocol-upgrade-configuration-ws)
@@ -129,6 +131,8 @@
   - [25.2 SHA-256 Checksum Validation & Retention Standards](#252-sha-256-checksum-validation--retention-standards)
   - [25.3 Disaster Recovery and Restoration (`restore-db.sh`)](#253-disaster-recovery-and-restoration-restore-dbsh)
   - [25.4 Point-in-Time Recovery (PITR) with Binary Logs](#254-point-in-time-recovery-pitr-with-binary-logs)
+  - [25.5 Automated Scheduling & Task Execution](#255-automated-scheduling--task-execution)
+  - [25.6 Safe Backup Restoration Verification](#256-safe-backup-restoration-verification)
 - [26. Development Workflow](#26-development-workflow)
   - [26.1 Branching Convention (`HRIS-*`)](#261-branching-convention-hris-)
   - [26.2 Jira Issue Synchronization](#262-jira-issue-synchronization)
@@ -1235,22 +1239,47 @@ Configured in [`docker-compose.yml`](file:///c:/xampp/htdocs/GitHub_Clone_File_P
 
 ### 18.2 Port Bindings and Security Isolation
 
-| Service | Container Name | Internal Port | Host Port Binding |
-|---|---|:---:|:---:|
-| Nginx Edge Proxy | `hris_nginx` | `80` | `8080:80` |
-| PHP Application | `hris_app` | `80` | *None (Internal only)* |
-| Realtime WebSocket | `hris_realtime`| `8090` | *None (Internal only)* |
-| MySQL Database | `hris_db` | `3306` | `3307:3306` |
-| phpMyAdmin | `hris_phpmyadmin`| `80` | `8081:80` |
-| Swagger UI | `hris_swagger_ui`| `8080` | `8083:8080` |
-| Prometheus | `hris_prometheus`| `9090` | `9090:9090` |
-| Grafana | `hris_grafana` | `3000` | `3100:3000` |
+Development environment exposes host ports bound strictly to `127.0.0.1` (loopback) to prevent unauthorized network access across local LANs:
 
-### 18.3 Persistent Volumes and Data Retention
+| Service | Container Name | Internal Port | Dev Host Binding | Production Host Binding |
+|---|---|:---:|:---:|:---:|
+| Nginx Edge Proxy | `hris_nginx` | `80` | `8080:80` | `80:80`, `443:443` |
+| PHP Application | `hris_app` | `80` | *None (Internal)* | *None (Internal)* |
+| Realtime WebSocket | `hris_realtime`| `8090` | *None (Internal)* | *None (Internal - Proxied via Nginx /ws)* |
+| MySQL Database | `hris_db` | `3306` | `127.0.0.1:3307:3306` | *None (Internal)* |
+| phpMyAdmin | `hris_phpmyadmin`| `80` | `127.0.0.1:8081:80` | *Disabled (profile: debug)* |
+| Swagger UI | `hris_swagger_ui`| `8080` | `127.0.0.1:8083:8080` | *Disabled (profile: debug)* |
+| Prometheus | `hris_prometheus`| `9090` | `127.0.0.1:9090:9090` | `127.0.0.1:9090:9090` (SSH Tunnel only) |
+| Grafana | `hris_grafana` | `3000` | `127.0.0.1:3100:3000` | `127.0.0.1:3100:3000` (SSH Tunnel only) |
+
+### 18.3 Docker Container Log Rotation Policy
+
+To prevent long-running application and exporter containers from exhausting host disk space via unbounded JSON log growth, all services in [`docker-compose.yml`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/docker-compose.yml) and [`compose.production.yaml`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/compose.production.yaml) enforce Docker's `json-file` logging driver limits:
+
+```yaml
+logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+```
+- **Maximum per-file size:** 10 Megabytes.
+- **File retention count:** 3 rotated files (maximum 30 Megabytes log footprint per container).
+- **Application Note:** Docker logging driver options take effect whenever containers are created or recreated (`docker compose up -d`).
+
+### 18.4 Production Hardening Profile (`compose.production.yaml`)
+
+The repository includes a dedicated production deployment specification in [`compose.production.yaml`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/compose.production.yaml):
+- **Single Public Ingress:** Nginx reverse proxy is the only service published to external network interfaces (`80:80`, `443:443`).
+- **Internal Database Isolation:** MySQL port 3306 is not published to the host, remaining exclusively reachable via the internal bridge network `hris_network`.
+- **Debug Tool Blacklisting:** Development utilities (phpMyAdmin and Swagger UI) are assigned to the `debug` Docker profile, ensuring they never start during production deployment.
+- **WebSocket Routing:** Browser clients establish WebSocket sessions through Nginx (`wss://<domain>/ws`), which transparently terminates TLS and forwards traffic to the internal `hris_realtime:8090` daemon.
+
+### 18.5 Persistent Volumes and Data Retention
 
 Database data is stored in the Docker named volume `hris_db_data`, surviving container restarts and upgrades. Destructive commands like `docker compose down -v` are strictly prohibited.
 
-### 18.4 Dedicated E2E Test Stack (`docker-compose.e2e.yml`)
+### 18.6 Dedicated E2E Test Stack (`docker-compose.e2e.yml`)
 
 Provides an isolated Selenium Standalone Chrome container (`:4444`, `:7900`) and Mailpit server (`:8025`, `:1025`) for isolated containerized UI testing without host dependencies.
 
@@ -1472,6 +1501,43 @@ Enables replaying transactions up to a specific timestamp:
 mysqlbinlog --start-datetime="2026-10-31 02:00:00" --stop-datetime="2026-10-31 09:30:00" mysql-bin.000001 | mysql -u root -p hris_db
 ```
 
+### 25.5 Automated Scheduling & Task Execution
+
+#### Linux Production Cron Configuration
+Schedule daily logical backups at 2:00 AM server time via crontab (`crontab -e`):
+```cron
+# Daily HRIS Database Backup at 02:00 AM UTC
+0 2 * * * /var/www/html/HRIS-SYSTEM/scripts/backup/backup-db.sh >> /var/www/html/HRIS-SYSTEM/storage/logs/backup.log 2>&1
+```
+
+#### Windows 11 Task Scheduler Configuration
+For Windows development or self-hosted environments:
+1. Open Windows Task Scheduler (`taskschd.msc`).
+2. Create Basic Task named `HRIS_Database_Daily_Backup`.
+3. Set trigger to **Daily at 2:00 AM**.
+4. Set action to **Start a Program**:
+   - **Program/script:** `C:\xampp\htdocs\GitHub_Clone_File_Projects\HRIS-SYSTEM\scripts\backup\backup-db.bat`
+   - **Start in:** `C:\xampp\htdocs\GitHub_Clone_File_Projects\HRIS-SYSTEM`
+5. All execution details and completion exit codes are recorded in [`storage/logs/backup.log`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/storage/logs/backup.log).
+
+### 25.6 Safe Backup Restoration Verification
+
+To verify backup archives without endangering production or development databases, test restore operations against an isolated temporary database:
+
+```bash
+# 1. Create isolated test schema
+docker exec hris_db mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS hris_test_restore;"
+
+# 2. Decompress and restore dump into isolated test schema
+gunzip -c backups/hris_db_YYYYMMDD_HHMMSS.sql.gz | docker exec -i hris_db mysql -u root -p${MYSQL_ROOT_PASSWORD} hris_test_restore
+
+# 3. Verify table schema baseline (expected: 14 tables)
+docker exec hris_db mysql -u root -p${MYSQL_ROOT_PASSWORD} -N -s -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'hris_test_restore';"
+
+# 4. Clean up isolated test schema
+docker exec hris_db mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "DROP DATABASE hris_test_restore;"
+```
+
 ---
 
 ## 26. Development Workflow
@@ -1523,6 +1589,7 @@ Developer                    GNU Make                  Recipe Execution         
 | `make test` | Testing | Run PHPUnit backend test suite inside app container | `docker compose exec app vendor/bin/phpunit` |
 | `make lint` | Quality | Run PHP_CodeSniffer PSR-12 and PHPStan static analysis | `docker compose exec app composer lint` |
 | `make e2e` | Testing | Run Selenium UI test suite in headless mode | `pytest e2e-tests/tests/ -v --headless` |
+| `make clean` | Quality | Safely purge disposable test caches, reports, and screenshots | `Remove-Item` / `rm -rf` cache files |
 
 #### 26.4.3 Host Installation & Verification
 

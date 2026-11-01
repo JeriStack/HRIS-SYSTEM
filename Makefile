@@ -22,7 +22,7 @@ else
     EXEC_APP :=
 endif
 
-.PHONY: help up down restart ps logs build install migrate test lint e2e
+.PHONY: help up down restart ps logs build install migrate test lint e2e clean
 
 help: ## Display available commands and targets
 	@echo "======================================================================"
@@ -46,6 +46,7 @@ help: ## Display available commands and targets
 	@echo "  test       Execute PHPUnit backend test suite inside app container"
 	@echo "  lint       Run PHP_CodeSniffer and PHPStan static analysis"
 	@echo "  e2e        Run Selenium browser UI tests in headless mode"
+	@echo "  clean      Safely purge disposable test caches, reports, and screenshots"
 	@echo "======================================================================"
 
 up: ## Start Docker services
@@ -80,3 +81,12 @@ lint: ## Run PHP linting & static analysis inside app container
 
 e2e: ## Run Selenium UI tests
 	$(PYTEST) e2e-tests/tests/ -v --headless
+
+clean: ## Safely purge disposable test caches and generated reports
+ifeq ($(OS),Windows_NT)
+	@powershell -NoProfile -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .phpunit.cache, .phpstan.cache, .phpcs.cache; Get-ChildItem -Path e2e-tests/reports, e2e-tests/screenshots -Include *.html, *.png -Recurse -ErrorAction SilentlyContinue | Remove-Item -Force"
+else
+	@rm -rf .phpunit.cache .phpstan.cache .phpcs.cache 2>/dev/null || true
+	@rm -f e2e-tests/reports/*.html e2e-tests/screenshots/*.png 2>/dev/null || true
+endif
+	@echo "Clean completed: Disposable test caches and reports purged safely."
