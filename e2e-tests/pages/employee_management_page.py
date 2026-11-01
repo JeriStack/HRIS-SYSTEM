@@ -5,6 +5,7 @@ Models /hr/employees directory, filters, custom search/sort, and /hr/employees/c
 
 from typing import Tuple, List
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from pages.base_page import BasePage
 
 
@@ -23,6 +24,7 @@ class EmployeeManagementPage(BasePage):
     SEARCH_SUBMIT_BTN: Tuple[By, str] = (By.XPATH, "//form[contains(@action, '/hr/employees')]//button[contains(., 'Search')]")
     RESET_FILTERS_LINK: Tuple[By, str] = (By.XPATH, "//a[contains(., 'Reset') and contains(@href, '/hr/employees')]")
     EMPLOYEE_ROWS: Tuple[By, str] = (By.CSS_SELECTOR, "table.data-table tbody tr")
+    EMPLOYEE_CODE_BADGES: Tuple[By, str] = (By.CSS_SELECTOR, "table.data-table tbody tr td code")
     TOTAL_COUNT_CARD: Tuple[By, str] = (By.XPATH, "//div[contains(., 'Total Workforce')]/following-sibling::*")
 
     # Create Form Locators
@@ -57,12 +59,28 @@ class EmployeeManagementPage(BasePage):
         return self.is_visible(self.EMP_NO_INPUT, timeout=5) and self.is_visible(self.SUBMIT_BTN, timeout=5)
 
     def search_employee(self, query: str) -> "EmployeeManagementPage":
-        self.type(self.SEARCH_INPUT, query)
+        input_el = self.find_visible(self.SEARCH_INPUT)
+        input_el.clear()
+        input_el.send_keys(query)
         self.click(self.SEARCH_SUBMIT_BTN)
+        try:
+            self.wait_for_url_contains("q=", timeout=10)
+        except Exception:
+            input_el.send_keys(Keys.ENTER)
+            self.wait_for_url_contains("q=", timeout=10)
+        # Verify employee table is present on the page
+        self.find_visible(self.EMPLOYEE_ROWS, timeout=10)
         return self
 
     def get_employee_row_count(self) -> int:
-        return len(self.find_all(self.EMPLOYEE_ROWS))
+        """Returns the number of matching employee records (excluding empty-state rows)."""
+        codes = self.find_all(self.EMPLOYEE_CODE_BADGES)
+        if codes:
+            return len(codes)
+        # Fallback to checking table rows if badges are not used
+        rows = self.find_all(self.EMPLOYEE_ROWS)
+        data_rows = [r for r in rows if "no matching" not in r.text.lower()]
+        return len(data_rows)
 
     def fill_create_form(
         self,

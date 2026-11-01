@@ -3,10 +3,16 @@ HRIS-SYSTEM — Base Page Object
 Encapsulates common WebDriver operations, robust explicit waits, and page assertions.
 """
 
+import time
 from pathlib import Path
 from typing import List, Tuple
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
@@ -46,15 +52,26 @@ class BasePage:
         )
 
     def find_all(self, locator: Tuple[By, str], timeout: int = None) -> List[WebElement]:
-        """Finds all matching elements."""
+        """Finds all matching elements with retry on transient DOM transitions."""
         wait_time = timeout if timeout is not None else self.timeout
-        try:
-            WebDriverWait(self.driver, wait_time).until(
-                EC.presence_of_element_located(locator)
-            )
-            return self.driver.find_elements(*locator)
-        except Exception:
-            return []
+        end_time = time.time() + wait_time
+        while time.time() < end_time:
+            try:
+                WebDriverWait(self.driver, 1).until(
+                    EC.presence_of_element_located(locator)
+                )
+                elements = self.driver.find_elements(*locator)
+                if elements:
+                    return elements
+            except (StaleElementReferenceException, NoSuchElementException):
+                time.sleep(0.1)
+                continue
+            except TimeoutException:
+                pass
+            except Exception:
+                time.sleep(0.1)
+                continue
+        return []
 
     def click(self, locator: Tuple[By, str], timeout: int = None) -> "BasePage":
         """Waits until an element is clickable and clicks it."""

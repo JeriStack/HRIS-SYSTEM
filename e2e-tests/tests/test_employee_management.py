@@ -25,10 +25,11 @@ class TestEmployeeManagement:
         assert initial_count > 0, "Initial directory table must have records"
 
         # Search for seeded employee Marcus
-        page.search_employee("Marcus")
+        search_term = "Marcus"
+        page.search_employee(search_term)
         filtered_count = page.get_employee_row_count()
-        assert filtered_count >= 1, "Expected at least 1 record for search term 'Marcus'"
-        assert "marcus" in authenticated_hr.page_source.lower()
+        assert filtered_count >= 1, f"Expected at least 1 record for search term '{search_term}'"
+        assert search_term.lower() in authenticated_hr.page_source.lower()
 
     def test_create_employee_form_renders(self, authenticated_hr):
         """Validates navigation to and rendering of the new employee registration form."""
