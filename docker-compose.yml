@@ -6,7 +6,8 @@ services:
   # -----------------------------------------------------------------------------
   nginx:
     container_name: hris_nginx
-    image: nginx:alpine
+    # Pinned to the version currently in use; bump deliberately
+    image: nginx:1.31.6-alpine
     ports:
       - "${APP_PORT:-8080}:80"
     volumes:
@@ -31,13 +32,17 @@ services:
     container_name: hris_app
     # Shared by the `realtime` service so the image is built only once
     image: hris-system-app:latest
+    pull_policy: build
     build:
       context: .
       dockerfile: Dockerfile
     expose:
       - "80"
     environment:
-      APP_NAME: "Employee HRIS & Leave Management System"
+      # Read from the project .env (Compose interpolation) so the brand name is configurable.
+      # OTP_PEPPER_SECRET is intentionally NOT listed here: the bind-mounted .env supplies it,
+      # and an empty value set by Compose would stop core/bootstrap.php from loading it.
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
       APP_ENV: development
       BASE_URL: "http://localhost:8080"
       TIMEZONE: "Asia/Manila"
@@ -142,7 +147,8 @@ services:
   # -----------------------------------------------------------------------------
   db:
     container_name: hris_db
-    image: mysql:8.0
+    # Pinned to the server version that created hris_db_data; bump deliberately
+    image: mysql:8.0.46
     command: >
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
@@ -178,7 +184,7 @@ services:
   # -----------------------------------------------------------------------------
   phpmyadmin:
     container_name: hris_phpmyadmin
-    image: phpmyadmin:latest
+    image: phpmyadmin:5.2.3
     ports:
       - "127.0.0.1:${PMA_PORT:-8081}:80"
     environment:

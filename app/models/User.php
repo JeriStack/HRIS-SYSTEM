@@ -104,7 +104,7 @@ class User extends Model
 
         $passwordHash = (string)$data['password'];
         if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
-            $passwordHash = password_hash($passwordHash, PASSWORD_BCRYPT);
+            $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
         }
 
         $sql = "
@@ -203,6 +203,142 @@ class User extends Model
     }
 
     /**
+     * Find a user with the minimal security-relevant state used for live session re-validation
+     * (password hash, role, account status, and linked employment status).
+     * Never expose the returned row to views or API responses.
+     *
+     * @param int $id Primary user ID
+     * @return array|null
+     */
+    public function findByIdWithAuthState(int $id): ?array
+    {
+        $sql = "
+            SELECT
+                u.id,
+                u.employee_id,
+                u.password,
+                u.role,
+                u.status,
+                e.employment_status
+            FROM users u
+            LEFT JOIN employees e ON u.employee_id = e.id
+            WHERE u.id = :id
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['id' => $id]);
+    }
+
+    /**
+     * Count audit events of one action recorded for a user within a rolling window.
+     *
+     * @param int $userId Acting user ID
+     * @param string $action Audit action key (e.g. STEP_UP_FAILED)
+     * @param int $windowSeconds Rolling window length in seconds
+     * @return array{count: int, retry_after: int}
+     */
+    public function countRecentActions(int $userId, string $action, int $windowSeconds): array
+    {
+        // DB-clock window so PHP/MySQL timezone differences cannot skew the count.
+        $window = max(1, $windowSeconds);
+        $row = $this->fetchOne(
+            "SELECT COUNT(*) AS total,
+                    GREATEST(0, {$window} - TIMESTAMPDIFF(SECOND, MIN(created_at), NOW())) AS retry_after
+             FROM activity_logs
+             WHERE user_id = :user_id
+               AND action = :action
+               AND created_at > (NOW() - INTERVAL {$window} SECOND)",
+            ['user_id' => $userId, 'action' => $action]
+        );
+
+        return [
+            'count'       => (int)($row['total'] ?? 0),
+            'retry_after' => (int)($row['retry_after'] ?? 0),
+        ];
+    }
+
+    /**
+     * Determine whether primary password login is temporarily rate-limited for an
+     * account identifier (normalized email) and/or source IP address.
+     * Uses existing AUTH_FAILED audit records; no schema change is required.
+     *
+     * @param string $email Normalized email submitted on login
+     * @param string|null $ipAddress Client IP address
+     * @return array ['limited' => bool, 'retry_after' => int seconds]
+     */
+    public function checkLoginRateLimit(string $email, ?string $ipAddress = null): array
+    {
+        $window = max(60, (int)config('config.login_rate_limit_window', 900));
+        $maxAccount = max(1, (int)config('config.login_rate_limit_max_account', 5));
+        $maxIp = max(1, (int)config('config.login_rate_limit_max_ip', 15));
+        $normalizedEmail = strtolower(trim($email));
+
+        try {
+            // Failures are recorded with entity_id = hashed login identifier (unknown account)
+            // or user ID (known account). The raw email is also matched so rows written before
+            // identifier hashing was introduced still count until they age out of the window.
+            $user = $normalizedEmail !== '' ? $this->findByEmail($normalizedEmail) : null;
+            $identifiers = [login_identifier_key($normalizedEmail), $normalizedEmail];
+            if ($user) {
+                $identifiers[] = (string)$user['id'];
+            }
+
+            // The rolling window and retry are evaluated on the database clock so a
+            // timezone mismatch between PHP and MySQL cannot make the limit silently fail open.
+            $placeholders = [];
+            $params = [];
+            foreach ($identifiers as $i => $identifier) {
+                $key = 'ident' . $i;
+                $placeholders[] = ':' . $key;
+                $params[$key] = $identifier;
+            }
+
+            $accountRow = $this->fetchOne(
+                "SELECT COUNT(*) AS failures,
+                        GREATEST(0, {$window} - TIMESTAMPDIFF(SECOND, MIN(created_at), NOW())) AS retry_after
+                 FROM activity_logs
+                 WHERE action = 'AUTH_FAILED'
+                   AND entity_type = 'USER'
+                   AND entity_id IN (" . implode(',', $placeholders) . ")
+                   AND created_at > (NOW() - INTERVAL {$window} SECOND)",
+                $params
+            );
+
+            if ($accountRow && (int)$accountRow['failures'] >= $maxAccount) {
+                return [
+                    'limited'     => true,
+                    'retry_after' => max(1, (int)$accountRow['retry_after']),
+                ];
+            }
+
+            if ($ipAddress !== null && $ipAddress !== '') {
+                $ipRow = $this->fetchOne(
+                    "SELECT COUNT(*) AS failures,
+                            GREATEST(0, {$window} - TIMESTAMPDIFF(SECOND, MIN(created_at), NOW())) AS retry_after
+                     FROM activity_logs
+                     WHERE action = 'AUTH_FAILED'
+                       AND ip_address = :ip
+                       AND created_at > (NOW() - INTERVAL {$window} SECOND)",
+                    ['ip' => $ipAddress]
+                );
+
+                if ($ipRow && (int)$ipRow['failures'] >= $maxIp) {
+                    return [
+                        'limited'     => true,
+                        'retry_after' => max(1, (int)$ipRow['retry_after']),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            // Fail open on infrastructure error so a logging outage cannot lock out every user;
+            // OTP lockouts still protect the second factor.
+            error_log('[User::checkLoginRateLimit] ' . get_class($e));
+        }
+
+        return ['limited' => false, 'retry_after' => 0];
+    }
+
+    /**
      * Find user by associated employee ID.
      *
      * @param int $employeeId
@@ -298,7 +434,7 @@ class User extends Model
                 'description' => $description,
                 'entity_type' => $entityType,
                 'entity_id'   => $entityId,
-                'ip_address'  => $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1',
+                'ip_address'  => client_ip() ?? '127.0.0.1',
                 'user_agent'  => substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255),
             ]);
         } catch (\Throwable $e) {
@@ -372,7 +508,7 @@ class User extends Model
      * Update a user account's assigned role and operational status.
      *
      * @param int $id
-     * @param string $role Validated role ('admin', 'hr', 'employee')
+     * @param string $role Validated role ('hr', 'employee')
      * @param string $status Validated status ('Active', 'Inactive')
      * @return bool
      */

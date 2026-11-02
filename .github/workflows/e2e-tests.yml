@@ -51,6 +51,12 @@ jobs:
       DB_USERNAME: hris_test_user
       DB_PASSWORD: test_password
       APP_ENV: testing
+      # Align the PHP application clock with the MySQL service (both UTC in CI runners).
+      # The app defaults to Asia/Manila (UTC+8); without this the OTP challenge's
+      # expires_at (rebased onto the DB clock by the E2E auth helper) is read back by
+      # verifyOtp() on the PHP clock and evaluates as already expired, which blocks the
+      # real /verify-otp step and makes every authenticated test time out.
+      TIMEZONE: UTC
       BASE_URL: "http://127.0.0.1:8080"
       HRIS_BASE_URL: "http://127.0.0.1:8080"
       SELENIUM_BROWSER: chrome

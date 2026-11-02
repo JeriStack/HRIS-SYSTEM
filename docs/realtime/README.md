@@ -148,6 +148,6 @@ curl.exe -i -X POST -H "Accept: application/json" http://localhost:8080/realtime
 - **Single instance**: connection state lives in one process. Horizontal scaling needs sticky sessions plus a shared fan-out such as Redis pub/sub.
 - **Polling outbox**: about 1 s latency. Blocking PDO calls run on the event loop, which is fine at HRIS scale but not for thousands of events per second. A row whose transaction commits more than 200 ids late is not pushed live; it still shows up after the next history sync.
 - **Revocation latency**: up to `WS_REVALIDATE_INTERVAL` (15 s) after logout or deactivation.
-- **Docker init scripts** (`docker/mysql/init/01-schema.sql`) predate the OTP and realtime migrations. On fresh volumes, run `php bin/migrate.php`.
+- **Docker init scripts** (`docker/mysql/init/01-schema.sql`) are generated copies of `database/schema.sql`, so fresh volumes include the realtime columns and tables. Still run `php bin/migrate.php` once so the `migrations` table records every file (all migrations are idempotent).
 - **Internal port** `8090` is duplicated in compose and Nginx; keep them in sync.
 - Browser behaviour (reconnect UI, toasts) was checked by code review and the protocol-level tests. Run the two-browser manual check before release.

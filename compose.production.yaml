@@ -1,4 +1,10 @@
 # =============================================================================
+# DEPRECATED — do not deploy this file.
+# Use docker-compose.prod.yml, the canonical production stack deployed by CD.
+# This file bind-mounts the source tree, uses the development Nginx config (no TLS),
+# does not mount php.prod.ini, and falls back to default passwords. It is kept only
+# for reference until its removal is separately approved.
+# =============================================================================
 # HRIS-SYSTEM — Production Docker Compose Configuration (compose.production.yaml)
 # =============================================================================
 # Architecture & Security Hardening:

@@ -15,8 +15,10 @@ use App\Domain\Common\EventDispatcherInterface;
 use App\Domain\Common\OutboxRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveRequestRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveBalanceRepositoryInterface;
+use App\Domain\Leave\Repositories\LeaveApprovalGuardInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
 use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
+use App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException;
 
 class ApproveLeaveRequestUseCase
 {
@@ -25,7 +27,8 @@ class ApproveLeaveRequestUseCase
         private readonly LeaveBalanceRepositoryInterface $leaveBalanceRepository,
         private readonly TransactionManagerInterface $transactionManager,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
-        private readonly ?OutboxRepositoryInterface $outboxRepository = null
+        private readonly ?OutboxRepositoryInterface $outboxRepository = null,
+        private readonly ?LeaveApprovalGuardInterface $approvalGuard = null
     ) {
     }
 
@@ -41,10 +44,48 @@ class ApproveLeaveRequestUseCase
                 throw LeaveRequestNotFoundException::forId($command->requestId);
             }
 
-            // 2. Resolve calendar year for quota tracking
-            $year = (int) $request->dateRange()->startDate()->format('Y');
+            // 2. Account/organization re-checks that live outside the Leave aggregate.
+            //    These mirror the hardened legacy path so both share identical invariants:
+            //    active HR reviewer, no self-approval, active employee, active leave type.
+            if ($this->approvalGuard !== null) {
+                $reviewerEmployeeId = $this->approvalGuard->activeHrReviewerEmployeeId($command->approverUserId);
+                if ($reviewerEmployeeId === null) {
+                    throw LeaveApprovalNotPermittedException::reviewerNotActiveHr();
+                }
+                if ($reviewerEmployeeId > 0 && $reviewerEmployeeId === $request->employeeId()) {
+                    throw LeaveApprovalNotPermittedException::selfApproval();
+                }
+                if (!$this->approvalGuard->isEmployeeActive($request->employeeId())) {
+                    throw LeaveApprovalNotPermittedException::employeeInactive();
+                }
+                if (!$this->approvalGuard->isLeaveTypeActive($request->leaveTypeId())) {
+                    throw LeaveApprovalNotPermittedException::leaveTypeInactive();
+                }
+            }
 
-            // 3. Lock and retrieve leave balance
+            // 3. Leave year must be unambiguous: a request may not span two years
+            //    because the balance quota is tracked per year.
+            $startYear = (int) $request->dateRange()->startDate()->format('Y');
+            $endYear = (int) $request->dateRange()->endDate()->format('Y');
+            if ($startYear !== $endYear) {
+                throw LeaveApprovalNotPermittedException::spansMultipleYears($startYear, $endYear);
+            }
+            $year = $startYear;
+
+            // 4. Reject approval when the schedule overlaps an already-approved request
+            //    (the pending request under review is excluded by id).
+            $overlapping = $this->leaveRequestRepository->findOverlapping(
+                $request->employeeId(),
+                $request->dateRange(),
+                $request->id()
+            );
+            foreach ($overlapping as $other) {
+                if ($other->isApproved()) {
+                    throw LeaveApprovalNotPermittedException::overlapsApproved((int)$other->id());
+                }
+            }
+
+            // 5. Lock and retrieve leave balance
             $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
                 $request->employeeId(),
                 $request->leaveTypeId(),
@@ -59,7 +100,7 @@ class ApproveLeaveRequestUseCase
                 );
             }
 
-            // 4. Transition request state (throws if already finalized)
+            // 6. Transition request state (throws if already finalized)
             $request->approve($command->approverUserId, $command->approvedAt);
             $events = $request->releaseEvents();
 

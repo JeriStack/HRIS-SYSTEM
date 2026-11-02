@@ -16,7 +16,7 @@ class DocsController extends Controller
      */
     private function isDocumentationAllowed(): bool
     {
-        $appEnv = config('config.app_env', 'development');
+        $appEnv = config('config.app_env', 'production');
         return in_array($appEnv, ['development', 'local', 'testing'], true);
     }
 

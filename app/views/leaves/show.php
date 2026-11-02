@@ -14,7 +14,7 @@ $statusBadgeClass = match($status) {
 };
 
 $userRole = strtolower($user['role'] ?? 'employee');
-$isReviewer = in_array($userRole, ['hr', 'admin'], true);
+$isReviewer = ($userRole === 'hr');
 $isOwner = ((int)($user['employee_id'] ?? 0) === (int)$req['employee_id']);
 ?>
 <div class="page-header">

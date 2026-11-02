@@ -112,7 +112,7 @@ class MailService
         $mail->CharSet = PHPMailer::CHARSET_UTF8;
 
         $fromAddress = $this->config['from']['address'] ?? 'no-reply@hris-system.local';
-        $fromName    = $this->config['from']['name'] ?? 'HRIS';
+        $fromName    = $this->config['from']['name'] ?? 'NEXORA HR';
         $mail->setFrom($fromAddress, $fromName);
 
         return $mail;
@@ -191,11 +191,11 @@ class MailService
             // Mask any credentials in error messages for security
             $cleanError = preg_replace('/password=[^\s]+/i', 'password=***', $e->getMessage());
             $this->lastError = $cleanError;
-            error_log("[MailService MailerException] Failed to send email to {$toAddress}: {$cleanError}");
+            error_log('[MailService MailerException] Failed to send email to ' . mask_email($toAddress) . ": {$cleanError}");
             return false;
         } catch (Throwable $e) {
             $this->lastError = $e->getMessage();
-            error_log("[MailService Exception] Unexpected error sending email to {$toAddress}: " . $e->getMessage());
+            error_log('[MailService Exception] Unexpected error sending email to ' . mask_email($toAddress) . ': ' . $e->getMessage());
             return false;
         }
     }
@@ -206,7 +206,7 @@ class MailService
     private function buildOtpHtmlTemplate(string $name, string $otp, int $minutes): string
     {
         $safeName = htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $appName = htmlspecialchars((string)config('config.app_name', 'Employee HRIS & Leave Management System'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $appName = htmlspecialchars((string)config('config.app_name', 'NEXORA HR'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $year = date('Y');
 
         return <<<HTML
@@ -312,7 +312,7 @@ HTML;
      */
     private function buildOtpPlainTextTemplate(string $name, string $otp, int $minutes): string
     {
-        $appName = (string)config('config.app_name', 'Employee HRIS & Leave Management System');
+        $appName = (string)config('config.app_name', 'NEXORA HR');
 
         return <<<TEXT
 {$appName}

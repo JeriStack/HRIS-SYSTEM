@@ -315,7 +315,9 @@ class LeaveController extends ApiController
 
         $ok = $this->leaveModel->adjustBalance($empId, $leaveTypeId, $year, $allocatedDays);
         if (!$ok) {
-            $this->error('Failed to adjust leave balance quota.', 500);
+            // A rejected allocation (e.g. below days already used) is a client error, not a 500.
+            $code = $this->leaveModel->getLastErrorCode() === 'allocation_below_used' ? 400 : 500;
+            $this->error($this->leaveModel->getLastError() ?? 'Failed to adjust leave balance quota.', $code);
         }
 
         $this->userModel->logActivity(
@@ -437,63 +439,44 @@ class LeaveController extends ApiController
             $this->error('All fields (leave_type_id, start_date, end_date, and reason) are required.', 400);
         }
 
+        // Leave-type name for the HR notification text; the use case re-checks it is active.
         $leaveType = $this->leaveModel->getLeaveTypeById($leaveTypeId);
-        if (!$leaveType || $leaveType['status'] !== 'Active') {
-            $this->error('Selected leave classification is either inactive or does not exist.', 400);
-        }
+        $leaveTypeName = $leaveType['leave_name'] ?? 'leave';
+        $displayName = (string)($user['name'] ?? $user['username'] ?? 'An employee');
 
-        $rangeValidation = LeaveCalculator::validateDateRange($startDate, $endDate);
-        if (!$rangeValidation['valid']) {
-            $this->error($rangeValidation['error'] ?? 'Invalid date range specified.', 400);
-        }
-
-        $days = (int)$rangeValidation['working_days'];
-        if ($days === 0) {
-            $this->error('Selected date range contains 0 working days (e.g. falls entirely on weekends).', 400);
-        }
-
-        // Overlap detection
-        $overlapping = $this->leaveModel->getOverlappingRequest($empId, $startDate, $endDate);
-        if ($overlapping) {
-            $this->error("Date range overlaps with existing {$overlapping['status']} leave request #{$overlapping['id']} ({$overlapping['leave_name']}).", 400);
-        }
-
-        // Quota verification
-        $year = (int)date('Y', strtotime($startDate));
-        $balance = $this->leaveModel->getBalance($empId, $leaveTypeId, $year);
-        $remaining = $balance ? (int)$balance['remaining_days'] : 0;
-        $pendingDays = $this->leaveModel->getPendingDays($empId, $leaveTypeId, $year);
-
-        if ($remaining <= 0 || ($days + $pendingDays) > $remaining) {
-            $available = max(0, $remaining - $pendingDays);
-            $this->error("Insufficient leave balance quota. Requested: {$days} days; Available: {$available} days.", 400);
-        }
-
-        // Leave request + HR notifications commit atomically (real-time outbox)
-        try {
-            $requestId = $this->leaveModel->createRequest([
-                'employee_id'    => $empId,
-                'leave_type_id'  => $leaveTypeId,
-                'start_date'     => $startDate,
-                'end_date'       => $endDate,
-                'number_of_days' => $days,
-                'reason'         => $reason,
-            ], function (int $newId) use ($user, $leaveType, $days): void {
+        // Single authoritative filing path (identical rules to the web controller): one
+        // transaction, balance row locked FOR UPDATE, auto-initialized missing balances,
+        // pending-day reservation, overlap, cross-year, and active employee/type checks.
+        // The HR notification is written inside that transaction via the callback.
+        $result = $this->leaveAdapter->file(
+            $empId,
+            $leaveTypeId,
+            $startDate,
+            $endDate,
+            $reason,
+            function (int $newId) use ($displayName, $leaveTypeName): void {
                 $this->leaveNotifications->leaveSubmitted(
                     $newId,
-                    "{$user['name']} submitted a {$leaveType['leave_name']} application for {$days} working days."
+                    "{$displayName} submitted a {$leaveTypeName} application #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
                 );
-            });
-        } catch (\Throwable $e) {
-            error_log('[Api\\LeaveController::apply] Leave submission failed: ' . $e->getMessage());
-            $this->error('Unable to submit leave application at this time.', 500);
+            }
+        );
+
+        if (!$result->success) {
+            $this->error($result->message, $result->statusCode);
         }
+
+        $requestId = (int)($result->data['id'] ?? 0);
+
+        // Read back the persisted request so the response reports the authoritative day count.
+        $created = $this->leaveModel->getRequestById($requestId);
+        $days = $created ? (int)$created['number_of_days'] : 0;
 
         $this->userModel->logActivity(
             (int)$user['id'],
             'LEAVE_REQUESTED',
-            "Submitted {$leaveType['leave_name']} request for {$days} days ({$startDate} to {$endDate})",
-            'LEAVE_REQUEST',
+            "Submitted {$leaveTypeName} request for {$days} days ({$startDate} to {$endDate})",
+            'LeaveRequest',
             (string)$requestId
         );
 
@@ -580,7 +563,7 @@ class LeaveController extends ApiController
             (int)$user['id'],
             'LEAVE_CANCELLED',
             "Cancelled leave request #{$id}",
-            'LEAVE_REQUEST',
+            'LeaveRequest',
             (string)$id
         );
 
@@ -669,7 +652,7 @@ class LeaveController extends ApiController
             (int)$currentUser['id'],
             'LEAVE_APPROVED',
             "Approved leave request #{$id}",
-            'LEAVE_REQUEST',
+            'LeaveRequest',
             (string)$id
         );
 
@@ -733,7 +716,7 @@ class LeaveController extends ApiController
             (int)$currentUser['id'],
             'LEAVE_REJECTED',
             "Rejected leave request #{$id}. Reason: {$reason}",
-            'LEAVE_REQUEST',
+            'LeaveRequest',
             (string)$id
         );
 

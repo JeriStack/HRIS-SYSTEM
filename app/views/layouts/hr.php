@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="base-url" content="<?= e(url('/')) ?>">
-    <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(config('config.app_name', 'Employee HRIS')) ?></title>
+    <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(config('config.app_name', 'NEXORA HR')) ?></title>
     
     <!-- Enterprise Design System Stylesheets -->
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">

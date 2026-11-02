@@ -19,10 +19,50 @@ class EmployeeValidator
      * @param callable|null $uniqueEmailCheck Optional callback: fn(string $email): bool
      * @return array<string, string> Array of validation error messages keyed by field
      */
+    /**
+     * Normalize an untrusted input array to scalar employee fields.
+     * Non-scalar values (e.g. arrays from crafted JSON) become empty strings so
+     * downstream trim()/model calls never receive an array and raise a TypeError.
+     *
+     * @param array<string, mixed> $raw
+     * @return array<string, mixed>
+     */
+    public static function sanitize(array $raw): array
+    {
+        $str = static function (mixed $v): string {
+            return is_scalar($v) ? trim((string)$v) : '';
+        };
+
+        return [
+            'employee_no'       => $str($raw['employee_no'] ?? ''),
+            'first_name'        => $str($raw['first_name'] ?? ''),
+            'middle_name'       => $str($raw['middle_name'] ?? ''),
+            'last_name'         => $str($raw['last_name'] ?? ''),
+            'email'             => $str($raw['email'] ?? ''),
+            'phone'             => $str($raw['phone'] ?? ''),
+            'address'           => $str($raw['address'] ?? ''),
+            'birth_date'        => $str($raw['birth_date'] ?? ''),
+            'gender'            => $str($raw['gender'] ?? ''),
+            'department_id'     => is_scalar($raw['department_id'] ?? null) ? (int)$raw['department_id'] : 0,
+            'position_id'       => is_scalar($raw['position_id'] ?? null) ? (int)$raw['position_id'] : 0,
+            'date_hired'        => $str($raw['date_hired'] ?? ''),
+            'employment_status' => ($s = $str($raw['employment_status'] ?? '')) !== '' ? $s : 'Active',
+        ];
+    }
+
+    /**
+     * @param array $data Input payload (should be pre-sanitized via self::sanitize)
+     * @param callable|null $uniqueEmpNoCheck fn(string $empNo): bool
+     * @param callable|null $uniqueEmailCheck fn(string $email): bool
+     * @param callable|null $positionInDepartment fn(int $positionId, int $departmentId): bool
+     *        Confirms the chosen position belongs to the chosen department.
+     * @return array<string, string>
+     */
     public static function validate(
         array $data, 
         ?callable $uniqueEmpNoCheck = null, 
-        ?callable $uniqueEmailCheck = null
+        ?callable $uniqueEmailCheck = null,
+        ?callable $positionInDepartment = null
     ): array {
         $errors = [];
 
@@ -104,6 +144,9 @@ class EmployeeValidator
         }
         if ($posId <= 0) {
             $errors['position_id'] = 'Please select a valid job position.';
+        } elseif ($deptId > 0 && $positionInDepartment !== null && !$positionInDepartment($posId, $deptId)) {
+            // The position must belong to the chosen department (existence + membership).
+            $errors['position_id'] = 'Selected position does not belong to the selected department.';
         }
 
         // 8. Date Hired

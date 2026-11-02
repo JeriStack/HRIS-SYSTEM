@@ -49,12 +49,15 @@ class Settings:
     EMP_PASSWORD: str = os.getenv("TEST_EMP_PASSWORD", "Employee@123")
     EMP_NAME: str = "David Cruz"
 
-    # Database Configuration (Docker MySQL published port 3307 on host, 3306 in Docker network)
+    # Database Configuration
+    # Defaults target the isolated E2E/test database so a bare `pytest` run never touches
+    # the development data set. CI exports DB_* explicitly (see .github/workflows/e2e-tests.yml);
+    # local Docker users can override DB_PORT (e.g. 3307 for a host-published MySQL) via env.
     DB_HOST: str = os.getenv("DB_HOST", "127.0.0.1")
-    DB_PORT: int = int(os.getenv("DB_PORT", "3307"))
-    DB_NAME: str = os.getenv("DB_DATABASE", "hris_db")
-    DB_USER: str = os.getenv("DB_USERNAME", "hris_user")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "hris_password")
+    DB_PORT: int = int(os.getenv("DB_PORT", "3306"))
+    DB_NAME: str = os.getenv("DB_DATABASE", "hris_test")
+    DB_USER: str = os.getenv("DB_USERNAME", "hris_test_user")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "test_password")
 
     # Mailpit REST API (optional for live OTP reading)
 

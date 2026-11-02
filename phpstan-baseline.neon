@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Variable \$requestId might not be defined\.$#'
-			identifier: variable.undefined
-			count: 2
-			path: app/controllers/Api/LeaveController.php
-
-		-
 			message: '#^Static method App\\Dsa\\Arrays\\ArrayUtils\:\:compareValues\(\) invoked with 3 parameters, 2 required\.$#'
 			identifier: arguments.count
 			count: 1

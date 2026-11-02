@@ -10,6 +10,8 @@ use App\Models\Employee;
 use App\Models\Department;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\AccountRevocationService;
+use App\Services\StepUpAuthService;
 use OpenApi\Attributes as OA;
 
 class EmployeeController extends ApiController
@@ -210,7 +212,7 @@ class EmployeeController extends ApiController
     public function store(): void
     {
         $currentUser = $this->requireRole('hr');
-        $input = $this->getJsonInput();
+        $input = \App\Services\EmployeeValidator::sanitize($this->getJsonInput());
 
         $errors = $this->validateEmployeeData($input);
         if (!empty($errors)) {
@@ -305,13 +307,26 @@ class EmployeeController extends ApiController
             $this->error('Employee record not found.', 404);
         }
 
-        $input = $this->getJsonInput();
+        $raw = $this->getJsonInput();
+        $input = \App\Services\EmployeeValidator::sanitize($raw);
         $errors = $this->validateEmployeeData($input, $id);
         if (!empty($errors)) {
             $this->error('Employee validation failed.', 400, $errors);
         }
 
+        $newStatus = (string)($input['employment_status'] ?? 'Active');
+        if ($existing['employment_status'] === 'Active' && $newStatus !== 'Active') {
+            // Read the step-up password from the raw body; sanitize() returns only employee fields.
+            $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_DEACTIVATE', $raw[StepUpAuthService::FIELD] ?? null);
+            if (!$stepUp['ok']) {
+                $this->error((string)$stepUp['error'], 403, ['step_up_required' => true]);
+            }
+        }
+
         $this->employeeModel->update($id, $input);
+        if ($newStatus !== 'Active') {
+            $this->revokeLinkedAccount($id);
+        }
 
         $fullName = trim("{$input['first_name']} {$input['last_name']}");
         $this->userModel->logActivity(
@@ -374,7 +389,13 @@ class EmployeeController extends ApiController
             $this->error("Employee {$employee['employee_no']} is already inactive.", 400);
         }
 
+        $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_DEACTIVATE', $this->getJsonInput()[StepUpAuthService::FIELD] ?? null);
+        if (!$stepUp['ok']) {
+            $this->error((string)$stepUp['error'], 403, ['step_up_required' => true]);
+        }
+
         $this->employeeModel->deactivate($id);
+        $this->revokeLinkedAccount($id);
 
         $empName = trim("{$employee['first_name']} {$employee['last_name']}");
         $this->userModel->logActivity(
@@ -388,63 +409,92 @@ class EmployeeController extends ApiController
         $this->success(null, "Employee {$empName} ({$employee['employee_no']}) has been placed on Inactive status.");
     }
 
+    #[OA\Post(
+        path: "/api/v1/employees/{id}/reactivate",
+        summary: "Reactivate employee record",
+        description: "Restores an Inactive employee to Active and re-enables their linked login account (identity and history preserved; login still requires MFA). Restricted to HR accounts.",
+        tags: ["Employee Management"],
+        security: [["cookieAuth" => []], ["csrfToken" => []]],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, description: "Unique employee ID", schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Employee reactivated successfully"),
+            new OA\Response(response: 400, description: "Employee is already active"),
+            new OA\Response(response: 401, description: "Unauthenticated"),
+            new OA\Response(response: 403, description: "Forbidden: Restricted to HR role"),
+            new OA\Response(response: 404, description: "Employee not found")
+        ]
+    )]
+    public function reactivate(int $id): void
+    {
+        $currentUser = $this->requireRole('hr');
+        $employee = $this->employeeModel->findById($id);
+
+        if (!$employee) {
+            $this->error('Employee record not found.', 404);
+        }
+
+        if ($employee['employment_status'] === 'Active') {
+            $this->error("Employee {$employee['employee_no']} is already active.", 400);
+        }
+
+        $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_REACTIVATE', $this->getJsonInput()[StepUpAuthService::FIELD] ?? null);
+        if (!$stepUp['ok']) {
+            $this->error((string)$stepUp['error'], 403, ['step_up_required' => true]);
+        }
+
+        if (!$this->employeeModel->activate($id)) {
+            $this->error('Unable to reactivate this employee.', 500);
+        }
+
+        $empName = trim("{$employee['first_name']} {$employee['last_name']}");
+        $this->userModel->logActivity(
+            (int)$currentUser['id'],
+            'EMPLOYEE_REACTIVATED',
+            "Reactivated employee: {$empName} ({$employee['employee_no']}); linked login account restored.",
+            'EMPLOYEE',
+            (string)$id
+        );
+
+        $this->success(null, "Employee {$empName} ({$employee['employee_no']}) has been reactivated.");
+    }
+
+    /**
+     * Revoke real-time tickets and pending OTP challenges of the employee's linked login account.
+     */
+    private function revokeLinkedAccount(int $employeeId): void
+    {
+        $linkedUser = $this->userModel->findByEmployeeId($employeeId);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            (new AccountRevocationService())->revokeUser((int)$linkedUser['id']);
+        }
+    }
+
+    /**
+     * Validate a (pre-sanitized) employee payload using the shared EmployeeValidator,
+     * so the API enforces exactly the same rules as the web form: required fields,
+     * length limits, strict date formats and bounds, gender/status whitelists,
+     * uniqueness (excluding self on update), and position-belongs-to-department.
+     *
+     * @param array $data Sanitized payload (see EmployeeValidator::sanitize)
+     */
     private function validateEmployeeData(array $data, ?int $excludeId = null): array
     {
-        $errors = [];
-        $empNo     = trim((string)($data['employee_no'] ?? ''));
-        $firstName = trim((string)($data['first_name'] ?? ''));
-        $lastName  = trim((string)($data['last_name'] ?? ''));
-        $email     = trim((string)($data['email'] ?? ''));
-        $birthDate = trim((string)($data['birth_date'] ?? ''));
-        $gender    = trim((string)($data['gender'] ?? ''));
-        $deptId    = (int)($data['department_id'] ?? 0);
-        $posId     = (int)($data['position_id'] ?? 0);
-        $dateHired = trim((string)($data['date_hired'] ?? ''));
+        return \App\Services\EmployeeValidator::validate(
+            $data,
+            fn (string $empNo): bool => $this->employeeModel->isEmployeeNoUnique($empNo, $excludeId),
+            fn (string $email): bool => $this->employeeModel->isEmailUnique($email, $excludeId),
+            fn (int $positionId, int $departmentId): bool => $this->positionBelongsToDepartment($positionId, $departmentId)
+        );
+    }
 
-        if ($empNo === '') {
-            $errors['employee_no'] = 'Employee number is required.';
-        } elseif (!$this->employeeModel->isEmployeeNoUnique($empNo, $excludeId)) {
-            $errors['employee_no'] = "Employee number '{$empNo}' is already taken.";
-        }
-
-        if ($firstName === '') {
-            $errors['first_name'] = 'First name is required.';
-        }
-
-        if ($lastName === '') {
-            $errors['last_name'] = 'Last name is required.';
-        }
-
-        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = 'Valid email address is required.';
-        } elseif (!$this->employeeModel->isEmailUnique($email, $excludeId)) {
-            $errors['email'] = "Email address '{$email}' is already registered.";
-        }
-
-        if ($birthDate === '') {
-            $errors['birth_date'] = 'Birth date is required.';
-        }
-
-        if (!in_array($gender, ['Male', 'Female', 'Other'], true)) {
-            $errors['gender'] = 'Valid gender option is required.';
-        }
-
-        $dept = $this->departmentModel->findById($deptId);
-        if (!$dept) {
-            $errors['department_id'] = 'Valid department is required.';
-        }
-
-        $pos = $this->positionModel->findById($posId);
-        if (!$pos) {
-            $errors['position_id'] = 'Valid position is required.';
-        } elseif ($dept && (int)$pos['department_id'] !== $deptId) {
-            $errors['position_id'] = 'Selected position does not belong to the selected department.';
-        }
-
-        if ($dateHired === '') {
-            $errors['date_hired'] = 'Date hired is required.';
-        }
-
-        return $errors;
+    /**
+     * Whether a position exists and belongs to the given department.
+     */
+    private function positionBelongsToDepartment(int $positionId, int $departmentId): bool
+    {
+        $position = $this->positionModel->findById($positionId);
+        return $position !== null && (int)$position['department_id'] === $departmentId;
     }
 }

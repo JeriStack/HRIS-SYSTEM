@@ -63,6 +63,15 @@ class LeaveNotificationService
         }
 
         $approved = $status === 'Approved';
+        $eventType = $approved ? EventAuthorizer::LEAVE_APPROVED : EventAuthorizer::LEAVE_REJECTED;
+        $requestId = (int)($request['id'] ?? 0);
+
+        // Idempotency: the controller writes this notification immediately, and the
+        // transactional outbox worker may later deliver the same domain event. Writing
+        // it only once keeps the employee from seeing duplicate decision notifications.
+        if ($requestId > 0 && $this->notifications()->existsForEvent((int)$owner['id'], $eventType, $requestId)) {
+            return false;
+        }
 
         $notificationId = $this->notifications()->create(
             (int)$owner['id'],

@@ -1,7 +1,14 @@
 # =============================================================================
 # Production Docker Compose Configuration (docker-compose.prod.yml)
-# Employee HRIS & Leave Management System
+# Employee HRIS & Leave Management System (NEXORA HR)
 # Target: Ubuntu LTS Linux VPS (2 vCPUs, 4 GB RAM, 80 GB SSD)
+#
+# This is the CANONICAL production stack (deployed by .github/workflows/cd.yml).
+# compose.production.yaml is deprecated and kept only for reference.
+#
+# Required in the server-side .env next to this file (deploy fails fast if missing):
+#   OTP_PEPPER_SECRET, DB_PASSWORD, MYSQL_ROOT_PASSWORD, GRAFANA_ADMIN_PASSWORD
+# Values are never stored in this file; only ${VAR} references are.
 #
 # Production Security Boundaries:
 # 1. Zero host port exposure for MySQL, exporters, phpMyAdmin, or Swagger UI.
@@ -17,7 +24,7 @@ services:
   # -----------------------------------------------------------------------------
   nginx:
     container_name: hris_nginx
-    image: nginx:alpine
+    image: nginx:1.31.6-alpine
     ports:
       - "80:80"
       - "443:443"
@@ -26,8 +33,10 @@ services:
       - certbot_certs:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:
-      - app
-      - realtime
+      app:
+        condition: service_healthy
+      realtime:
+        condition: service_started
     restart: unless-stopped
     networks:
       - hris_network
@@ -56,8 +65,17 @@ services:
     expose:
       - "80"
     environment:
-      APP_NAME: "${APP_NAME:-Employee HRIS & Leave Management System}"
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
       APP_ENV: production
+      # Required: OTP hashing pepper (>= 32 random chars). Only the variable reference lives
+      # here; the value must be set in the server-side .env next to this file.
+      OTP_PEPPER_SECRET: "${OTP_PEPPER_SECRET:?OTP_PEPPER_SECRET must be set in the production .env}"
+      TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
+      SESSION_ABSOLUTE_LIFETIME: "${SESSION_ABSOLUTE_LIFETIME:-43200}"
+      STEP_UP_WINDOW: "${STEP_UP_WINDOW:-900}"
+      LOGIN_RATE_LIMIT_MAX_ACCOUNT: "${LOGIN_RATE_LIMIT_MAX_ACCOUNT:-5}"
+      LOGIN_RATE_LIMIT_MAX_IP: "${LOGIN_RATE_LIMIT_MAX_IP:-15}"
+      LOGIN_RATE_LIMIT_WINDOW: "${LOGIN_RATE_LIMIT_WINDOW:-900}"
       BASE_URL: "${BASE_URL:-https://hris.example.com}"
       TIMEZONE: "${TIMEZONE:-Asia/Manila}"
       SESSION_LIFETIME: "${SESSION_LIFETIME:-1800}"
@@ -66,7 +84,7 @@ services:
       DB_PORT: 3306
       DB_DATABASE: "${DB_DATABASE:-hris_db}"
       DB_USERNAME: "${DB_USERNAME:-hris_prod_user}"
-      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set in the production .env}"
       DB_CHARSET: utf8mb4
       MAIL_DRIVER: "${MAIL_DRIVER:-smtp}"
       SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
@@ -88,6 +106,15 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      # /health (public/index.php) returns HTTP 200 whenever Apache + PHP can serve requests.
+      # It reports DB status in the JSON body but does not fail on it; DB health is covered
+      # by the db service healthcheck and depends_on.
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/health > /dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     networks:
       - hris_network
@@ -119,7 +146,7 @@ services:
       DB_PORT: 3306
       DB_DATABASE: "${DB_DATABASE:-hris_db}"
       DB_USERNAME: "${DB_USERNAME:-hris_prod_user}"
-      DB_PASSWORD: "${DB_PASSWORD}"
+      DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set in the production .env}"
       DB_CHARSET: utf8mb4
       WS_ENABLED: "true"
       WS_LISTEN_HOST: 0.0.0.0
@@ -157,7 +184,7 @@ services:
   # -----------------------------------------------------------------------------
   db:
     container_name: hris_db
-    image: mysql:8.0
+    image: mysql:8.0.46
     command: >
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
@@ -168,10 +195,10 @@ services:
       --innodb-flush-method=O_DIRECT
       --max-connections=150
     environment:
-      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in the production .env}"
       MYSQL_DATABASE: "${DB_DATABASE:-hris_db}"
       MYSQL_USER: "${DB_USERNAME:-hris_prod_user}"
-      MYSQL_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set in the production .env}"
     expose:
       - "3306"
     volumes:
@@ -274,7 +301,7 @@ services:
       - "127.0.0.1:3100:3000"
     environment:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-hris_admin}"
-      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in the production .env}"
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana_data:/var/lib/grafana

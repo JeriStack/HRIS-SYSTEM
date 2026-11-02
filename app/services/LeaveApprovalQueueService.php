@@ -29,8 +29,10 @@ class LeaveApprovalQueueService
      */
     public function buildPendingApprovalQueue(?int $departmentId = null, int $limit = 50): Queue
     {
-        // Fetch pending leave requests using the authoritative Leave model method
-        $requests = $this->leaveModel->getAllRequests('Pending', $departmentId);
+        // Fetch pending leave requests. getAllRequests signature is
+        // (status, empId, limit, startDate, endDate, deptId): the department filter
+        // must go in the deptId slot, not the empId slot, and the limit must be applied in SQL.
+        $requests = $this->leaveModel->getAllRequests('Pending', null, $limit > 0 ? $limit : null, null, null, $departmentId);
 
         // Sort deterministically by applied_at / created_at ascending, then id ascending
         usort($requests, function (array $a, array $b): int {
@@ -97,12 +99,13 @@ class LeaveApprovalQueueService
             ];
         }
 
-        // Delegate to authoritative transaction-safe leave approval
+        // Delegate to authoritative transaction-safe leave approval.
+        // Leave::approveRequest returns ['ok' => bool, 'code' => string, ...], not 'status'.
         $result = $this->leaveModel->approveRequest($requestId, $approverId);
 
         return [
-            'success' => ($result['status'] ?? '') === 'approved',
-            'status'  => $result['status'] ?? 'error',
+            'success' => (bool)($result['ok'] ?? false),
+            'status'  => $result['code'] ?? ($result['ok'] ?? false ? 'approved' : 'error'),
             'message' => $result['message'] ?? 'Leave approval completed.',
             'request' => $request,
         ];

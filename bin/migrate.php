@@ -17,6 +17,7 @@ if (php_sapi_name() !== 'cli') {
 require_once __DIR__ . '/../core/bootstrap.php';
 
 use Core\Database;
+use Core\MigrationRunner;
 
 echo "====================================================================\n";
 echo " Employee HRIS & Leave Management System - Migration Runner\n";
@@ -56,7 +57,13 @@ foreach ($files as $file) {
     $sql = file_get_contents($file);
 
     try {
-        $db->exec($sql);
+        if ($sql === false) {
+            throw new \RuntimeException("Unable to read migration file: {$filename}");
+        }
+
+        // Runs every statement and raises if ANY of them fails, so a partially
+        // failed migration is never recorded as applied.
+        MigrationRunner::executeSql($db, $sql);
 
         $recordStmt = $db->prepare("INSERT INTO migrations (migration) VALUES (:migration)");
         $recordStmt->execute(['migration' => $filename]);
@@ -65,7 +72,10 @@ foreach ($files as $file) {
         $appliedCount++;
     } catch (\Throwable $e) {
         echo "FAILED ❌\n";
-        echo "  Error: " . $e->getMessage() . "\n\n";
+        echo "  Migration: {$filename} (NOT recorded as applied)\n";
+        echo "  Error: " . $e->getMessage() . "\n";
+        echo "  MySQL DDL commits implicitly, so statements before the failure may have taken effect.\n";
+        echo "  Migrations must stay idempotent; fix the file and re-run.\n\n";
         exit(1);
     }
 }

@@ -25,6 +25,10 @@ class TransactionalOutboxDatabaseIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
+        if (!Database::getInstance()->isConnected()) {
+            $this->markTestSkipped('Database connection is not available in this environment.');
+        }
+
         $this->pdo = Database::getInstance()->getConnection();
         $this->pdo->exec("CREATE TABLE IF NOT EXISTS `outbox_events` (
             `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -58,7 +62,9 @@ class TransactionalOutboxDatabaseIntegrationTest extends TestCase
 
     protected function tearDown(): void
     {
-        $this->pdo->exec("DELETE FROM outbox_events");
+        if (isset($this->pdo)) {
+            $this->pdo->exec("DELETE FROM outbox_events");
+        }
     }
 
     public function test_outbox_event_persists_on_transaction_commit(): void

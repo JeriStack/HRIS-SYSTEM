@@ -179,7 +179,9 @@ class LeaveController extends Controller
             );
             Session::flash('success', "Leave balance successfully updated to {$allocatedDays} allocated days for year {$year}.");
         } else {
-            Session::flash('error', "Failed to adjust leave balance for employee #{$empId}.");
+            // Surface the specific reason (e.g. allocation below days already used) instead of a generic failure.
+            $detail = $this->leaveModel->getLastError() ?? "Failed to adjust leave balance for employee #{$empId}.";
+            Session::flash('error', $detail);
         }
 
         redirect('/leaves/balances?year=' . $year);
@@ -455,98 +457,47 @@ class LeaveController extends Controller
         $endDate = trim($_POST['end_date'] ?? '');
         $reason = trim($_POST['reason'] ?? '');
 
-        // 1. Validation: Required fields
+        // Required-field check (friendly message); all business rules below are enforced
+        // server-side inside the single transactional filing use case.
         if (!$leaveTypeId || empty($startDate) || empty($endDate) || empty($reason)) {
             Session::flash('error', 'All fields (Leave Classification, Start Date, End Date, and Reason) are required.');
             redirect('/leaves/apply');
             return;
         }
 
-        // 2. Validate Leave Type exists and is Active
+        // Resolve the leave-type name for the notification/activity text (does not gate filing;
+        // the use case re-checks the type is active).
         $leaveType = $this->leaveModel->getLeaveTypeById($leaveTypeId);
-        if (!$leaveType || $leaveType['status'] !== 'Active') {
-            Session::flash('error', 'Selected leave classification is either inactive or does not exist.');
-            redirect('/leaves/apply');
-            return;
-        }
+        $leaveTypeName = $leaveType['leave_name'] ?? 'leave';
 
-        // 3. Calculate and validate business working days (Mon-Fri) using LeaveCalculator
-        $rangeValidation = LeaveCalculator::validateDateRange($startDate, $endDate);
-        if (!$rangeValidation['valid']) {
-            Session::flash('error', $rangeValidation['error'] ?? 'Invalid date range specified.');
-            redirect('/leaves/apply');
-            return;
-        }
-
-        $days = $rangeValidation['working_days'];
-        if ($days === 0) {
-            Session::flash('error', 'Selected date range contains 0 working days (e.g. falls entirely on weekends). Please select eligible working days.');
-            redirect('/leaves/apply');
-            return;
-        }
-
-        // 4. Overlap Detection: Check against employee's existing Pending and Approved requests
-        $overlapping = $this->leaveModel->getOverlappingRequest((int)$empId, $startDate, $endDate);
-        if ($overlapping) {
-            $existingStart = date('M d, Y', strtotime($overlapping['start_date']));
-            $existingEnd = date('M d, Y', strtotime($overlapping['end_date']));
-            Session::flash('error', "Overlapping Leave Detected: You already have a {$overlapping['status']} {$overlapping['leave_name']} request from {$existingStart} to {$existingEnd} (#LR-" . str_pad((string)$overlapping['id'], 3, '0', STR_PAD_LEFT) . "). Overlapping filings are prohibited.");
-            redirect('/leaves/apply');
-            return;
-        }
-
-        // 5. Validation: Check available balance and pending reservations
-        $year = (int)date('Y', strtotime($startDate));
-        $balanceRecord = $this->leaveModel->getBalance((int)$empId, $leaveTypeId, $year);
-
-        if (!$balanceRecord) {
-            // Auto-initialize balance if not yet created for this year
-            $this->leaveModel->initializeBalancesForEmployee((int)$empId, $year);
-            $balanceRecord = $this->leaveModel->getBalance((int)$empId, $leaveTypeId, $year);
-        }
-
-        $availableRemaining = $balanceRecord ? (int)$balanceRecord['remaining_days'] : 0;
-        $pendingDays = $this->leaveModel->getPendingDays((int)$empId, $leaveTypeId, $year);
-        $effectiveRemaining = max(0, $availableRemaining - $pendingDays);
-
-        if ($days > $availableRemaining) {
-            Session::flash('error', "Requested duration ({$days} working days) exceeds your remaining quota of {$availableRemaining} days for {$leaveType['leave_name']}.");
-            redirect('/leaves/apply');
-            return;
-        }
-
-        if ($days > $effectiveRemaining) {
-            Session::flash('error', "Insufficient Available Balance: You have {$availableRemaining} remaining days, but {$pendingDays} day(s) are already reserved in other pending applications. You can only request up to {$effectiveRemaining} more day(s).");
-            redirect('/leaves/apply');
-            return;
-        }
-
-        // 6. Create request and HR notifications atomically (real-time events
-        //    are emitted by the WebSocket service only after this commits)
-        try {
-            $requestId = $this->leaveModel->createRequest([
-                'employee_id'    => (int)$empId,
-                'leave_type_id'  => $leaveTypeId,
-                'start_date'     => $startDate,
-                'end_date'       => $endDate,
-                'number_of_days' => $days,
-                'reason'         => $reason,
-            ], function (int $newId) use ($user, $days): void {
+        // Delegate to the single authoritative filing path: one transaction with the balance
+        // row locked FOR UPDATE, auto-initialization of missing balances, pending-day
+        // reservation, overlap, cross-year and active employee/type checks. The HR
+        // notification is written inside that same transaction via the callback.
+        $result = $this->leaveAdapter->file(
+            (int)$empId,
+            $leaveTypeId,
+            $startDate,
+            $endDate,
+            $reason,
+            function (int $newId) use ($user, $leaveTypeName): void {
                 $this->leaveNotifications->leaveSubmitted(
                     $newId,
-                    "Employee {$user['username']} submitted a {$days}-day leave request #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
+                    "Employee {$user['username']} submitted a {$leaveTypeName} request #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
                 );
-            });
-        } catch (\Throwable $e) {
-            error_log('[LeaveController::store] Leave submission failed: ' . $e->getMessage());
-            Session::flash('error', 'Unable to submit your leave request right now. Please try again.');
+            }
+        );
+
+        if (!$result->success) {
+            Session::flash('error', $result->message);
             redirect('/leaves/apply');
             return;
         }
 
-        $this->activityLog->log($user['id'], 'LEAVE_REQUESTED', "Submitted {$days}-day leave request #{$requestId} for {$leaveType['leave_name']}", 'LeaveRequest', (string)$requestId);
+        $requestId = (int)($result->data['id'] ?? 0);
+        $this->activityLog->log($user['id'], 'LEAVE_REQUESTED', "Submitted leave request #{$requestId} for {$leaveTypeName}", 'LeaveRequest', (string)$requestId);
 
-        Session::flash('success', "Leave request for {$days} working day(s) submitted successfully. Status is Pending HR review.");
+        Session::flash('success', 'Leave request submitted successfully. Status is Pending HR review.');
         redirect('/employee/dashboard');
     }
 
@@ -668,20 +619,48 @@ class LeaveController extends Controller
         $userRole = strtolower($user['role'] ?? 'employee');
         $myEmpId = (int)($user['employee_id'] ?? 0);
 
-        $isHrOrAdmin = ($userRole === 'hr' || $userRole === 'admin');
-        $result = $this->leaveAdapter->cancel($id, $myEmpId, $isHrOrAdmin);
+        $isHr = ($userRole === 'hr');
+
+        // Capture request state before cancellation so we can notify the owner and
+        // describe the action accurately (an HR cancel may reverse an approved request).
+        $req = $this->leaveModel->getRequestById($id);
+        $wasApproved = $req && ($req['status'] ?? '') === 'Approved';
+
+        // HR cancelling an already-approved request must supply a reason (decision F.2).
+        $reason = $isHr ? trim((string)($_POST['cancellation_reason'] ?? '')) : null;
+
+        $result = $this->leaveAdapter->cancel($id, $myEmpId, $isHr, $reason);
 
         if ($result->success) {
-            $this->activityLog->log($user['id'], 'LEAVE_CANCELLED', "Cancelled leave request #{$id}", 'LeaveRequest', (string)$id);
+            $logReason = ($reason !== null && $reason !== '') ? " Reason: {$reason}" : '';
+            $this->activityLog->log(
+                $user['id'],
+                'LEAVE_CANCELLED',
+                "Cancelled leave request #{$id}" . ($wasApproved ? ' (approved leave reversed, balance restored).' : '.') . $logReason,
+                'LeaveRequest',
+                (string)$id
+            );
 
-            // Notify HR if cancelled by employee
             if ($userRole === 'employee') {
+                // Notify HR that an employee withdrew a pending request
                 $this->notificationModel->notifyRole(
                     'hr',
                     'Leave Request Cancelled',
                     "Employee {$user['username']} cancelled pending leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . ".",
                     'info'
                 );
+            } elseif ($req && !empty($req['employee_id'])) {
+                // Notify the owning employee that HR cancelled their request
+                $ownerUser = $this->userModel->findByEmployeeId((int)$req['employee_id']);
+                if ($ownerUser && !empty($ownerUser['id'])) {
+                    $detail = $wasApproved
+                        ? "Your approved leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was cancelled by HR and the leave days were restored to your balance."
+                        : "Your pending leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was cancelled by HR.";
+                    if ($reason !== null && $reason !== '') {
+                        $detail .= " Reason: {$reason}";
+                    }
+                    $this->notificationModel->create((int)$ownerUser['id'], 'Leave Request Cancelled', $detail, 'warning');
+                }
             }
 
             Session::flash('info', $result->message);

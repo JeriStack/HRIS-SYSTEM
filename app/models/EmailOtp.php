@@ -21,6 +21,10 @@ class EmailOtp extends Model
     public const LOCKOUT_THRESHOLD = 10;
     public const LOCKOUT_WINDOW = 900; // 15 minutes
 
+    /** Max OTP codes issued (login + resend) per user within ISSUANCE_WINDOW (inbox-flooding protection). */
+    public const MAX_ISSUANCES_PER_WINDOW = 5;
+    public const ISSUANCE_WINDOW = 900; // 15 minutes
+
     /** Absolute lifetime of the pending (post-password, pre-OTP) session state. Not extended by resends. */
     public const PENDING_SESSION_LIFETIME = 900; // 15 minutes
 
@@ -33,6 +37,55 @@ class EmailOtp extends Model
     }
 
     /**
+     * Server-side pepper secret (OTP_PEPPER_SECRET). Returns null when not configured,
+     * in which case OTPs are hashed with password_hash() alone (legacy behaviour).
+     */
+    private static function pepperSecret(): ?string
+    {
+        $secret = getenv('OTP_PEPPER_SECRET');
+        if ($secret === false || $secret === '') {
+            $secret = $_ENV['OTP_PEPPER_SECRET'] ?? '';
+        }
+        $secret = (string)$secret;
+        return strlen($secret) >= 16 ? $secret : null;
+    }
+
+    /**
+     * Keyed HMAC-SHA256 of the OTP bound to the user ID. A stolen database alone is
+     * insufficient to brute-force the 10^6 code space offline without the server secret.
+     */
+    public static function computePepper(int $userId, string $plainOtp): ?string
+    {
+        $secret = self::pepperSecret();
+        if ($secret === null) {
+            return null;
+        }
+        return hash_hmac('sha256', "{$userId}:{$plainOtp}", $secret);
+    }
+
+    /**
+     * Hash an OTP for storage (peppered when a secret is configured).
+     */
+    public static function hashOtp(int $userId, string $plainOtp): string
+    {
+        $material = self::computePepper($userId, $plainOtp) ?? $plainOtp;
+        return password_hash($material, PASSWORD_DEFAULT);
+    }
+
+    /**
+     * Verify a submitted OTP against a stored hash. Accepts peppered hashes and,
+     * for backward compatibility with challenges issued before the pepper existed, legacy hashes.
+     */
+    public static function verifyOtpHash(int $userId, string $submittedOtp, string $storedHash): bool
+    {
+        $peppered = self::computePepper($userId, $submittedOtp);
+        if ($peppered !== null && password_verify($peppered, $storedHash)) {
+            return true;
+        }
+        return password_verify($submittedOtp, $storedHash);
+    }
+
+    /**
      * Determine whether a user is temporarily locked out of OTP flows.
      * Failed attempts are summed across every challenge in the rolling window, so requesting
      * a fresh code (which resets the per-challenge counter) cannot be used to keep guessing.
@@ -42,20 +95,50 @@ class EmailOtp extends Model
      */
     public function checkLockout(int $userId): array
     {
-        $cutoff = date('Y-m-d H:i:s', time() - self::LOCKOUT_WINDOW);
+        // Window and retry are computed on the database clock so a timezone mismatch
+        // between PHP and MySQL cannot make the rolling window silently fail.
+        $window = self::LOCKOUT_WINDOW;
         $row = $this->fetchOne(
-            "SELECT COALESCE(SUM(attempts), 0) AS failed, MIN(created_at) AS oldest
+            "SELECT COALESCE(SUM(attempts), 0) AS failed,
+                    GREATEST(0, {$window} - TIMESTAMPDIFF(SECOND, MIN(created_at), NOW())) AS retry_after
              FROM email_otps
-             WHERE user_id = :user_id AND attempts > 0 AND created_at > :cutoff",
-            ['user_id' => $userId, 'cutoff' => $cutoff]
+             WHERE user_id = :user_id AND attempts > 0
+               AND created_at > (NOW() - INTERVAL {$window} SECOND)",
+            ['user_id' => $userId]
         );
 
         if (!$row || (int)$row['failed'] < self::LOCKOUT_THRESHOLD) {
             return ['locked' => false, 'retry_after' => 0];
         }
 
-        $retryAfter = (strtotime((string)$row['oldest']) + self::LOCKOUT_WINDOW) - time();
-        return ['locked' => true, 'retry_after' => max(1, $retryAfter)];
+        return ['locked' => true, 'retry_after' => max(1, (int)$row['retry_after'])];
+    }
+
+    /**
+     * Cap the number of OTP codes issued to a user in a rolling window, so repeated
+     * login/resend cycles cannot flood the user's inbox.
+     *
+     * @param int $userId
+     * @return array ['allowed' => bool, 'retry_after' => int seconds]
+     */
+    public function checkIssuanceRateLimit(int $userId): array
+    {
+        // DB-clock window (see checkLockout) to stay correct under PHP/MySQL timezone differences.
+        $window = self::ISSUANCE_WINDOW;
+        $row = $this->fetchOne(
+            "SELECT COUNT(*) AS issued,
+                    GREATEST(0, {$window} - TIMESTAMPDIFF(SECOND, MIN(created_at), NOW())) AS retry_after
+             FROM email_otps
+             WHERE user_id = :user_id
+               AND created_at > (NOW() - INTERVAL {$window} SECOND)",
+            ['user_id' => $userId]
+        );
+
+        if (!$row || (int)$row['issued'] < self::MAX_ISSUANCES_PER_WINDOW) {
+            return ['allowed' => true, 'retry_after' => 0];
+        }
+
+        return ['allowed' => false, 'retry_after' => max(1, (int)$row['retry_after'])];
     }
 
     /**
@@ -76,9 +159,9 @@ class EmailOtp extends Model
         ?string $userAgent = null,
         int $lifetimeSeconds = self::OTP_LIFETIME
     ): int {
-        $otpHash = password_hash($plainOtp, PASSWORD_DEFAULT);
+        $otpHash = self::hashOtp($userId, $plainOtp);
         $expiresAt = date('Y-m-d H:i:s', time() + $lifetimeSeconds);
-        $ip = $ipAddress ?? ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $ip = $ipAddress ?? (client_ip() ?? '127.0.0.1');
         $ua = substr($userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown'), 0, 255);
 
         // Opportunistic retention cleanup (~1% of issuances); failures must never block sign-in
@@ -101,16 +184,18 @@ class EmailOtp extends Model
                 'user_id' => $userId,
             ]);
 
-            // Insert fresh hashed challenge with PHP synchronized timestamp
+            // Let the database set created_at (NOW()) so issuance/lockout/cooldown windows,
+            // which are evaluated on the DB clock, stay correct even if PHP and MySQL use
+            // different timezones. expires_at remains an absolute instant computed from the
+            // PHP lifetime and is compared only against PHP time in verifyOtp().
             $insertSql = "
                 INSERT INTO email_otps (user_id, otp_hash, expires_at, attempts, created_at, ip_address, user_agent)
-                VALUES (:user_id, :otp_hash, :expires_at, 0, :created_at, :ip_address, :user_agent)
+                VALUES (:user_id, :otp_hash, :expires_at, 0, NOW(), :ip_address, :user_agent)
             ";
             $this->execute($insertSql, [
                 'user_id'    => $userId,
                 'otp_hash'   => $otpHash,
                 'expires_at' => $expiresAt,
-                'created_at' => $now,
                 'ip_address' => $ip,
                 'user_agent' => $ua,
             ]);
@@ -135,21 +220,21 @@ class EmailOtp extends Model
      */
     public function checkResendCooldown(int $userId, int $cooldownSeconds = self::RESEND_COOLDOWN): array
     {
-        $sql = "SELECT created_at FROM email_otps WHERE user_id = :user_id ORDER BY id DESC LIMIT 1";
-        $latest = $this->fetchOne($sql, ['user_id' => $userId]);
+        // Elapsed time is measured on the database clock to avoid PHP/MySQL timezone skew.
+        $cooldownSeconds = max(1, $cooldownSeconds);
+        $latest = $this->fetchOne(
+            "SELECT GREATEST(0, :cooldown - TIMESTAMPDIFF(SECOND, created_at, NOW())) AS remaining
+             FROM email_otps WHERE user_id = :user_id ORDER BY id DESC LIMIT 1",
+            ['user_id' => $userId, 'cooldown' => $cooldownSeconds]
+        );
 
         if (!$latest) {
             return ['allowed' => true, 'remaining_seconds' => 0];
         }
 
-        $createdAt = strtotime($latest['created_at']);
-        $elapsed = time() - $createdAt;
-
-        if ($elapsed < $cooldownSeconds) {
-            return [
-                'allowed'           => false,
-                'remaining_seconds' => $cooldownSeconds - $elapsed,
-            ];
+        $remaining = (int)$latest['remaining'];
+        if ($remaining > 0) {
+            return ['allowed' => false, 'remaining_seconds' => $remaining];
         }
 
         return ['allowed' => true, 'remaining_seconds' => 0];
@@ -218,8 +303,8 @@ class EmailOtp extends Model
                 ];
             }
 
-            // Verify submitted OTP against hashed value
-            if (password_verify($submittedOtp, $challenge['otp_hash'])) {
+            // Verify submitted OTP against hashed value (peppered or legacy)
+            if (self::verifyOtpHash($userId, $submittedOtp, (string)$challenge['otp_hash'])) {
                 // Successfully verified: atomically consume the OTP
                 $this->execute("UPDATE email_otps SET consumed_at = :now WHERE id = :id", ['now' => $now, 'id' => $challenge['id']]);
                 $this->commit();
@@ -278,7 +363,7 @@ class EmailOtp extends Model
 
     /**
      * Invalidate all unconsumed challenges for a given user.
-     * Used when cancelling or abandoning pending authentication.
+     * Used when cancelling or abandoning pending authentication, or when account state changes.
      *
      * @param int $userId
      * @return bool

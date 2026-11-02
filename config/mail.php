@@ -12,8 +12,8 @@ return [
     'username'   => getenv('SMTP_USERNAME') ?: '',
     'password'   => getenv('SMTP_PASSWORD') ?: '',
     'from'       => [
-        'address' => getenv('MAIL_FROM_ADDRESS') ?: 'no-reply@hris-system.local',
-        'name'    => getenv('MAIL_FROM_NAME') ?: 'HRIS',
+        'address' => getenv('MAIL_FROM_ADDRESS') ?: 'no-reply@nexora-hr.local',
+        'name'    => getenv('MAIL_FROM_NAME') ?: 'NEXORA HR',
     ],
     'timeout'    => (int)(getenv('MAIL_TIMEOUT') ?: 15),
     'debug'      => (int)(getenv('MAIL_DEBUG') ?: 0), // 0 = off, 1 = client, 2 = client and server

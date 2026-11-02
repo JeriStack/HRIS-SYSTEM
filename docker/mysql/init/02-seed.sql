@@ -1,11 +1,19 @@
 -- =============================================================================
+-- GENERATED FILE - DO NOT EDIT BY HAND.
+-- Docker first-boot copy of database/seed.sql (runs only when the MySQL volume is empty).
+-- Edit database/seed.sql instead, then regenerate this file so that everything below the
+-- marker line is byte-identical to it. tests/Unit/Database/InitSchemaParityTest.php
+-- fails if the two drift apart.
+-- =============================================================================
+USE `hris_db`;
+
+-- >>> canonical content below >>>
+-- =============================================================================
 -- Seed Data: Employee HRIS & Leave Management System
 -- Purpose: Initial operational seed data for testing & development demonstration
 -- Security: Passwords hashed via BCRYPT. Plaintext credentials provided in comments.
 -- Documentation: docs/phase-3-database/database-design.md
 -- =============================================================================
-
-USE `hris_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -50,22 +58,16 @@ INSERT INTO `employees` (`id`, `employee_no`, `first_name`, `middle_name`, `last
 ON DUPLICATE KEY UPDATE `employee_no` = VALUES(`employee_no`);
 
 -- -----------------------------------------------------------------------------
--- 4. Users Seed (Authentication Accounts)
--- Development Credentials:
---   hr01   / Admin@123    (Role: hr)
---   hr02   / Admin@123    (Role: hr)
---   emp004 / Employee@123 (Role: employee - David Cruz)
---   emp005 / Employee@123 (Role: employee - Maria Santos)
---   emp006 / Employee@123 (Role: employee - Juan Dela Cruz)
+-- 4. Users Seed (Authentication Accounts with Registered Email)
 -- -----------------------------------------------------------------------------
-INSERT INTO `users` (`id`, `employee_id`, `username`, `password`, `role`, `status`, `created_at`) VALUES
-(2, 2, 'hr01', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
-(3, 3, 'hr02', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
-(4, 4, 'emp004', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
-(5, 5, 'emp005', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
-(6, 6, 'emp006', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
-(7, 7, 'emp007', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW())
-ON DUPLICATE KEY UPDATE `username` = VALUES(`username`);
+INSERT INTO `users` (`id`, `employee_id`, `username`, `email`, `password`, `role`, `status`, `created_at`) VALUES
+(2, 2, 'hr01', 'marcus.tan@company.local', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
+(3, 3, 'hr02', 'sofia.reyes@company.local', '$2y$12$UM/S23UvIdPCDYRejfw2I.rmSwbOgJq5d0WTJRI0gH12yt70Z2eGW', 'hr', 'Active', NOW()),
+(4, 4, 'emp004', 'david.cruz@company.local', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
+(5, 5, 'emp005', 'maria.santos@company.local', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
+(6, 6, 'emp006', 'juan.delacruz@company.local', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW()),
+(7, 7, 'emp007', 'beatrice.gomez@company.local', '$2y$12$Rn6ZSP6XUZESPhtJMn1woeH7QCGhpMjiOy6SlKlDjhT5qa6BmwNvK', 'employee', 'Active', NOW())
+ON DUPLICATE KEY UPDATE `email` = VALUES(`email`), `username` = VALUES(`username`);
 
 -- -----------------------------------------------------------------------------
 -- 5. Leave Types Seed
