@@ -34,47 +34,6 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
 <body class="auth-landing-page">
     <a href="#mainAuthContent" class="skip-link">Skip to authentication content</a>
 
-    <!-- Decorative NEXORA HR Wave Accents -->
-    <div class="auth-bg-decor" aria-hidden="true">
-        <svg class="auth-wave-top" viewBox="0 0 560 460" fill="none" preserveAspectRatio="none">
-            <path d="M0 0H560C465 165 300 350 0 430V0Z" fill="url(#nexoraTopWave1)" />
-            <path d="M0 0H400C325 125 200 250 0 320V0Z" fill="url(#nexoraTopWave2)" />
-            <path d="M0 0H260C205 80 115 165 0 210V0Z" fill="url(#nexoraTopWave3)" />
-            <defs>
-                <linearGradient id="nexoraTopWave1" x1="0" y1="0" x2="560" y2="460" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#2563EB" stop-opacity="0.16" />
-                    <stop offset="65%" stop-color="#14B8A6" stop-opacity="0.06" />
-                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
-                </linearGradient>
-                <linearGradient id="nexoraTopWave2" x1="0" y1="0" x2="400" y2="320" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.22" />
-                    <stop offset="65%" stop-color="#2563EB" stop-opacity="0.10" />
-                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
-                </linearGradient>
-                <linearGradient id="nexoraTopWave3" x1="0" y1="0" x2="260" y2="210" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.32" />
-                    <stop offset="100%" stop-color="#2563EB" stop-opacity="0.04" />
-                </linearGradient>
-            </defs>
-        </svg>
-
-        <svg class="auth-wave-bottom" viewBox="0 0 620 500" fill="none" preserveAspectRatio="none">
-            <path d="M620 500V120C515 245 350 385 110 500H620Z" fill="url(#nexoraBotWave1)" />
-            <path d="M620 500V240C530 330 415 420 240 500H620Z" fill="url(#nexoraBotWave2)" />
-            <defs>
-                <linearGradient id="nexoraBotWave1" x1="620" y1="500" x2="110" y2="120" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#2563EB" stop-opacity="0.18" />
-                    <stop offset="60%" stop-color="#14B8A6" stop-opacity="0.08" />
-                    <stop offset="100%" stop-color="#F4F7FB" stop-opacity="0" />
-                </linearGradient>
-                <linearGradient id="nexoraBotWave2" x1="620" y1="500" x2="240" y2="240" gradientUnits="userSpaceOnUse">
-                    <stop offset="0%" stop-color="#153D70" stop-opacity="0.26" />
-                    <stop offset="100%" stop-color="#2563EB" stop-opacity="0.04" />
-                </linearGradient>
-            </defs>
-        </svg>
-    </div>
-
     <!-- Top Utility Header -->
     <header class="auth-header">
         <div class="auth-header-inner">
