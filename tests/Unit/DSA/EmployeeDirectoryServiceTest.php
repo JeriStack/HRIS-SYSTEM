@@ -2,6 +2,9 @@
 
 namespace Tests\Unit\DSA;
 
+use App\Dsa\Structures\ArrayStructure;
+use App\Dsa\Structures\LinkedList;
+use App\Dsa\Structures\Stack;
 use App\Services\EmployeeDirectoryService;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -10,7 +13,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Integration-level tests for the Employee Directory DSA bridge: confirm the
  * custom algorithms are genuinely invoked, allowlists reject invalid input,
- * the binary-search pipeline sorts first, and the dataset cap is enforced.
+ * the binary-search pipeline sorts first, the dataset cap is enforced,
+ * and dashboard views no longer display DSA modules.
  */
 class EmployeeDirectoryServiceTest extends TestCase
 {
@@ -45,6 +49,55 @@ class EmployeeDirectoryServiceTest extends TestCase
         $this->assertFalse(EmployeeDirectoryService::isValidSortField('password'));
         $this->assertTrue(EmployeeDirectoryService::isValidSortAlgorithm('merge'));
         $this->assertFalse(EmployeeDirectoryService::isValidSortAlgorithm('system'));
+    }
+
+    public function test_wrap_collection_and_sequential_roster_and_reversible_stack(): void
+    {
+        $collection = $this->service->wrapCollection($this->employees());
+        $this->assertInstanceOf(ArrayStructure::class, $collection);
+        $this->assertSame(3, $collection->size());
+
+        $activeOnly = $collection->filter(fn(array $e): bool => $e['employment_status'] === 'Active');
+        $this->assertSame(2, $activeOnly->size());
+
+        $roster = $this->service->buildSequentialRoster($this->employees());
+        $this->assertInstanceOf(LinkedList::class, $roster);
+        $this->assertSame(3, $roster->size());
+        $found = $roster->find(2);
+        $this->assertIsArray($found);
+        $this->assertSame('EMP-001', $found['employee_no']);
+
+        $opStack = new Stack();
+        $this->service->recordReversibleOperation(
+            $opStack,
+            'DEACTIVATE_EMPLOYEE',
+            ['id' => 1, 'employment_status' => 'Active'],
+            ['id' => 1, 'employment_status' => 'Inactive']
+        );
+        $this->assertSame(1, $opStack->size());
+        $lastOp = $opStack->peek();
+        $this->assertIsArray($lastOp);
+        $this->assertSame('DEACTIVATE_EMPLOYEE', $lastOp['operation']);
+    }
+
+    public function test_hr_and_employee_dashboards_and_sidebar_do_not_expose_dsa_module(): void
+    {
+        $root = dirname(__DIR__, 3);
+        $filesToCheck = [
+            $root . '/app/views/partials/sidebar.php',
+            $root . '/app/views/dashboard/hr.php',
+            $root . '/app/views/dashboard/employee.php',
+            $root . '/app/views/dashboard/admin.php',
+            $root . '/app/views/dashboard/employee_requests.php',
+            $root . '/app/views/activity_logs/index.php',
+        ];
+
+        foreach ($filesToCheck as $file) {
+            $this->assertFileExists($file);
+            $contents = (string)file_get_contents($file);
+            $this->assertStringNotContainsString('DSA Laboratory', $contents, "DSA Laboratory must be removed from {$file}");
+            $this->assertStringNotContainsString("url('/dsa')", $contents, "Direct /dsa dashboard link must be removed from {$file}");
+        }
     }
 
     #[DataProvider('algoProvider')]
@@ -168,11 +221,9 @@ class EmployeeDirectoryServiceTest extends TestCase
             ['id' => 4, 'employee_no' => 'EMP-004', 'department_name' => 'IT', 'last_name' => 'Mendoza'],
         ];
 
-        // 1. Search IT department using linear search
         $searchRes = $this->service->search($records, 'department', 'IT', 'linear');
         $this->assertCount(3, $searchRes['employees']);
 
-        // 2. Sort results by last_name ascending using merge sort
         $sortRes = $this->service->sort($searchRes['employees'], 'last_name', 'asc', 'merge');
         $this->assertSame(['Alvarez', 'Mendoza', 'Torres'], array_column($sortRes['employees'], 'last_name'));
     }

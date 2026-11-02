@@ -13,6 +13,8 @@ use App\Models\Employee;
 use App\Models\Department;
 use App\Models\Position;
 use App\Models\User;
+use App\Services\AccountRevocationService;
+use App\Services\StepUpAuthService;
 
 class EmployeeController extends Controller
 {
@@ -111,6 +113,7 @@ class EmployeeController extends Controller
             'sortFields'       => \App\Services\EmployeeDirectoryService::sortFields(),
             'sortAlgorithms'   => \App\Services\EmployeeDirectoryService::sortAlgorithmChoices(),
             'dsaMeta'          => $dsaMeta,
+            'stepUpRequired'   => $this->stepUpRequired(),
         ], 'hr');
     }
 
@@ -129,8 +132,9 @@ class EmployeeController extends Controller
         }
 
         $this->view('employees.show', [
-            'pageTitle' => "Profile: {$employee['first_name']} {$employee['last_name']} ({$employee['employee_no']})",
-            'employee'  => $employee,
+            'pageTitle'      => "Profile: {$employee['first_name']} {$employee['last_name']} ({$employee['employee_no']})",
+            'employee'       => $employee,
+            'stepUpRequired' => $this->stepUpRequired(),
         ], 'hr');
     }
 
@@ -171,6 +175,22 @@ class EmployeeController extends Controller
         // Insert new employee record
         $employeeId = $this->employeeModel->create($data);
 
+        // Real-time notification for HR workforce views
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $empName = trim("{$data['first_name']} {$data['last_name']}");
+            $notificationModel->notifyRole(
+                'hr',
+                'New Employee Registered',
+                "Employee record for {$empName} ({$data['employee_no']}) was registered.",
+                'info',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $employeeId
+            );
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController] Failed to dispatch HR new employee notification: ' . $e->getMessage());
+        }
+
         // Audit Logging
         $empName = trim("{$data['first_name']} {$data['last_name']}");
         $this->userModel->logActivity(
@@ -203,12 +223,13 @@ class EmployeeController extends Controller
         $positions = $this->positionModel->getAll();
 
         $this->view('employees.edit', [
-            'pageTitle'   => "Edit Employee Record: {$employee['employee_no']}",
-            'employee'    => $employee,
-            'departments' => $departments,
-            'positions'   => $positions,
-            'errors'      => Session::getFlash('errors', []),
-            'old'         => Session::getFlash('old', []),
+            'pageTitle'      => "Edit Employee Record: {$employee['employee_no']}",
+            'employee'       => $employee,
+            'departments'    => $departments,
+            'positions'      => $positions,
+            'errors'         => Session::getFlash('errors', []),
+            'old'            => Session::getFlash('old', []),
+            'stepUpRequired' => $this->stepUpRequired(),
         ], 'hr');
     }
 
@@ -236,14 +257,29 @@ class EmployeeController extends Controller
             return;
         }
 
+        // Deactivating through the edit form is a sensitive operation as well
+        $isDeactivating = ($employee['employment_status'] === 'Active' && $data['employment_status'] !== 'Active');
+        if ($isDeactivating) {
+            $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_DEACTIVATE', $_POST[StepUpAuthService::FIELD] ?? null);
+            if (!$stepUp['ok']) {
+                Session::flash('error', $stepUp['error']);
+                Session::flash('old', array_diff_key($_POST, array_flip([StepUpAuthService::FIELD, '_csrf_token'])));
+                $this->redirect("/hr/employees/{$id}/edit");
+                return;
+            }
+        }
+
         // Execute database update
         $this->employeeModel->update($id, $data);
+        if ($data['employment_status'] !== 'Active') {
+            $this->revokeLinkedAccount($id);
+        }
 
         // Find linked user account for this employee and dispatch real-time notification
         $linkedUser = $this->userModel->findByEmployeeId($id);
+        $notificationModel = new \App\Models\Notification();
         if ($linkedUser && !empty($linkedUser['id'])) {
             try {
-                $notificationModel = new \App\Models\Notification();
                 $notificationModel->create(
                     (int)$linkedUser['id'],
                     'Profile Updated',
@@ -255,6 +291,21 @@ class EmployeeController extends Controller
             } catch (\Throwable $e) {
                 error_log('[EmployeeController] Failed to dispatch profile update notification: ' . $e->getMessage());
             }
+        }
+
+        // Notify HR users so HR dashboard and employee directories auto-reload
+        try {
+            $empName = trim("{$data['first_name']} {$data['last_name']}");
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Record Updated',
+                "Employee record for {$empName} ({$data['employee_no']}) was updated.",
+                'info',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController] Failed to dispatch HR profile update notification: ' . $e->getMessage());
         }
 
         // Audit Logging
@@ -291,8 +342,17 @@ class EmployeeController extends Controller
             return;
         }
 
+        // Sensitive-operation protection: recent MFA or current-password re-verification
+        $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_DEACTIVATE', $_POST[StepUpAuthService::FIELD] ?? null);
+        if (!$stepUp['ok']) {
+            Session::flash('error', $stepUp['error']);
+            $this->redirect("/hr/employees/{$id}");
+            return;
+        }
+
         // Execute soft deactivation
         $this->employeeModel->deactivate($id);
+        $this->revokeLinkedAccount($id);
 
         // Audit Logging
         $empName = trim("{$employee['first_name']} {$employee['last_name']}");
@@ -304,8 +364,118 @@ class EmployeeController extends Controller
             (string)$id
         );
 
+        // Notify HR users so HR dashboard metrics update
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Deactivated',
+                "Employee record for {$empName} ({$employee['employee_no']}) was placed on Inactive status.",
+                'warning',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController] Failed to dispatch HR deactivation notification: ' . $e->getMessage());
+        }
+
         Session::flash('success', "Employee {$empName} ({$employee['employee_no']}) has been placed on Inactive status. Historical records were preserved.");
         $this->redirect('/hr/employees');
+    }
+
+    /**
+     * Reactivate an inactive employee and restore their linked login account.
+     * Route: POST /hr/employees/{id}/reactivate
+     */
+    public function reactivate(int $id): void
+    {
+        $employee = $this->employeeModel->findById($id);
+
+        if (!$employee) {
+            Session::flash('error', 'The requested employee record was not found.');
+            $this->redirect('/hr/employees');
+            return;
+        }
+
+        if ($employee['employment_status'] === 'Active') {
+            Session::flash('warning', "Employee {$employee['employee_no']} is already active.");
+            $this->redirect("/hr/employees/{$id}");
+            return;
+        }
+
+        // Reactivation re-enables system access, so it is a sensitive operation too.
+        $stepUp = (new StepUpAuthService($this->userModel))->verify('EMPLOYEE_REACTIVATE', $_POST[StepUpAuthService::FIELD] ?? null);
+        if (!$stepUp['ok']) {
+            Session::flash('error', $stepUp['error']);
+            $this->redirect("/hr/employees/{$id}");
+            return;
+        }
+
+        // Employee::activate restores the employee row and the linked login account in one
+        // transaction (decision F.3). The account keeps its identity; login still requires MFA.
+        if (!$this->employeeModel->activate($id)) {
+            Session::flash('error', 'Unable to reactivate this employee. Please try again.');
+            $this->redirect("/hr/employees/{$id}");
+            return;
+        }
+
+        $empName = trim("{$employee['first_name']} {$employee['last_name']}");
+        $this->userModel->logActivity(
+            currentUserId(),
+            'EMPLOYEE_REACTIVATED',
+            "Reactivated employee: {$empName} ({$employee['employee_no']}); linked login account restored.",
+            'EMPLOYEE',
+            (string)$id
+        );
+
+        // Notify HR users and reactivated employee so dashboards reload
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Reactivated',
+                "Employee record for {$empName} ({$employee['employee_no']}) was reactivated.",
+                'success',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+            $linkedUser = $this->userModel->findByEmployeeId($id);
+            if ($linkedUser && !empty($linkedUser['id'])) {
+                $notificationModel->create(
+                    (int)$linkedUser['id'],
+                    'Account Reactivated',
+                    'Your employee record and account have been reactivated.',
+                    'success',
+                    \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                    $id
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController] Failed to dispatch reactivation notification: ' . $e->getMessage());
+        }
+
+        Session::flash('success', "Employee {$empName} ({$employee['employee_no']}) has been reactivated. Their login account was restored.");
+        $this->redirect("/hr/employees/{$id}");
+    }
+
+    /**
+     * Whether sensitive employee operations currently need a password re-confirmation.
+     * Used only to decide whether to render the field; the server re-checks on submit.
+     */
+    private function stepUpRequired(): bool
+    {
+        return !(new StepUpAuthService($this->userModel))->hasRecentVerification();
+    }
+
+    /**
+     * Revoke real-time tickets and pending OTP challenges of the employee's linked login account.
+     */
+    private function revokeLinkedAccount(int $employeeId): void
+    {
+        $linkedUser = $this->userModel->findByEmployeeId($employeeId);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            (new AccountRevocationService())->revokeUser((int)$linkedUser['id']);
+        }
     }
 
     /**

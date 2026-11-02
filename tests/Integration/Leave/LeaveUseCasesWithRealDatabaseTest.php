@@ -163,11 +163,12 @@ class LeaveUseCasesWithRealDatabaseTest extends TestCase
         $this->assertSame(3, $balanceAfterApprove->usedDays());
         $this->assertSame(12, $balanceAfterApprove->remainingDays());
 
-        // 4. Cancel approved leave request (HR cancellation)
+        // 4. Cancel approved leave request (HR cancellation; reason required per decision F.2)
         $cancelCommand = new CancelLeaveCommand(
             requestId: $requestId,
             requestingUserId: $this->testApproverId,
-            isHrOrAdmin: true
+            isHrOrAdmin: true,
+            reason: 'Reversing approved leave for integration test.'
         );
 
         $this->cancelUseCase->execute($cancelCommand);

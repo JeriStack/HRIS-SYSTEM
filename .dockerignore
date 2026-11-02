@@ -16,4 +16,23 @@ Thumbs.db
 
 # Documentation build and agent files
 .agents/
+.agent/
+.impeccable/
 docs/_build/
+
+# Secrets and environment files: runtime values come from Compose `environment:`
+# (or a bind-mounted .env in development), never from the image
+.env
+.env.*
+
+# Infrastructure state (may contain credentials) and database dumps
+terraform/
+backups/
+
+# Local tooling, caches and runtime output not needed in the image
+e2e-tests/
+.vscode/
+.phpunit.cache/
+.phpcs.cache
+storage/logs/*
+!storage/logs/.gitkeep

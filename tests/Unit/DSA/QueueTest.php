@@ -19,22 +19,28 @@ class QueueTest extends TestCase
         $this->assertTrue($this->queue->isEmpty());
         $this->assertSame(0, $this->queue->size());
         $this->assertNull($this->queue->dequeue());
+        $this->assertNull($this->queue->front());
         $this->assertNull($this->queue->peek());
+        $this->assertNull($this->queue->rear());
         $this->assertSame([], $this->queue->toArray());
     }
 
-    public function test_enqueue_and_dequeue_single_item(): void
+    public function test_enqueue_front_rear_and_dequeue_single_item(): void
     {
         $this->queue->enqueue('Request #1');
         $this->assertFalse($this->queue->isEmpty());
         $this->assertSame(1, $this->queue->size());
+        $this->assertSame('Request #1', $this->queue->front());
         $this->assertSame('Request #1', $this->queue->peek());
+        $this->assertSame('Request #1', $this->queue->rear());
         $this->assertSame(1, $this->queue->size());
 
         $item = $this->queue->dequeue();
         $this->assertSame('Request #1', $item);
         $this->assertTrue($this->queue->isEmpty());
         $this->assertSame(0, $this->queue->size());
+        $this->assertNull($this->queue->front());
+        $this->assertNull($this->queue->rear());
     }
 
     public function test_fifo_ordering(): void
@@ -44,6 +50,8 @@ class QueueTest extends TestCase
         $this->queue->enqueue('Third');
 
         $this->assertSame(3, $this->queue->size());
+        $this->assertSame('First', $this->queue->front());
+        $this->assertSame('Third', $this->queue->rear());
         $this->assertSame('First', $this->queue->dequeue());
         $this->assertSame('Second', $this->queue->dequeue());
         $this->assertSame('Third', $this->queue->dequeue());
@@ -72,4 +80,3 @@ class QueueTest extends TestCase
         $this->assertSame(['R1', 'R2', 'R3'], $this->queue->toArray());
     }
 }
-

@@ -108,6 +108,13 @@ class RealtimePolicyTest extends TestCase
         $this->assertSame('Profile updated', $profilePayload['data']['title']);
         $this->assertSame('Your employee profile record was updated by Human Resources.', $profilePayload['data']['message']);
         $this->assertSame('employee/profile', $profilePayload['data']['link']);
+        $hrProfilePayload = NotificationPayload::fromRow([
+            'id' => 17, 'event_type' => EventAuthorizer::PROFILE_UPDATED, 'entity_id' => 5, 'created_ts' => 1790000000,
+            'title' => 'HR record updated', 'message' => 'Admin edit', 'user_id' => 2, 'recipient_role' => 'hr',
+        ]);
+        $this->assertSame('Employee record updated', $hrProfilePayload['data']['title']);
+        $this->assertSame('Employee record #EMP-005 was updated.', $hrProfilePayload['data']['message']);
+        $this->assertSame('hr/employees/5', $hrProfilePayload['data']['link']);
 
         $this->assertNull(NotificationPayload::fromRow(['id' => 1, 'event_type' => null]));
     }

@@ -142,7 +142,7 @@ abstract class ApiController extends Controller
      */
     protected function requireAuth(): array
     {
-        if (!isAuthenticated()) {
+        if (!isAuthenticated() || !Session::verifyAuthenticatedAccountState()) {
             $this->error('Unauthenticated: Sign in is required to access this resource.', 401);
         }
         $user = currentUser();

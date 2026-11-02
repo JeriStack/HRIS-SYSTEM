@@ -53,8 +53,8 @@ try {
     $router->post('/verify-otp', [AuthController::class, 'verifyOtp'], [CsrfMiddleware::class]);
     $router->post('/verify-otp/resend', [AuthController::class, 'resendOtp'], [CsrfMiddleware::class]);
     $router->post('/verify-otp/cancel', [AuthController::class, 'cancelOtp'], [CsrfMiddleware::class]);
+    // Logout is state-changing: POST + CSRF only. GET /logout is intentionally not routed (405).
     $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
-    $router->get('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class]);
 
     // Role-Directed Dashboard Entry Point
     $router->get('/dashboard', [AuthController::class, 'dashboard'], [AuthMiddleware::class]);
@@ -90,6 +90,7 @@ try {
     $router->get('/hr/employees/{id}/edit', [EmployeeController::class, 'edit'], [AuthMiddleware::class, $workforceRoles]);
     $router->post('/hr/employees/{id}/edit', [EmployeeController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/hr/employees/{id}/deactivate', [EmployeeController::class, 'deactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/employees/{id}/reactivate', [EmployeeController::class, 'reactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
     // Phase 7: Department Management Routes (Administrator & HR Access)
     $router->get('/hr/departments', [DepartmentController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
@@ -200,6 +201,7 @@ try {
     $router->put('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
     $router->post('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
     $router->post('/api/v1/employees/{id}/deactivate', [ApiEmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/employees/{id}/reactivate', [ApiEmployeeController::class, 'reactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
 
     // Group: Department Management
     $router->get('/api/v1/departments', [ApiDepartmentController::class, 'index'], [AuthMiddleware::class]);
@@ -239,54 +241,6 @@ try {
 
 } catch (Throwable $e) {
     // 5. Uncaught Application Exception Handling
-    http_response_code(500);
-    error_log("[Application Error] " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
-
-    if (config('config.app_env') === 'development') {
-        ?>
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Application Error - HRIS</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #FEF2F2; color: #991B1B; padding: 2rem; margin: 0; }
-                .error-box { background: #FFFFFF; border: 1px solid #FECACA; border-radius: 8px; padding: 1.5rem; max-width: 900px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-                h1 { font-size: 1.5rem; margin-top: 0; }
-                pre { background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; color: #0F172A; }
-            </style>
-        </head>
-        <body>
-            <div class="error-box">
-                <h1>Application Error (500)</h1>
-                <p><strong>Message:</strong> <?= e($e->getMessage()) ?></p>
-                <p><strong>File:</strong> <?= e($e->getFile()) ?> (Line <?= $e->getLine() ?>)</p>
-                <h3>Stack Trace:</h3>
-                <pre><?= e($e->getTraceAsString()) ?></pre>
-            </div>
-        </body>
-        </html>
-        <?php
-    } else {
-        ?>
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>500 Internal Error - HRIS</title>
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #F8FAFC; color: #0F172A; display: flex; align-items: center; justify-content: center; min-height: 80vh; margin: 0; text-align: center; }
-                .card { background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 2.5rem; max-width: 480px; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1 style="color: #B91C1C;">500 Internal Error</h1>
-                <p style="color: #64748B;">An unexpected error occurred while processing your request. Please try again later.</p>
-                <a href="<?= e(url('/')) ?>" style="display: inline-block; background: #2563EB; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600;">Return to Home</a>
-            </div>
-        </body>
-        </html>
-        <?php
-    }
+    // JSON envelope for /api/* and JSON clients, HTML otherwise; details only when APP_ENV=development.
+    render_server_error($e);
 }

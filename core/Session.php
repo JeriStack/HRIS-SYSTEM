@@ -19,12 +19,19 @@ class Session
             // 1. Enforce strict session cookie security
             ini_set('session.use_strict_mode', '1');
             ini_set('session.use_only_cookies', '1');
+            ini_set('session.cookie_httponly', '1');
 
+            // X-Forwarded-Proto is honoured only when the TCP peer is a trusted reverse proxy
+            $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '');
+            $fromTrustedProxy = $remote !== ''
+                && function_exists('trusted_proxy_ranges')
+                && \App\Realtime\IpRange::matchesAny($remote, trusted_proxy_ranges());
             $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443);
+                || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+                || ($fromTrustedProxy && strtolower((string)($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
 
             session_set_cookie_params([
-                'lifetime' => 0, // Expire when browser closes; server enforces inactivity timeout
+                'lifetime' => 0, // Expire when browser closes; server enforces inactivity & absolute timeouts
                 'path'     => '/',
                 'domain'   => '',
                 'secure'   => $isHttps,
@@ -37,38 +44,168 @@ class Session
 
         self::$started = true;
 
-        // 2. Enforce inactivity timeout and CSRF initialization
+        // 2. Enforce inactivity timeout, absolute lifetime, and CSRF initialization
         self::checkInactivityTimeout();
     }
 
     /**
-     * Enforce inactivity timeout and initialize CSRF token if absent.
+     * Enforce inactivity timeout, absolute session lifetime, and initialize CSRF token if absent.
      */
     public static function checkInactivityTimeout(): void
     {
-        if (isset($_SESSION['user']) && isset($_SESSION['last_activity'])) {
+        if (isset($_SESSION['user'])) {
+            $now = time();
             $timeoutSeconds = (int)config('config.session_lifetime', 1800); // 30 minutes default
-            $inactiveDuration = time() - (int)$_SESSION['last_activity'];
+            $absoluteSeconds = (int)config('config.session_absolute_lifetime', 43200); // 12 hours default
 
-            if ($inactiveDuration > $timeoutSeconds) {
-                // Invalidate session due to inactivity
-                unset($_SESSION['user']);
-                // Rotate the real-time session reference so a later login never
-                // shares WebSocket revocation state with the expired one
-                unset($_SESSION['_realtime_ref']);
+            $lastActivity = isset($_SESSION['last_activity']) ? (int)$_SESSION['last_activity'] : null;
+            $loginTime = (int)($_SESSION['user']['login_time'] ?? $_SESSION['login_time'] ?? 0);
+
+            $inactivityExpired = ($lastActivity !== null && ($now - $lastActivity) > $timeoutSeconds);
+            $absoluteExpired = ($loginTime > 0 && $absoluteSeconds > 0 && ($now - $loginTime) > $absoluteSeconds);
+
+            if ($inactivityExpired || $absoluteExpired) {
+                if (class_exists(\App\Services\RealtimeTicketService::class)) {
+                    \App\Services\RealtimeTicketService::revokeCurrentSession();
+                }
+
+                unset($_SESSION['user'], $_SESSION['_realtime_ref'], $_SESSION['last_activity'], $_SESSION['login_time']);
+
                 if (session_status() === PHP_SESSION_ACTIVE) {
                     session_regenerate_id(true);
                 }
-                self::flash('timeout', 'Your session has expired due to 30 minutes of inactivity. Please sign in again.');
-            } elseif (!self::isBackgroundRequest()) {
+
+                $message = $absoluteExpired
+                    ? 'Your maximum session duration has expired. Please sign in again.'
+                    : 'Your session has expired due to 30 minutes of inactivity. Please sign in again.';
+                self::flash('timeout', $message);
+            } elseif ($lastActivity !== null && !self::isBackgroundRequest()) {
                 // Refresh activity timestamp (user-initiated requests only)
-                $_SESSION['last_activity'] = time();
+                $_SESSION['last_activity'] = $now;
             }
         }
 
         // 3. Initialize cryptographically secure CSRF token if absent
         if (empty($_SESSION['_csrf_token'])) {
             $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+        }
+    }
+
+    /**
+     * Compute a deterministic, non-reversible security fingerprint over critical account state
+     * (user ID, normalized role, account status, employment status, and password hash).
+     * Any change to password, role, or active status invalidates the fingerprint.
+     */
+    public static function computeAuthFingerprint(array $userRow): string
+    {
+        $id = (int)($userRow['id'] ?? 0);
+        $role = strtolower(trim((string)($userRow['role'] ?? '')));
+        $status = trim((string)($userRow['status'] ?? ''));
+        $empStatus = trim((string)($userRow['employment_status'] ?? 'Active'));
+        if ($empStatus === '') {
+            $empStatus = 'Active';
+        }
+        $passwordHash = (string)($userRow['password'] ?? '');
+
+        return hash('sha256', "{$id}|{$role}|{$status}|{$empStatus}|{$passwordHash}");
+    }
+
+    /**
+     * Re-verify the currently authenticated session against live server-side account state.
+     * Immediately invalidates the session if the user was deactivated, their employee record
+     * was deactivated, their role changed, or their password hash changed.
+     */
+    public static function verifyAuthenticatedAccountState(): bool
+    {
+        self::start();
+
+        if (empty($_SESSION['user']) || empty($_SESSION['user']['id'])) {
+            return false;
+        }
+
+        $sessionUser = $_SESSION['user'];
+        $userId = (int)$sessionUser['id'];
+        $sessionRole = strtolower(trim((string)($sessionUser['role'] ?? '')));
+
+        // Strictly enforce the 2-role model (HR and Employee only)
+        if ($sessionRole !== 'hr' && $sessionRole !== 'employee') {
+            self::invalidateAuthenticatedUser('Your session was terminated due to an unauthorized role assignment.');
+            return false;
+        }
+
+        try {
+            if (class_exists(\Core\Database::class) && \Core\Database::getInstance()->isConnected()) {
+                $userModel = new \App\Models\User();
+                $dbUser = $userModel->findByIdWithAuthState($userId);
+
+                if (!$dbUser) {
+                    if (!empty($sessionUser['auth_fingerprint'])) {
+                        self::invalidateAuthenticatedUser('Your user account is no longer available. Please sign in again.');
+                        return false;
+                    }
+                    return true;
+                }
+
+                $dbRole = strtolower(trim((string)($dbUser['role'] ?? '')));
+                $dbStatus = trim((string)($dbUser['status'] ?? ''));
+                $empStatus = !empty($dbUser['employee_id']) && isset($dbUser['employment_status'])
+                    ? trim((string)$dbUser['employment_status'])
+                    : 'Active';
+
+                $isStatusActive = ($dbStatus === 'Active' && $empStatus === 'Active');
+                $isRoleValid = ($dbRole === 'hr' || $dbRole === 'employee') && ($dbRole === $sessionRole);
+                $isFingerprintValid = empty($sessionUser['auth_fingerprint'])
+                    || hash_equals((string)$sessionUser['auth_fingerprint'], self::computeAuthFingerprint($dbUser));
+
+                if (!$isStatusActive || !$isRoleValid || !$isFingerprintValid) {
+                    self::invalidateAuthenticatedUser('Your session is no longer valid due to an account or security update. Please sign in again.');
+                    return false;
+                }
+
+                // Keep session cache in sync with live user and employee records
+                $fullName = trim(($dbUser['first_name'] ?? '') . ' ' . ($dbUser['last_name'] ?? ''));
+                $displayName = $fullName !== '' ? $fullName : ($dbUser['username'] ?? ($sessionUser['username'] ?? 'User'));
+                $_SESSION['user']['name'] = $displayName;
+                if (!empty($dbUser['username'])) {
+                    $_SESSION['user']['username'] = $dbUser['username'];
+                }
+                if (!empty($dbUser['employee_no'])) {
+                    $_SESSION['user']['employee_no'] = $dbUser['employee_no'];
+                }
+                if (!empty($dbUser['department_name'])) {
+                    $_SESSION['user']['department'] = $dbUser['department_name'];
+                }
+                if (!empty($dbUser['position_name'])) {
+                    $_SESSION['user']['position'] = $dbUser['position_name'];
+                }
+                if (!empty($dbUser['email'])) {
+                    $_SESSION['user']['email'] = $dbUser['email'];
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('[Session::verifyAuthenticatedAccountState] ' . $e->getMessage());
+        }
+
+        return true;
+    }
+
+    /**
+     * Invalidate the authenticated user state, revoke real-time tickets, and rotate session ID.
+     */
+    public static function invalidateAuthenticatedUser(?string $flashError = null): void
+    {
+        if (class_exists(\App\Services\RealtimeTicketService::class)) {
+            \App\Services\RealtimeTicketService::revokeCurrentSession();
+        }
+
+        unset($_SESSION['user'], $_SESSION['_realtime_ref'], $_SESSION['last_activity'], $_SESSION['login_time']);
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+
+        if ($flashError !== null && $flashError !== '') {
+            self::flash('error', $flashError);
         }
     }
 
@@ -100,17 +237,16 @@ class Session
     {
         $_SESSION = [];
 
-        if (ini_get("session.use_cookies")) {
+        if (ini_get('session.use_cookies') && !headers_sent()) {
             $params = session_get_cookie_params();
-            setcookie(
-                session_name(),
-                '',
-                time() - 42000,
-                $params["path"],
-                $params["domain"],
-                $params["secure"],
-                $params["httponly"]
-            );
+            setcookie(session_name(), '', [
+                'expires'  => time() - 42000,
+                'path'     => $params['path'] ?? '/',
+                'domain'   => $params['domain'] ?? '',
+                'secure'   => (bool)($params['secure'] ?? false),
+                'httponly' => (bool)($params['httponly'] ?? true),
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
         }
 
         if (session_status() === PHP_SESSION_ACTIVE) {

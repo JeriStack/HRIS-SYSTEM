@@ -27,6 +27,8 @@ storage/logs/*
 .phpcs.cache
 .phpstan.cache/
 .tflint.d/
+backups/
+*.sql.gz
 scratch/cookie_*.txt
 cookies*.txt
 
@@ -47,6 +49,20 @@ Thumbs.db
 !.vscode/extensions.json
 *.sublime-project
 *.sublime-workspace
+
+# Python & End-to-End Testing
+.venv/
+e2e-tests/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+reports/
+screenshots/
+e2e-tests/reports/
+e2e-tests/screenshots/
+e2e-tests/.env
+
 
 # Node & Composer Dependencies
 node_modules/

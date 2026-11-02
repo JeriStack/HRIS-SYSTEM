@@ -69,6 +69,23 @@
                 </small>
             </div>
 
+            <?php if (!empty($stepUpRequired)): ?>
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+                    <label for="current_password" style="display: block; font-size: 0.8125rem; font-weight: 600; color: #1E293B; margin-bottom: 0.35rem;">
+                        Confirm Your Current Password
+                    </label>
+                    <p style="color: #64748B; font-size: 0.75rem; margin-top: 0; margin-bottom: 0.5rem;">
+                        Step-up security check: If changing account role or status, please enter your current password if your verification session has elapsed.
+                    </p>
+                    <input type="password" 
+                           id="current_password" 
+                           name="current_password" 
+                           autocomplete="current-password"
+                           placeholder="Enter your current password"
+                           style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                </div>
+            <?php endif; ?>
+
             <!-- Form Actions -->
             <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #F1F5F9;">
                 <a href="<?= url('/hr/users') ?>" class="btn btn-secondary">Cancel</a>

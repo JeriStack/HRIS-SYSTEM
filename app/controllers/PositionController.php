@@ -196,6 +196,16 @@ class PositionController extends Controller
             $errors['description'] = 'Description cannot exceed 1000 characters.';
         }
 
+        // Reassigning a position to a different department would strand employees who
+        // hold it: their employee record would then fail the position-belongs-to-department
+        // rule. Block the department change while any employee still references this position.
+        if ($dept && (int)$position['department_id'] !== $deptId) {
+            $dependentCount = $this->positionModel->getDependentEmployeeCount($id);
+            if ($dependentCount > 0) {
+                $errors['department_id'] = "Cannot move this position to another department while {$dependentCount} employee(s) still hold it. Reassign those employees first.";
+            }
+        }
+
         if (!empty($errors)) {
             Session::flash('errors', $errors);
             Session::flash('old', $_POST);

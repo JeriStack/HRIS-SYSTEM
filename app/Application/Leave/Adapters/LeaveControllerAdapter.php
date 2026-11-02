@@ -17,10 +17,7 @@ use App\Application\Leave\UseCases\FileLeaveRequestUseCase;
 use App\Application\Leave\UseCases\ApproveLeaveRequestUseCase;
 use App\Application\Leave\UseCases\RejectLeaveRequestUseCase;
 use App\Application\Leave\UseCases\CancelLeaveRequestUseCase;
-use App\Infrastructure\Database\PdoTransactionManager;
-use App\Infrastructure\Events\EventBootstrap;
-use App\Infrastructure\Persistence\Leave\MySqlLeaveRequestRepository;
-use App\Infrastructure\Persistence\Leave\MySqlLeaveBalanceRepository;
+use App\Domain\Common\OutboxRepositoryInterface;
 use App\Domain\Common\EventDispatcherInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
 use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
@@ -28,6 +25,15 @@ use App\Domain\Leave\Exceptions\InsufficientLeaveBalanceException;
 use App\Domain\Leave\Exceptions\InvalidStatusTransitionException;
 use App\Domain\Leave\Exceptions\InvalidDateRangeException;
 use App\Domain\Leave\Exceptions\OverlappingLeaveException;
+use App\Infrastructure\Database\PdoTransactionManager;
+use App\Infrastructure\Events\EventBootstrap;
+use App\Infrastructure\Outbox\MySqlOutboxRepository;
+use App\Infrastructure\Persistence\Leave\MySqlLeaveRequestRepository;
+use App\Infrastructure\Persistence\Leave\MySqlLeaveBalanceRepository;
+use App\Infrastructure\Persistence\Leave\MySqlLeaveApprovalGuard;
+use App\Infrastructure\Persistence\Leave\MySqlLeaveFilingGuard;
+use App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException;
+use App\Domain\Leave\Exceptions\CrossYearLeaveException;
 use Core\Database;
 use PDO;
 use InvalidArgumentException;
@@ -48,7 +54,8 @@ class LeaveControllerAdapter
         ?RejectLeaveRequestUseCase $rejectUseCase = null,
         ?CancelLeaveRequestUseCase $cancelUseCase = null,
         ?PDO $pdo = null,
-        ?EventDispatcherInterface $eventDispatcher = null
+        ?EventDispatcherInterface $eventDispatcher = null,
+        ?OutboxRepositoryInterface $outboxRepository = null
     ) {
         if ($fileUseCase && $approveUseCase && $rejectUseCase && $cancelUseCase) {
             $this->fileUseCase = $fileUseCase;
@@ -62,17 +69,27 @@ class LeaveControllerAdapter
         $txManager = new PdoTransactionManager($connection);
         $requestRepo = new MySqlLeaveRequestRepository($connection);
         $balanceRepo = new MySqlLeaveBalanceRepository($connection);
+        $outboxRepo = $outboxRepository ?? new MySqlOutboxRepository($connection);
 
         $dispatcher = $eventDispatcher ?? EventBootstrap::createConfiguredDispatcher();
 
-        $this->fileUseCase = $fileUseCase ?? new FileLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager);
+        $filingGuard = new MySqlLeaveFilingGuard($connection);
+        $this->fileUseCase = $fileUseCase ?? new FileLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager, $filingGuard);
+        $approvalGuard = new MySqlLeaveApprovalGuard($connection);
         $this->approveUseCase = $approveUseCase ?? new ApproveLeaveRequestUseCase(
             $requestRepo,
             $balanceRepo,
             $txManager,
-            $dispatcher
+            $dispatcher,
+            $outboxRepo,
+            $approvalGuard
         );
-        $this->rejectUseCase = $rejectUseCase ?? new RejectLeaveRequestUseCase($requestRepo, $txManager, $dispatcher);
+        $this->rejectUseCase = $rejectUseCase ?? new RejectLeaveRequestUseCase(
+            $requestRepo,
+            $txManager,
+            $dispatcher,
+            $outboxRepo
+        );
         $this->cancelUseCase = $cancelUseCase ?? new CancelLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager);
     }
 
@@ -98,6 +115,12 @@ class LeaveControllerAdapter
             return LeaveOperationResult::fail($e->getMessage(), 400, 'invalid_status');
         } catch (LeaveBalanceNotFoundException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'balance_not_found');
+        } catch (LeaveApprovalNotPermittedException $e) {
+            // Self-approval and inactive-reviewer are authorization failures (403);
+            // the remaining business rules (inactive employee/type, overlap, cross-year) are 400.
+            $msg = strtolower($e->getMessage());
+            $isAuthz = str_contains($msg, 'own leave') || str_contains($msg, 'active hr');
+            return LeaveOperationResult::fail($e->getMessage(), $isAuthz ? 403 : 400, 'approval_not_permitted');
         } catch (InvalidArgumentException | DomainException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'validation_error');
         } catch (Throwable $e) {
@@ -133,45 +156,24 @@ class LeaveControllerAdapter
         }
     }
 
-    public function cancel(
-        int $requestId,
-        int $requestingUserId,
-        bool $isHrOrAdmin = false
-    ): LeaveOperationResult {
-        try {
-            $command = new CancelLeaveCommand($requestId, $requestingUserId, $isHrOrAdmin);
-            $this->cancelUseCase->execute($command);
-
-            return LeaveOperationResult::ok(
-                sprintf("Leave request #%d has been cancelled.", $requestId),
-                ['id' => $requestId, 'status' => 'Cancelled'],
-                200
-            );
-        } catch (LeaveRequestNotFoundException $e) {
-            return LeaveOperationResult::fail($e->getMessage(), 404, 'not_found');
-        } catch (InvalidStatusTransitionException $e) {
-            return LeaveOperationResult::fail($e->getMessage(), 400, 'invalid_status');
-        } catch (DomainException $e) {
-            $code = str_contains(strtolower($e->getMessage()), 'unauthorized') ? 403 : 400;
-            return LeaveOperationResult::fail($e->getMessage(), $code, 'unauthorized');
-        } catch (InvalidArgumentException $e) {
-            return LeaveOperationResult::fail($e->getMessage(), 400, 'validation_error');
-        } catch (Throwable $e) {
-            error_log('[LeaveControllerAdapter::cancel] Error: ' . $e->getMessage());
-            return LeaveOperationResult::fail('Unable to cancel leave request at this time.', 500, 'server_error');
-        }
-    }
-
+    /**
+     * File a leave request through the single authoritative use case.
+     *
+     * @param (callable(int $requestId): void)|null $onFiled Optional callback run inside the
+     *        filing transaction after the request is persisted (e.g. the HR notification),
+     *        so it commits or rolls back atomically with the request.
+     */
     public function file(
         int $employeeId,
         int $leaveTypeId,
         string $startDate,
         string $endDate,
-        string $reason
+        string $reason,
+        ?callable $onFiled = null
     ): LeaveOperationResult {
         try {
             $command = new FileLeaveCommand($employeeId, $leaveTypeId, $startDate, $endDate, $reason);
-            $newId = $this->fileUseCase->execute($command);
+            $newId = $this->fileUseCase->withinTransaction($onFiled)->execute($command);
 
             return LeaveOperationResult::ok(
                 "Leave request submitted successfully.",
@@ -184,6 +186,11 @@ class LeaveControllerAdapter
             return LeaveOperationResult::fail($e->getMessage(), 400, 'insufficient_balance');
         } catch (InvalidDateRangeException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'invalid_dates');
+        } catch (CrossYearLeaveException $e) {
+            return LeaveOperationResult::fail($e->getMessage(), 400, 'cross_year');
+        } catch (LeaveApprovalNotPermittedException $e) {
+            // Inactive employee / inactive leave type at filing time.
+            return LeaveOperationResult::fail($e->getMessage(), 400, 'filing_not_permitted');
         } catch (LeaveBalanceNotFoundException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'balance_not_found');
         } catch (InvalidArgumentException | DomainException $e) {
@@ -191,6 +198,38 @@ class LeaveControllerAdapter
         } catch (Throwable $e) {
             error_log('[LeaveControllerAdapter::file] Error: ' . $e->getMessage());
             return LeaveOperationResult::fail('Unable to submit leave request at this time.', 500, 'server_error');
+        }
+    }
+
+    public function cancel(
+        int $requestId,
+        int $cancellerUserId,
+        bool $isHr = false,
+        ?string $reason = null
+    ): LeaveOperationResult {
+        try {
+            $command = new CancelLeaveCommand($requestId, $cancellerUserId, $isHr, $reason);
+            $this->cancelUseCase->execute($command);
+
+            return LeaveOperationResult::ok(
+                sprintf("Leave request #%d cancelled.", $requestId),
+                ['id' => $requestId, 'status' => 'Cancelled'],
+                200
+            );
+        } catch (LeaveRequestNotFoundException $e) {
+            return LeaveOperationResult::fail($e->getMessage(), 404, 'not_found');
+        } catch (LeaveBalanceNotFoundException $e) {
+            return LeaveOperationResult::fail($e->getMessage(), 400, 'balance_not_found');
+        } catch (InvalidStatusTransitionException $e) {
+            return LeaveOperationResult::fail($e->getMessage(), 400, 'invalid_status');
+        } catch (DomainException $e) {
+            $code = str_contains(strtolower($e->getMessage()), 'unauthorized') ? 403 : 400;
+            return LeaveOperationResult::fail($e->getMessage(), $code, 'unauthorized');
+        } catch (InvalidArgumentException $e) {
+            return LeaveOperationResult::fail($e->getMessage(), 400, 'validation_error');
+        } catch (Throwable $e) {
+            error_log('[LeaveControllerAdapter::cancel] Error: ' . $e->getMessage());
+            return LeaveOperationResult::fail('Unable to cancel leave request at this time.', 500, 'server_error');
         }
     }
 }

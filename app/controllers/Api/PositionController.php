@@ -293,6 +293,18 @@ class PositionController extends ApiController
             $this->error("A position named '{$name}' already exists in this department.", 400);
         }
 
+        // Block moving a position to another department while employees still hold it,
+        // which would leave those employees violating the position-belongs-to-department rule.
+        if ((int)$pos['department_id'] !== $deptId) {
+            $dependentCount = $this->positionModel->getDependentEmployeeCount($id);
+            if ($dependentCount > 0) {
+                $this->error(
+                    "Cannot move this position to another department while {$dependentCount} employee(s) still hold it. Reassign those employees first.",
+                    409
+                );
+            }
+        }
+
         $this->positionModel->update($id, [
             'position_name' => $name,
             'department_id' => $deptId,

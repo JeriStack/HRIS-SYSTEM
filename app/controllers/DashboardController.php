@@ -101,6 +101,33 @@ class DashboardController extends Controller
         $pendingLeaves = [];
 
         if ($employeeId) {
+            // Fetch latest employee record so dashboard view is directly synchronized
+            $stmtEmp = $this->pdo->prepare("
+                SELECT e.first_name, e.last_name, e.employee_no, d.department_name, p.position_name
+                FROM employees e
+                LEFT JOIN departments d ON e.department_id = d.id
+                LEFT JOIN positions p ON e.position_id = p.id
+                WHERE e.id = :emp_id
+                LIMIT 1
+            ");
+            $stmtEmp->execute(['emp_id' => $employeeId]);
+            $empInfo = $stmtEmp->fetch(PDO::FETCH_ASSOC);
+            if ($empInfo) {
+                $fullName = trim(($empInfo['first_name'] ?? '') . ' ' . ($empInfo['last_name'] ?? ''));
+                if ($fullName !== '') {
+                    $user['name'] = $fullName;
+                }
+                if (!empty($empInfo['employee_no'])) {
+                    $user['employee_no'] = $empInfo['employee_no'];
+                }
+                if (!empty($empInfo['department_name'])) {
+                    $user['department'] = $empInfo['department_name'];
+                }
+                if (!empty($empInfo['position_name'])) {
+                    $user['position'] = $empInfo['position_name'];
+                }
+            }
+
             // Fetch employee's own leave balances
             $stmtBalances = $this->pdo->prepare("
                 SELECT lb.allocated_days, lb.used_days, lb.remaining_days, lt.leave_name

@@ -505,3 +505,20 @@ a:hover {
     align-items: center;
     justify-content: space-between;
 }
+
+/* ==========================================================================
+   Reduced Motion (WCAG 2.3.3 / 2.2.2)
+   Respect the user's OS-level "reduce motion" setting across the authenticated
+   app shell. Transitions and animations are reduced to near-instant rather than
+   removed outright, so state changes (focus, open/close) remain perceivable.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}

@@ -14,7 +14,9 @@ use App\Domain\Common\TransactionManagerInterface;
 use App\Domain\Leave\Repositories\LeaveRequestRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveBalanceRepositoryInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
+use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
 use DomainException;
+use InvalidArgumentException;
 
 class CancelLeaveRequestUseCase
 {
@@ -34,13 +36,22 @@ class CancelLeaveRequestUseCase
                 throw LeaveRequestNotFoundException::forId($command->requestId);
             }
 
-            // 2. Authorization invariant: Only owner employee or HR/Admin may cancel
+            // 2. Authorization invariant: an employee may cancel only their own request.
             if (!$command->isHrOrAdmin && $request->employeeId() !== $command->requestingUserId) {
                 throw new DomainException('Unauthorized: Employees can only cancel their own leave requests.');
             }
 
-            // 3. If request was already approved, refund the deducted balance
+            // 3. Policy: cancelling an already-approved request restores leave and is an
+            //    HR-only action that must carry a reason (approved business decision F.2).
+            //    Non-HR callers may cancel only Pending requests.
             if ($request->isApproved()) {
+                if (!$command->isHrOrAdmin) {
+                    throw new DomainException('Unauthorized: only HR may cancel an approved leave request.');
+                }
+                if (trim((string)$command->reason) === '') {
+                    throw new InvalidArgumentException('A cancellation reason is required to cancel an approved leave request.');
+                }
+
                 $year = (int) $request->dateRange()->startDate()->format('Y');
                 $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
                     $request->employeeId(),
@@ -48,10 +59,18 @@ class CancelLeaveRequestUseCase
                     $year
                 );
 
-                if ($balance !== null) {
-                    $balance->refund($request->numberOfDays());
-                    $this->leaveBalanceRepository->save($balance);
+                // Refund must happen exactly once and must not be silently skipped:
+                // a missing balance row for an approved request is a data-integrity fault.
+                if ($balance === null) {
+                    throw LeaveBalanceNotFoundException::forEmployee(
+                        $request->employeeId(),
+                        $request->leaveTypeId(),
+                        $year
+                    );
                 }
+
+                $balance->refund($request->numberOfDays());
+                $this->leaveBalanceRepository->save($balance);
             }
 
             // 4. Cancel the leave request (throws if already rejected or cancelled)

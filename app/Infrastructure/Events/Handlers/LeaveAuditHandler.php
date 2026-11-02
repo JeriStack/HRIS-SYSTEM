@@ -24,6 +24,12 @@ class LeaveAuditHandler
 
     public function handleApproved(LeaveApprovedEvent $event): void
     {
+        // Idempotent: the controller records this audit row immediately; a later outbox
+        // re-delivery of the same event must not add a duplicate LEAVE_APPROVED entry.
+        if ($this->activityLog->existsForEntity('LEAVE_APPROVED', 'LeaveRequest', (string)$event->requestId)) {
+            return;
+        }
+
         $this->activityLog->log(
             $event->approverUserId,
             'LEAVE_APPROVED',
@@ -35,6 +41,10 @@ class LeaveAuditHandler
 
     public function handleRejected(LeaveRejectedEvent $event): void
     {
+        if ($this->activityLog->existsForEntity('LEAVE_REJECTED', 'LeaveRequest', (string)$event->requestId)) {
+            return;
+        }
+
         $this->activityLog->log(
             $event->approverUserId,
             'LEAVE_REJECTED',

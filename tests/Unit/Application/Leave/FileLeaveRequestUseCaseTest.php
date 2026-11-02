@@ -21,6 +21,7 @@ use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
 use Tests\Fakes\InMemoryTransactionManager;
 use Tests\Fakes\InMemoryLeaveRequestRepository;
 use Tests\Fakes\InMemoryLeaveBalanceRepository;
+use Tests\Fakes\FakeLeaveFilingGuard;
 
 class FileLeaveRequestUseCaseTest extends TestCase
 {
@@ -143,5 +144,114 @@ class FileLeaveRequestUseCaseTest extends TestCase
         );
 
         $this->useCase->execute($command);
+    }
+
+    // -----------------------------------------------------------------
+    // LV-05/06/07: centralized filing rules via the filing guard
+    // -----------------------------------------------------------------
+
+    private function useCaseWithGuard(FakeLeaveFilingGuard $guard): FileLeaveRequestUseCase
+    {
+        return new FileLeaveRequestUseCase($this->requestRepo, $this->balanceRepo, $this->txManager, $guard);
+    }
+
+    public function test_cross_year_request_is_rejected_at_filing_time(): void
+    {
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+
+        $this->expectException(\App\Domain\Leave\Exceptions\CrossYearLeaveException::class);
+
+        // Dec 30 2026 -> Jan 1 2027 spans two leave years.
+        $this->useCaseWithGuard(new FakeLeaveFilingGuard())->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-12-30',
+            endDate: '2027-01-01',
+            reason: 'Year-end leave'
+        ));
+    }
+
+    public function test_inactive_employee_cannot_file(): void
+    {
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+
+        $this->useCaseWithGuard(new FakeLeaveFilingGuard(employeeActive: false))->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
+        ));
+    }
+
+    public function test_inactive_leave_type_cannot_be_filed_against(): void
+    {
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+
+        $this->useCaseWithGuard(new FakeLeaveFilingGuard(leaveTypeActive: false))->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
+        ));
+    }
+
+    public function test_pending_reservations_reduce_available_balance(): void
+    {
+        // 15 remaining, but 14 days already committed to Pending requests: only 1 day free.
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+        $guard = new FakeLeaveFilingGuard(pendingReserved: 14);
+
+        $this->expectException(InsufficientLeaveBalanceException::class);
+
+        // Requesting 3 working days exceeds the 1 effectively-available day.
+        $this->useCaseWithGuard($guard)->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
+        ));
+    }
+
+    public function test_auto_initialization_is_invoked_before_locking_balance(): void
+    {
+        // No balance pre-seeded; the guard "creates" it so the lookup then succeeds.
+        $guard = new FakeLeaveFilingGuard();
+        $guard->balanceRepo = $this->balanceRepo; // guard seeds the balance on ensureBalancesInitialized
+
+        $requestId = $this->useCaseWithGuard($guard)->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'Auto-init'
+        ));
+
+        $this->assertTrue($guard->initCalled, 'ensureBalancesInitialized must run before the balance lookup.');
+        $this->assertNotNull($this->requestRepo->findById($requestId));
+    }
+
+    public function test_in_transaction_callback_runs_after_persist(): void
+    {
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+        $seen = null;
+
+        $id = $this->useCase->withinTransaction(function (int $newId) use (&$seen): void {
+            $seen = $newId;
+        })->execute(new FileLeaveCommand(
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'cb'
+        ));
+
+        $this->assertSame($id, $seen, 'The callback must receive the persisted request id.');
     }
 }

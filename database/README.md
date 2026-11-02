@@ -49,34 +49,53 @@ C:\xampp\mysql\bin\mysql.exe -u root hris_db -e "SHOW TABLES;"
 
 ## 3. Seed Accounts & Credentials
 
-The seed data creates development-only user accounts with pre-hashed BCRYPT credentials:
+The seed data creates development-only user accounts with pre-hashed BCRYPT credentials. The system has exactly two roles, `hr` and `employee`, and sign-in uses the account email.
 
-| Username | Role | Linked Employee | Password (Development Only) |
-| :--- | :--- | :--- | :--- |
-| `admin` | `admin` | Eleanor Vance (EMP001) | `Admin@123` |
-| `hr01` | `hr` | Marcus Tan (EMP002) | `Admin@123` |
-| `hr02` | `hr` | Sofia Reyes (EMP003) | `Admin@123` |
-| `emp004` | `employee` | David Cruz (EMP004) | `Employee@123` |
-| `emp005` | `employee` | Maria Santos (EMP005) | `Employee@123` |
-| `emp006` | `employee` | Juan Dela Cruz (EMP006) | `Employee@123` |
-| `emp007` | `employee` | Beatrice Gomez (EMP007) | `Employee@123` |
+| Username | Email | Role | Linked Employee | Password (Development Only) |
+| :--- | :--- | :--- | :--- | :--- |
+| `hr01` | `marcus.tan@company.local` | `hr` | Marcus Tan (EMP002) | `Admin@123` |
+| `hr02` | `sofia.reyes@company.local` | `hr` | Sofia Reyes (EMP003) | `Admin@123` |
+| `emp004` | `david.cruz@company.local` | `employee` | David Cruz (EMP004) | `Employee@123` |
+| `emp005` | `maria.santos@company.local` | `employee` | Maria Santos (EMP005) | `Employee@123` |
+| `emp006` | `juan.delacruz@company.local` | `employee` | Juan Dela Cruz (EMP006) | `Employee@123` |
+| `emp007` | `beatrice.gomez@company.local` | `employee` | Beatrice Gomez (EMP007) | `Employee@123` |
 
 > **Security Notice:** Never use these default demo passwords in production environments.
 
 ---
 
-## 4. How to Safely Reset the Database
+## 4. How to Safely Reset the Test Database
 
-If test data becomes corrupted or needs a clean wipe during testing:
+> **Warning:** Never drop `hris_db`. It holds development data and its schema history.
+> Reset only the isolated **`hris_test`** database used by PHPUnit, and take a backup
+> first (`scripts/backup/backup-db.ps1` or `scripts/backup/backup-db.sh`).
 
 ```powershell
-# Drop and recreate strictly 'hris_db' (never drop other databases)
-C:\xampp\mysql\bin\mysql.exe -u root -e "DROP DATABASE IF EXISTS hris_db; CREATE DATABASE hris_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+# Recreate ONLY the isolated test database
+C:\xampp\mysql\bin\mysql.exe -u root -e "DROP DATABASE IF EXISTS hris_test; CREATE DATABASE hris_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
-# Re-import schema and seed data
-C:\xampp\mysql\bin\mysql.exe -u root hris_db < database/schema.sql
-C:\xampp\mysql\bin\mysql.exe -u root hris_db < database/seed.sql
+# Re-import schema and seed data, then record migrations (all are idempotent)
+C:\xampp\mysql\bin\mysql.exe -u root hris_test < database/schema.sql
+C:\xampp\mysql\bin\mysql.exe -u root hris_test < database/seed.sql
+$env:DB_DATABASE = "hris_test"; php bin/migrate.php; Remove-Item Env:DB_DATABASE
 ```
+
+---
+
+## 4a. Schema Sources and Migrations
+
+- **Canonical schema:** `database/schema.sql` (the full current structure) plus `database/migrations/*.sql`.
+- **Docker first boot:** `docker/mysql/init/01-schema.sql` and `02-seed.sql` are generated copies of
+  `database/schema.sql` and `database/seed.sql` with a `USE hris_db;` header. They run only when the
+  MySQL volume is empty. Edit the canonical files, then regenerate the copies so the content below the
+  marker line is identical; `tests/Unit/Database/InitSchemaParityTest.php` fails on any drift.
+- **Running migrations:** `php bin/migrate.php` (or `docker compose exec app php bin/migrate.php`).
+  It applies each pending file once and records it in the `migrations` table. If any statement in a
+  file fails, the run stops and the file is **not** recorded.
+- **Writing migrations:** keep every migration idempotent (`CREATE TABLE IF NOT EXISTS`, or an
+  `INFORMATION_SCHEMA` check before `ALTER`). MySQL DDL commits implicitly, so a failed file cannot
+  be rolled back automatically. `DELIMITER` is a mysql-client command and is not supported.
+  Back up `hris_db` before applying migrations to it.
 
 ---
 

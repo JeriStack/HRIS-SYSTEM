@@ -25,7 +25,8 @@
     <env name="DB_DRIVER" value="mysql"/>
     <env name="DB_HOST" value="127.0.0.1"/>
     <env name="DB_PORT" value="3307"/>
-    <env name="DB_DATABASE" value="hris_db"/>
+    <!-- Isolated test database. force="true" overrides container/host env so tests can never hit hris_db. -->
+    <env name="DB_DATABASE" value="hris_test" force="true"/>
     <env name="DB_USERNAME" value="hris_user"/>
     <env name="DB_PASSWORD" value="hris_password"/>
   </php>

@@ -1,0 +1,40 @@
+# ==============================================================================
+# HRIS-SYSTEM — Docker Compose for End-to-End Testing (Selenium & Mailpit)
+# Connects to existing running 'hris_network' without modifying production configs.
+# ==============================================================================
+
+services:
+  # Standalone Selenium Chrome Grid for isolated containerized UI testing
+  selenium-chrome:
+    image: selenium/standalone-chrome:latest
+    container_name: hris_selenium_chrome
+    shm_size: 2gb
+    ports:
+      - "4444:4444" # WebDriver remote hub endpoint
+      - "7900:7900" # Optional live VNC web view (password: secret)
+    environment:
+      - SE_NODE_MAX_SESSIONS=2
+      - SE_NODE_SESSION_TIMEOUT=300
+    networks:
+      - hris_network
+    restart: unless-stopped
+
+  # Optional local test mail server capturing transactional emails & OTPs
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: hris_mailpit
+    ports:
+      - "8025:8025" # Mailpit Web UI & REST API
+      - "1025:1025" # Inbound SMTP capture port
+    environment:
+      - MP_DATA_FILE=/data/mailpit.db
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+    networks:
+      - hris_network
+    restart: unless-stopped
+
+networks:
+  hris_network:
+    external: true
+

@@ -16,8 +16,7 @@ class Permission
      * Maps named capability tokens to exact permitted roles.
      */
     private const CAPABILITY_ROLES = [
-        // Dashboard Boundaries (Strictly Isolated)
-        'admin_dashboard'           => ['hr'],
+        // Dashboard Boundaries (Strictly Isolated; 2-role model, no Admin role)
         'hr_dashboard'              => ['hr'],
         'employee_dashboard'        => ['employee'],
 

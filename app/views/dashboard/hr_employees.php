@@ -85,6 +85,7 @@
     <main class="container">
         <div class="content-card">
             <h2>All Employee Records (Protected HR View)</h2>
+            <div class="table-responsive">
             <table>
                 <thead>
                     <tr>
@@ -113,6 +114,7 @@
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
         </div>
     </main>
 </body>

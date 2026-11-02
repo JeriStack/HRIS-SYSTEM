@@ -228,6 +228,13 @@ class ProfileController extends ApiController
     public function markRead(int $id): void
     {
         $sessionUser = $this->requireAuth();
+
+        // Reject ids that do not belong to the caller (or do not exist) instead of
+        // reporting a misleading success. An already-read own notification is a valid no-op.
+        if (!$this->notificationModel->belongsToUser($id, (int)$sessionUser['id'])) {
+            $this->error('Notification not found.', 404);
+        }
+
         $this->notificationModel->markAsRead($id, (int)$sessionUser['id']);
         $this->success(null, 'Notification marked as read.');
     }
