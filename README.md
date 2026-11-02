@@ -1,249 +1,122 @@
-# Employee HRIS & Leave Management System
+# NEXORA HR — People. Processes. Progress.
 
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20--%208.5-blue.svg)](https://www.php.net/)
-[![Database](https://img.shields.io/badge/Database-MySQL%208.0-orange.svg)](https://www.mysql.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-Custom%20MVC%20%7C%202--Role%20RBAC-green.svg)]()
-[![Backend Tests](<https://img.shields.io/badge/PHPUnit-357%20Passed%20(100%25)-brightgreen.svg>)]()
-[![UI Tests](<https://img.shields.io/badge/Selenium%20E2E-29%20Passed%20(Brave%20%7C%20Chrome)-success.svg>)]()
+[![Database](https://img.shields.io/badge/Database-MySQL%208.0%20InnoDB-orange.svg)](https://www.mysql.com/)
+[![Architecture](https://img.shields.io/badge/Architecture-Custom%204--Tier%20MVC%20%7C%202--Role%20RBAC-green.svg)]()
+[![Backend Tests](https://img.shields.io/badge/PHPUnit-592%20Passed%20(100%25)-brightgreen.svg)]()
+[![Code Style](https://img.shields.io/badge/PSR--12-Baseline%20Enforced%20(0%20new)-success.svg)]()
+[![UI Tests](https://img.shields.io/badge/Selenium%20E2E-Passed%20(Brave%20%7C%20Chromium)-success.svg)]()
 
-> A robust, production-ready Human Resource Information and Leave Management System built with native PHP and MySQL, featuring an integrated Computer Science Data Structures & Algorithms (DSA) laboratory, real-time WebSocket notifications, and automated Selenium end-to-end testing with Brave Browser.
-
-📖 **For complete technical specifications, architectural decisions, and operational guides, see [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md).**
-
----
-
-## 1. Project Overview
-
-The **Employee HRIS & Leave Management System** fulfills a dual mandate:
-
-1. **Operational Enterprise HRIS:** Centralized management of employee master records, organizational departments, job positions, annual leave quotas, transactional leave approvals, audit logging, and reporting under a strict **2-Role Architecture (Human Resources & Employee Self-Service)**.
-2. **Academic Computer Science Laboratory:** An interactive workbench featuring native PHP implementations of classic sorting algorithms (Bubble, Selection, Insertion, Merge, Quick sorts), searching algorithms (Linear, Binary search), and data structures (Array Wrapper, Singly Linked List, Stack, Queue, Hash Table, Binary Search Tree) benchmarked across dataset sizes ($N = 10$ to $10,000$).
+> **NEXORA HR** (*People. Processes. Progress.*) is an enterprise-grade Human Resource Information System (HRIS) and Leave Management Platform built on native PHP 8.5 and MySQL 8.0 (InnoDB). The system features strict 2-role RBAC, mandatory dual-factor authentication (Email OTP & TOTP), working-day leave accounting with pessimistic row locking, real-time WebSocket notifications via a Transactional Outbox, and automated testing suites.
 
 ---
 
-## 2. Main Features
+## 📚 Authoritative Documentation Architecture
 
-- **Strict 2-Role RBAC:** Mutually exclusive portals for Human Resources (`hr`) and Employees (`employee`).
-- **Two-Factor Email OTP:** Mandatory 6-digit numeric OTP authentication via PHPMailer SMTP with single-use atomic consumption and rate-limiting.
-- **Working-Day Leave Engine:** Automatic business-day calculation (Monday through Friday, excluding weekends) with date collision detection.
-- **ACID Leave Approvals:** First-In-First-Out (FIFO) review queue with pessimistic row locking (`SELECT ... FOR UPDATE`) preventing balance overdrafts.
-- **Real-Time Push Notifications:** Low-latency alert dispatch powered by Ratchet WebSockets (`/ws`) and a Transactional Outbox pattern.
-- **Native DSA Workbench:** In-memory algorithm benchmarking tracking execution time (`hrtime`), memory usage, and operation counts.
-- **RESTful API & Swagger UI:** OpenAPI 3.0 specification with interactive Swagger UI exploration portal.
-- **Brave Browser Selenium Testing:** Automated UI test suite targeting Brave Browser on Windows 11 with temporary profile sandboxing and CI support.
+NEXORA HR maintains authoritative documentation centralized within [`docs/`](docs/README.md):
 
----
+| Document | Purpose & Description |
+|---|---|
+| **[PRD.md](docs/01-core/PRD.md)** | **Product Requirements Document:** Business vision, functional requirements (FR-001–015), leave business rules, NFRs, and RTM table. |
+| **[ARCHITECTURE.md](docs/01-core/ARCHITECTURE.md)** | **System Architecture:** 4-tier MVC engine, database architecture, pessimistic locking, Transactional Outbox, and Mermaid diagrams. |
+| **[RULES.md](docs/01-core/RULES.md)** | **Engineering & AI Agent Rules:** Mandatory 2-role constraints, PSR-12 standards, operational safety, and prohibited actions. |
+| **[DESIGN.md](docs/01-core/DESIGN.md)** | **UI/UX Design System:** Color tokens, typography, spatial grid, responsive App Shell, and WCAG 2.1 AA accessibility guidelines. |
+| **[TASK.md](docs/01-core/TASK.md)** | **Roadmap & Progress Tracking:** Phase breakdown (Phases 1–11), verified test metrics (592 passing tests), and active tasks. |
+| **[MEMORY.md](docs/01-core/MEMORY.md)** | **AI Context Primer:** High-density context primer, key file paths, core constraints, and essential CLI commands. |
+| **[docs/README.md](docs/README.md)** | **Technical Documentation Hub:** Unified directory connecting specialized security, database, testing, API, and deployment guides. |
 
-## 3. Technology Stack
-
-- **Backend:** PHP 8.5 (compatible with 8.2–8.5), Apache 2.4, Ratchet WebSocket Server (`cboden/ratchet`).
-- **Database:** MySQL 8.0 Community Server (InnoDB storage engine, `utf8mb4_unicode_ci`).
-- **Edge Reverse Proxy:** Nginx 1.25 Alpine (handles HTTP `:8080` and WebSocket `:8090`).
-- **Monitoring & Telemetry:** Prometheus (`:9090`), Grafana (`:3100`), `mysqld-exporter`, `nginx-exporter`.
-- **Infrastructure as Code:** Terraform 1.16+ (`kreuzwerker/docker`).
-- **Testing:** PHPUnit 13 (357 backend tests), Selenium WebDriver 4 + pytest (29 UI tests).
-
----
-
-## 4. Prerequisites
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) $\ge 4.20$ (WSL2 backend on Windows 11).
-- [Composer](https://getcomposer.org/) $\ge 2.2$.
-- [Brave Browser](https://brave.com/) (for local Selenium UI automation on Windows 11).
-- Python 3.10+ (for running Selenium test suites).
+### Priority Technical Guides
+* 🔒 **[Security Architecture (docs/02-technical/security/SECURITY.md)](docs/02-technical/security/SECURITY.md):** Authentication lifecycle, Email OTP / TOTP MFA, session security fingerprinting, CSRF, and PII masking.
+* 🗄️ **[Database Architecture (docs/02-technical/database/DATABASE.md)](docs/02-technical/database/DATABASE.md):** 13-table InnoDB schema catalog, foreign key constraints, pessimistic row locking (`SELECT ... FOR UPDATE`), and migrations.
+* 🧪 **[Testing Strategy (docs/02-technical/testing/TESTING.md)](docs/02-technical/testing/TESTING.md):** Comprehensive test execution guide for PHPUnit (592 tests), Selenium E2E, and PSR-12 baseline enforcement.
+* 🌐 **[REST API v1 Reference (docs/02-technical/api/API.md)](docs/02-technical/api/API.md):** OpenAPI 3.0 endpoints catalog, request/response envelopes, and Swagger UI integration.
+* ⚖️ **[Architectural Decisions (docs/02-technical/decisions/DECISIONS.md)](docs/02-technical/decisions/DECISIONS.md):** Official ADR catalog (ADR-001 to ADR-011) documenting 2-role separation, Dockerization, and locking policies.
+* 🚀 **[Deployment Runbook (docs/03-operations/deployment/DEPLOYMENT.md)](docs/03-operations/deployment/DEPLOYMENT.md):** Multi-container Docker Compose and Ubuntu 24.04 VPS production deployment instructions.
+* 🔧 **[Troubleshooting Guide (docs/03-operations/troubleshooting/TROUBLESHOOTING.md)](docs/03-operations/troubleshooting/TROUBLESHOOTING.md):** Diagnostic runbooks for database connections, OTP rate limits, and WebSocket connections.
+* 📖 **[Domain Glossary (docs/05-reference/glossary/GLOSSARY.md)](docs/05-reference/glossary/GLOSSARY.md):** Terminology, definitions, and acronym reference.
 
 ---
 
-## 5. Quick-Start Guide (Docker)
+## ⚡ Core System Capabilities
 
-The fastest and recommended way to run the entire HRIS platform is using Docker Compose:
+* **Strict 2-Role RBAC:** Mutually exclusive portals for Human Resources (`hr`) and Employees (`employee`). No admin role exists; `/admin/*` routes redirect to `/hr/*`.
+* **Multi-Factor Authentication (MFA):** Mandatory 6-digit numeric Email OTP verification with 10-minute validity, supported by RFC 6238 TOTP backup.
+* **Continuous Session Verification:** `Session::verifyAuthenticatedAccountState()` validates account status and synchronizes employee names/positions live on every HTTP request.
+* **Business-Day Leave Engine:** Automatic working-day calculation (Monday through Friday, excluding weekends) with cross-year boundary and overlap validation.
+* **Pessimistic Concurrency Locking:** FIFO approval queue with atomic database transactions utilizing `SELECT ... FOR UPDATE` row locks, preventing race conditions and balance overdrafts.
+* **Real-Time Push Notifications:** Sub-100ms event distribution via a Ratchet WebSocket daemon (:8090) backed by a reliable Transactional Outbox pattern.
+* **Interactive API Portal:** Integrated Swagger UI accessible at `/docs` backed by OpenAPI 3.0 specification files.
+
+---
+
+## 🚀 Quick-Start Guide (Docker Compose)
+
+The fastest and recommended way to start NEXORA HR is using Docker Compose:
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/JeriStack/HRIS-SYSTEM.git
 cd HRIS-SYSTEM
 
-# 2. Start the containerized stack
-docker compose up -d
+# 2. Start container stack (Nginx, Apache/PHP 8.5, MySQL 8.0, WebSocket, Prometheus, Grafana)
+docker compose up -d --build
 
-# 3. Run database migrations (inside app container)
+# 3. Execute database migrations
 docker compose exec app php bin/migrate.php
+
+# 4. (Optional) Run initial database seeds
+docker compose exec app php database/seeds/DatabaseSeeder.php
 ```
 
-### Accessing Services
+### Accessing Local Services
 
-| Interface                         | URL                                            | Default Credentials                             |
-| --------------------------------- | ---------------------------------------------- | ----------------------------------------------- |
-| **HRIS Web Application**          | [http://localhost:8080](http://localhost:8080) | See pre-seeded accounts below                   |
-| **phpMyAdmin**                    | [http://localhost:8081](http://localhost:8081) | Host: `db`, User: `root`, Pass: `root_password` |
-| **Swagger UI Documentation**      | [http://localhost:8083](http://localhost:8083) | _No authentication required_                    |
-| **Prometheus Telemetry**          | [http://localhost:9090](http://localhost:9090) | _No authentication required_                    |
-| **Grafana Dashboards**            | [http://localhost:3100](http://localhost:3100) | User: `admin` / Password: `admin`               |
-| **Mailpit (Local Email Capture)** | [http://localhost:8025](http://localhost:8025) | _Inspect OTPs during testing_                   |
+| Interface | URL | Access / Credentials |
+|---|---|---|
+| **NEXORA HR Application** | [http://localhost:8080](http://localhost:8080) | Portals: `/hr/dashboard` or `/employee/dashboard` |
+| **phpMyAdmin** | [http://localhost:8081](http://localhost:8081) | Host: `db`, User: `root`, Pass: `rootpassword` |
+| **Swagger UI Documentation** | [http://localhost:8080/docs](http://localhost:8080/docs) | Interactive OpenAPI 3.0 Explorer |
+| **Prometheus Telemetry** | [http://localhost:9090](http://localhost:9090) | Metric scrapers (`nginx`, `mysqld`) |
+| **Grafana Dashboards** | [http://localhost:3000](http://localhost:3000) | Default: `admin` / `admin` |
+| **Mailpit (Local Email/OTP)** | [http://localhost:8025](http://localhost:8025) | Local SMTP mailbox for 6-digit OTP codes |
 
-### Pre-Seeded Test Accounts
+### Pre-Seeded Default Accounts
 
-| Account Email                | Role                   | Password       | Target Dashboard      |
-| ---------------------------- | ---------------------- | -------------- | --------------------- |
-| `marcus.tan@company.local`   | Human Resources (`hr`) | `Admin@123`    | `/hr/dashboard`       |
-| `sofia.reyes@company.local`  | Human Resources (`hr`) | `Admin@123`    | `/hr/dashboard`       |
-| `david.cruz@company.local`   | Employee (`employee`)  | `Employee@123` | `/employee/dashboard` |
-| `maria.santos@company.local` | Employee (`employee`)  | `Employee@123` | `/employee/dashboard` |
+| Account Email | Role | Password | Target Portal |
+|---|---|---|---|
+| `marcus.tan@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
+| `sofia.reyes@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
+| `david.cruz@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
+| `maria.santos@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
 
-_Note: During 2FA login, check the Mailpit interface ([http://localhost:8025](http://localhost:8025)) to retrieve the dispatched 6-digit OTP._
+*Note: Retrieve your 6-digit OTP token from Mailpit at [http://localhost:8025](http://localhost:8025) during sign-in.*
 
 ---
 
-## 6. Running Tests
+## 🧪 Running Automated Tests
 
-### Backend Testing (PHPUnit)
-
-The project includes 357 passing backend tests covering unit, database integration, and HTTP feature scenarios:
-
+### 1. PHPUnit Automated Test Suite (592 Tests)
+Run the entire backend test suite:
 ```bash
-# Run all PHPUnit test suites:
-vendor/bin/phpunit
-
-# Run unit tests only:
-vendor/bin/phpunit --testsuite Unit
-
-# Run integration tests only:
-vendor/bin/phpunit --testsuite Integration
+./vendor/bin/phpunit
 ```
+*Current Live Result:* **592 tests, 2,583 assertions, 0 errors, 0 failures (100% passing)**.
 
-### UI & End-to-End Automation (Selenium & pytest)
+### 2. Code Style & Baseline Check
+```bash
+php bin/check-phpcs-baseline.php
+```
+*Requirement:* Must introduce **0 new violations** against the project baseline.
 
-The UI test suite uses Selenium WebDriver 4 and pytest, configured for Brave Browser on Windows 11:
-
+### 3. Selenium E2E Browser Automation
 ```powershell
-# Navigate to e2e directory:
 cd e2e-tests
-
-# Set up Python virtual environment (first time):
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env
-
-# Run smoke tests in headless Brave:
-pytest tests/ -m smoke --headless
-
-# Run tests interactively (watch Brave launch and interact):
-pytest tests/test_login.py
-
-# Run full UI automation suite with HTML report:
-pytest tests/ -v --html=reports/report.html --self-contained-html
+pytest tests/ -v
 ```
 
 ---
 
-## 7. Development Automation with GNU Make
-
-The repository provides a root `Makefile` that simplifies common Docker, Composer, migration, and testing workflows into single commands.
-
-### Installing GNU Make
-
-#### Windows 11 (PowerShell)
-
-Using Windows Package Manager (Winget):
-
-```powershell
-winget install ezwinports.make
-```
-
-_Or using Chocolatey:_
-
-```powershell
-choco install make
-```
-
-#### Linux / WSL Ubuntu
-
-```bash
-sudo apt update && sudo apt install -y make
-```
-
-#### Verify Installation
-
-```bash
-make --version
-```
-
-### Available Makefile Targets
-
-| Target         | Description                                      | Executed Command                              |
-| -------------- | ------------------------------------------------ | --------------------------------------------- |
-| `make help`    | Display available targets and descriptions       | Built-in target reference                     |
-| `make up`      | Start all Docker services in background          | `docker compose up -d`                        |
-| `make down`    | Stop Docker services safely (preserves database) | `docker compose down`                         |
-| `make restart` | Restart all Docker services                      | `docker compose restart`                      |
-| `make ps`      | Display running container health and ports       | `docker compose ps`                           |
-| `make logs`    | Follow application container logs                | `docker compose logs -f app`                  |
-| `make build`   | Build or rebuild application Docker images       | `docker compose build`                        |
-| `make install` | Install Composer dependencies inside container   | `docker compose exec app composer install`    |
-| `make migrate` | Run pending database migrations inside container | `docker compose exec app php bin/migrate.php` |
-| `make test`    | Run PHPUnit backend test suite inside container  | `docker compose exec app vendor/bin/phpunit`  |
-| `make lint`    | Run PHP_CodeSniffer and PHPStan inside container | `docker compose exec app composer lint`       |
-| `make e2e`     | Run Selenium browser UI tests in headless mode   | `pytest e2e-tests/tests/ -v --headless`       |
-| `make clean`   | Purge disposable test caches and reports safely  | `powershell Remove-Item` / `rm -rf` caches    |
-
-### Example Daily Workflow
-
-```powershell
-# 1. Start application stack
-make up
-
-# 2. Verify containers are healthy
-make ps
-
-# 3. Apply any pending database migrations
-make migrate
-
-# 4. Run backend tests inside container
-make test
-
-# 5. Validate code style and static analysis
-make lint
-
-# 6. Run browser UI automation
-make e2e
-
-# 7. Clean test reports and cache artifacts (disposable files only)
-make clean
-
-# 8. Stop services safely at end of work (preserves database volume)
-make down
-```
-
-### Operational Hardening & Backup Scheduling
-
-- **Log Rotation:** Enforced across all containers using Docker's `json-file` driver (`max-size: 10m`, `max-file: 3`).
-- **Network Isolation:** Development tools (phpMyAdmin, Swagger UI, Prometheus, Grafana, MySQL) are bound to `127.0.0.1`. In production, use [`docker-compose.prod.yml`](docker-compose.prod.yml) where only Nginx exposes ports `80`/`443` (`compose.production.yaml` is deprecated). It requires `OTP_PEPPER_SECRET`, `DB_PASSWORD`, `MYSQL_ROOT_PASSWORD` and `GRAFANA_ADMIN_PASSWORD` in the server-side `.env`.
-- **Automated Backups:**
-  - **Windows 11:** Run via Task Scheduler using [`scripts/backup/backup-db.bat`](scripts/backup/backup-db.bat) (logs to `storage/logs/backup.log`).
-  - **Linux / Production:** Schedule daily at 2:00 AM via crontab using [`scripts/backup/backup-db.sh`](scripts/backup/backup-db.sh).
-
----
-
-## 8. Project Documentation
-
-For comprehensive technical documentation, refer to:
-
-👉 **[PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
-
-### Documentation Contents
-
-- **System Requirements & Business Rules:** Detailed leave policies, overlap checks, working-day calculations.
-- **Relational Database Design:** Complete data dictionary for all 13 tables, ER diagrams, foreign key policies.
-- **Authentication & Security:** 2FA OTP mechanics, session hardening, CSRF defense, IDOR protection.
-- **Domain-Driven Design (DDD):** Aggregates, domain events, transactional outbox pattern.
-- **Data Structures & Algorithms:** Implementation details, complexity tables, benchmarking engine.
-- **DevOps & Infrastructure:** Docker topology, Nginx reverse proxy, Prometheus/Grafana, Terraform IaC.
-- **Disaster Recovery:** Daily automated backups (`scripts/backup/backup-db.sh`), PITR, and restoration.
-- **Troubleshooting:** Solutions for 502 Bad Gateway, database connection issues, and Selenium timeouts.
-
----
-
-## 9. License & Governance
-
-This project is proprietary and maintained for enterprise human resource operations and academic demonstrations. All rights reserved.
+## 📄 License & Attribution
+NEXORA HR is engineered and maintained as an enterprise human resource information system and data structures & algorithms workbench. All rights reserved.

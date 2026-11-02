@@ -7,13 +7,13 @@ Phase 9 enforces atomic, ACID-compliant leave approval processing in the Employe
 **Critical Invariant:**
 > An approved leave request (`leave_requests.status = 'Approved'`) can never be persisted without its corresponding leave-balance deduction (`leave_balances.used_days` and `leave_balances.remaining_days`), immutable audit entry (`activity_logs`), and persistent employee notification (`notifications`).
 
-All participating tables (`users`, `employees`, `leave_types`, `leave_requests`, `leave_balances`, `activity_logs`, `notifications`) use the MySQL 8.0 **InnoDB** storage engine and share the same transactional `PDO` connection inside [`App\Models\Leave::approveRequest()`](../../../app/models/Leave.php).
+All participating tables (`users`, `employees`, `leave_types`, `leave_requests`, `leave_balances`, `activity_logs`, `notifications`) use the MySQL 8.0 **InnoDB** storage engine and share the same transactional `PDO` connection inside [`App\Models\Leave::approveRequest()`](../../../../app/models/Leave.php).
 
 ---
 
 ## 2. Transaction Boundary & Execution Order
 
-When an HR user approves a leave request via `POST /leaves/{id}/approve` ([`LeaveController::approve()`](../../../app/controllers/LeaveController.php)) or `POST /api/v1/hr/leaves/{id}/approve` ([`Api\LeaveController::approve()`](../../../app/controllers/Api/LeaveController.php)), the controller authorizes the session role and delegates the entire workflow to `Leave::approveRequest()`:
+When an HR user approves a leave request via `POST /leaves/{id}/approve` ([`LeaveController::approve()`](../../../../app/controllers/LeaveController.php)) or `POST /api/v1/hr/leaves/{id}/approve` ([`Api\LeaveController::approve()`](../../../../app/controllers/Api/LeaveController.php)), the controller authorizes the session role and delegates the entire workflow to `Leave::approveRequest()`:
 
 ```text
 HR APPROVES REQUEST

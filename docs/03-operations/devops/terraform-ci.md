@@ -10,7 +10,7 @@ Static validation runs independently of a live Docker daemon or cloud credential
 
 ## 2. GitHub Actions Workflow Configuration
 
-The Terraform validation is implemented as a dedicated, parallel job (`terraform-validation`) within [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
+The Terraform validation is implemented as a dedicated, parallel job (`terraform-validation`) within [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml).
 
 ### Workflow Triggers
 - **Pushes:**

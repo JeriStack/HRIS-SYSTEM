@@ -67,9 +67,9 @@ curl.exe -s -u admin:admin http://localhost:3100/api/datasources
 
 #### Root Causes & Diagnostics
 1. **Route registration missing:**
-   - Inspect [`public/index.php`](../../public/index.php). Verify `$router->get('/metrics', [HomeController::class, 'metrics']);` is defined outside authenticated session gates.
+   - Inspect [`public/index.php`](../../../public/index.php). Verify `$router->get('/metrics', [HomeController::class, 'metrics']);` is defined outside authenticated session gates.
 2. **Database connection failure in metrics controller:**
-   - In [`app/controllers/HomeController.php`](../../app/controllers/HomeController.php), `metrics()` establishes a PDO connection via `Database::getInstance()->getConnection()`.
+   - In [`app/controllers/HomeController.php`](../../../app/controllers/HomeController.php), `metrics()` establishes a PDO connection via `Database::getInstance()->getConnection()`.
    - If MySQL is down, `hris_app_database_connected` is set to 0. If uncaught exceptions occur, check error logs:
    ```bash
    docker logs --tail 50 hris_app

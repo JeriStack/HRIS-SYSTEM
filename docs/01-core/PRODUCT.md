@@ -1,4 +1,4 @@
-# Product
+# Product — NEXORA HR
 
 <!-- impeccable:product-schema 1 -->
 
@@ -14,7 +14,7 @@ web
 
 ## Product Purpose
 
-The product provides a reliable, secure, and transactional HR Information and Leave Management web system. It eliminates leave balance race conditions through ACID-guaranteed approval queues, enforces strict role separation with mandatory two-factor email OTP authentication, and streamlines day-to-day employee leave workflows. Success is defined by zero balance overdrafts, sub-second transactional approval workflows, error-free auditing, and clear, accessible self-service for all employees.
+NEXORA HR (*People. Processes. Progress.*) provides a reliable, secure, and transactional HR Information and Leave Management web system. It eliminates leave balance race conditions through ACID-guaranteed approval queues, enforces strict role separation with mandatory two-factor email OTP authentication, and streamlines day-to-day employee leave workflows. Success is defined by zero balance overdrafts, sub-second transactional approval workflows, error-free auditing, and clear, accessible self-service for all employees.
 
 ## Positioning
 
@@ -29,7 +29,7 @@ An enterprise-grade, native-stack HRIS engineered for operational integrity, pai
 ## Capabilities and Constraints
 
 - **Strict 2-Role RBAC**: Mutually exclusive authenticated sessions and navigation structures for `hr` and `employee` roles.
-- **Two-Factor Authentication (2FA)**: Mandatory 6-digit numeric OTP delivered via SMTP email with rate-limiting and atomic single-use consumption.
+- **Two-Factor Authentication (2FA)**: Mandatory 6-digit numeric OTP delivered via SMTP email with rate-limiting and atomic single-use consumption, plus RFC 6238 TOTP backup.
 - **Working-Day Leave Engine**: Automated calculation of business days (Monday through Friday, excluding weekends) with collision prevention and balance checks.
 - **ACID Transactional Approvals**: FIFO review queue backed by pessimistic database row locking to prevent concurrent balance depletion.
 - **Real-Time Push Notifications**: Low-latency notification dispatch powered by Ratchet WebSockets (`/ws`) and a Transactional Outbox pattern.
@@ -37,16 +37,16 @@ An enterprise-grade, native-stack HRIS engineered for operational integrity, pai
 
 ## Brand Commitments
 
-- **Product Name**: Employee HRIS & Leave Management System.
+- **Product Name**: NEXORA HR — People. Processes. Progress.
 - **Tone & Voice**: Professional, reliable, clear, and reassuring enterprise utility.
-- **Visual Identity**: Indigo accent (`#4F46E5`), slate neutrals (`#0F172A`, `#64748B`, `#F8FAFC`), crisp tabular layouts, and semantic status indicators (Emerald for Approved, Amber for Pending, Rose for Rejected).
+- **Visual Identity**: Reliable Cobalt Blue accent (`#1D4ED8`), deep slate neutrals (`#0F172A`, `#1E293B`, `#64748B`, `#F8FAFC`), crisp tabular layouts, and semantic status indicators (Green for Approved, Amber for Pending, Crimson for Rejected).
 
 ## Evidence on Hand
 
-- Fully implemented backend with 357 passing unit and integration tests (`tests/`).
-- Automated end-to-end Selenium test suite with 29 passing test cases across Brave and Chrome (`e2e-tests/`).
-- Architectural specifications and schema definitions documented in `PROJECT_DOCUMENTATION.md` and `README.md`.
-- Phase 4 UI/UX screen specifications in `docs/phase-4-ui-ux/`.
+- Fully implemented backend with 592 passing unit and integration tests (`tests/`).
+- Automated end-to-end Selenium test suite with passing test cases across Brave and Chromium (`e2e-tests/`).
+- Architectural specifications and schema definitions documented in `docs/01-core/ARCHITECTURE.md` and `docs/01-core/PRD.md`.
+- Design tokens and component specifications in `docs/01-core/DESIGN.md`.
 
 ## Product Principles
 
