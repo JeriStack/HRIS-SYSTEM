@@ -218,7 +218,7 @@ make down
 ### Operational Hardening & Backup Scheduling
 
 - **Log Rotation:** Enforced across all containers using Docker's `json-file` driver (`max-size: 10m`, `max-file: 3`).
-- **Network Isolation:** Development tools (phpMyAdmin, Swagger UI, Prometheus, Grafana, MySQL) are bound to `127.0.0.1`. In production, use [`compose.production.yaml`](compose.production.yaml) where only Nginx exposes ports `80`/`443`.
+- **Network Isolation:** Development tools (phpMyAdmin, Swagger UI, Prometheus, Grafana, MySQL) are bound to `127.0.0.1`. In production, use [`docker-compose.prod.yml`](docker-compose.prod.yml) where only Nginx exposes ports `80`/`443` (`compose.production.yaml` is deprecated). It requires `OTP_PEPPER_SECRET`, `DB_PASSWORD`, `MYSQL_ROOT_PASSWORD` and `GRAFANA_ADMIN_PASSWORD` in the server-side `.env`.
 - **Automated Backups:**
   - **Windows 11:** Run via Task Scheduler using [`scripts/backup/backup-db.bat`](scripts/backup/backup-db.bat) (logs to `storage/logs/backup.log`).
   - **Linux / Production:** Schedule daily at 2:00 AM via crontab using [`scripts/backup/backup-db.sh`](scripts/backup/backup-db.sh).

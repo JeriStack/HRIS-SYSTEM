@@ -80,32 +80,36 @@ class StepUpAuthService
             return ['ok' => true, 'error' => null];
         }
 
-        // Throttle password guessing through the step-up prompt (e.g. from a hijacked session)
-        $recentFailures = $this->users()->countRecentActions($userId, 'STEP_UP_FAILED', self::FAILURE_WINDOW);
-        if ($recentFailures['count'] >= self::MAX_FAILURES) {
-            $retryAfter = max(1, (int)$recentFailures['retry_after']);
-            $minutes = max(1, (int)ceil($retryAfter / 60));
-
-            $this->users()->logActivity(
-                $userId,
-                'STEP_UP_LOCKED',
-                "Step-up re-verification temporarily locked for sensitive operation: {$operation}",
-                'USER',
-                (string)$userId
-            );
-
-            return [
-                'ok'    => false,
-                'error' => "Too many incorrect password confirmations. Please try again in about {$minutes} minute(s).",
-            ];
-        }
-
         $password = (string)($submittedPassword ?? '');
         if ($password === '') {
             return [
                 'ok'    => false,
                 'error' => 'For your security, please confirm your current password to complete this action.',
             ];
+        }
+
+        // Throttle password guessing through the step-up prompt (e.g. from a hijacked session)
+        try {
+            $recentFailures = $this->users()->countRecentActions($userId, 'STEP_UP_FAILED', self::FAILURE_WINDOW);
+            if ($recentFailures['count'] >= self::MAX_FAILURES) {
+                $retryAfter = max(1, (int)$recentFailures['retry_after']);
+                $minutes = max(1, (int)ceil($retryAfter / 60));
+
+                $this->users()->logActivity(
+                    $userId,
+                    'STEP_UP_LOCKED',
+                    "Step-up re-verification temporarily locked for sensitive operation: {$operation}",
+                    'USER',
+                    (string)$userId
+                );
+
+                return [
+                    'ok'    => false,
+                    'error' => "Too many incorrect password confirmations. Please try again in about {$minutes} minute(s).",
+                ];
+            }
+        } catch (\Throwable $e) {
+            error_log('[StepUpAuthService] Throttle check failed: ' . $e->getMessage());
         }
 
         $record = $this->users()->findByIdWithAuthState($userId);

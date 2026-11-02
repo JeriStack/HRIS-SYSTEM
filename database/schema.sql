@@ -192,7 +192,10 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) 
         REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    INDEX `idx_notifications_user_read` (`user_id`, `is_read`)
+    INDEX `idx_notifications_user_read` (`user_id`, `is_read`),
+    -- Leave approve/reject idempotency lookups (WHERE entity_id = ? AND event_type = ?).
+    -- See database/migrations/2026_11_02_add_notifications_entity_event_index.sql
+    INDEX `idx_notifications_entity_event` (`entity_id`, `event_type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -284,8 +287,9 @@ CREATE TABLE IF NOT EXISTS `user_totp` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY `uq_user_totp_user_id` (`user_id`),
+    -- Matches the applied migration (2026_10_31_create_user_totp_table.sql): no ON UPDATE rule
     CONSTRAINT `fk_user_totp_users` FOREIGN KEY (`user_id`)
-        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+        REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
