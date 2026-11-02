@@ -19,7 +19,8 @@
 | **Role Model** | 2 Roles (`hr`, `employee`) | Strict 2-role model, no admin role | `DONE` |
 | **Multi-Factor Auth** | Email OTP (6-digit) + TOTP Authenticator | Mandatory 2FA, 10m TTL | `DONE` |
 | **Real-time Pipeline** | Ratchet WebSocket (:8090) + Outbox Worker | Transactional Outbox, sub-100ms dispatch | `DONE` |
-| **Documentation** | 6 Authoritative Root Docs + 5 Priority Tech Docs | Unified single source of truth | `IN_PROGRESS` |
+| **Documentation** | 5 Numbered Pillars (01-core to 05-reference) | Unified single source of truth | `DONE` |
+| **CI/CD Automation** | 4 Workflows (CI, E2E #44, CD #14, Unit #147) | All green checks, Node 24 actions | `DONE` |
 
 ---
 
@@ -76,14 +77,15 @@
 - [x] Implement Python/Selenium E2E automation targeting Brave/Chromium.
 - [x] Implement PSR-12 baseline enforcement script (`bin/check-phpcs-baseline.php`).
 
-### Phase 10: Documentation Audit & Consolidation (`IN_PROGRESS`)
+### Phase 10: Documentation Audit & Consolidation (`DONE`)
 - [x] Complete inventory of 187 repository Markdown documents.
 - [x] Propose documentation architecture and receive user approval ("Approved all").
 - [x] Create 6 authoritative root-level documents (`PRD.md`, `ARCHITECTURE.md`, `RULES.md`, `DESIGN.md`, `TASK.md`, `MEMORY.md`).
-- [ ] Author 5 priority technical documents (`docs/security/SECURITY.md`, `docs/database/DATABASE.md`, `docs/testing/TESTING.md`, `docs/api/API.md`, `docs/decisions/DECISIONS.md`).
-- [ ] Author supporting documents (`docs/deployment/DEPLOYMENT.md`, `docs/troubleshooting/TROUBLESHOOTING.md`, `docs/glossary/GLOSSARY.md`).
-- [ ] Update root `README.md` and `docs/README.md`.
-- [ ] Validate internal Markdown cross-references.
+- [x] Author 5 priority technical documents (`docs/02-technical/security/SECURITY.md`, `database/DATABASE.md`, `testing/TESTING.md`, `api/API.md`, `decisions/DECISIONS.md`).
+- [x] Author supporting operational & reference documents (`docs/03-operations/deployment/DEPLOYMENT.md`, `troubleshooting/TROUBLESHOOTING.md`, `docs/05-reference/glossary/GLOSSARY.md`).
+- [x] Update root `README.md` and `docs/README.md` as unified documentation portals.
+- [x] Validate all internal Markdown links (0 broken links across 147 markdown files).
+- [x] Modernize GitHub Actions workflows to Node 24 runtime (`checkout@v5`, `setup-terraform@v4`, `setup-python@v6`, `upload-artifact@v6`, `download-artifact@v7`).
 
 ### Phase 11: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).

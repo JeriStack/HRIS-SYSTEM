@@ -40,7 +40,7 @@
 | **Database & Schema** | `database/schema.sql` (13 InnoDB tables), `database/migrations/`, `core/Database.php` |
 | **Layouts & Partials** | `app/views/layouts/hr.php`, `app/views/partials/navbar.php`, `app/views/partials/sidebar.php` |
 | **Design Tokens & Styles** | `public/assets/css/style.css`, `public/assets/css/components.css` |
-| **Authoritative Documentation** | `PRD.md`, `ARCHITECTURE.md`, `RULES.md`, `DESIGN.md`, `TASK.md`, `docs/` |
+| **Authoritative Documentation** | `docs/01-core/` (PRD, ARCHITECTURE, RULES, DESIGN, TASK, MEMORY), `docs/02-technical/`, `docs/README.md` |
 
 ---
 
