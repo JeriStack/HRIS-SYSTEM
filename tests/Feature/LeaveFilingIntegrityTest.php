@@ -230,9 +230,11 @@ class LeaveFilingIntegrityTest extends TestCase
         $this->guard->ensureBalancesInitialized($this->activeEmpId, $this->year);
         $this->guard->ensureBalancesInitialized($this->activeEmpId, $this->year); // second call = no-op
 
-        foreach ($this->pdo->query(
-            "SELECT id FROM leave_balances WHERE employee_id = {$this->activeEmpId} AND year = {$this->year}"
-        )->fetchAll(PDO::FETCH_COLUMN) as $bid) {
+        foreach (
+            $this->pdo->query(
+                "SELECT id FROM leave_balances WHERE employee_id = {$this->activeEmpId} AND year = {$this->year}"
+            )->fetchAll(PDO::FETCH_COLUMN) as $bid
+        ) {
             $this->cleanup['leave_balances'][] = (int)$bid;
         }
 

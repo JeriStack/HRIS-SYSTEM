@@ -51,16 +51,27 @@ class AuthHelper:
                     raise ValueError(f"User with email '{user_email}' not found in database")
                 user_id = row[0]
 
-                # Update the active challenge using created_at (which matches PHP application timezone)
+                # Overwrite the active challenge with the deterministic test hash and push
+                # expiry far into the future on the database clock. The application rebases
+                # expires_at onto whatever clock NOW() reports, which is compared by verifyOtp()
+                # on the PHP clock; a 12-hour margin keeps the challenge valid even if the PHP
+                # and MySQL timezones are slightly misaligned in the CI environment.
                 cursor.execute(
                     """
-                    UPDATE email_otps 
-                    SET otp_hash = %s, attempts = 0, expires_at = DATE_ADD(created_at, INTERVAL 15 MINUTE)
+                    UPDATE email_otps
+                    SET otp_hash = %s, attempts = 0,
+                        expires_at = DATE_ADD(NOW(), INTERVAL 12 HOUR)
                     WHERE user_id = %s AND consumed_at IS NULL
                     ORDER BY id DESC LIMIT 1
                     """,
                     (cls.TEST_OTP_HASH, user_id)
                 )
+                if cursor.rowcount == 0:
+                    raise RuntimeError(
+                        f"No active OTP challenge found for user_id={user_id}. "
+                        "Expected the /login POST to have created a pending challenge "
+                        "before /verify-otp was reached."
+                    )
         finally:
             conn.close()
 

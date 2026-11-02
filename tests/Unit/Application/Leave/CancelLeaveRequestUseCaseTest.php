@@ -119,8 +119,13 @@ class CancelLeaveRequestUseCaseTest extends TestCase
         $requestId = $this->requestRepo->save($request);
 
         $this->balanceRepo->save(LeaveBalance::reconstitute(
-            id: 1, employeeId: 10, leaveTypeId: 1, year: 2026,
-            allocatedDays: 15, usedDays: 3, remainingDays: 12
+            id: 1,
+            employeeId: 10,
+            leaveTypeId: 1,
+            year: 2026,
+            allocatedDays: 15,
+            usedDays: 3,
+            remainingDays: 12
         ));
 
         $this->expectException(\InvalidArgumentException::class);
@@ -141,8 +146,13 @@ class CancelLeaveRequestUseCaseTest extends TestCase
         $requestId = $this->requestRepo->save($request);
 
         $this->balanceRepo->save(LeaveBalance::reconstitute(
-            id: 1, employeeId: 10, leaveTypeId: 1, year: 2026,
-            allocatedDays: 15, usedDays: 3, remainingDays: 12
+            id: 1,
+            employeeId: 10,
+            leaveTypeId: 1,
+            year: 2026,
+            allocatedDays: 15,
+            usedDays: 3,
+            remainingDays: 12
         ));
 
         $this->expectException(\DomainException::class);

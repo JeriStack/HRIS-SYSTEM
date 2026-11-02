@@ -21,6 +21,7 @@ use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
 use Tests\Fakes\InMemoryTransactionManager;
 use Tests\Fakes\InMemoryLeaveRequestRepository;
 use Tests\Fakes\InMemoryLeaveBalanceRepository;
+use Tests\Fakes\FakeLeaveFilingGuard;
 
 class FileLeaveRequestUseCaseTest extends TestCase
 {
@@ -177,7 +178,11 @@ class FileLeaveRequestUseCaseTest extends TestCase
         $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
 
         $this->useCaseWithGuard(new FakeLeaveFilingGuard(employeeActive: false))->execute(new FileLeaveCommand(
-            employeeId: 10, leaveTypeId: 1, startDate: '2026-11-02', endDate: '2026-11-04', reason: 'x'
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
         ));
     }
 
@@ -188,7 +193,11 @@ class FileLeaveRequestUseCaseTest extends TestCase
         $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
 
         $this->useCaseWithGuard(new FakeLeaveFilingGuard(leaveTypeActive: false))->execute(new FileLeaveCommand(
-            employeeId: 10, leaveTypeId: 1, startDate: '2026-11-02', endDate: '2026-11-04', reason: 'x'
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
         ));
     }
 
@@ -202,7 +211,11 @@ class FileLeaveRequestUseCaseTest extends TestCase
 
         // Requesting 3 working days exceeds the 1 effectively-available day.
         $this->useCaseWithGuard($guard)->execute(new FileLeaveCommand(
-            employeeId: 10, leaveTypeId: 1, startDate: '2026-11-02', endDate: '2026-11-04', reason: 'x'
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'x'
         ));
     }
 
@@ -213,7 +226,11 @@ class FileLeaveRequestUseCaseTest extends TestCase
         $guard->balanceRepo = $this->balanceRepo; // guard seeds the balance on ensureBalancesInitialized
 
         $requestId = $this->useCaseWithGuard($guard)->execute(new FileLeaveCommand(
-            employeeId: 10, leaveTypeId: 1, startDate: '2026-11-02', endDate: '2026-11-04', reason: 'Auto-init'
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'Auto-init'
         ));
 
         $this->assertTrue($guard->initCalled, 'ensureBalancesInitialized must run before the balance lookup.');
@@ -228,49 +245,13 @@ class FileLeaveRequestUseCaseTest extends TestCase
         $id = $this->useCase->withinTransaction(function (int $newId) use (&$seen): void {
             $seen = $newId;
         })->execute(new FileLeaveCommand(
-            employeeId: 10, leaveTypeId: 1, startDate: '2026-11-02', endDate: '2026-11-04', reason: 'cb'
+            employeeId: 10,
+            leaveTypeId: 1,
+            startDate: '2026-11-02',
+            endDate: '2026-11-04',
+            reason: 'cb'
         ));
 
         $this->assertSame($id, $seen, 'The callback must receive the persisted request id.');
-    }
-}
-
-/**
- * In-memory filing guard for unit tests. When $balanceRepo is set, it seeds a balance
- * on ensureBalancesInitialized to simulate transaction-safe auto-initialization.
- */
-final class FakeLeaveFilingGuard implements \App\Domain\Leave\Repositories\LeaveFilingGuardInterface
-{
-    public bool $initCalled = false;
-    public ?InMemoryLeaveBalanceRepository $balanceRepo = null;
-
-    public function __construct(
-        private readonly bool $employeeActive = true,
-        private readonly bool $leaveTypeActive = true,
-        private readonly int $pendingReserved = 0
-    ) {
-    }
-
-    public function isEmployeeActive(int $employeeId): bool
-    {
-        return $this->employeeActive;
-    }
-
-    public function isLeaveTypeActive(int $leaveTypeId): bool
-    {
-        return $this->leaveTypeActive;
-    }
-
-    public function pendingReservedDays(int $employeeId, int $leaveTypeId, int $year): int
-    {
-        return $this->pendingReserved;
-    }
-
-    public function ensureBalancesInitialized(int $employeeId, int $year): void
-    {
-        $this->initCalled = true;
-        if ($this->balanceRepo !== null && $this->balanceRepo->findByEmployeeAndType($employeeId, 1, $year) === null) {
-            $this->balanceRepo->save(LeaveBalance::create($employeeId, 1, $year, 15));
-        }
     }
 }

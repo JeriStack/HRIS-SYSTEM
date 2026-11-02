@@ -22,6 +22,7 @@ use App\Domain\Leave\Exceptions\InvalidStatusTransitionException;
 use Tests\Fakes\InMemoryTransactionManager;
 use Tests\Fakes\InMemoryLeaveRequestRepository;
 use Tests\Fakes\InMemoryLeaveBalanceRepository;
+use Tests\Fakes\FakeLeaveApprovalGuard;
 use DateTimeImmutable;
 
 class ApproveLeaveRequestUseCaseTest extends TestCase
@@ -187,7 +188,7 @@ class ApproveLeaveRequestUseCaseTest extends TestCase
     // LV-01: account/organization re-checks via the approval guard
     // -----------------------------------------------------------------
 
-    private function useCaseWithGuard(\App\Domain\Leave\Repositories\LeaveApprovalGuardInterface $guard): ApproveLeaveRequestUseCase
+    private function useCaseWithGuard(FakeLeaveApprovalGuard $guard): ApproveLeaveRequestUseCase
     {
         return new ApproveLeaveRequestUseCase(
             $this->requestRepo,
@@ -286,33 +287,5 @@ class ApproveLeaveRequestUseCaseTest extends TestCase
         $this->expectExceptionMessage('overlaps');
         $this->useCaseWithGuard(new FakeLeaveApprovalGuard(reviewerEmployeeId: 500))
             ->execute(new ApproveLeaveCommand($pendingId, 99));
-    }
-}
-
-/**
- * Minimal in-memory approval guard for unit tests.
- */
-final class FakeLeaveApprovalGuard implements \App\Domain\Leave\Repositories\LeaveApprovalGuardInterface
-{
-    public function __construct(
-        private readonly ?int $reviewerEmployeeId,
-        private readonly bool $employeeActive = true,
-        private readonly bool $leaveTypeActive = true
-    ) {
-    }
-
-    public function activeHrReviewerEmployeeId(int $reviewerUserId): ?int
-    {
-        return $this->reviewerEmployeeId;
-    }
-
-    public function isEmployeeActive(int $employeeId): bool
-    {
-        return $this->employeeActive;
-    }
-
-    public function isLeaveTypeActive(int $leaveTypeId): bool
-    {
-        return $this->leaveTypeActive;
     }
 }
