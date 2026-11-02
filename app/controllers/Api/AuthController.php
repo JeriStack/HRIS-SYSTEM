@@ -147,23 +147,31 @@ class AuthController extends ApiController
         }
 
         $email = strtolower($rawEmail);
+
+        // Primary login rate limiting (per account identifier and per client IP)
+        $rateLimit = $this->userModel->checkLoginRateLimit($email, client_ip());
+        if ($rateLimit['limited']) {
+            $this->userModel->logActivity(null, 'AUTH_RATE_LIMITED', 'API sign-in temporarily blocked after repeated failed attempts', 'USER', login_identifier_key($email));
+            $minutes = max(1, (int)ceil($rateLimit['retry_after'] / 60));
+            $this->error("Too many failed sign-in attempts. Please try again in about {$minutes} minute(s).", 429);
+        }
         $user = $this->userModel->findByEmail($email);
 
         if (!$user || $user['status'] !== 'Active') {
             // Spend comparable CPU time as a real password check to blunt timing-based enumeration
             password_hash($password, PASSWORD_DEFAULT);
-            $this->userModel->logActivity(null, 'AUTH_FAILED', "Failed API login for unknown or inactive email: {$email}", 'USER', $email);
+            $this->userModel->logActivity(null, 'AUTH_FAILED', 'Failed API login for unknown or inactive account: ' . mask_email($email), 'USER', login_identifier_key($email));
             $this->error('Invalid email address or password.', 401);
         }
 
         // Password is verified BEFORE any account-state disclosure
         if (!password_verify($password, $user['password'])) {
-            $this->userModel->logActivity((int)$user['id'], 'AUTH_FAILED', "API password verification failed for: {$email}", 'USER', (string)$user['id']);
+            $this->userModel->logActivity((int)$user['id'], 'AUTH_FAILED', 'API password verification failed for: ' . mask_email($email), 'USER', (string)$user['id']);
             $this->error('Invalid email address or password.', 401);
         }
 
         if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
-            $this->userModel->logActivity((int)$user['id'], 'AUTH_BLOCKED', "API login blocked for inactive employee: {$email}", 'USER', (string)$user['id']);
+            $this->userModel->logActivity((int)$user['id'], 'AUTH_BLOCKED', 'API login blocked for inactive employee: ' . mask_email($email), 'USER', (string)$user['id']);
             $this->error('Your employment account is inactive. Please contact Human Resources.', 403);
         }
 
@@ -190,6 +198,12 @@ class AuthController extends ApiController
             $this->error($this->lockoutMessage($lockout['retry_after']), 429);
         }
 
+        $issuance = $this->otpModel->checkIssuanceRateLimit((int)$user['id']);
+        if (!$issuance['allowed']) {
+            $minutes = max(1, (int)ceil($issuance['retry_after'] / 60));
+            $this->error("Too many verification codes were requested. Please try again in about {$minutes} minute(s).", 429);
+        }
+
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->otpModel->createChallenge((int)$user['id'], $plainOtp);
 
@@ -212,7 +226,7 @@ class AuthController extends ApiController
         Session::set('pending_otp_name', $displayName);
         Session::set('pending_otp_time', time());
 
-        $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_DISPATCHED', "API login OTP dispatched to registered email for user: {$recipientEmail}", 'USER', (string)$user['id']);
+        $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_DISPATCHED', 'API login OTP dispatched to registered email for user: ' . mask_email($recipientEmail), 'USER', (string)$user['id']);
 
         $this->success([
             'step'               => 'otp_required',
@@ -335,6 +349,15 @@ class AuthController extends ApiController
             $this->error('Access is restricted to active HR and Employee accounts.', 403);
         }
 
+        if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
+            $this->clearPendingState();
+            $this->error('Your employment account is inactive. Please contact Human Resources.', 403);
+        }
+
+        // Bind the session to the current security-relevant account state
+        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
+        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
+
         Session::regenerate(true);
         $this->clearPendingState();
 
@@ -352,6 +375,8 @@ class AuthController extends ApiController
             'department'  => $user['department_name'] ?? 'Unassigned',
             'position'    => $user['position_name'] ?? 'Unassigned',
             'login_time'  => time(),
+            'last_mfa_verified_at' => time(),
+            'auth_fingerprint'     => $authFingerprint,
         ]);
         Session::set('last_activity', time());
 
@@ -441,6 +466,12 @@ class AuthController extends ApiController
             $this->error('Your account does not have a valid registered email address. Please contact HR.', 403);
         }
 
+        $issuance = $this->otpModel->checkIssuanceRateLimit($pendingUserId);
+        if (!$issuance['allowed']) {
+            $minutes = max(1, (int)ceil($issuance['retry_after'] / 60));
+            $this->error("Too many verification codes were requested. Please try again in about {$minutes} minute(s).", 429);
+        }
+
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $this->otpModel->createChallenge($pendingUserId, $plainOtp);
 
@@ -455,7 +486,7 @@ class AuthController extends ApiController
             $this->error('Unable to dispatch verification code via email. Please check mail service configuration.', 500);
         }
 
-        $this->userModel->logActivity($pendingUserId, 'AUTH_OTP_RESENT', "API OTP resent to registered email: {$recipientEmail}", 'USER', (string)$pendingUserId);
+        $this->userModel->logActivity($pendingUserId, 'AUTH_OTP_RESENT', 'API OTP resent to registered email: ' . mask_email($recipientEmail), 'USER', (string)$pendingUserId);
 
         $this->success([
             'email'              => $recipientEmail,

@@ -144,7 +144,8 @@ class Router
             $allowOrigin = false;
 
             if ($origin !== '') {
-                $isLocalDev = (getenv('APP_ENV') ?: 'development') !== 'production';
+                // Relaxed localhost CORS only for explicit non-production environments
+                $isLocalDev = in_array(config('config.app_env', 'production'), ['development', 'local', 'testing'], true);
                 if ($isLocalDev && preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#i', $origin)) {
                     $allowOrigin = true;
                 } else {

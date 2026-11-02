@@ -44,8 +44,14 @@ class NotificationController extends Controller
     public function markRead(int $id): void
     {
         $user = currentUser();
-        $this->notificationModel->markAsRead($id, (int)$user['id']);
 
+        if (!$this->notificationModel->belongsToUser($id, (int)$user['id'])) {
+            Session::flash('error', 'That notification could not be found.');
+            redirect('/notifications');
+            return;
+        }
+
+        $this->notificationModel->markAsRead($id, (int)$user['id']);
         Session::flash('success', 'Notification marked as read.');
         redirect('/notifications');
     }

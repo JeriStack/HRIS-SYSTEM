@@ -82,7 +82,7 @@ class RealtimeTicketService
             $sessionRef,
             $sessionExpiresAt,
             $this->config->ticketTtl,
-            $_SERVER['REMOTE_ADDR'] ?? null
+            client_ip()
         );
 
         return [

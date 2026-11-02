@@ -48,11 +48,13 @@ class LeaveApprovalQueueTest extends TestCase
             ['id' => 45, 'employee_name' => 'John Doe', 'applied_at' => '2026-10-29 08:15:00', 'status' => 'Pending'],
         ]);
 
+        // Leave::approveRequest returns ['ok' => bool, 'code' => string, ...] (its real contract).
         $mockLeave->expects($this->once())
             ->method('approveRequest')
             ->with(45, 99)
             ->willReturn([
-                'status'  => 'approved',
+                'ok'      => true,
+                'code'    => 'approved',
                 'message' => 'Leave approved successfully.',
             ]);
 
@@ -76,5 +78,49 @@ class LeaveApprovalQueueTest extends TestCase
         $result = $service->processNextApproval($emptyQueue, 1);
         $this->assertFalse($result['success']);
         $this->assertSame('empty_queue', $result['status']);
+    }
+
+    public function test_department_filter_is_passed_in_the_department_slot_not_employee_slot(): void
+    {
+        // LV-04: getAllRequests(status, empId, limit, startDate, endDate, deptId).
+        // The department id must land in the 6th argument, and the limit in the 3rd,
+        // never in the employee-id slot (which previously filtered by the wrong column).
+        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave->expects($this->once())
+            ->method('getAllRequests')
+            ->with('Pending', null, 25, null, null, 7)
+            ->willReturn([]);
+
+        $service = new LeaveApprovalQueueService($mockLeave);
+        $queue = $service->buildPendingApprovalQueue(7, 25);
+
+        $this->assertTrue($queue->isEmpty());
+    }
+
+    public function test_process_next_approval_reports_failure_from_model_contract(): void
+    {
+        // Leave::approveRequest signals failure with ok=false; the service must not
+        // report success just because an unrelated 'status' key is absent.
+        $mockLeave = $this->createMock(Leave::class);
+        $mockLeave->expects($this->once())
+            ->method('getAllRequests')
+            ->willReturn([
+                ['id' => 50, 'applied_at' => '2026-10-29 08:00:00', 'status' => 'Pending'],
+            ]);
+        $mockLeave->expects($this->once())
+            ->method('approveRequest')
+            ->with(50, 99)
+            ->willReturn([
+                'ok'      => false,
+                'code'    => 'not_pending',
+                'message' => 'Request already processed.',
+            ]);
+
+        $service = new LeaveApprovalQueueService($mockLeave);
+        $queue = $service->buildPendingApprovalQueue();
+        $result = $service->processNextApproval($queue, 99);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('not_pending', $result['status']);
     }
 }

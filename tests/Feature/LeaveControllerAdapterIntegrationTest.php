@@ -126,8 +126,8 @@ class LeaveControllerAdapterIntegrationTest extends TestCase
         $this->assertSame(3, $balAfterApprove->usedDays());
         $this->assertSame(12, $balAfterApprove->remainingDays());
 
-        // 3. Cancel approved request (with HR permission)
-        $cancelResult = $this->adapter->cancel($requestId, $this->testApproverId, true);
+        // 3. Cancel approved request (HR permission + mandatory reason per decision F.2)
+        $cancelResult = $this->adapter->cancel($requestId, $this->testApproverId, true, 'Approved in error; reversing.');
         $this->assertTrue($cancelResult->success);
         $this->assertSame(200, $cancelResult->statusCode);
 

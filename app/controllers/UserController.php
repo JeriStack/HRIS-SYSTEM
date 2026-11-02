@@ -12,16 +12,26 @@ use Core\Session;
 use Core\Permission;
 use App\Models\User;
 use App\Models\Employee;
+use App\Services\AccountRevocationService;
+use App\Services\StepUpAuthService;
 
 class UserController extends Controller
 {
     private User $userModel;
     private Employee $employeeModel;
+    private AccountRevocationService $revocation;
+    private StepUpAuthService $stepUp;
 
-    public function __construct(?User $userModel = null, ?Employee $employeeModel = null)
-    {
+    public function __construct(
+        ?User $userModel = null,
+        ?Employee $employeeModel = null,
+        ?AccountRevocationService $revocation = null,
+        ?StepUpAuthService $stepUp = null
+    ) {
         $this->userModel = $userModel ?? new User();
         $this->employeeModel = $employeeModel ?? new Employee();
+        $this->revocation = $revocation ?? new AccountRevocationService();
+        $this->stepUp = $stepUp ?? new StepUpAuthService($this->userModel);
     }
 
     /**
@@ -67,6 +77,7 @@ class UserController extends Controller
             'validRoles'        => ['employee', 'hr'],
             'errors'            => Session::getFlash('errors', []),
             'old'               => Session::getFlash('old', []),
+            'stepUpRequired'    => !$this->stepUp->hasRecentVerification(),
         ], 'hr');
     }
 
@@ -123,9 +134,21 @@ class UserController extends Controller
             }
         }
 
+        // 4b. Sensitive-operation protection: recent MFA or current-password re-verification
+        if (empty($errors)) {
+            $stepUp = $this->stepUp->verify('USER_PROVISION', $_POST[StepUpAuthService::FIELD] ?? null);
+            if (!$stepUp['ok']) {
+                $errors[StepUpAuthService::FIELD] = $stepUp['error'];
+            }
+        }
+
         if (!empty($errors)) {
             Session::flash('errors', $errors);
-            Session::flash('old', $_POST);
+            // Never round-trip passwords or tokens through the session flash store
+            Session::flash('old', array_diff_key(
+                $_POST,
+                array_flip(['password', 'confirm_password', StepUpAuthService::FIELD, '_csrf_token'])
+            ));
             $this->redirect('/hr/users/create' . ($employeeId > 0 ? '?employee_id=' . $employeeId : ''));
             return;
         }
@@ -173,10 +196,11 @@ class UserController extends Controller
         }
 
         $this->view('users.edit', [
-            'pageTitle'  => "Edit User Account: {$targetUser['username']}",
-            'user'       => currentUser(),
-            'targetUser' => $targetUser,
-            'validRoles' => Permission::VALID_ROLES,
+            'pageTitle'      => "Edit User Account: {$targetUser['username']}",
+            'user'           => currentUser(),
+            'targetUser'     => $targetUser,
+            'validRoles'     => Permission::VALID_ROLES,
+            'stepUpRequired' => !$this->stepUp->hasRecentVerification(),
         ], 'hr');
     }
 
@@ -242,6 +266,19 @@ class UserController extends Controller
             }
         }
 
+        $roleChanged = strtolower((string)$targetUser['role']) !== $role;
+        $statusChanged = (string)$targetUser['status'] !== $status;
+
+        // 4b. Sensitive-operation protection for role or status changes
+        if ($roleChanged || $statusChanged) {
+            $stepUp = $this->stepUp->verify('USER_ROLE_STATUS_UPDATE', $_POST[StepUpAuthService::FIELD] ?? null);
+            if (!$stepUp['ok']) {
+                Session::flash('error', $stepUp['error']);
+                $this->redirect("/hr/users/{$id}/edit");
+                return;
+            }
+        }
+
         // 5. Apply database update
         $updated = $this->userModel->updateRoleAndStatus($id, $role, $status);
 
@@ -249,6 +286,11 @@ class UserController extends Controller
             Session::flash('error', 'Failed to update user account in database. Please try again.');
             $this->redirect("/hr/users/{$id}/edit");
             return;
+        }
+
+        // 5b. Revoke out-of-band credentials; active sessions end on their next request
+        if ($roleChanged || $status !== 'Active') {
+            $this->revocation->revokeUser($id);
         }
 
         // 6. Record Audit Event in Activity Logs

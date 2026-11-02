@@ -67,11 +67,31 @@ class ActivityLog
     }
 
     /**
+     * Whether an audit row already exists for a given action on a specific entity.
+     * Supports idempotent event handlers so a replayed domain event does not write
+     * a duplicate audit entry on top of the one the controller already recorded.
+     */
+    public function existsForEntity(string $action, string $entityType, string $entityId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT 1 FROM activity_logs
+             WHERE action = :action AND entity_type = :entity_type AND entity_id = :entity_id
+             LIMIT 1"
+        );
+        $stmt->execute([
+            'action'      => $action,
+            'entity_type' => $entityType,
+            'entity_id'   => $entityId,
+        ]);
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
      * Record a new audit log entry.
      */
     public function log(?int $userId, string $action, string $description, ?string $entityType = null, ?string $entityId = null): bool
     {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $ip = client_ip() ?? '127.0.0.1';
         $agent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI', 0, 255);
 
         $stmt = $this->pdo->prepare("

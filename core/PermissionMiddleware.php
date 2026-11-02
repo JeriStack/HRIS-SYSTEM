@@ -23,8 +23,8 @@ class PermissionMiddleware extends Middleware
      */
     public function handle(): bool
     {
-        // 1. Must be authenticated
-        if (!isAuthenticated()) {
+        // 1. Must be authenticated with valid live account state
+        if (!isAuthenticated() || !Session::verifyAuthenticatedAccountState()) {
             if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
                 json_response([
                     'status'  => 'error',
@@ -33,7 +33,9 @@ class PermissionMiddleware extends Middleware
                 ], 401);
             }
 
-            Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            if (!Session::hasFlash('error') && !Session::hasFlash('timeout')) {
+                Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            }
             redirect('/login');
             return false;
         }

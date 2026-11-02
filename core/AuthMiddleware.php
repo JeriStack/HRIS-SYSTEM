@@ -9,11 +9,11 @@ namespace Core;
 class AuthMiddleware extends Middleware
 {
     /**
-     * Ensure the user has an active, authenticated session.
+     * Ensure the user has an active, authenticated session and valid live account state.
      */
     public function handle(): bool
     {
-        if (!isAuthenticated()) {
+        if (!isAuthenticated() || !Session::verifyAuthenticatedAccountState()) {
             $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
                 || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
 
@@ -25,7 +25,9 @@ class AuthMiddleware extends Middleware
                 ], 401);
             }
 
-            Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            if (!Session::hasFlash('error') && !Session::hasFlash('timeout')) {
+                Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            }
             redirect('/login');
             return false;
         }

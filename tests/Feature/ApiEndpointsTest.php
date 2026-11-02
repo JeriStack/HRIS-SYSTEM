@@ -31,7 +31,7 @@ class ApiEndpointsTest extends TestCase
         $yamlPath = dirname(__DIR__, 2) . '/docs/api/openapi.yaml';
         $this->assertFileExists($yamlPath, 'docs/api/openapi.yaml must exist.');
 
-        $spec = Yaml::parseFile($yamlPath);
+        $spec = Yaml::parse(file_get_contents($yamlPath));
         $this->assertIsArray($spec);
 
         // Verify OpenAPI version and Info block

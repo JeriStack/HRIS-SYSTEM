@@ -13,17 +13,27 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================================================
 let lastFocusedElement = null;
 
+let openModalId = null;
+
+const FOCUSABLE_SELECTOR = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function focusableIn(modal) {
+    return Array.from(modal.querySelectorAll(FOCUSABLE_SELECTOR))
+        .filter(el => el.offsetParent !== null || el === document.activeElement);
+}
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
 
     lastFocusedElement = document.activeElement;
+    openModalId = modalId;
     modal.classList.add('is-open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 
-    // Focus on first input or cancel button
-    const focusable = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    // Move focus into the dialog (first focusable control).
+    const focusable = focusableIn(modal);
     if (focusable.length) {
         setTimeout(() => focusable[0].focus(), 50);
     }
@@ -37,8 +47,46 @@ function closeModal(modalId) {
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
 
-    if (lastFocusedElement) {
+    if (openModalId === modalId) {
+        openModalId = null;
+    }
+
+    // Return focus to the control that opened the dialog.
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
         lastFocusedElement.focus();
+    }
+}
+
+/**
+ * Keyboard support for the currently open modal: Escape closes it, Tab is trapped
+ * within the dialog so focus cannot escape to the page behind it (WCAG 2.4.3 / 2.1.2).
+ */
+function handleModalKeydown(e) {
+    if (!openModalId) return;
+    const modal = document.getElementById(openModalId);
+    if (!modal) return;
+
+    if (e.key === 'Escape') {
+        closeModal(openModalId);
+        return;
+    }
+
+    if (e.key === 'Tab') {
+        const focusable = focusableIn(modal);
+        if (focusable.length === 0) {
+            e.preventDefault();
+            return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
     }
 }
 
@@ -61,6 +109,9 @@ function initModalHandlers() {
             }
         });
     });
+
+    // Single delegated keyboard handler for Escape + focus trap.
+    document.addEventListener('keydown', handleModalKeydown);
 }
 
 // ==========================================================================
@@ -71,7 +122,19 @@ function initFormSubmitGuard() {
         if (form.getAttribute('data-guard-initialized')) return;
         form.setAttribute('data-guard-initialized', 'true');
 
+        // Only guard state-changing submissions. GET forms (search/filter) must stay
+        // interactive and must never leave a disabled button behind.
+        if ((form.getAttribute('method') || 'get').toLowerCase() === 'get') {
+            return;
+        }
+
         form.addEventListener('submit', (e) => {
+            // An inline onsubmit (e.g. confirm()/prompt()) or native validation may cancel
+            // the submit. If so, do not lock the button — the form is not being sent.
+            if (e.defaultPrevented) {
+                return;
+            }
+
             if (form.hasAttribute('data-submitting')) {
                 e.preventDefault();
                 return false;
@@ -81,21 +144,42 @@ function initFormSubmitGuard() {
             if (submitBtn) {
                 form.setAttribute('data-submitting', 'true');
                 const originalHtml = submitBtn.innerHTML;
+                submitBtn.dataset.originalHtml = originalHtml;
                 submitBtn.disabled = true;
                 submitBtn.classList.add('is-loading');
                 submitBtn.innerHTML = `<span>⏳ Processing...</span>`;
 
                 // Failsafe: Re-enable after 8 seconds in case of client-side validation abort
                 setTimeout(() => {
-                    form.removeAttribute('data-submitting');
-                    submitBtn.disabled = false;
-                    submitBtn.classList.remove('is-loading');
-                    submitBtn.innerHTML = originalHtml;
+                    resetFormGuard(form);
                 }, 8000);
             }
         });
     });
 }
+
+/**
+ * Clear the duplicate-submit guard on a form and restore its submit button.
+ */
+function resetFormGuard(form) {
+    form.removeAttribute('data-submitting');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('is-loading');
+        if (submitBtn.dataset.originalHtml !== undefined) {
+            submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+        }
+    }
+}
+
+// When a page is restored from the back/forward cache, its forms were left "submitting"
+// during navigation. Reset every guard so buttons are usable again.
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+        document.querySelectorAll('form[data-submitting]').forEach(resetFormGuard);
+    }
+});
 
 // ==========================================================================
 // 3. Accessible Toast Feedback Notifications

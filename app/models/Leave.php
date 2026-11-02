@@ -379,14 +379,32 @@ class Leave
 
     /**
      * Adjust an employee's allocated leave days for a specific leave type and year.
-     * Recomputes remaining_days = GREATEST(0, allocated_days - used_days).
+     * Keeps the stored balance invariant remaining_days = allocated_days - used_days.
+     * Rejects an allocation below the days already used, which would otherwise store a
+     * drifted remaining_days (clamped to 0) that breaks later reads and approvals (LV-08).
+     *
+     * @return bool True on success; false when the allocation is below used days (see lastError).
      */
     public function adjustBalance(int $employeeId, int $leaveTypeId, int $year, int $allocatedDays): bool
     {
+        $this->lastError = null;
+        $this->lastErrorCode = null;
+
+        if ($allocatedDays < 0) {
+            $this->lastError = 'Allocated days cannot be negative.';
+            $this->lastErrorCode = 'invalid_allocation';
+            return false;
+        }
+
         $existing = $this->getBalance($employeeId, $leaveTypeId, $year);
         if ($existing) {
             $used = (int)$existing['used_days'];
-            $newRemaining = max(0, $allocatedDays - $used);
+            if ($allocatedDays < $used) {
+                $this->lastError = "Allocation ({$allocatedDays}) cannot be less than days already used ({$used}).";
+                $this->lastErrorCode = 'allocation_below_used';
+                return false;
+            }
+            $newRemaining = $allocatedDays - $used;
             $stmt = $this->pdo->prepare("
                 UPDATE leave_balances
                 SET allocated_days = :alloc,
@@ -903,7 +921,7 @@ class Leave
             }
 
             // 11. Create required activity log inside the transaction
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            $ip = client_ip() ?? '127.0.0.1';
             $agent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI', 0, 255);
             $logDescription = "Approved leave request #{$id} (Pending -> Approved, {$days} days of {$leaveType['leave_name']}) for {$employee['first_name']} {$employee['last_name']} (Employee #{$empId})";
 
@@ -1139,7 +1157,7 @@ class Leave
                 throw new RuntimeException('Failed to update leave request status to Rejected.');
             }
 
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            $ip = client_ip() ?? '127.0.0.1';
             $agent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'CLI', 0, 255);
             $reasonDesc = $cleanReason ?? 'No reason specified';
             $logDescription = "Rejected leave request #{$id} for {$request['first_name']} {$request['last_name']}. Reason: {$reasonDesc}";

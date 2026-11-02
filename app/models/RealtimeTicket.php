@@ -66,4 +66,20 @@ class RealtimeTicket extends Model
         $stmt->execute(['ref' => $sessionRef]);
         return $stmt->rowCount();
     }
+
+    /**
+     * Revoke every outstanding ticket belonging to a user across all browser sessions.
+     * Used when an account is deactivated, its role changes, or its employee record is
+     * deactivated, so live WebSocket connections are closed on the next revalidation sweep.
+     */
+    public function revokeAllForUser(int $userId): int
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE realtime_tickets SET revoked_at = NOW()
+              WHERE user_id = :user_id AND revoked_at IS NULL"
+        );
+        $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->rowCount();
+    }
 }

@@ -10,7 +10,7 @@ $userName = $user['name'] ?? $user['username'] ?? 'User';
 $rawRole = strtolower($user['role'] ?? 'employee');
 $initials = strtoupper(substr($userName, 0, 2));
 
-if ($rawRole === 'hr' || $rawRole === 'admin') {
+if ($rawRole === 'hr') {
     $dashboardUrl = url('/hr/dashboard');
     $brandLabel = 'HR Portal';
     $roleTitle = 'HR Officer';
@@ -25,7 +25,7 @@ if ($rawRole === 'hr' || $rawRole === 'admin') {
 <aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
     <div class="sidebar-header">
         <a href="<?= $dashboardUrl ?>" class="sidebar-brand">
-            <span class="brand-icon <?= $iconClass ?>"><?= ($rawRole === 'hr' || $rawRole === 'admin') ? 'H' : 'E' ?></span>
+            <span class="brand-icon <?= $iconClass ?>"><?= ($rawRole === 'hr') ? 'H' : 'E' ?></span>
             <span><?= e($brandLabel) ?></span>
         </a>
     </div>
@@ -37,7 +37,7 @@ if ($rawRole === 'hr' || $rawRole === 'admin') {
             <span>Dashboard</span>
         </a>
 
-        <?php if ($rawRole === 'hr' || $rawRole === 'admin'): ?>
+        <?php if ($rawRole === 'hr'): ?>
             <div class="nav-section-title">Administration</div>
             <a href="<?= url('/hr/users') ?>" class="nav-item <?= (str_contains($currentPath, '/hr/users') || str_contains($currentPath, '/admin/users')) ? 'active' : '' ?>">
                 <span class="icon" aria-hidden="true">👥</span>

@@ -245,6 +245,49 @@ class Employee extends Model
      */
     public function update(int $id, array $data): bool
     {
+        // Load the prior employment status so we can tell a reactivation apart from an edit.
+        $before = $this->findById($id);
+        $previousStatus = $before['employment_status'] ?? null;
+        $newStatus = $data['employment_status'] ?? 'Active';
+
+        // The employee row and its linked login account must change together or not at all.
+        $this->beginTransaction();
+        try {
+            $updated = $this->updateEmployeeRow($id, $data);
+            if (!$updated) {
+                $this->rollBack();
+                return false;
+            }
+
+            if ($newStatus !== 'Active') {
+                // A non-Active employee must never retain an Active login.
+                $this->execute(
+                    "UPDATE users SET status = 'Inactive' WHERE employee_id = :emp_id",
+                    ['emp_id' => $id]
+                );
+            } elseif ($previousStatus !== null && $previousStatus !== 'Active') {
+                // Reactivating an employee restores their linked login account (decision F.3).
+                // The account keeps its identity and history; normal login + MFA still apply.
+                $this->execute(
+                    "UPDATE users SET status = 'Active' WHERE employee_id = :emp_id",
+                    ['emp_id' => $id]
+                );
+            }
+
+            $this->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->rollBack();
+            error_log("Failed to update employee {$id}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Persist the employee record columns (without account side effects).
+     */
+    private function updateEmployeeRow(int $id, array $data): bool
+    {
         $sql = "
             UPDATE employees
             SET 

@@ -30,7 +30,7 @@ if (isAuthenticated()) {
         </button>
         <div class="header-breadcrumb top-bar-title">
             <span class="system-status-indicator" title="System Status: Operational" aria-hidden="true"></span>
-            <strong><?= e($pageTitle ?? 'Employee HRIS Portal') ?></strong>
+            <strong><?= e($pageTitle ?? 'NEXORA HR') ?></strong>
         </div>
     </div>
 

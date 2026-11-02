@@ -260,6 +260,15 @@
             </div>
         </div>
 
+        <?php if ($employee['employment_status'] === 'Active'): ?>
+            <?php
+            $stepUpFieldId = 'edit_current_password';
+            $stepUpHelp = 'Required only if you change Employment Status to Inactive. Confirm your own HR account password.';
+            $stepUpOptional = true;
+            require __DIR__ . '/../partials/step_up_field.php';
+            ?>
+        <?php endif; ?>
+
         <!-- Form Submission Actions -->
         <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-bottom: 3rem;">
             <a href="<?= url('/hr/employees/' . $employee['id']) ?>" class="btn btn-secondary">

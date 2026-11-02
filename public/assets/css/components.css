@@ -261,7 +261,22 @@
 .form-textarea:focus {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
-    outline: none;
+    /* Keep a transparent outline so a visible focus indicator survives Windows High Contrast
+       mode, where box-shadow is dropped (WCAG 2.4.7 / 1.4.11). */
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+}
+
+/* Explicit keyboard-focus ring for interactive controls, drawn only for keyboard users. */
+.form-control:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.form-textarea:focus-visible,
+.btn:focus-visible,
+a:focus-visible,
+button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
 }
 
 .form-control.is-invalid,

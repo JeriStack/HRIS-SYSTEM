@@ -134,6 +134,26 @@
                     </div>
                 </div>
 
+                <?php if (!empty($stepUpRequired) || !empty($errors['current_password'])): ?>
+                    <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem;">
+                        <label for="current_password" style="display: block; font-size: 0.8125rem; font-weight: 600; color: #1E293B; margin-bottom: 0.35rem;">
+                            Confirm Your Current Password <span style="color: #DC2626;">*</span>
+                        </label>
+                        <p style="color: #64748B; font-size: 0.75rem; margin-top: 0; margin-bottom: 0.5rem;">
+                            Step-up security check: To provision user accounts, please confirm your own active HR password.
+                        </p>
+                        <input type="password" 
+                               id="current_password" 
+                               name="current_password" 
+                               autocomplete="current-password"
+                               placeholder="Enter your current password"
+                               style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                        <?php if (!empty($errors['current_password'])): ?>
+                            <div style="color: #DC2626; font-size: 0.75rem; margin-top: 0.35rem;"><?= e($errors['current_password']) ?></div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- Form Actions -->
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #F1F5F9;">
                     <a href="<?= url('/hr/users') ?>" class="btn btn-secondary">Cancel</a>

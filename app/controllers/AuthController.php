@@ -110,6 +110,27 @@ class AuthController extends Controller
 
         $email = strtolower($rawEmail);
 
+        // 3b. Primary login rate limiting (per account identifier and per client IP)
+        $rateLimit = $this->userModel->checkLoginRateLimit($email, client_ip());
+        if ($rateLimit['limited']) {
+            $this->userModel->logActivity(
+                null,
+                'AUTH_RATE_LIMITED',
+                'Sign-in temporarily blocked after repeated failed attempts',
+                'USER',
+                login_identifier_key($email)
+            );
+
+            $minutes = max(1, (int)ceil($rateLimit['retry_after'] / 60));
+            Session::flash('error', "Too many failed sign-in attempts. Please try again in about {$minutes} minute(s).");
+            Session::flash('old_email', $rawEmail);
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
+            $this->redirect('/login');
+            return;
+        }
+
         // 4. Query User by Normalized Registered Email Address
         $user = $this->userModel->findByEmail($email);
 
@@ -121,9 +142,9 @@ class AuthController extends Controller
             $this->userModel->logActivity(
                 null,
                 'AUTH_FAILED',
-                "Failed authentication attempt for unknown or inactive email: {$email}",
+                'Failed authentication attempt for unknown or inactive account: ' . mask_email($email),
                 'USER',
-                $email
+                login_identifier_key($email)
             );
 
             Session::flash('error', 'Invalid email address or password. Please verify your credentials and try again.');
@@ -141,7 +162,7 @@ class AuthController extends Controller
             $this->userModel->logActivity(
                 (int)$user['id'],
                 'AUTH_FAILED',
-                "Password verification failed for email: {$email}",
+                'Password verification failed for account: ' . mask_email($email),
                 'USER',
                 (string)$user['id']
             );
@@ -160,7 +181,7 @@ class AuthController extends Controller
             $this->userModel->logActivity(
                 (int)$user['id'],
                 'AUTH_BLOCKED',
-                "Login blocked for deactivated employee: {$user['employee_no']} ({$email})",
+                "Login blocked for deactivated employee: {$user['employee_no']} (" . mask_email($email) . ")",
                 'USER',
                 (string)$user['id']
             );
@@ -200,7 +221,7 @@ class AuthController extends Controller
             $this->userModel->logActivity(
                 (int)$user['id'],
                 'AUTH_PORTAL_MISMATCH',
-                "Portal mismatch: User with role '{$role}' attempted sign-in via '{$portalRole}' portal ({$email})",
+                "Portal mismatch: User with role '{$role}' attempted sign-in via '{$portalRole}' portal (" . mask_email($email) . ")",
                 'USER',
                 (string)$user['id']
             );
@@ -260,6 +281,18 @@ class AuthController extends Controller
             return;
         }
 
+        // 10c. Cap OTP issuance to prevent inbox flooding via repeated sign-in attempts
+        $issuance = $this->otpModel->checkIssuanceRateLimit((int)$user['id']);
+        if (!$issuance['allowed']) {
+            $minutes = max(1, (int)ceil($issuance['retry_after'] / 60));
+            Session::flash('error', "Too many verification codes were requested. Please try again in about {$minutes} minute(s).");
+            if ($portalRole !== '') {
+                Session::flash('old_portal_role', $portalRole);
+            }
+            $this->redirect('/login');
+            return;
+        }
+
         // 11. Generate Cryptographically Secure 6-Digit Numeric OTP
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
@@ -280,7 +313,7 @@ class AuthController extends Controller
             $this->userModel->logActivity(
                 (int)$user['id'],
                 'AUTH_OTP_DELIVERY_FAILED',
-                "Failed to dispatch OTP email to {$recipientEmail}: " . ($this->mailService->getLastError() ?? 'SMTP error'),
+                "Failed to dispatch OTP email to " . mask_email($recipientEmail) . ": " . ($this->mailService->getLastError() ?? 'SMTP error'),
                 'USER',
                 (string)$user['id']
             );
@@ -305,7 +338,7 @@ class AuthController extends Controller
         $this->userModel->logActivity(
             (int)$user['id'],
             'AUTH_OTP_DISPATCHED',
-            "OTP verification code sent to registered email for user: {$recipientEmail}",
+            "OTP verification code sent to registered email for user: " . mask_email($recipientEmail),
             'USER',
             (string)$user['id']
         );
@@ -446,6 +479,14 @@ class AuthController extends Controller
             return;
         }
 
+        // 5b. Linked employee record must still be active
+        if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
+            $this->clearPendingOtpSession();
+            Session::flash('error', 'Your employment account is inactive. Please contact Human Resources.');
+            $this->redirect('/login');
+            return;
+        }
+
         // 6. Enforce Strict Application Roles: Only HR and Employee are permitted
         $role = strtolower((string)$user['role']);
         if ($role !== 'hr' && $role !== 'employee') {
@@ -462,6 +503,10 @@ class AuthController extends Controller
             $this->redirect('/login');
             return;
         }
+
+        // 6b. Bind the session to the current security-relevant account state
+        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
+        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
 
         // 7. Regenerate Session ID to Prevent Session Fixation
         Session::regenerate(true);
@@ -484,6 +529,8 @@ class AuthController extends Controller
             'department'  => $user['department_name'] ?? 'Unassigned',
             'position'    => $user['position_name'] ?? 'Unassigned',
             'login_time'  => time(),
+            'last_mfa_verified_at' => time(),
+            'auth_fingerprint'     => $authFingerprint,
         ]);
         Session::set('last_activity', time());
 
@@ -567,6 +614,15 @@ class AuthController extends Controller
 
         $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
         $displayName = $fullName !== '' ? $fullName : $user['username'];
+
+        // 4b. Cap OTP issuance (inbox-flooding protection)
+        $issuance = $this->otpModel->checkIssuanceRateLimit($pendingUserId);
+        if (!$issuance['allowed']) {
+            $minutes = max(1, (int)ceil($issuance['retry_after'] / 60));
+            Session::flash('error', "Too many verification codes were requested. Please try again in about {$minutes} minute(s).");
+            $this->redirect('/verify-otp');
+            return;
+        }
 
         // 5. Generate and Persist New OTP
         $plainOtp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -677,14 +733,18 @@ class AuthController extends Controller
      */
     public function logout(): void
     {
-        // State-changing POST requests require CSRF token validation
-        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
-            $token = $_POST['_csrf_token'] ?? null;
-            if (!verify_csrf_token($token)) {
-                Session::flash('error', 'Security token expired or invalid.');
-                $this->redirect('/dashboard');
-                return;
-            }
+        // Logout changes server state: only a CSRF-validated POST may end the session.
+        // (The router no longer maps GET /logout; this guard is defense in depth.)
+        if (strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->redirect('/dashboard');
+            return;
+        }
+
+        $token = $_POST['_csrf_token'] ?? null;
+        if (!verify_csrf_token($token)) {
+            Session::flash('error', 'Security token expired or invalid.');
+            $this->redirect('/dashboard');
+            return;
         }
 
         $userId = currentUserId();

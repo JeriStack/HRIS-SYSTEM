@@ -190,4 +190,122 @@ class AuthenticationTest extends TestCase
             'role'     => 'admin', // strictly prohibited in 2-role model; only hr and employee
         ]);
     }
+
+    public function test_session_absolute_lifetime_invalidates_session_after_twelve_hours(): void
+    {
+        Session::set('user', [
+            'id'         => 15,
+            'role'       => 'employee',
+            'login_time' => time() - 43300, // Exceeds 12 hours (43200 seconds)
+        ]);
+        Session::set('last_activity', time() - 60); // Inactivity is still fresh (1 min)
+
+        Session::checkInactivityTimeout();
+
+        $this->assertFalse(Session::has('user'), 'Session must be invalidated when absolute lifetime is reached.');
+        $this->assertSame(
+            'Your maximum session duration has expired. Please sign in again.',
+            Session::getFlash('timeout')
+        );
+    }
+
+    public function test_auth_fingerprint_generation_and_validation(): void
+    {
+        $userRow = [
+            'id'                => 10,
+            'role'              => 'employee',
+            'status'            => 'Active',
+            'employment_status' => 'Active',
+            'password'          => '$2y$10$abcdefghijklmnopqrstuv',
+        ];
+
+        $fp1 = Session::computeAuthFingerprint($userRow);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $fp1);
+
+        // Identical state produces identical fingerprint
+        $this->assertSame($fp1, Session::computeAuthFingerprint($userRow));
+
+        // State changes alter fingerprint
+        $modifiedRow = $userRow;
+        $modifiedRow['role'] = 'hr';
+        $this->assertNotSame($fp1, Session::computeAuthFingerprint($modifiedRow));
+
+        $modifiedPassword = $userRow;
+        $modifiedPassword['password'] = '$2y$10$changedpasswordhashxxxx';
+        $this->assertNotSame($fp1, Session::computeAuthFingerprint($modifiedPassword));
+
+        $modifiedStatus = $userRow;
+        $modifiedStatus['status'] = 'Inactive';
+        $this->assertNotSame($fp1, Session::computeAuthFingerprint($modifiedStatus));
+    }
+
+    public function test_step_up_authentication_service_workflow(): void
+    {
+        $service = new \App\Services\StepUpAuthService();
+
+        // 1. Unauthenticated session fails step-up
+        Session::remove('user');
+        $this->assertFalse($service->hasRecentVerification());
+        $res = $service->verify('TEST_ACTION', null);
+        $this->assertFalse($res['ok']);
+
+        // 2. Authenticated session with recent MFA succeeds immediately without re-prompt
+        Session::set('user', [
+            'id'                   => 50,
+            'role'                 => 'hr',
+            'last_mfa_verified_at' => time() - 120, // 2 minutes ago (well within 15m window)
+        ]);
+        $this->assertTrue($service->hasRecentVerification());
+        $res2 = $service->verify('TEST_ACTION', null);
+        $this->assertTrue($res2['ok']);
+
+        // 3. Authenticated session with expired window requires password
+        Session::set('user', [
+            'id'                   => 50,
+            'role'                 => 'hr',
+            'last_mfa_verified_at' => time() - 1200, // 20 minutes ago (expired)
+        ]);
+        $this->assertFalse($service->hasRecentVerification());
+        $res3 = $service->verify('TEST_ACTION', null);
+        $this->assertFalse($res3['ok']);
+        $this->assertStringContainsString('confirm your current password', $res3['error']);
+    }
+
+    public function test_keyed_otp_pepper_and_backward_compatibility(): void
+    {
+        $userId = 20;
+        $plainOtp = '654321';
+
+        // 1. Legacy hash (unpeppered password_hash)
+        $legacyHash = password_hash($plainOtp, PASSWORD_DEFAULT);
+        $this->assertTrue(\App\Models\EmailOtp::verifyOtpHash($userId, $plainOtp, $legacyHash));
+        $this->assertFalse(\App\Models\EmailOtp::verifyOtpHash($userId, '000000', $legacyHash));
+
+        // 2. Peppered hash with OTP_PEPPER_SECRET
+        putenv('OTP_PEPPER_SECRET=test_master_pepper_secret_key_12345');
+        $_ENV['OTP_PEPPER_SECRET'] = 'test_master_pepper_secret_key_12345';
+
+        $pepper = \App\Models\EmailOtp::computePepper($userId, $plainOtp);
+        $this->assertNotNull($pepper);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $pepper);
+
+        $pepperedHash = \App\Models\EmailOtp::hashOtp($userId, $plainOtp);
+        $this->assertTrue(\App\Models\EmailOtp::verifyOtpHash($userId, $plainOtp, $pepperedHash));
+        $this->assertFalse(\App\Models\EmailOtp::verifyOtpHash($userId, '111222', $pepperedHash));
+
+        // Legacy hashes still verify correctly even when pepper is active
+        $this->assertTrue(\App\Models\EmailOtp::verifyOtpHash($userId, $plainOtp, $legacyHash));
+
+        // Clean up environment
+        putenv('OTP_PEPPER_SECRET=');
+        unset($_ENV['OTP_PEPPER_SECRET']);
+    }
+
+    public function test_account_revocation_service_execution(): void
+    {
+        $revocation = new \App\Services\AccountRevocationService();
+        // Method should execute cleanly and safely even if user has no active tickets
+        $revocation->revokeUser(999);
+        $this->assertTrue(true);
+    }
 }

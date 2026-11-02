@@ -317,23 +317,28 @@ class ReportController extends Controller
     public function departments(): void
     {
         // 1. Department Summary with Headcount and Leave Utilization
+        // Per-department aggregates are computed with correlated subqueries rather than a
+        // multi-table join. Joining employees, positions and leave_requests together
+        // produced a row fan-out that multiplied the headcount and approved-day sums
+        // (each employee counted once per position and once per leave request). Subqueries
+        // keep every total independent and correct.
         $departmentSummaries = $this->pdo->query("
-            SELECT 
-                d.id, 
-                d.department_name, 
+            SELECT
+                d.id,
+                d.department_name,
                 d.description,
-                COUNT(DISTINCT e.id) as total_employees,
-                SUM(CASE WHEN e.employment_status = 'Active' THEN 1 ELSE 0 END) as active_employees,
-                SUM(CASE WHEN e.employment_status != 'Active' AND e.id IS NOT NULL THEN 1 ELSE 0 END) as inactive_employees,
-                COUNT(DISTINCT p.id) as total_positions,
-                COUNT(DISTINCT lr.id) as total_leave_requests,
-                COALESCE(SUM(CASE WHEN lr.status = 'Approved' THEN lr.number_of_days ELSE 0 END), 0) as approved_leave_days
+                (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id) AS total_employees,
+                (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id AND e.employment_status = 'Active') AS active_employees,
+                (SELECT COUNT(*) FROM employees e WHERE e.department_id = d.id AND e.employment_status <> 'Active') AS inactive_employees,
+                (SELECT COUNT(*) FROM positions p WHERE p.department_id = d.id) AS total_positions,
+                (SELECT COUNT(*) FROM leave_requests lr
+                    JOIN employees e2 ON lr.employee_id = e2.id
+                    WHERE e2.department_id = d.id) AS total_leave_requests,
+                (SELECT COALESCE(SUM(lr.number_of_days), 0) FROM leave_requests lr
+                    JOIN employees e3 ON lr.employee_id = e3.id
+                    WHERE e3.department_id = d.id AND lr.status = 'Approved') AS approved_leave_days
             FROM departments d
-            LEFT JOIN employees e ON d.id = e.department_id
-            LEFT JOIN positions p ON d.id = p.department_id
-            LEFT JOIN leave_requests lr ON e.id = lr.employee_id
-            GROUP BY d.id, d.department_name, d.description
-            ORDER BY total_employees DESC
+            ORDER BY total_employees DESC, d.department_name ASC
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         // 2. Organization Totals

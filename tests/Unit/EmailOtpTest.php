@@ -76,6 +76,12 @@ class EmailOtpTest extends TestCase
         $otpModel->invalidateUserChallenges($testUserId);
     }
 
+    public function test_issuance_rate_limiting_constants(): void
+    {
+        $this->assertSame(5, EmailOtp::MAX_ISSUANCES_PER_WINDOW);
+        $this->assertSame(900, EmailOtp::ISSUANCE_WINDOW);
+    }
+
     public function test_lockout_and_pending_session_policy_constants(): void
     {
         $this->assertSame(10, EmailOtp::LOCKOUT_THRESHOLD);

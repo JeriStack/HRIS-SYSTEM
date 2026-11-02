@@ -182,4 +182,137 @@ class ApproveLeaveRequestUseCaseTest extends TestCase
 
         $this->useCase->execute($command);
     }
+
+    // -----------------------------------------------------------------
+    // LV-01: account/organization re-checks via the approval guard
+    // -----------------------------------------------------------------
+
+    private function useCaseWithGuard(\App\Domain\Leave\Repositories\LeaveApprovalGuardInterface $guard): ApproveLeaveRequestUseCase
+    {
+        return new ApproveLeaveRequestUseCase(
+            $this->requestRepo,
+            $this->balanceRepo,
+            $this->txManager,
+            null,
+            null,
+            $guard
+        );
+    }
+
+    private function seedPendingWithBalance(int $employeeId = 10, int $leaveTypeId = 1): int
+    {
+        $request = LeaveRequest::create($employeeId, $leaveTypeId, LeaveDateRange::fromStrings('2026-11-02', '2026-11-04'), 'Annual Leave');
+        $id = $this->requestRepo->save($request);
+        $this->balanceRepo->save(LeaveBalance::create($employeeId, $leaveTypeId, 2026, 15));
+        return $id;
+    }
+
+    public function test_guard_blocks_approval_by_non_hr_or_inactive_reviewer(): void
+    {
+        $id = $this->seedPendingWithBalance();
+        $guard = new FakeLeaveApprovalGuard(reviewerEmployeeId: null); // not active HR
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->useCaseWithGuard($guard)->execute(new ApproveLeaveCommand($id, 99));
+    }
+
+    public function test_guard_blocks_self_approval(): void
+    {
+        $id = $this->seedPendingWithBalance(employeeId: 10);
+        // Reviewer is an active HR user whose own employee record is #10 (the requester).
+        $guard = new FakeLeaveApprovalGuard(reviewerEmployeeId: 10);
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->expectExceptionMessage('own leave');
+        $this->useCaseWithGuard($guard)->execute(new ApproveLeaveCommand($id, 99));
+    }
+
+    public function test_guard_blocks_approval_for_inactive_employee(): void
+    {
+        $id = $this->seedPendingWithBalance();
+        $guard = new FakeLeaveApprovalGuard(reviewerEmployeeId: 500, employeeActive: false);
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->useCaseWithGuard($guard)->execute(new ApproveLeaveCommand($id, 99));
+    }
+
+    public function test_guard_blocks_approval_for_inactive_leave_type(): void
+    {
+        $id = $this->seedPendingWithBalance();
+        $guard = new FakeLeaveApprovalGuard(reviewerEmployeeId: 500, leaveTypeActive: false);
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->useCaseWithGuard($guard)->execute(new ApproveLeaveCommand($id, 99));
+    }
+
+    public function test_guard_allows_approval_for_active_hr_reviewer_of_another_employee(): void
+    {
+        $id = $this->seedPendingWithBalance(employeeId: 10);
+        $guard = new FakeLeaveApprovalGuard(reviewerEmployeeId: 500); // active HR, different employee
+
+        $this->useCaseWithGuard($guard)->execute(new ApproveLeaveCommand($id, 99));
+
+        $updated = $this->requestRepo->findById($id);
+        $this->assertTrue($updated->isApproved());
+        $this->assertSame(12, $this->balanceRepo->findByEmployeeAndType(10, 1, 2026)->remainingDays());
+    }
+
+    public function test_cross_year_request_is_rejected_before_balance_deduction(): void
+    {
+        // Dec 30 2026 to Jan 1 2027 spans two leave years.
+        $request = LeaveRequest::create(10, 1, LeaveDateRange::fromStrings('2026-12-30', '2027-01-01'), 'Year-end');
+        $id = $this->requestRepo->save($request);
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->expectExceptionMessage('multiple leave years');
+        $this->useCaseWithGuard(new FakeLeaveApprovalGuard(reviewerEmployeeId: 500))
+            ->execute(new ApproveLeaveCommand($id, 99));
+    }
+
+    public function test_overlap_with_already_approved_request_is_rejected(): void
+    {
+        // An approved request already occupies Nov 2 to Nov 4.
+        $approved = LeaveRequest::create(10, 1, LeaveDateRange::fromStrings('2026-11-02', '2026-11-04'), 'First');
+        $approved->approve(99);
+        $this->requestRepo->save($approved);
+
+        // A second pending request overlaps it.
+        $pending = LeaveRequest::create(10, 1, LeaveDateRange::fromStrings('2026-11-03', '2026-11-05'), 'Second');
+        $pendingId = $this->requestRepo->save($pending);
+        $this->balanceRepo->save(LeaveBalance::create(10, 1, 2026, 15));
+
+        $this->expectException(\App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException::class);
+        $this->expectExceptionMessage('overlaps');
+        $this->useCaseWithGuard(new FakeLeaveApprovalGuard(reviewerEmployeeId: 500))
+            ->execute(new ApproveLeaveCommand($pendingId, 99));
+    }
+}
+
+/**
+ * Minimal in-memory approval guard for unit tests.
+ */
+final class FakeLeaveApprovalGuard implements \App\Domain\Leave\Repositories\LeaveApprovalGuardInterface
+{
+    public function __construct(
+        private readonly ?int $reviewerEmployeeId,
+        private readonly bool $employeeActive = true,
+        private readonly bool $leaveTypeActive = true
+    ) {
+    }
+
+    public function activeHrReviewerEmployeeId(int $reviewerUserId): ?int
+    {
+        return $this->reviewerEmployeeId;
+    }
+
+    public function isEmployeeActive(int $employeeId): bool
+    {
+        return $this->employeeActive;
+    }
+
+    public function isLeaveTypeActive(int $leaveTypeId): bool
+    {
+        return $this->leaveTypeActive;
+    }
 }

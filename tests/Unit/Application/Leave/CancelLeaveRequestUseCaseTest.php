@@ -91,10 +91,12 @@ class CancelLeaveRequestUseCaseTest extends TestCase
         );
         $this->balanceRepo->save($balance);
 
+        // Cancelling an approved request is HR-only and requires a reason (decision F.2).
         $command = new CancelLeaveCommand(
             requestId: $requestId,
             requestingUserId: 99,
-            isHrOrAdmin: true
+            isHrOrAdmin: true,
+            reason: 'Approved in error; coverage no longer available.'
         );
 
         $this->useCase->execute($command);
@@ -107,6 +109,50 @@ class CancelLeaveRequestUseCaseTest extends TestCase
         $this->assertNotNull($updatedBal);
         $this->assertSame(0, $updatedBal->usedDays());
         $this->assertSame(15, $updatedBal->remainingDays());
+    }
+
+    public function test_cancelling_approved_leave_request_requires_a_reason(): void
+    {
+        $dateRange = LeaveDateRange::fromStrings('2026-11-02', '2026-11-04');
+        $request = LeaveRequest::create(10, 1, $dateRange, 'Vacation');
+        $request->approve(99);
+        $requestId = $this->requestRepo->save($request);
+
+        $this->balanceRepo->save(LeaveBalance::reconstitute(
+            id: 1, employeeId: 10, leaveTypeId: 1, year: 2026,
+            allocatedDays: 15, usedDays: 3, remainingDays: 12
+        ));
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        // HR, but no reason supplied -> rejected, balance untouched.
+        $this->useCase->execute(new CancelLeaveCommand(
+            requestId: $requestId,
+            requestingUserId: 99,
+            isHrOrAdmin: true
+        ));
+    }
+
+    public function test_employee_cannot_cancel_their_own_approved_request(): void
+    {
+        $dateRange = LeaveDateRange::fromStrings('2026-11-02', '2026-11-04');
+        $request = LeaveRequest::create(10, 1, $dateRange, 'Vacation');
+        $request->approve(99);
+        $requestId = $this->requestRepo->save($request);
+
+        $this->balanceRepo->save(LeaveBalance::reconstitute(
+            id: 1, employeeId: 10, leaveTypeId: 1, year: 2026,
+            allocatedDays: 15, usedDays: 3, remainingDays: 12
+        ));
+
+        $this->expectException(\DomainException::class);
+
+        // Non-HR caller (the owning employee) may cancel only a Pending request.
+        $this->useCase->execute(new CancelLeaveCommand(
+            requestId: $requestId,
+            requestingUserId: 10,
+            isHrOrAdmin: false
+        ));
     }
 
     public function test_throws_exception_if_unauthorized_user_tries_to_cancel(): void
