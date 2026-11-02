@@ -44,10 +44,10 @@ flowchart TD
 
 | Tool | Version | Scope / Target | Configuration File | Baseline / State File |
 | :--- | :--- | :--- | :--- | :--- |
-| **PHP_CodeSniffer** | `4.0.4` | PSR-12 code style across `app/`, `core/`, `tests/` | [`phpcs.xml.dist`](../../phpcs.xml.dist) | [`phpcs-baseline.json`](../../phpcs-baseline.json) |
-| **PHPStan** | `2.3.4` | Static analysis (Level 1) across `app/`, `core/` | [`phpstan.neon.dist`](../../phpstan.neon.dist) | [`phpstan-baseline.neon`](../../phpstan-baseline.neon) |
-| **TFLint** | `v0.55.0` | Terraform HCL linting (`terraform/`, `dev/`) | [`.tflint.hcl`](../../.tflint.hcl) | Ruleset: `terraform` (preset: `recommended`) |
-| **Hadolint** | `v2.12.0` | Dockerfile security and syntax | [`.hadolint.yaml`](../../.hadolint.yaml) | Failure threshold: `error` |
+| **PHP_CodeSniffer** | `4.0.4` | PSR-12 code style across `app/`, `core/`, `tests/` | [`phpcs.xml.dist`](../../../phpcs.xml.dist) | [`phpcs-baseline.json`](../../../phpcs-baseline.json) |
+| **PHPStan** | `2.3.4` | Static analysis (Level 1) across `app/`, `core/` | [`phpstan.neon.dist`](../../../phpstan.neon.dist) | [`phpstan-baseline.neon`](../../../phpstan-baseline.neon) |
+| **TFLint** | `v0.55.0` | Terraform HCL linting (`terraform/`, `dev/`) | [`.tflint.hcl`](../../../.tflint.hcl) | Ruleset: `terraform` (preset: `recommended`) |
+| **Hadolint** | `v2.12.0` | Dockerfile security and syntax | [`.hadolint.yaml`](../../../.hadolint.yaml) | Failure threshold: `error` |
 | **actionlint** | `latest` | Workflow definitions (`.github/workflows/*.yml`) | Built-in rules + shellcheck | Validates all YAML workflows |
 
 ---

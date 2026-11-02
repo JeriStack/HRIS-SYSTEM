@@ -161,6 +161,26 @@ class Session
                     self::invalidateAuthenticatedUser('Your session is no longer valid due to an account or security update. Please sign in again.');
                     return false;
                 }
+
+                // Keep session cache in sync with live user and employee records
+                $fullName = trim(($dbUser['first_name'] ?? '') . ' ' . ($dbUser['last_name'] ?? ''));
+                $displayName = $fullName !== '' ? $fullName : ($dbUser['username'] ?? ($sessionUser['username'] ?? 'User'));
+                $_SESSION['user']['name'] = $displayName;
+                if (!empty($dbUser['username'])) {
+                    $_SESSION['user']['username'] = $dbUser['username'];
+                }
+                if (!empty($dbUser['employee_no'])) {
+                    $_SESSION['user']['employee_no'] = $dbUser['employee_no'];
+                }
+                if (!empty($dbUser['department_name'])) {
+                    $_SESSION['user']['department'] = $dbUser['department_name'];
+                }
+                if (!empty($dbUser['position_name'])) {
+                    $_SESSION['user']['position'] = $dbUser['position_name'];
+                }
+                if (!empty($dbUser['email'])) {
+                    $_SESSION['user']['email'] = $dbUser['email'];
+                }
             }
         } catch (\Throwable $e) {
             error_log('[Session::verifyAuthenticatedAccountState] ' . $e->getMessage());

@@ -215,13 +215,23 @@ class User extends Model
         $sql = "
             SELECT
                 u.id,
+                u.username,
                 u.employee_id,
                 u.password,
                 u.role,
                 u.status,
-                e.employment_status
+                COALESCE(u.email, e.email) AS email,
+                e.employee_no,
+                e.first_name,
+                e.middle_name,
+                e.last_name,
+                e.employment_status,
+                d.department_name,
+                p.position_name
             FROM users u
             LEFT JOIN employees e ON u.employee_id = e.id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
             WHERE u.id = :id
             LIMIT 1
         ";

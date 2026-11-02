@@ -4,7 +4,7 @@
 
 The HRIS-SYSTEM Infrastructure as Code (IaC) layer has been refactored from a flat configuration into a **reusable, modular architecture**. The primary goals of this architecture are:
 
-1. **Encapsulation & Reusability:** Define self-contained infrastructure components under [`terraform/modules/`](../../terraform/modules/) that can be composed across multiple deployment tiers (local, dev, staging, prod).
+1. **Encapsulation & Reusability:** Define self-contained infrastructure components under [`terraform/modules/`](../../../terraform/modules/) that can be composed across multiple deployment tiers (local, dev, staging, prod).
 2. **Strict State Continuity:** Use declarative `moved` blocks to guarantee zero resource recreation or state file corruption when migrating from monolithic resource addresses to module paths.
 3. **Preserved Resource Ownership:** Maintain clean boundaries between **Docker Compose** (which manages the stateful production application, database, and monitoring services) and **Terraform** (which manages declarative infrastructure lifecycles).
 
@@ -86,7 +86,7 @@ terraform/
 
 ## 5. State Migration Strategy (`moved` Blocks)
 
-When resources were moved from the monolithic root configuration into child modules, standard Terraform `moved` blocks were added to [`terraform/main.tf`](../../terraform/main.tf):
+When resources were moved from the monolithic root configuration into child modules, standard Terraform `moved` blocks were added to [`terraform/main.tf`](../../../terraform/main.tf):
 
 ```hcl
 moved {

@@ -176,6 +176,7 @@
         return p === '/' ||
                p === '/index.php' ||
                p.indexOf('/dashboard') !== -1 ||
+               p.indexOf('/employees') !== -1 ||
                p.indexOf('/leaves') !== -1 ||
                p.indexOf('/employee/profile') !== -1 ||
                p.indexOf('/activity-logs') !== -1 ||

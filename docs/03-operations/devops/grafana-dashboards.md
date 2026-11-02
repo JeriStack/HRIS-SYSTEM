@@ -2,7 +2,7 @@
 
 ## 1. Provisioning Architecture
 
-Grafana v10.4.1 utilizes automated file-based provisioning. All data sources, dashboard providers, and dashboard layouts are defined as code in version-controlled files under [`docker/grafana/`](../../docker/grafana/).
+Grafana v10.4.1 utilizes automated file-based provisioning. All data sources, dashboard providers, and dashboard layouts are defined as code in version-controlled files under [`docker/grafana/`](../../../docker/grafana/).
 
 ### Directory Structure
 

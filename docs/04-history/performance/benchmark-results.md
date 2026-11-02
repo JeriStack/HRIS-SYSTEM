@@ -16,17 +16,17 @@ Testing was executed on **PHP 8.5.12 (cli)** using high-resolution monotonic har
 ### 2.1 Search Execution Latency vs. Dataset Scale
 The vector chart below plots search latency (in microseconds, $\mu s$) across scales $N = 10$ to $N = 10,000$.
 
-![Search Latency vs Dataset Size](../../benchmarks/results/graphs/chart_search_execution_time.svg)
+![Search Latency vs Dataset Size](../../../benchmarks/results/graphs/chart_search_execution_time.svg)
 
 ### 2.2 Sorting Algorithm Execution Time (Random Data)
 The vector chart below contrasts the quadratic time growth of `BubbleSort`, `SelectionSort`, and `InsertionSort` against the sub-second scaling of `MergeSort` and `QuickSort`.
 
-![Sorting Execution Time vs Dataset Size](../../benchmarks/results/graphs/chart_sorting_execution_time.svg)
+![Sorting Execution Time vs Dataset Size](../../../benchmarks/results/graphs/chart_sorting_execution_time.svg)
 
 ### 2.3 Impact of Input Arrangement on Sorting Performance ($N = 1,000$)
 The chart below illustrates algorithm adaptiveness across `random`, `sorted`, `reverse_sorted`, and `nearly_sorted` inputs.
 
-![Sorting Input Arrangement Impact](../../benchmarks/results/graphs/chart_sorting_arrangements.svg)
+![Sorting Input Arrangement Impact](../../../benchmarks/results/graphs/chart_sorting_arrangements.svg)
 
 ---
 

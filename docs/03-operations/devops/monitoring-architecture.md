@@ -68,7 +68,7 @@ flowchart TD
   - Authenticates securely to `hris_db:3306` with restricted monitor privileges.
   - Collects thread counts, InnoDB buffer pool metrics, query command breakdown, connection counters, and replication/table locks.
 - **PHP HRIS Application Runtime (`hris_app:80/metrics`)**:
-  - Custom endpoint implemented in [`app/controllers/HomeController.php`](../../app/controllers/HomeController.php#L39-L97).
+  - Custom endpoint implemented in [`app/controllers/HomeController.php`](../../../app/controllers/HomeController.php#L39-L97).
   - Emits application process health (`hris_app_up`), database connectivity status, query latency, PHP memory usage, and business domain counters (`hris_workforce_total_employees`, `hris_leave_pending_requests`).
 
 ### 3. Grafana Dashboard Visualizations
