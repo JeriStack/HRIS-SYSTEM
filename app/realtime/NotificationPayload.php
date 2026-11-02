@@ -36,7 +36,7 @@ final class NotificationPayload
     ];
 
     /**
-     * @param array{id:int|string, event_type:string, entity_id:int|string|null, created_ts:int|string|null} $row
+     * @param array{id:int|string, event_type:string, entity_id:int|string|null, created_ts:int|string|null, recipient_role?:string|null} $row
      */
     public static function fromRow(array $row): ?array
     {
@@ -49,15 +49,24 @@ final class NotificationPayload
         $entityId = isset($row['entity_id']) ? (int)$row['entity_id'] : 0;
         $createdTs = isset($row['created_ts']) ? (int)$row['created_ts'] : time();
 
+        $title = $template['title'];
+        $message = $template['message'];
+
         if ($event === EventAuthorizer::PROFILE_UPDATED) {
             $reference = $entityId > 0 ? 'EMP-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
-            $link = 'employee/profile';
+            $isHrRecipient = strtolower((string)($row['recipient_role'] ?? '')) === 'hr';
+            if ($isHrRecipient) {
+                $title = 'Employee record updated';
+                $message = 'Employee record %s was updated.';
+                $link = $entityId > 0 ? 'hr/employees/' . $entityId : 'hr/employees';
+            } else {
+                $link = 'employee/profile';
+            }
         } else {
             $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
             $link = $entityId > 0 ? 'leaves/' . $entityId : 'notifications';
         }
 
-        $message = $template['message'];
         if (str_contains($message, '%s')) {
             $message = sprintf($message, $reference !== null ? "#{$reference}" : '');
         }
@@ -68,7 +77,7 @@ final class NotificationPayload
             'id'    => 'notification:' . (int)$row['id'],
             'data'  => [
                 'notification_id' => (int)$row['id'],
-                'title'           => $template['title'],
+                'title'           => $title,
                 'message'         => $message,
                 'level'           => $template['level'],
                 'reference'       => $reference,

@@ -230,6 +230,21 @@ class EmployeeController extends ApiController
             (string)$id
         );
 
+        // Real-time notification for HR workforce views
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $notificationModel->notifyRole(
+                'hr',
+                'New Employee Registered',
+                "Employee record for {$fullName} ({$input['employee_no']}) was registered.",
+                'info',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[ApiEmployeeController] Failed to dispatch HR new employee notification: ' . $e->getMessage());
+        }
+
         $this->respond([
             'status'  => 'success',
             'code'    => 201,
@@ -329,6 +344,32 @@ class EmployeeController extends ApiController
         }
 
         $fullName = trim("{$input['first_name']} {$input['last_name']}");
+
+        // Real-time notification to linked employee and HR users
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $linkedUser = $this->userModel->findByEmployeeId($id);
+            if ($linkedUser && !empty($linkedUser['id'])) {
+                $notificationModel->create(
+                    (int)$linkedUser['id'],
+                    'Profile Updated',
+                    'Your employee profile record was updated by Human Resources.',
+                    'info',
+                    \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                    $id
+                );
+            }
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Record Updated',
+                "Employee record for {$fullName} ({$input['employee_no']}) was updated.",
+                'info',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[ApiEmployeeController] Failed to dispatch profile update notification: ' . $e->getMessage());
+        }
         $this->userModel->logActivity(
             (int)$currentUser['id'],
             'EMPLOYEE_UPDATED',
@@ -406,6 +447,21 @@ class EmployeeController extends ApiController
             (string)$id
         );
 
+        // Notify HR users so HR dashboard metrics update
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Deactivated',
+                "Employee record for {$empName} ({$employee['employee_no']}) was placed on Inactive status.",
+                'warning',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[ApiEmployeeController] Failed to dispatch HR deactivation notification: ' . $e->getMessage());
+        }
+
         $this->success(null, "Employee {$empName} ({$employee['employee_no']}) has been placed on Inactive status.");
     }
 
@@ -456,6 +512,32 @@ class EmployeeController extends ApiController
             'EMPLOYEE',
             (string)$id
         );
+
+        // Notify HR users and reactivated employee so dashboards reload
+        try {
+            $notificationModel = new \App\Models\Notification();
+            $notificationModel->notifyRole(
+                'hr',
+                'Employee Reactivated',
+                "Employee record for {$empName} ({$employee['employee_no']}) was reactivated.",
+                'success',
+                \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                $id
+            );
+            $linkedUser = $this->userModel->findByEmployeeId($id);
+            if ($linkedUser && !empty($linkedUser['id'])) {
+                $notificationModel->create(
+                    (int)$linkedUser['id'],
+                    'Account Reactivated',
+                    'Your employee record and account have been reactivated.',
+                    'success',
+                    \App\Realtime\EventAuthorizer::PROFILE_UPDATED,
+                    $id
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('[ApiEmployeeController] Failed to dispatch reactivation notification: ' . $e->getMessage());
+        }
 
         $this->success(null, "Employee {$empName} ({$employee['employee_no']}) has been reactivated.");
     }
