@@ -71,11 +71,33 @@
             <button type="submit" class="btn btn-primary" style="padding: 0.55rem 1rem;">
                 🔍 Search
             </button>
-            <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus)): ?>
+            <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus) || !empty($sortField) || !empty($searchAlgo)): ?>
                 <a href="<?= url('/hr/employees') ?>" class="btn btn-secondary" style="padding: 0.55rem 0.85rem;" title="Reset Filters">
                     ✕ Reset
                 </a>
             <?php endif; ?>
+        </div>
+
+        <!-- Sort controls (plain field + direction; ordering is an internal implementation detail). -->
+        <div style="flex-basis: 100%; height: 0;"></div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%; padding-top: 0.75rem; margin-top: 0.25rem; border-top: 1px dashed #E2E8F0;">
+            <span style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Sort by:</span>
+
+            <select name="sort" class="form-input" aria-label="Sort field" style="min-width: 160px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <option value="">Default (Name)</option>
+                <?php foreach (($sortFields ?? []) as $key => $col): ?>
+                    <option value="<?= e($key) ?>" <?= (($sortField ?? '') === $key) ? 'selected' : '' ?>>
+                        <?= e(ucwords(str_replace('_', ' ', $key))) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <select name="dir" class="form-input" aria-label="Sort direction" style="min-width: 120px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+                <option value="asc" <?= (($sortDir ?? 'asc') === 'asc') ? 'selected' : '' ?>>Ascending</option>
+                <option value="desc" <?= (($sortDir ?? 'asc') === 'desc') ? 'selected' : '' ?>>Descending</option>
+            </select>
+
+            <button type="submit" class="btn btn-secondary btn-sm" style="padding: 0.45rem 0.85rem;">Apply Sort</button>
         </div>
     </form>
 </div>
@@ -177,7 +199,7 @@
 </div>
 
 <!-- Soft-Deactivation Confirmation Modal -->
-<div id="deactivateModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+<div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">⚠️</div>
@@ -195,10 +217,18 @@
             </span>
         </p>
 
-        <form id="deactivateForm" method="POST" action="" style="margin: 0; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <form id="deactivateForm" method="POST" action="" style="margin: 0;">
             <?= csrf_field() ?>
-            <button type="button" class="btn btn-secondary" onclick="closeDeactivateModal()">Cancel</button>
-            <button type="submit" class="btn btn-danger" style="font-weight: 600;">Confirm Deactivation</button>
+            <?php
+            $stepUpFieldId = 'deactivate_current_password';
+            $stepUpHelp = 'Deactivation is a sensitive action. Confirm your own HR account password to continue.';
+            $stepUpOptional = false;
+            require __DIR__ . '/../partials/step_up_field.php';
+            ?>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeDeactivateModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger" style="font-weight: 600;">Confirm Deactivation</button>
+            </div>
         </form>
     </div>
 </div>
@@ -208,17 +238,11 @@
         document.getElementById('deactivateEmpName').textContent = name;
         document.getElementById('deactivateEmpNo').textContent = empNo;
         document.getElementById('deactivateForm').action = '<?= url("/hr/employees/") ?>' + id + '/deactivate';
-        document.getElementById('deactivateModal').style.display = 'flex';
+        // openModal (app.js) applies the shared focus trap, Escape handling and focus return.
+        openModal('deactivateModal');
     }
 
     function closeDeactivateModal() {
-        document.getElementById('deactivateModal').style.display = 'none';
+        closeModal('deactivateModal');
     }
-
-    // Close modal on Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeDeactivateModal();
-        }
-    });
 </script>

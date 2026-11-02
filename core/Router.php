@@ -19,6 +19,7 @@ class Router
         'POST'   => [],
         'PUT'    => [],
         'DELETE' => [],
+        'PATCH'  => [],
     ];
 
     /**
@@ -35,6 +36,30 @@ class Router
     public function post(string $path, array|callable $handler, array $middleware = []): self
     {
         return $this->addRoute('POST', $path, $handler, $middleware);
+    }
+
+    /**
+     * Register a PUT route.
+     */
+    public function put(string $path, array|callable $handler, array $middleware = []): self
+    {
+        return $this->addRoute('PUT', $path, $handler, $middleware);
+    }
+
+    /**
+     * Register a DELETE route.
+     */
+    public function delete(string $path, array|callable $handler, array $middleware = []): self
+    {
+        return $this->addRoute('DELETE', $path, $handler, $middleware);
+    }
+
+    /**
+     * Register a PATCH route.
+     */
+    public function patch(string $path, array|callable $handler, array $middleware = []): self
+    {
+        return $this->addRoute('PATCH', $path, $handler, $middleware);
     }
 
     /**
@@ -111,6 +136,46 @@ class Router
     {
         $httpMethod = strtoupper($method ?? ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
         $requestPath = $path !== null ? $this->normalizePath($path) : $this->resolveRequestPath();
+
+        // Handle Cross-Origin Resource Sharing (CORS) for API and docs routes
+        $isApi = str_starts_with($requestPath, '/api/') || str_starts_with($requestPath, '/docs');
+        if ($isApi) {
+            $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+            $allowOrigin = false;
+
+            if ($origin !== '') {
+                // Relaxed localhost CORS only for explicit non-production environments
+                $isLocalDev = in_array(config('config.app_env', 'production'), ['development', 'local', 'testing'], true);
+                if ($isLocalDev && preg_match('#^https?://(localhost|127\.0\.0\.1)(:\d+)?$#i', $origin)) {
+                    $allowOrigin = true;
+                } else {
+                    $baseUrl = getenv('BASE_URL') ?: 'http://localhost:8080';
+                    $parsedBase = parse_url($baseUrl, PHP_URL_HOST);
+                    $parsedOrigin = parse_url($origin, PHP_URL_HOST);
+                    if ($parsedBase && $parsedOrigin && strcasecmp($parsedBase, $parsedOrigin) === 0) {
+                        $allowOrigin = true;
+                    }
+                }
+
+                if ($allowOrigin) {
+                    header("Access-Control-Allow-Origin: {$origin}");
+                    header("Access-Control-Allow-Credentials: true");
+                    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
+                    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin");
+                    header("Access-Control-Max-Age: 86400");
+                }
+            }
+
+            if ($httpMethod === 'OPTIONS') {
+                if (!$allowOrigin && $origin === '') {
+                    header("Access-Control-Allow-Origin: *");
+                    header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, PATCH, OPTIONS");
+                    header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Accept, Origin");
+                }
+                http_response_code(204);
+                exit;
+            }
+        }
 
         $pathMatchedOtherMethod = false;
 
@@ -201,6 +266,17 @@ class Router
      */
     private function renderError(int $code, string $title, string $message): void
     {
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $acceptHeader = $_SERVER['HTTP_ACCEPT'] ?? '';
+        if (str_contains($requestUri, '/api/') || str_contains($acceptHeader, 'application/json')) {
+            json_response([
+                'status'  => 'error',
+                'code'    => $code,
+                'message' => $message,
+            ], $code);
+            return;
+        }
+
         // If an explicit 404 view exists in app/views/errors/{code}.php, render it
         $customView = __DIR__ . "/../app/views/errors/{$code}.php";
         if (file_exists($customView)) {

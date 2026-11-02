@@ -1,0 +1,25 @@
+# ==============================================================================
+# Terraform Variables Example
+# HRIS-SYSTEM — Local Infrastructure as Code
+# ==============================================================================
+# Copy this file to terraform.tfvars to customize your local configuration.
+# Do NOT store secrets, credentials, or private tokens in this file.
+# ==============================================================================
+
+# Docker daemon connection endpoint:
+# Windows (Docker Desktop): "npipe:////./pipe/docker_engine"
+# Linux / macOS:            "unix:///var/run/docker.sock"
+docker_host = "npipe:////./pipe/docker_engine"
+
+# Deployment environment label
+environment = "local"
+
+# Custom container name for isolated demonstration resource
+test_container_name = "hris_tf_test_sandbox"
+
+# Pinned image used for demonstration container
+test_image_name = "alpine:3.21.3"
+
+# Isolated demonstration network
+test_network_name = "hris_tf_test_network"
+

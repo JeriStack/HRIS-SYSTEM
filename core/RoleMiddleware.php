@@ -11,7 +11,7 @@ class RoleMiddleware extends Middleware
     private array $allowedRoles;
 
     /**
-     * @param array|string $roles Allowed role or list of allowed roles (e.g. ['admin', 'hr'] or 'employee')
+     * @param array|string $roles Allowed role or list of allowed roles (strictly 'hr' or 'employee')
      */
     public function __construct(array|string $roles)
     {
@@ -23,9 +23,12 @@ class RoleMiddleware extends Middleware
      */
     public function handle(): bool
     {
-        // 1. Must be authenticated
-        if (!isAuthenticated()) {
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+        // 1. Must be authenticated with valid live account state
+        if (!isAuthenticated() || !Session::verifyAuthenticatedAccountState()) {
+            $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 401,
@@ -33,7 +36,9 @@ class RoleMiddleware extends Middleware
                 ], 401);
             }
 
-            Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            if (!Session::hasFlash('error') && !Session::hasFlash('timeout')) {
+                Session::flash('error', 'Authentication required. Please sign in to access this page.');
+            }
             redirect('/login');
             return false;
         }
@@ -45,7 +50,10 @@ class RoleMiddleware extends Middleware
         if (!$userRole || !in_array(strtolower($userRole), $normalizedAllowed, true)) {
             http_response_code(403);
 
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+                || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 403,

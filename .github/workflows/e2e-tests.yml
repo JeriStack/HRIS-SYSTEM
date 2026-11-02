@@ -1,0 +1,133 @@
+name: End-to-End UI Testing (Selenium & Headless Chrome)
+
+on:
+  push:
+    branches:
+      - main
+      - development
+      - develop
+      - 'HRIS-*'
+  pull_request:
+    branches:
+      - main
+      - development
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: hris-e2e-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-tests:
+    name: Selenium WebDriver UI Automation
+    runs-on: ubuntu-24.04
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_root_password
+          MYSQL_DATABASE: hris_test
+          MYSQL_USER: hris_test_user
+          MYSQL_PASSWORD: test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ptest_root_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_DRIVER: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_DATABASE: hris_test
+      DB_USERNAME: hris_test_user
+      DB_PASSWORD: test_password
+      APP_ENV: testing
+      # Align the PHP application clock with the MySQL service (both UTC in CI runners).
+      # The app defaults to Asia/Manila (UTC+8); without this the OTP challenge's
+      # expires_at (rebased onto the DB clock by the E2E auth helper) is read back by
+      # verifyOtp() on the PHP clock and evaluates as already expired, which blocks the
+      # real /verify-otp step and makes every authenticated test time out.
+      TIMEZONE: UTC
+      BASE_URL: "http://127.0.0.1:8080"
+      HRIS_BASE_URL: "http://127.0.0.1:8080"
+      SELENIUM_BROWSER: chrome
+      SELENIUM_HEADLESS: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo, pdo_mysql, mbstring, curl, json, openssl, ctype, fileinfo
+          tools: composer
+          coverage: none
+
+      - name: Install Composer dependencies
+        shell: bash
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Initialize Test Database Schema & Seed Data
+        shell: bash
+        run: |
+          mysql -h 127.0.0.1 -u hris_test_user -ptest_password hris_test < database/schema.sql
+          for migration in database/migrations/*.sql; do
+            if [ -f "$migration" ]; then
+              echo "Applying migration: $migration"
+              mysql -h 127.0.0.1 -u hris_test_user -ptest_password hris_test < "$migration" || true
+            fi
+          done
+          mysql -h 127.0.0.1 -u hris_test_user -ptest_password hris_test < database/seed.sql
+
+      - name: Start PHP Built-in Application Server
+        shell: bash
+        run: |
+          php -S 127.0.0.1:8080 -t public/ > /tmp/php_server.log 2>&1 &
+          echo "Waiting for PHP application server to be reachable..."
+          for attempt in $(seq 1 20); do
+            echo "Checking server health (attempt $attempt/20)..."
+            if curl -s http://127.0.0.1:8080/health | grep -q "ok"; then
+              echo "PHP server healthy on http://127.0.0.1:8080"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Automation Dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r e2e-tests/requirements.txt
+
+      - name: Execute Selenium E2E Test Suite
+        shell: bash
+        run: |
+          python -m pytest e2e-tests/tests/ -v --browser=chrome --headless --app-url=http://127.0.0.1:8080 --html=e2e-tests/reports/report.html --self-contained-html
+
+      - name: Upload Test Report & Failure Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: |
+            e2e-tests/reports/
+            e2e-tests/screenshots/
+          if-no-files-found: ignore
+

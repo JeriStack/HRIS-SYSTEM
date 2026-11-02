@@ -50,41 +50,101 @@ class Notification
     }
 
     /**
-     * Create a notification for a user
+     * Create a notification for a user.
+     *
+     * @param string|null $eventType Real-time event key (e.g. 'leave_request.approved'); null for inbox-only
+     * @param int|null $entityId Related record id (e.g. leave request id)
      */
-    public function create(int $userId, string $title, string $message, string $type = 'info'): int
-    {
+    public function create(
+        int $userId,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?string $eventType = null,
+        ?int $entityId = null
+    ): int {
         $validTypes = ['info', 'success', 'warning', 'error'];
         if (!in_array($type, $validTypes, true)) {
             $type = 'info';
         }
 
+        if ($eventType !== null && !preg_match('/^[a-z_]{1,30}\.[a-z_]{1,30}$/D', $eventType)) {
+            $eventType = null;
+        }
+
         $stmt = $this->db->prepare(
-            "INSERT INTO notifications (user_id, title, message, type, is_read, created_at)
-             VALUES (:user_id, :title, :message, :type, 0, NOW())"
+            "INSERT INTO notifications (user_id, title, message, type, event_type, entity_id, is_read, created_at)
+             VALUES (:user_id, :title, :message, :type, :event_type, :entity_id, 0, NOW())"
         );
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->bindValue(':title', $title, PDO::PARAM_STR);
         $stmt->bindValue(':message', $message, PDO::PARAM_STR);
         $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        $stmt->bindValue(':event_type', $eventType, $eventType === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, $entityId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
         $stmt->execute();
 
         return (int)$this->db->lastInsertId();
     }
 
     /**
-     * Notify all users with a specific role
+     * Notify all active users with a specific role.
+     *
+     * @return int Number of notifications created
      */
-    public function notifyRole(string $role, string $title, string $message, string $type = 'info'): void
-    {
+    public function notifyRole(
+        string $role,
+        string $title,
+        string $message,
+        string $type = 'info',
+        ?string $eventType = null,
+        ?int $entityId = null
+    ): int {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE role = :role AND status = 'Active'");
         $stmt->bindValue(':role', $role, PDO::PARAM_STR);
         $stmt->execute();
         $users = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
         foreach ($users as $userId) {
-            $this->create((int)$userId, $title, $message, $type);
+            $this->create((int)$userId, $title, $message, $type, $eventType, $entityId);
         }
+
+        return count($users);
+    }
+
+    /**
+     * Whether a notification with this id exists and belongs to the given user.
+     * Lets callers distinguish "not your notification / does not exist" (404) from
+     * "already read" (a valid no-op), since marking an already-read row changes 0 rows.
+     */
+    public function belongsToUser(int $id, int $userId): bool
+    {
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM notifications WHERE id = :id AND user_id = :user_id LIMIT 1"
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /**
+     * Whether a notification already exists for a given workflow event and entity.
+     * Used to keep decision notifications idempotent so the immediate controller write
+     * and a later outbox-worker delivery of the same event cannot create duplicates.
+     */
+    public function existsForEvent(int $userId, string $eventType, int $entityId): bool
+    {
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM notifications
+             WHERE user_id = :user_id AND event_type = :event_type AND entity_id = :entity_id
+             LIMIT 1"
+        );
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':event_type', $eventType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchColumn() !== false;
     }
 
     /**
@@ -99,7 +159,12 @@ class Notification
         );
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
-        return $stmt->execute();
+        $stmt->execute();
+
+        // Report whether a notification owned by this user was actually marked.
+        // A false result means the id does not exist or belongs to another user,
+        // so callers can respond 404 instead of a misleading success.
+        return $stmt->rowCount() > 0;
     }
 
     /**

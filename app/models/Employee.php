@@ -134,6 +134,26 @@ class Employee extends Model
     }
 
     /**
+     * Find employee by registered email.
+     *
+     * @param string $email
+     * @return array|null
+     */
+    public function findByEmail(string $email): ?array
+    {
+        $sql = "
+            SELECT e.*, d.department_name, p.position_name
+            FROM employees e
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE LOWER(e.email) = LOWER(:email)
+            LIMIT 1
+        ";
+
+        return $this->fetchOne($sql, ['email' => trim($email)]);
+    }
+
+    /**
      * Check if employee number is unique.
      *
      * @param string $employeeNo
@@ -224,6 +244,49 @@ class Employee extends Model
      * @return bool
      */
     public function update(int $id, array $data): bool
+    {
+        // Load the prior employment status so we can tell a reactivation apart from an edit.
+        $before = $this->findById($id);
+        $previousStatus = $before['employment_status'] ?? null;
+        $newStatus = $data['employment_status'] ?? 'Active';
+
+        // The employee row and its linked login account must change together or not at all.
+        $this->beginTransaction();
+        try {
+            $updated = $this->updateEmployeeRow($id, $data);
+            if (!$updated) {
+                $this->rollBack();
+                return false;
+            }
+
+            if ($newStatus !== 'Active') {
+                // A non-Active employee must never retain an Active login.
+                $this->execute(
+                    "UPDATE users SET status = 'Inactive' WHERE employee_id = :emp_id",
+                    ['emp_id' => $id]
+                );
+            } elseif ($previousStatus !== null && $previousStatus !== 'Active') {
+                // Reactivating an employee restores their linked login account (decision F.3).
+                // The account keeps its identity and history; normal login + MFA still apply.
+                $this->execute(
+                    "UPDATE users SET status = 'Active' WHERE employee_id = :emp_id",
+                    ['emp_id' => $id]
+                );
+            }
+
+            $this->commit();
+            return true;
+        } catch (\Throwable $e) {
+            $this->rollBack();
+            error_log("Failed to update employee {$id}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Persist the employee record columns (without account side effects).
+     */
+    private function updateEmployeeRow(int $id, array $data): bool
     {
         $sql = "
             UPDATE employees
@@ -344,5 +407,32 @@ class Employee extends Model
             'active'   => (int)($res['active'] ?? 0),
             'inactive' => (int)($res['inactive'] ?? 0),
         ];
+    }
+
+    /**
+     * Retrieve active employees who currently do not have a user account provisioned.
+     *
+     * @return array
+     */
+    public function getEmployeesWithoutUserAccount(): array
+    {
+        $sql = "
+            SELECT 
+                e.id,
+                e.employee_no,
+                e.first_name,
+                e.last_name,
+                e.email,
+                d.department_name,
+                p.position_name
+            FROM employees e
+            LEFT JOIN users u ON e.id = u.employee_id
+            LEFT JOIN departments d ON e.department_id = d.id
+            LEFT JOIN positions p ON e.position_id = p.id
+            WHERE u.id IS NULL AND e.employment_status = 'Active'
+            ORDER BY e.last_name ASC, e.first_name ASC
+        ";
+
+        return $this->fetchAll($sql);
     }
 }

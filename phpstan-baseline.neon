@@ -1,0 +1,19 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Static method App\\Dsa\\Arrays\\ArrayUtils\:\:compareValues\(\) invoked with 3 parameters, 2 required\.$#'
+			identifier: arguments.count
+			count: 1
+			path: app/dsa/benchmarks/InstrumentedAlgorithms.php
+
+		-
+			message: '#^Result of method App\\Realtime\\HandshakeGuard\:\:reject\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 7
+			path: app/realtime/HandshakeGuard.php
+
+		-
+			message: '#^Result of method App\\Realtime\\HandshakeGuard\:\:respond\(\) \(void\) is used\.$#'
+			identifier: method.void
+			count: 1
+			path: app/realtime/HandshakeGuard.php

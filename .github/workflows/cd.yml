@@ -1,11 +1,12 @@
 name: HRIS CD Pipeline
 
 on:
-  push:
+  workflow_run:
+    workflows: ["HRIS CI Pipeline"]
+    types:
+      - completed
     branches:
       - main
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       target_env:
@@ -28,10 +29,11 @@ jobs:
   package-release:
     name: Package Production Release
     runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Verify production directory layout
         shell: bash
@@ -78,7 +80,7 @@ jobs:
           ls -lh dist/
 
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: hris-production-artifact
           path: dist/*.tar.gz
@@ -88,11 +90,11 @@ jobs:
     name: Deploy to Server
     needs: package-release
     runs-on: ubuntu-24.04
-    environment: production
+    environment: ${{ inputs.target_env || 'production' }}
 
     steps:
       - name: Download deployment artifact
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           name: hris-production-artifact
           path: dist
@@ -120,7 +122,8 @@ jobs:
             echo "Deploying release to ${SSH_USER}@${SSH_HOST}:${SERVER_PATH}..."
             scp dist/*.tar.gz "${SSH_USER}@${SSH_HOST}:${SERVER_PATH}/"
             
-            ssh "${SSH_USER}@${SSH_HOST}" "set -e; cd ${SERVER_PATH} && tar -xzf hris-system-release-*.tar.gz && rm -f hris-system-release-*.tar.gz && chown -R www-data:www-data ${SERVER_PATH} && find ${SERVER_PATH} -type d -exec chmod 755 {} + && find ${SERVER_PATH} -type f -exec chmod 644 {} + && [ -f .env ] && chmod 600 .env; chmod 700 config && echo 'Deployment completed and permissions secured.'"
+            # shellcheck disable=SC2029
+            ssh "${SSH_USER}@${SSH_HOST}" "set -e; cd ${SERVER_PATH} && tar -xzf hris-system-release-*.tar.gz && rm -f hris-system-release-*.tar.gz && chown -R www-data:www-data ${SERVER_PATH} && find ${SERVER_PATH} -type d -exec chmod 755 {} + && find ${SERVER_PATH} -type f -exec chmod 644 {} + && [ -f .env ] && chmod 600 .env; chmod 700 config && chmod +x scripts/deploy/*.sh scripts/backup/*.sh scripts/restore/*.sh && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans && docker exec hris_app php bin/migrate.php && bash scripts/deploy/smoke-test.sh http://127.0.0.1:80 && echo 'Deployment, migrations, and smoke tests completed successfully!'"
 
             echo "Deployment to $SSH_HOST succeeded!"
           else

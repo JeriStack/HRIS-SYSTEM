@@ -6,6 +6,7 @@ on:
       - main
       - development
       - develop
+      - 'HRIS-*'
   pull_request:
     branches:
       - main
@@ -21,8 +22,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  workflow-lint:
+    name: GitHub Actions Workflow Lint (actionlint)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        run: |
+          echo "Linting GitHub Actions workflow definitions..."
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:latest
+          echo "All GitHub Actions workflows passed actionlint validation!"
+
   php-checks:
-    name: PHP Syntax and Tests
+    name: PHP Syntax, Linting, Static Analysis, and Tests
     runs-on: ubuntu-24.04
 
     services:
@@ -52,7 +66,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Verify secrets are not tracked
         shell: bash
@@ -62,12 +76,26 @@ jobs:
             echo "::error::.env file is tracked in Git! Keep secrets, .env files, and credentials out of Git."
             exit 1
           fi
-          echo "Secrets check passed: .env is excluded."
+
+          echo "Scanning tracked files for potential credentials or private keys..."
+          FOUND=0
+          if git grep -E -I -n "BEGIN (RSA|OPENSSH|DSA|EC|PGP) PRIVATE KEY" -- . ":(exclude)vendor" ":(exclude).git" 2>/dev/null; then
+            echo "::error::Private cryptographic key found in tracked repository files!"
+            FOUND=1
+          fi
+          if git grep -E -I -n "(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z\\-_]{35})" -- . ":(exclude)vendor" ":(exclude).git" 2>/dev/null; then
+            echo "::error::Potential hardcoded cloud API credential detected!"
+            FOUND=1
+          fi
+          if [ "$FOUND" -eq 1 ]; then
+            exit 1
+          fi
+          echo "Secrets check passed: .env is excluded and no exposed keys detected."
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          php-version: "8.5"
           extensions: mbstring, pdo, pdo_mysql, zip, json
           tools: composer
           coverage: none
@@ -103,10 +131,21 @@ jobs:
 
           echo "Validating syntax across ${#files[@]} tracked PHP files..."
           for file in "${files[@]}"; do
-            echo "Checking $file"
             php -l "$file" || exit 1
           done
           echo "All tracked PHP files passed syntax check!"
+
+      - name: Run PHP_CodeSniffer PSR-12 check
+        shell: bash
+        run: |
+          echo "Validating PHP code style against PSR-12 standard and baseline..."
+          php bin/check-phpcs-baseline.php
+
+      - name: Run PHPStan static analysis
+        shell: bash
+        run: |
+          echo "Running PHPStan static analysis at configured level with baseline..."
+          vendor/bin/phpstan analyse --memory-limit 512M --no-progress
 
       - name: Run DSA automated unit tests
         shell: bash
@@ -129,6 +168,16 @@ jobs:
           echo "Importing database schema into hris_test..."
           mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/schema.sql
 
+          if [ -d database/migrations ]; then
+            echo "Applying incremental database migrations..."
+            for migration in database/migrations/*.sql; do
+              if [ -f "$migration" ]; then
+                echo "Applying $migration..."
+                mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < "$migration"
+              fi
+            done
+          fi
+
           if [ -f database/seed.sql ]; then
             echo "Importing seed data into hris_test..."
             mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/seed.sql
@@ -150,12 +199,75 @@ jobs:
             echo "PHPUnit is not installed; automated tests are skipped."
           fi
 
-  docker-build:
-    name: Docker Container Build
+  terraform-validation:
+    name: Terraform Formatting, Validation, and TFLint
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform CLI
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+
+      - name: Verify Terraform version
+        run: terraform version
+
+      - name: Check Terraform formatting (recursive)
+        run: |
+          echo "Checking canonical Terraform formatting across all configurations..."
+          terraform fmt -check -recursive
+
+      - name: Initialize and validate Root Terraform configuration
+        run: |
+          echo "Validating root Terraform configuration in terraform/..."
+          terraform -chdir=terraform init -backend=false
+          terraform -chdir=terraform validate
+
+      - name: Initialize and validate Development Environment configuration
+        run: |
+          echo "Validating development environment configuration in terraform/environments/dev/..."
+          terraform -chdir=terraform/environments/dev init -backend=false
+          terraform -chdir=terraform/environments/dev validate
+
+      - name: Initialize and validate Production Environment configuration
+        run: |
+          echo "Validating production environment configuration in terraform/environments/prod/..."
+          terraform -chdir=terraform/environments/prod init -backend=false
+          terraform -chdir=terraform/environments/prod validate
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: "v0.55.0"
+
+      - name: Run TFLint on Terraform configurations
+        run: |
+          echo "Initializing TFLint plugins..."
+          tflint --init
+          echo "Running TFLint on root module..."
+          tflint --chdir=terraform
+          echo "Running TFLint on dev environment..."
+          tflint --chdir=terraform/environments/dev
+          echo "Running TFLint on prod environment..."
+          tflint --chdir=terraform/environments/prod
+          echo "TFLint checks completed successfully!"
+
+  docker-build:
+    name: Dockerfile Lint and Container Build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint Dockerfile Linter
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: error
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -166,3 +278,12 @@ jobs:
           docker build -t hris-app:ci .
           echo "Docker container built successfully."
 
+      - name: Run Trivy container vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: 'hris-app:ci'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

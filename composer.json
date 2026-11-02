@@ -1,12 +1,18 @@
 {
+    "name": "palinje/hris-system",
+    "description": "Employee HRIS & Leave Management System Using PHP, MySQL, and Data Structures & Algorithms",
+    "type": "project",
+    "license": "proprietary",
     "autoload": {
         "psr-4": {
             "Core\\": "core/",
             "App\\Controllers\\": "app/controllers/",
             "App\\Models\\": "app/models/",
             "App\\Services\\": "app/services/",
+            "App\\Realtime\\": "app/realtime/",
             "App\\Dsa\\Algorithms\\": "app/dsa/algorithms/",
             "App\\Dsa\\Structures\\": "app/dsa/structures/",
+            "App\\Dsa\\Arrays\\": "app/dsa/arrays/",
             "App\\Dsa\\": "app/dsa/",
             "App\\": "app/"
         },
@@ -24,6 +30,34 @@
         }
     },
     "require-dev": {
-        "phpunit/phpunit": "^13.4"
+        "phpunit/phpunit": "^13.4",
+        "squizlabs/php_codesniffer": "^4.0",
+        "phpstan/phpstan": "^2.3"
+    },
+    "require": {
+        "php": "^8.2 || ^8.3 || ^8.4 || ^8.5",
+        "phpmailer/phpmailer": "^7.1",
+        "vlucas/phpdotenv": "^5.7",
+        "zircote/swagger-php": "^6.16",
+        "cboden/ratchet": "0.4.4"
+    },
+    "config": {
+        "platform-check": false
+    },
+    "scripts": {
+        "swagger:generate": "php bin/generate_docs.php",
+        "swagger:generate:cli": "openapi app -o docs/api/openapi.yaml",
+        "test": "phpunit",
+        "lint": [
+            "php bin/check-phpcs-baseline.php",
+            "phpstan analyse --memory-limit 512M"
+        ],
+        "lint:phpcs": "php bin/check-phpcs-baseline.php",
+        "lint:phpcs:raw": "phpcs",
+        "lint:phpcs-baseline": "php bin/check-phpcs-baseline.php",
+        "lint:phpcs-generate": "php bin/check-phpcs-baseline.php --generate-baseline",
+        "lint:phpcbf": "phpcbf",
+        "lint:phpstan": "phpstan analyse --memory-limit 512M",
+        "lint:phpstan-baseline": "phpstan analyse --memory-limit 512M --generate-baseline"
     }
 }

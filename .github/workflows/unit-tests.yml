@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Verify secrets are not tracked
         shell: bash
@@ -70,7 +70,8 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: "8.4"
+          # Match the Docker runtime branch (Dockerfile: php:8.5.12-apache-trixie)
+          php-version: "8.5"
           extensions: mbstring, pdo, pdo_mysql, zip, json
           tools: composer
           coverage: none
@@ -131,6 +132,16 @@ jobs:
           echo "Importing database schema into hris_test..."
           mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/schema.sql
 
+          if [ -d database/migrations ]; then
+            echo "Applying incremental database migrations..."
+            for migration in database/migrations/*.sql; do
+              if [ -f "$migration" ]; then
+                echo "Applying $migration..."
+                mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < "$migration"
+              fi
+            done
+          fi
+
           if [ -f database/seed.sql ]; then
             echo "Importing seed data into hris_test..."
             mysql -h 127.0.0.1 -P 3306 -u hris_test_user -ptest_password hris_test < database/seed.sql
@@ -163,14 +174,17 @@ jobs:
       JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Find Jira Issue Key
         id: find_issue
         shell: bash
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           # Detect issue key from branch name or commit message (e.g. HRIS-24)
-          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          BRANCH_NAME="${HEAD_REF:-$REF_NAME}"
           ISSUE_KEY=$(echo "$BRANCH_NAME" | grep -oE '[A-Z][A-Z0-9]+-[0-9]+' | head -n 1 || true)
 
           if [ -z "$ISSUE_KEY" ]; then

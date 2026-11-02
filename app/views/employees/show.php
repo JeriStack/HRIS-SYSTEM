@@ -28,10 +28,18 @@ $tenureStr = "{$tenure->y} yr(s), {$tenure->m} mo(s)";
         <?php if ($employee['employment_status'] === 'Active'): ?>
             <button type="button" 
                     class="btn btn-danger" 
-                    onclick="document.getElementById('deactivateModal').style.display = 'flex'"
+                    onclick="openModal('deactivateModal')"
                     style="display: inline-flex; align-items: center; gap: 0.4rem;">
                 <span>🛑</span>
                 <span>Deactivate</span>
+            </button>
+        <?php else: ?>
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="openModal('reactivateModal')"
+                    style="display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>✅</span>
+                <span>Reactivate</span>
             </button>
         <?php endif; ?>
     </div>
@@ -135,10 +143,12 @@ $tenureStr = "{$tenure->y} yr(s), {$tenure->m} mo(s)";
                 <span>
                     <?php if (!empty($employee['user_account_id'])): ?>
                         <code style="background: #F1F5F9; color: #334155; padding: 0.15rem 0.4rem; border-radius: 0.25rem;">
-                            <?= e($employee['account_username']) ?> (<?= e(strtoupper($employee['user_role'] ?? 'EMPLOYEE')) ?>)
+                            <?= e($employee['email']) ?> (<?= e(strtoupper($employee['user_role'] ?? 'EMPLOYEE')) ?>)
                         </code>
                     <?php else: ?>
-                        <span style="color: #94A3B8; font-style: italic;">No login credentials created</span>
+                        <a href="<?= url('/hr/users/create?employee_id=' . $employee['id']) ?>" class="btn btn-primary btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; text-decoration: none;">
+                            + Provision Portal Account
+                        </a>
                     <?php endif; ?>
                 </span>
             </div>
@@ -152,12 +162,12 @@ $tenureStr = "{$tenure->y} yr(s), {$tenure->m} mo(s)";
 
 <!-- Deactivation Confirmation Modal -->
 <?php if ($employee['employment_status'] === 'Active'): ?>
-<div id="deactivateModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+<div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="deactivateTitle">
     <div class="modal-card">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">⚠️</div>
             <div>
-                <h3 style="margin: 0; font-size: 1.15rem; color: #0F172A;">Confirm Deactivation</h3>
+                <h3 id="deactivateTitle" style="margin: 0; font-size: 1.15rem; color: #0F172A;">Confirm Deactivation</h3>
                 <div style="font-size: 0.8125rem; color: #64748B;">Soft deactivation preserves historical leave logs.</div>
             </div>
         </div>
@@ -170,10 +180,53 @@ $tenureStr = "{$tenure->y} yr(s), {$tenure->m} mo(s)";
             </span>
         </p>
 
-        <form method="POST" action="<?= url('/hr/employees/' . $employee['id'] . '/deactivate') ?>" style="margin: 0; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <form method="POST" action="<?= url('/hr/employees/' . $employee['id'] . '/deactivate') ?>" style="margin: 0;">
             <?= csrf_field() ?>
-            <button type="button" class="btn btn-secondary" onclick="document.getElementById('deactivateModal').style.display = 'none'">Cancel</button>
-            <button type="submit" class="btn btn-danger" style="font-weight: 600;">Confirm Deactivation</button>
+            <?php
+            $stepUpFieldId = 'deactivate_current_password';
+            $stepUpHelp = 'Deactivation is a sensitive action. Confirm your own HR account password to continue.';
+            $stepUpOptional = false;
+            require __DIR__ . '/../partials/step_up_field.php';
+            ?>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
+                <button type="submit" class="btn btn-danger" style="font-weight: 600;">Confirm Deactivation</button>
+            </div>
+        </form>
+    </div>
+</div>
+<?php else: ?>
+<!-- Reactivation Confirmation Modal -->
+<div id="reactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reactivateTitle">
+    <div class="modal-card">
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #DCFCE7; color: #16A34A; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">✅</div>
+            <div>
+                <h3 id="reactivateTitle" style="margin: 0; font-size: 1.15rem; color: #0F172A;">Confirm Reactivation</h3>
+                <div style="font-size: 0.8125rem; color: #64748B;">Restores employment status and the linked login account.</div>
+            </div>
+        </div>
+
+        <p style="font-size: 0.875rem; color: #475569; line-height: 1.5; margin-bottom: 1.5rem;">
+            Reactivate <strong><?= e($fullName) ?></strong> (<code><?= e($employee['employee_no']) ?></code>)?
+            <br><br>
+            <span style="font-size: 0.8125rem; color: #94A3B8;">
+                Their employment status returns to Active and their login account is re-enabled. Signing in still requires email and password plus MFA.
+            </span>
+        </p>
+
+        <form method="POST" action="<?= url('/hr/employees/' . $employee['id'] . '/reactivate') ?>" style="margin: 0;">
+            <?= csrf_field() ?>
+            <?php
+            $stepUpFieldId = 'reactivate_current_password';
+            $stepUpHelp = 'Reactivation restores system access. Confirm your own HR account password to continue.';
+            $stepUpOptional = false;
+            require __DIR__ . '/../partials/step_up_field.php';
+            ?>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('reactivateModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="font-weight: 600;">Confirm Reactivation</button>
+            </div>
         </form>
     </div>
 </div>

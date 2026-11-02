@@ -11,7 +11,7 @@
       <directory>tests/Feature</directory>
     </testsuite>
   </testsuites>
-  <source>
+  <source ignoreIndirectDeprecations="true">
     <include>
       <directory>app</directory>
       <directory>core</directory>
@@ -24,9 +24,10 @@
     <env name="APP_ENV" value="testing"/>
     <env name="DB_DRIVER" value="mysql"/>
     <env name="DB_HOST" value="127.0.0.1"/>
-    <env name="DB_PORT" value="3306"/>
-    <env name="DB_DATABASE" value="hris_test"/>
-    <env name="DB_USERNAME" value="hris_test_user"/>
-    <env name="DB_PASSWORD" value="test_password"/>
+    <env name="DB_PORT" value="3307"/>
+    <!-- Isolated test database. force="true" overrides container/host env so tests can never hit hris_db. -->
+    <env name="DB_DATABASE" value="hris_test" force="true"/>
+    <env name="DB_USERNAME" value="hris_user"/>
+    <env name="DB_PASSWORD" value="hris_password"/>
   </php>
 </phpunit>

@@ -12,8 +12,10 @@ spl_autoload_register(function (string $class) {
         'App\\Controllers\\'    => __DIR__ . '/../app/controllers/',
         'App\\Models\\'         => __DIR__ . '/../app/models/',
         'App\\Services\\'       => __DIR__ . '/../app/services/',
+        'App\\Realtime\\'       => __DIR__ . '/../app/realtime/',
         'App\\Dsa\\Algorithms\\' => __DIR__ . '/../app/dsa/algorithms/',
         'App\\Dsa\\Structures\\' => __DIR__ . '/../app/dsa/structures/',
+        'App\\Dsa\\Arrays\\'     => __DIR__ . '/../app/dsa/arrays/',
         'App\\Dsa\\'            => __DIR__ . '/../app/dsa/',
         'App\\'                 => __DIR__ . '/../app/',
     ];
@@ -47,6 +49,12 @@ spl_autoload_register(function (string $class) {
     }
 });
 
+// 1.2 Include Composer Autoloader for Third-Party Packages (e.g. PHPMailer)
+$composerAutoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($composerAutoload)) {
+    require_once $composerAutoload;
+}
+
 // 1.5 Load Environment Variables (.env) if present
 $envFile = __DIR__ . '/../.env';
 if (file_exists($envFile) && is_readable($envFile)) {
@@ -76,7 +84,7 @@ $timezone = config('config.timezone', 'Asia/Manila');
 date_default_timezone_set($timezone);
 
 // 4. Configure Development vs. Production Error Reporting
-$environment = config('config.app_env', 'development');
+$environment = config('config.app_env', 'production');
 if ($environment === 'development') {
     ini_set('display_errors', '1');
     ini_set('display_startup_errors', '1');
@@ -88,6 +96,37 @@ if ($environment === 'development') {
     ini_set('log_errors', '1');
 }
 
-// 5. Initialize Secure Session Lifecycle
-\Core\Session::start();
+// 4.2 Global safety net for errors raised outside the router's try/catch
+// (bootstrap, session start, fatal errors). Details are shown only in development.
+if (PHP_SAPI !== 'cli') {
+    set_exception_handler(static function (\Throwable $e): void {
+        render_server_error($e);
+    });
 
+    register_shutdown_function(static function (): void {
+        $error = error_get_last();
+        $fatalTypes = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
+        if ($error !== null && ($error['type'] & $fatalTypes) !== 0) {
+            render_server_error(new \ErrorException(
+                (string)$error['message'],
+                0,
+                (int)$error['type'],
+                (string)$error['file'],
+                (int)$error['line']
+            ));
+        }
+    });
+}
+
+// 4.5 Emit Standard Defensive HTTP Security Headers for Web Requests
+if (PHP_SAPI !== 'cli' && !headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+}
+
+// 5. Initialize Secure Session Lifecycle
+// (Skipped only by long-running CLI daemons such as bin/realtime-server.php)
+if (!(PHP_SAPI === 'cli' && defined('HRIS_SKIP_SESSION'))) {
+    \Core\Session::start();
+}

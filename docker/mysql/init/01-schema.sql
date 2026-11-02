@@ -1,11 +1,19 @@
 -- =============================================================================
+-- GENERATED FILE - DO NOT EDIT BY HAND.
+-- Docker first-boot copy of database/schema.sql (runs only when the MySQL volume is empty).
+-- Edit database/schema.sql instead, then regenerate this file so that everything below the
+-- marker line is byte-identical to it. tests/Unit/Database/InitSchemaParityTest.php
+-- fails if the two drift apart.
+-- =============================================================================
+CREATE DATABASE IF NOT EXISTS `hris_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `hris_db`;
+
+-- >>> canonical content below >>>
+-- =============================================================================
 -- Database Schema: Employee HRIS & Leave Management System
 -- Technologies: MySQL 8.x / MariaDB 10.4+, InnoDB Storage Engine, utf8mb4
 -- Documentation: docs/phase-3-database/database-design.md
 -- =============================================================================
-
-CREATE DATABASE IF NOT EXISTS `hris_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `hris_db`;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -77,11 +85,13 @@ CREATE TABLE IF NOT EXISTS `users` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `employee_id` INT UNSIGNED NULL,
     `username` VARCHAR(50) NOT NULL,
+    `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
     `role` ENUM('hr', 'employee') NOT NULL DEFAULT 'employee',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_users_username` UNIQUE (`username`),
+    CONSTRAINT `uq_users_email` UNIQUE (`email`),
     CONSTRAINT `uq_users_employee` UNIQUE (`employee_id`),
     CONSTRAINT `fk_users_employee` FOREIGN KEY (`employee_id`) 
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -187,11 +197,111 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `title` VARCHAR(150) NOT NULL,
     `message` TEXT NOT NULL,
     `type` ENUM('info', 'success', 'warning', 'error') NOT NULL DEFAULT 'info',
+    `event_type` VARCHAR(64) NULL DEFAULT NULL,
+    `entity_id` INT UNSIGNED NULL DEFAULT NULL,
     `is_read` TINYINT(1) NOT NULL DEFAULT 0,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) 
         REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-    INDEX `idx_notifications_user_read` (`user_id`, `is_read`)
+    INDEX `idx_notifications_user_read` (`user_id`, `is_read`),
+    -- Leave approve/reject idempotency lookups (WHERE entity_id = ? AND event_type = ?).
+    -- See database/migrations/2026_11_02_add_notifications_entity_event_index.sql
+    INDEX `idx_notifications_entity_event` (`entity_id`, `event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 10. Email OTPs Table
+-- Secure persistent storage for hashed Email One-Time Passwords (OTP)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `email_otps` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `otp_hash` VARCHAR(255) NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `attempts` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `consumed_at` DATETIME NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` VARCHAR(255) NULL,
+    CONSTRAINT `fk_email_otps_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_email_otps_user_active` (`user_id`, `consumed_at`, `expires_at`),
+    INDEX `idx_email_otps_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 11. Real-time (WebSocket) Connection Tickets
+-- Short-lived, single-use tickets issued by the authenticated HTTP application.
+-- Only SHA-256 hashes are stored. See database/migrations/2026_10_23_*.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `realtime_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `token_hash` CHAR(64) NOT NULL,
+    `user_id` INT UNSIGNED NOT NULL,
+    `session_ref` CHAR(32) NOT NULL,
+    `session_expires_at` DATETIME NOT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `used_at` DATETIME NULL DEFAULT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_realtime_tickets_hash` UNIQUE (`token_hash`),
+    CONSTRAINT `fk_realtime_tickets_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_realtime_tickets_session` (`session_ref`, `revoked_at`),
+    INDEX `idx_realtime_tickets_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 12. Transactional Outbox Events
+-- Durable outbox pattern for transactional event persistence & async dispatch.
+-- See database/migrations/2026_10_31_create_outbox_events_table.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `outbox_events` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `event_id` VARCHAR(36) NOT NULL,
+    `event_type` VARCHAR(191) NOT NULL,
+    `aggregate_type` VARCHAR(100) NOT NULL,
+    `aggregate_id` VARCHAR(100) NOT NULL,
+    `payload` JSON NOT NULL,
+    `status` ENUM('PENDING', 'PROCESSING', 'PROCESSED', 'FAILED') NOT NULL DEFAULT 'PENDING',
+    `attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+    `max_attempts` INT UNSIGNED NOT NULL DEFAULT 5,
+    `created_at` DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `next_attempt_at` DATETIME(6) NULL DEFAULT CURRENT_TIMESTAMP(6),
+    `processed_at` DATETIME(6) NULL,
+    `claimed_at` DATETIME(6) NULL,
+    `claimed_by` VARCHAR(191) NULL,
+    `last_error` TEXT NULL,
+    `last_error_code` VARCHAR(100) NULL,
+    UNIQUE KEY `uq_outbox_event_id` (`event_id`),
+    INDEX `idx_outbox_status_next_attempt` (`status`, `next_attempt_at`),
+    INDEX `idx_outbox_claimed` (`status`, `claimed_at`),
+    INDEX `idx_outbox_aggregate` (`aggregate_type`, `aggregate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 13. User TOTP Two-Factor Authentication
+-- RFC 6238 time-based one-time password secrets and single-use recovery codes.
+-- See database/migrations/2026_10_31_create_user_totp_table.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_totp` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `encrypted_secret` VARCHAR(500) NOT NULL,
+    `is_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `confirmed_at` DATETIME NULL,
+    `last_used_timestep` BIGINT UNSIGNED NULL,
+    `recovery_codes` JSON NULL,
+    `failed_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+    `locked_until` DATETIME NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY `uq_user_totp_user_id` (`user_id`),
+    -- Matches the applied migration (2026_10_31_create_user_totp_table.sql): no ON UPDATE rule
+    CONSTRAINT `fk_user_totp_users` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
+

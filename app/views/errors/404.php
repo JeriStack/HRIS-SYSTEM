@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 Not Found - <?= e(config('config.app_name', 'Employee HRIS')) ?></title>
+    <title>404 Not Found - <?= e(config('config.app_name', 'NEXORA HR')) ?></title>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <style>
@@ -58,7 +58,7 @@
         <div class="badge badge-info" style="margin-bottom: 1rem;">HTTP 404 &bull; RESOURCE NOT FOUND</div>
         <h1 class="error-title">Page Not Found</h1>
         <p class="error-desc">
-            The requested page, record, or URL resource could not be found or has been relocated within the HRIS portal.
+            The requested page, record, or URL resource could not be found or has been relocated.
         </p>
         <div style="display: flex; gap: 0.75rem; justify-content: center;">
             <a href="<?= url('/dashboard') ?>" class="btn btn-primary">

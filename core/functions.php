@@ -161,7 +161,7 @@ if (!function_exists('currentUserId')) {
 
 if (!function_exists('currentUserRole')) {
     /**
-     * Retrieve current user role ('admin', 'hr', 'employee').
+     * Retrieve current user role ('hr' or 'employee').
      */
     function currentUserRole(): ?string
     {
@@ -228,3 +228,192 @@ if (!function_exists('verify_csrf_token')) {
     }
 }
 
+
+if (!function_exists('trusted_proxy_ranges')) {
+    /**
+     * Reverse-proxy peers whose X-Real-IP / X-Forwarded-For headers are trusted.
+     * Configurable through TRUSTED_PROXIES (comma-separated IPs or CIDR blocks).
+     *
+     * @return string[]
+     */
+    function trusted_proxy_ranges(): array
+    {
+        $raw = getenv('TRUSTED_PROXIES');
+        if ($raw === false || trim($raw) === '') {
+            $raw = '127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16';
+        }
+
+        return array_values(array_filter(array_map('trim', explode(',', $raw)), static fn(string $r): bool => $r !== ''));
+    }
+}
+
+if (!function_exists('client_ip')) {
+    /**
+     * Resolve the real client IP address.
+     *
+     * Forwarded headers are honoured only when the direct TCP peer (REMOTE_ADDR) is a
+     * trusted reverse proxy (e.g. the Nginx container). A client connecting directly can
+     * never spoof its address through X-Real-IP / X-Forwarded-For.
+     *
+     * @param array|null $server Server parameters (defaults to $_SERVER)
+     * @param string[]|null $trustedProxies Trusted proxy ranges (defaults to trusted_proxy_ranges())
+     */
+    function client_ip(?array $server = null, ?array $trustedProxies = null): ?string
+    {
+        $server ??= $_SERVER;
+        $remote = trim((string)($server['REMOTE_ADDR'] ?? ''));
+        if ($remote === '' || filter_var($remote, FILTER_VALIDATE_IP) === false) {
+            return null;
+        }
+
+        $trustedProxies ??= trusted_proxy_ranges();
+        if (!\App\Realtime\IpRange::matchesAny($remote, $trustedProxies)) {
+            return $remote;
+        }
+
+        $realIp = trim((string)($server['HTTP_X_REAL_IP'] ?? ''));
+        if ($realIp !== '' && filter_var($realIp, FILTER_VALIDATE_IP) !== false) {
+            return $realIp;
+        }
+
+        // Fall back to the right-most X-Forwarded-For entry (the one appended by our proxy)
+        $forwarded = trim((string)($server['HTTP_X_FORWARDED_FOR'] ?? ''));
+        if ($forwarded !== '') {
+            $parts = array_map('trim', explode(',', $forwarded));
+            $last = (string)end($parts);
+            if ($last !== '' && filter_var($last, FILTER_VALIDATE_IP) !== false) {
+                return $last;
+            }
+        }
+
+        return $remote;
+    }
+}
+
+if (!function_exists('mask_email')) {
+    /**
+     * Mask an email address for logs and UI (e.g. m****n@company.local).
+     * Invalid input returns a fixed placeholder so arbitrary attacker strings are never stored.
+     */
+    function mask_email(?string $email): string
+    {
+        $email = trim((string)$email);
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return '[invalid-email]';
+        }
+
+        [$name, $domain] = explode('@', $email, 2);
+        $len = strlen($name);
+        $maskedName = $len <= 2
+            ? substr($name, 0, 1) . '*'
+            : substr($name, 0, 1) . str_repeat('*', min(4, $len - 2)) . substr($name, -1);
+
+        return $maskedName . '@' . strtolower($domain);
+    }
+}
+
+if (!function_exists('login_identifier_key')) {
+    /**
+     * Non-reversible, deterministic key for a submitted login identifier.
+     * Used as activity_logs.entity_id for failed attempts against unknown accounts so
+     * login rate limiting works without persisting attacker-supplied email addresses.
+     * Output length (43 chars) fits activity_logs.entity_id VARCHAR(50).
+     */
+    function login_identifier_key(string $email): string
+    {
+        return 'eh:' . substr(hash('sha256', 'nexora-login|' . strtolower(trim($email))), 0, 40);
+    }
+}
+
+if (!function_exists('server_error_payload')) {
+    /**
+     * Build the response for an unhandled server error without emitting it.
+     *
+     * JSON envelope for API/JSON requests, HTML page otherwise. Exception details
+     * (message, file, trace) are included only when $showDetails is true, which callers
+     * must restrict to APP_ENV=development.
+     *
+     * @return array{content_type: string, body: string}
+     */
+    function server_error_payload(?\Throwable $e, bool $wantsJson, bool $showDetails): array
+    {
+        if ($wantsJson) {
+            $payload = [
+                'status'  => 'error',
+                'code'    => 500,
+                'message' => 'Internal server error.',
+            ];
+            if ($showDetails && $e !== null) {
+                $payload['debug'] = [
+                    'exception' => get_class($e),
+                    'message'   => $e->getMessage(),
+                    'file'      => $e->getFile(),
+                    'line'      => $e->getLine(),
+                ];
+            }
+
+            return [
+                'content_type' => 'application/json; charset=UTF-8',
+                'body'         => (string)json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ];
+        }
+
+        $appName = e((string)config('config.app_name', 'NEXORA HR'));
+        $details = '';
+        if ($showDetails && $e !== null) {
+            $details = '<div style="text-align:left;margin-top:1.5rem;">'
+                . '<p><strong>Message:</strong> ' . e($e->getMessage()) . '</p>'
+                . '<p><strong>File:</strong> ' . e($e->getFile()) . ' (Line ' . (int)$e->getLine() . ')</p>'
+                . '<pre style="background:#F8FAFC;border:1px solid #E2E8F0;padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.8rem;">'
+                . e($e->getTraceAsString()) . '</pre></div>';
+        }
+
+        $body = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            . '<title>500 Internal Error - ' . $appName . '</title>'
+            . '<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#F8FAFC;color:#0F172A;'
+            . 'display:flex;align-items:center;justify-content:center;min-height:80vh;margin:0;padding:1rem;text-align:center;}'
+            . '.card{background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:2.5rem;max-width:' . ($details !== '' ? '900px' : '480px') . ';}'
+            . 'a{display:inline-block;background:#2563EB;color:#FFFFFF;text-decoration:none;padding:10px 20px;border-radius:6px;font-weight:600;}</style>'
+            . '</head><body><div class="card"><h1 style="color:#B91C1C;">500 Internal Error</h1>'
+            . '<p style="color:#475569;">An unexpected error occurred while processing your request. Please try again later.</p>'
+            . '<a href="' . e(url('/')) . '">Return to Home</a>'
+            . $details
+            . '</div></body></html>';
+
+        return ['content_type' => 'text/html; charset=UTF-8', 'body' => $body];
+    }
+}
+
+if (!function_exists('request_wants_json')) {
+    /**
+     * Whether the current request expects a JSON response (API path or JSON Accept header).
+     */
+    function request_wants_json(?array $server = null): bool
+    {
+        $server ??= $_SERVER;
+        return str_contains((string)($server['REQUEST_URI'] ?? ''), '/api/')
+            || str_contains((string)($server['HTTP_ACCEPT'] ?? ''), 'application/json');
+    }
+}
+
+if (!function_exists('render_server_error')) {
+    /**
+     * Log and emit a safe 500 response for an unhandled error.
+     */
+    function render_server_error(?\Throwable $e): void
+    {
+        if ($e !== null) {
+            error_log('[Application Error] ' . get_class($e) . ': ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+        }
+
+        $showDetails = config('config.app_env', 'production') === 'development';
+        $response = server_error_payload($e, request_wants_json(), $showDetails);
+
+        if (!headers_sent()) {
+            http_response_code(500);
+            header('Content-Type: ' . $response['content_type']);
+        }
+        echo $response['body'];
+    }
+}
