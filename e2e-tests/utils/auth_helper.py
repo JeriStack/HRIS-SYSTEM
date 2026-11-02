@@ -36,6 +36,45 @@ class AuthHelper:
         )
 
     @classmethod
+    def _is_test_database(cls) -> bool:
+        """Destructive test preparation is only permitted against an isolated test database."""
+        return "test" in settings.DB_NAME.lower()
+
+    @classmethod
+    def reset_otp_history(cls, user_email: str) -> None:
+        """
+        Clears the user's prior OTP challenges before a fresh login.
+
+        The application caps OTP issuance at EmailOtp::MAX_ISSUANCES_PER_WINDOW (5 codes per
+        user per 15 minutes) and sums failed guesses for lockout over the same window. Each
+        authenticated fixture performs a real login, so a suite with more than five logins for
+        one account inside 15 minutes is refused at /login. Clearing the history per test keeps
+        every test independent while leaving the production limits untouched.
+
+        Skipped unless connected to a test database, so it can never purge development data.
+        """
+        if not cls._is_test_database():
+            print(
+                f"[AuthHelper] Skipping OTP history reset: database '{settings.DB_NAME}' "
+                "is not a test database."
+            )
+            return
+
+        conn = cls.get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    DELETE email_otps FROM email_otps
+                    INNER JOIN users ON users.id = email_otps.user_id
+                    WHERE users.email = %s
+                    """,
+                    (user_email,)
+                )
+        finally:
+            conn.close()
+
+    @classmethod
     def sync_active_otp_challenge(cls, user_email: str) -> None:
         """
         Updates the newly created challenge row with the deterministic test hash.
@@ -81,6 +120,8 @@ class AuthHelper:
         Completes the full 2FA login sequence as HR Administrator.
         Navigates /login -> /verify-otp -> /hr/dashboard.
         """
+        cls.reset_otp_history(settings.HR_EMAIL)
+
         login_page = LoginPage(driver).open()
         login_page.login(settings.HR_EMAIL, settings.HR_PASSWORD, role="hr")
 
@@ -104,6 +145,8 @@ class AuthHelper:
         Completes the full 2FA login sequence as Employee.
         Navigates /login -> /verify-otp -> /employee/dashboard.
         """
+        cls.reset_otp_history(settings.EMP_EMAIL)
+
         login_page = LoginPage(driver).open()
         login_page.login(settings.EMP_EMAIL, settings.EMP_PASSWORD, role="employee")
 
