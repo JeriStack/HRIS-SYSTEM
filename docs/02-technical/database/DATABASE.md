@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.2  
+**Version:** 3.3  
 **Status:** Authoritative Database Reference  
-**Date:** November 2026 (ADR-012 Three-Role Schema Migration)  
+**Date:** November 2026 (Dynamic RBAC & Admin Governance Migration)  
 **Document Owner:** Database Administrator & Backend Architecture Team  
 
 ---
@@ -14,14 +14,14 @@
 NEXORA HR utilizes **MySQL 8.0 Community Server** configured with the **InnoDB** storage engine as its single source of truth. The database is architected for strict ACID transactional compliance, row-level locking concurrency control, high referential integrity, and complete isolation between production and testing environments.
 
 ### Core Configuration Parameters
-* **Storage Engine:** `InnoDB` strictly enforced across all 13 tables.
+* **Storage Engine:** `InnoDB` strictly enforced across all 17 tables.
 * **Character Set & Collation:** `utf8mb4` with `utf8mb4_unicode_ci` collation supporting full Unicode text and international employee names.
 * **Transaction Isolation Level:** `READ COMMITTED` or `REPEATABLE READ` (default) with explicit pessimistic locks (`SELECT ... FOR UPDATE`) for critical balance transactions.
 * **Timezone Synchronization:** UTC normalized timestamps with application-level display timezone conversion.
 
 ---
 
-## 2. Authoritative 13-Table Schema Catalog
+## 2. Authoritative 17-Table Schema Catalog
 
 ### 2.1 Organizational & Workforce Tables
 
@@ -87,6 +87,7 @@ System user credentials, authentication attributes, and application roles.
 CREATE TABLE `users` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `employee_id` INT UNSIGNED NULL,
+    `role_id` INT UNSIGNED NULL,
     `username` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
@@ -98,7 +99,10 @@ CREATE TABLE `users` (
     CONSTRAINT `uq_users_employee` UNIQUE (`employee_id`),
     CONSTRAINT `fk_users_employee` FOREIGN KEY (`employee_id`) 
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`)
+        REFERENCES `roles` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX `idx_users_role` (`role`),
+    INDEX `idx_users_role_id` (`role_id`),
     INDEX `idx_users_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
@@ -278,6 +282,79 @@ CREATE TABLE `user_totp` (
 
 ---
 
+### 2.4 Role-Based Access Control (RBAC) Governance Tables
+
+#### 14. `roles`
+Stores core application roles (`admin`, `hr`, `employee`).
+```sql
+CREATE TABLE `roles` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(50) NOT NULL,
+    `slug` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `is_system` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_roles_slug` UNIQUE (`slug`),
+    CONSTRAINT `uq_roles_name` UNIQUE (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 15. `permissions`
+Granular application capability identifiers across 7 system modules.
+```sql
+CREATE TABLE `permissions` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `module` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_permissions_name` UNIQUE (`name`),
+    INDEX `idx_permissions_module` (`module`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 16. `role_permissions`
+Many-to-many relationship mapping granular permissions to roles.
+```sql
+CREATE TABLE `role_permissions` (
+    `role_id` INT UNSIGNED NOT NULL,
+    `permission_id` INT UNSIGNED NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`role_id`, `permission_id`),
+    CONSTRAINT `fk_role_permissions_role` FOREIGN KEY (`role_id`)
+        REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_role_permissions_permission` FOREIGN KEY (`permission_id`)
+        REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_role_permissions_permission` (`permission_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 17. `permission_audit_logs`
+Immutable audit log recording granular permission assignment and revocation history.
+```sql
+CREATE TABLE `permission_audit_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `actor_user_id` INT UNSIGNED NULL,
+    `role_id` INT UNSIGNED NOT NULL,
+    `permission_id` INT UNSIGNED NOT NULL,
+    `action` ENUM('granted', 'revoked') NOT NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` TEXT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_permission_audit_actor` FOREIGN KEY (`actor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_permission_audit_role` FOREIGN KEY (`role_id`)
+        REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_permission_audit_permission` FOREIGN KEY (`permission_id`)
+        REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_perm_audit_role` (`role_id`),
+    INDEX `idx_perm_audit_actor` (`actor_user_id`),
+    INDEX `idx_perm_audit_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
 ## 3. Concurrency Control & Row-Level Locking
 
 Leave balance mutations execute inside atomic transactions using **pessimistic row-level locking**:
@@ -355,4 +432,5 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_04_01_create_outbox_events.sql` — Outbox table for asynchronous WebSockets.
 * `database/migrations/2026_04_15_create_user_totp.sql` — RFC 6238 TOTP table.
 * `database/migrations/2026_11_06_add_admin_role_to_users.sql` — Modifies `users.role` ENUM to include `'admin'` (`ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee'`). Zero table rewrite, non-destructive, and maintains default role as `'employee'`.
+* `database/migrations/2026_11_08_create_rbac_tables.sql` — Creates `roles`, `permissions`, `role_permissions`, and `permission_audit_logs` tables; adds `role_id` foreign key to `users`; seeds 3 core system roles and 33 granular permissions.
 

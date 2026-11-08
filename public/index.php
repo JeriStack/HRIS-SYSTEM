@@ -80,6 +80,7 @@ try {
 
     // System Administration, Governance, & Infrastructure Routes (Admin Role Only)
     $router->get('/admin/roles', [AdminController::class, 'roles'], [AuthMiddleware::class, $adminOnly]);
+    $router->post('/admin/roles/permissions', [AdminController::class, 'updatePermissions'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
     $router->get('/admin/provisioning', [AdminController::class, 'provisioning'], [AuthMiddleware::class, $adminOnly]);
     $router->get('/admin/security/events', [AdminController::class, 'securityEvents'], [AuthMiddleware::class, $adminOnly]);
     $router->get('/admin/settings/auth', [AdminController::class, 'authSettings'], [AuthMiddleware::class, $adminOnly]);

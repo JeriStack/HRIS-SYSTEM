@@ -67,6 +67,23 @@ CREATE TABLE IF NOT EXISTS `employees` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
+-- 3.5. Application Roles Table (RBAC)
+-- System roles ('admin', 'hr', 'employee') and extensible organizational roles
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `roles` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(50) NOT NULL,
+    `slug` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `is_system` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_roles_slug` UNIQUE (`slug`),
+    INDEX `idx_roles_system` (`is_system`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
 -- 4. Users Table
 -- System access credentials, password hashes, and assigned permission roles
 -- -----------------------------------------------------------------------------
@@ -77,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
     `role` ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee',
+    `role_id` INT UNSIGNED NULL,
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_users_username` UNIQUE (`username`),
@@ -84,7 +102,10 @@ CREATE TABLE IF NOT EXISTS `users` (
     CONSTRAINT `uq_users_employee` UNIQUE (`employee_id`),
     CONSTRAINT `fk_users_employee` FOREIGN KEY (`employee_id`) 
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_users_role_id` FOREIGN KEY (`role_id`)
+        REFERENCES `roles` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX `idx_users_role` (`role`),
+    INDEX `idx_users_role_id` (`role_id`),
     INDEX `idx_users_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -290,6 +311,67 @@ CREATE TABLE IF NOT EXISTS `user_totp` (
     -- Matches the applied migration (2026_10_31_create_user_totp_table.sql): no ON UPDATE rule
     CONSTRAINT `fk_user_totp_users` FOREIGN KEY (`user_id`)
         REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 14. RBAC Permissions Table
+-- Granular system capabilities grouped by operational domain
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `permissions` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(100) NOT NULL,
+    `slug` VARCHAR(100) NOT NULL,
+    `module` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255) NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_permissions_slug` UNIQUE (`slug`),
+    INDEX `idx_permissions_module` (`module`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 15. RBAC Role-Permissions Join Table
+-- Many-to-many relationship mapping roles to specific granular permissions
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `role_permissions` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `role_id` INT UNSIGNED NOT NULL,
+    `permission_id` INT UNSIGNED NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_role_permissions` UNIQUE (`role_id`, `permission_id`),
+    INDEX `idx_role_permissions_role` (`role_id`),
+    INDEX `idx_role_permissions_perm` (`permission_id`),
+    CONSTRAINT `fk_role_permissions_role` FOREIGN KEY (`role_id`)
+        REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_role_permissions_perm` FOREIGN KEY (`permission_id`)
+        REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 16. Permission Audit Logs Table
+-- Immutable history capturing all role-permission modifications
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `permission_audit_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `actor_user_id` INT UNSIGNED NULL,
+    `target_role_id` INT UNSIGNED NOT NULL,
+    `permission_id` INT UNSIGNED NULL,
+    `action` VARCHAR(50) NOT NULL,
+    `old_value` TEXT NULL,
+    `new_value` TEXT NULL,
+    `ip_address` VARCHAR(45) NULL,
+    `user_agent` VARCHAR(255) NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_perm_audit_actor` (`actor_user_id`),
+    INDEX `idx_perm_audit_role` (`target_role_id`),
+    INDEX `idx_perm_audit_created` (`created_at`),
+    CONSTRAINT `fk_perm_audit_actor` FOREIGN KEY (`actor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_perm_audit_role` FOREIGN KEY (`target_role_id`)
+        REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_perm_audit_perm` FOREIGN KEY (`permission_id`)
+        REFERENCES `permissions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;
