@@ -264,4 +264,3 @@ class SystemAuditFixesTest extends TestCase
         $this->assertFalse($auth->can('invalid_role', 'users.view'));
     }
 }
-
