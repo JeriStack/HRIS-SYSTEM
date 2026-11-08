@@ -10,8 +10,8 @@ $userStats = $metrics['users'] ?? [];
 <div class="page-header">
     <div class="page-title-group">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
-            <h1>HR Administration Console</h1>
-            <span class="badge badge-info" style="font-weight: 700; letter-spacing: 0.05em;">HR MANAGEMENT</span>
+            <h1>System Administrator Console</h1>
+            <span class="badge badge-primary" style="font-weight: 700; letter-spacing: 0.05em;">ADMINISTRATOR</span>
         </div>
         <p>System-wide operational oversight, role governance, workforce metrics, and security audit log.</p>
     </div>
@@ -19,7 +19,7 @@ $userStats = $metrics['users'] ?? [];
         <span style="font-size: 0.8125rem; color: var(--color-text-muted); background: var(--color-bg-surface); padding: 0.45rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--color-border);">
             📅 <?= date('l, F j, Y') ?>
         </span>
-        <a href="<?= url('/hr/users') ?>" class="btn btn-primary btn-sm">
+        <a href="<?= url('/admin/users') ?>" class="btn btn-primary btn-sm">
             <span>👥</span> Manage User Accounts
         </a>
     </div>
@@ -33,7 +33,7 @@ $userStats = $metrics['users'] ?? [];
             <span class="stat-label">User Accounts</span>
             <span class="stat-value"><?= (int)($userStats['total'] ?? 0) ?></span>
             <span class="stat-subtext">
-                <strong><?= (int)($userStats['active'] ?? 0) ?> Active</strong> &bull; <?= (int)($userStats['hr_count'] ?? 0) ?> HR
+                <strong><?= (int)($userStats['active'] ?? 0) ?> Active</strong> &bull; <?= (int)($userStats['admin_count'] ?? 0) ?> Admin &bull; <?= (int)($userStats['hr_count'] ?? 0) ?> HR
             </span>
         </div>
         <div class="stat-icon-wrapper icon-purple" aria-hidden="true">👥</div>

@@ -240,17 +240,20 @@ class AuthSecurityHardeningTest extends TestCase
     }
 
     // ---------------------------------------------------------------------
-    // ARCH-07: no Admin role capability remains
+    // ARCH-07: Three-role capability matrix authorization
     // ---------------------------------------------------------------------
 
-    public function test_permission_matrix_has_no_admin_capability_or_role(): void
+    public function test_three_role_permission_matrix_authorizes_roles_appropriately(): void
     {
         $capabilities = Permission::getAllCapabilities();
 
-        $this->assertArrayNotHasKey('admin_dashboard', $capabilities);
-        foreach ($capabilities as $capability => $roles) {
-            $this->assertNotContains('admin', $roles, "Capability '{$capability}' must not grant an admin role.");
-        }
+        $this->assertArrayHasKey('admin_dashboard', $capabilities);
+        $this->assertTrue(Permission::can('admin', 'admin_dashboard'));
+        $this->assertTrue(Permission::can('admin', 'manage_users'));
+        $this->assertTrue(Permission::can('admin', 'assign_roles'));
         $this->assertFalse(Permission::can('admin', 'hr_dashboard'));
+        $this->assertFalse(Permission::can('hr', 'admin_dashboard'));
+        $this->assertFalse(Permission::can('hr', 'manage_users'));
+        $this->assertFalse(Permission::can('employee', 'admin_dashboard'));
     }
 }

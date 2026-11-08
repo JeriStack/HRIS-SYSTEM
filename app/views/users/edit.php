@@ -4,7 +4,7 @@
             <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">Edit User Account</h1>
             <p style="color: #64748B; font-size: 0.875rem; margin: 0;">Configure assigned role and account activation status.</p>
         </div>
-        <a href="<?= url('/hr/users') ?>" class="btn btn-secondary btn-sm">← Back to Users List</a>
+        <a href="<?= url('/admin/users') ?>" class="btn btn-secondary btn-sm">← Back to Users List</a>
     </div>
 
     <!-- Security Warning & Lockout Notice -->
@@ -13,12 +13,12 @@
         <ul style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
             <li>Role assignments take effect immediately upon authentication.</li>
             <li>You cannot demote or deactivate your own active session account.</li>
-            <li>The system prevents deactivating or demoting the last active HR Officer account.</li>
+            <li>The system prevents deactivating or demoting the last active Administrator or HR Officer account.</li>
         </ul>
     </div>
 
     <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <form method="POST" action="<?= url('/hr/users/' . $targetUser['id'] . '/edit') ?>">
+        <form method="POST" action="<?= url('/admin/users/' . $targetUser['id'] . '/edit') ?>">
             <?= csrf_field() ?>
 
             <!-- Read-only Account Identity Details -->
@@ -88,7 +88,7 @@
 
             <!-- Form Actions -->
             <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #F1F5F9;">
-                <a href="<?= url('/hr/users') ?>" class="btn btn-secondary">Cancel</a>
+                <a href="<?= url('/admin/users') ?>" class="btn btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </div>
         </form>

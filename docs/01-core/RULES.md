@@ -12,11 +12,13 @@
 ## 1. Core Identity & Architectural Constraints
 
 1. **Brand Identity:** The application name is **NEXORA HR**; its official tagline is **People. Processes. Progress.**
-2. **Strict 2-Role Model:**
-   * Only two application roles exist: **`hr`** and **`employee`**.
-   * Under **no circumstances** shall an `admin` role, `manager` role, or superuser role be introduced into the schema, models, middleware, or controllers.
-   * Administrative and system configuration features belong exclusively to the `hr` role.
-   * Legacy `/admin/*` routes are permanent HTTP 301 redirects to corresponding `/hr/*` endpoints.
+2. **Strict 3-Role Model:**
+   * Exactly three application roles are supported: **`admin`**, **`hr`**, and **`employee`**.
+   * `admin` possesses full system-wide administrative authority, user account provisioning, role assignment, account deactivation/reactivation, application settings, and audit monitoring.
+   * `hr` retains workforce operational responsibilities (employee directory, departments, positions, leave review queue, approvals/rejections, leave balances, and reports). HR is strictly prohibited from managing application-wide role assignments, Admin provisioning, or security configurations.
+   * `employee` retains isolated self-service capabilities (profile, leave filing, balance tracking, notifications) with ownership enforcement.
+   * **Last Active Admin Protection:** Accidental deletion, deactivation, or demotion of the last active Administrator is strictly blocked at the model/controller level.
+   * **Controlled Admin Provisioning:** Public registration of Admin accounts is prohibited; the initial Admin account is bootstrapped exclusively via the CLI provisioning tool (`bin/create_admin_user.php`).
 3. **Single Source of Truth:**
    * Do not assume historical documentation or planning notes reflect current code.
    * Inspect actual files, schemas, and live test suites before asserting functionality.

@@ -110,7 +110,7 @@ class LeaveController extends ApiController
     )]
     public function hrTypes(): void
     {
-        $this->requireRole('hr');
+        $this->requireRole(['admin', 'hr']);
         $types = $this->leaveModel->getAllLeaveTypes();
         $this->success($types, 'All leave types retrieved successfully.');
     }
@@ -146,7 +146,7 @@ class LeaveController extends ApiController
     )]
     public function storeType(): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $input = $this->getJsonInput();
 
         $name = trim((string)($input['leave_name'] ?? ''));
@@ -260,7 +260,7 @@ class LeaveController extends ApiController
     )]
     public function hrBalances(): void
     {
-        $this->requireRole('hr');
+        $this->requireRole(['admin', 'hr']);
         $year = !empty($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
         $deptId = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : null;
 
@@ -300,7 +300,7 @@ class LeaveController extends ApiController
     )]
     public function adjustBalance(): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $input = $this->getJsonInput();
 
         $empId         = (int)($input['employee_id'] ?? 0);
@@ -596,7 +596,7 @@ class LeaveController extends ApiController
     )]
     public function hrLeaves(): void
     {
-        $this->requireRole('hr');
+        $this->requireRole(['admin', 'hr']);
 
         $status    = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $empId     = !empty($_GET['employee_id']) ? (int)$_GET['employee_id'] : null;
@@ -631,7 +631,7 @@ class LeaveController extends ApiController
     )]
     public function approve(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
 
         $result = $this->leaveAdapter->approve($id, (int)$currentUser['id']);
 
@@ -690,7 +690,7 @@ class LeaveController extends ApiController
     )]
     public function reject(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $input = $this->getJsonInput();
         $reason = trim((string)($input['rejection_reason'] ?? ''));
         if (empty($reason)) {

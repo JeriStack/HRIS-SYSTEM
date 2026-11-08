@@ -27,9 +27,16 @@ document.addEventListener("DOMContentLoaded", () => {
   let isSubmitting = false;
 
   /* --------------------------------------------------------------------------
-     1. Role Metadata Configuration (HR and Employee Portals Only)
+     1. Role Metadata Configuration (Admin, HR, and Employee Portals)
      -------------------------------------------------------------------------- */
   const ROLE_CONFIG = {
+    admin: {
+      code: "admin",
+      pill: "Admin Workspace",
+      title: "Admin Portal Login",
+      submitText: "Sign In to Admin Portal",
+      emailPlaceholder: "admin.name@company.local",
+    },
     hr: {
       code: "hr",
       pill: "HR Workspace",

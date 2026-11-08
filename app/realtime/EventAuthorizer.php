@@ -47,8 +47,8 @@ final class EventAuthorizer
 
         // 3. Event-specific rules
         return match ($row['event_type'] ?? null) {
-            // HR review queue events are for HR users only
-            self::LEAVE_CREATED => $recipient->isHr(),
+            // HR review queue events are for HR and Admin users
+            self::LEAVE_CREATED => $recipient->isHr() || $recipient->isAdmin(),
             // Decisions are only for the employee who owns the leave request
             self::LEAVE_APPROVED, self::LEAVE_REJECTED => (int)($row['owner_matches'] ?? 0) === 1,
             // Profile updates are delivered to the recipient employee

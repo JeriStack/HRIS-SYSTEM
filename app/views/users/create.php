@@ -4,7 +4,7 @@
             <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">Provision User Account</h1>
             <p style="color: #64748B; font-size: 0.875rem; margin: 0;">Create secure portal credentials and assign an operational role for an active employee.</p>
         </div>
-        <a href="<?= url('/hr/users') ?>" class="btn btn-secondary btn-sm">← Back to Users Directory</a>
+        <a href="<?= url('/admin/users') ?>" class="btn btn-secondary btn-sm">← Back to Users Directory</a>
     </div>
 
     <!-- Security Information Notice -->
@@ -12,7 +12,7 @@
         <strong>🛡️ Account Onboarding Policy (NFR-SEC-002):</strong>
         <ul style="margin: 0.5rem 0 0 1.25rem; padding: 0;">
             <li>User accounts are strictly bound to registered employee profiles with unique, verified email addresses.</li>
-            <li>Allowed roles are strictly limited to <strong>HR Officer (hr)</strong> and <strong>Employee (employee)</strong>.</li>
+            <li>Allowed roles are strictly limited to <strong>Administrator (admin)</strong>, <strong>HR Officer (hr)</strong>, and <strong>Employee (employee)</strong>.</li>
             <li>Initial passwords must be at least 8 characters long and are hashed using bcrypt.</li>
             <li>Users will complete mandatory Email OTP verification upon their first and every subsequent sign-in.</li>
         </ul>
@@ -25,12 +25,12 @@
             <p style="margin-bottom: 1.5rem; font-size: 0.875rem;">Every currently active employee record already has an associated user portal account.</p>
             <div style="display: flex; gap: 0.75rem; justify-content: center;">
                 <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary btn-sm">+ Add New Employee</a>
-                <a href="<?= url('/hr/users') ?>" class="btn btn-secondary btn-sm">View Accounts Directory</a>
+                <a href="<?= url('/admin/users') ?>" class="btn btn-secondary btn-sm">View Accounts Directory</a>
             </div>
         </div>
     <?php else: ?>
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <form method="POST" action="<?= url('/hr/users/create') ?>" id="provisionUserForm">
+            <form method="POST" action="<?= url('/admin/users/create') ?>" id="provisionUserForm">
                 <?= csrf_field() ?>
 
                 <!-- Select Employee -->
@@ -156,7 +156,7 @@
 
                 <!-- Form Actions -->
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end; padding-top: 1rem; border-top: 1px solid #F1F5F9;">
-                    <a href="<?= url('/hr/users') ?>" class="btn btn-secondary">Cancel</a>
+                    <a href="<?= url('/admin/users') ?>" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary" id="submitProvisionBtn">Provision User Account</button>
                 </div>
             </form>

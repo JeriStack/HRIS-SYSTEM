@@ -11,7 +11,7 @@ class RoleMiddleware extends Middleware
     private array $allowedRoles;
 
     /**
-     * @param array|string $roles Allowed role or list of allowed roles (strictly 'hr' or 'employee')
+     * @param array|string $roles Allowed role or list of allowed roles ('admin', 'hr', or 'employee')
      */
     public function __construct(array|string $roles)
     {

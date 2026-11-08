@@ -168,7 +168,7 @@ class PositionController extends ApiController
     )]
     public function store(): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $input = $this->getJsonInput();
 
         $name = trim((string)($input['position_name'] ?? ''));
@@ -266,7 +266,7 @@ class PositionController extends ApiController
     )]
     public function update(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $pos = $this->positionModel->findById($id);
         if (!$pos) {
             $this->error('Position not found.', 404);
@@ -364,7 +364,7 @@ class PositionController extends ApiController
     )]
     public function positionsByDepartmentLegacy(int $id): void
     {
-        $this->requireRole(['hr']);
+        $this->requireRole(['admin', 'hr']);
         $positions = $this->positionModel->getByDepartmentId($id);
         $this->respond([
             'status'    => 'success',

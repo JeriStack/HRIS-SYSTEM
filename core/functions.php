@@ -161,7 +161,7 @@ if (!function_exists('currentUserId')) {
 
 if (!function_exists('currentUserRole')) {
     /**
-     * Retrieve current user role ('hr' or 'employee').
+     * Retrieve current user role ('admin', 'hr', or 'employee').
      */
     function currentUserRole(): ?string
     {

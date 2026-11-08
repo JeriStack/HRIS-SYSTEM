@@ -33,7 +33,7 @@ NEXORA HR is engineered as a high-performance, modular, four-tier Model-View-Con
 ```
 
 ### Core Architectural Principles
-1. **Strict 2-Role Separation:** Authorization is bifurcated strictly into `hr` and `employee`. Administrative and human resource functions are unified under `hr`, while `employee` provides an isolated self-service environment with strict ownership enforcement.
+1. **Strict 3-Role Separation:** Authorization is structured into `admin`, `hr`, and `employee`. `admin` owns system-wide governance, user account management, role assignment, and security audit inspection. `hr` handles operational workforce administration, leave review queue, and reporting (prohibited from administrative user role assignment). `employee` provides an isolated self-service environment with strict ownership enforcement.
 2. **ACID Transaction Integrity:** All operations that modify leave balances or request statuses must execute within an isolated database transaction utilizing pessimistic row locks (`SELECT ... FOR UPDATE`).
 3. **Fail-Closed Security Architecture:** Every incoming request defaults to unauthorized; access is granted only after passing through sequential middleware (`AuthMiddleware`, `RoleMiddleware`, `CsrfMiddleware`, `RateLimitMiddleware`).
 4. **At-Least-Once Real-time Delivery:** Real-time state changes are committed to an `outbox_events` table synchronously with the business transaction. A decoupled worker dispatches events over WebSockets, guaranteeing that network transport failures do not compromise business logic.
@@ -51,7 +51,7 @@ NEXORA HR is engineered as a high-performance, modular, four-tier Model-View-Con
 | **Real-time Daemon** | Ratchet (PHP) | Event-driven WebSocket server running on port `:8090`, utilizing ReactPHP event loop and single-use ticket authentication. |
 | **MFA Delivery** | PHPMailer / SMTP | RFC 821 SMTP transport with TLS encryption for delivering 6-digit cryptographic OTP tokens. |
 | **Observability** | Prometheus & Grafana | Prometheus (:9090) scraping `nginx-exporter` (:9113) and `mysqld-exporter` (:9104); preconfigured Grafana (:3000) dashboards. |
-| **Testing Harness** | PHPUnit & Selenium | PHPUnit 13.4 (592 automated unit/feature/integration tests) and Python/Selenium E2E suite targeting Brave/Chromium. |
+| **Testing Harness** | PHPUnit & Selenium | PHPUnit 13.4 (600 automated unit/feature/integration tests) and Python/Selenium E2E suite targeting Chromium. |
 
 ---
 
