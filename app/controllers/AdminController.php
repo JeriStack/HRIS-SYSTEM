@@ -390,14 +390,19 @@ class AdminController extends Controller
 
         $this->getUserModel()->update($userId, $updateData);
 
-        if (class_exists(ActivityLog::class)) {
-            ActivityLog::log(
-                $userId,
-                'ADMIN_ACCOUNT_UPDATED',
-                'users',
-                $userId,
-                'Administrator updated account email/credentials'
-            );
+        try {
+            if (class_exists(ActivityLog::class)) {
+                $activityLog = new ActivityLog();
+                $activityLog->log(
+                    $userId,
+                    'ADMIN_ACCOUNT_UPDATED',
+                    'Administrator updated account email/credentials',
+                    'User',
+                    (string)$userId
+                );
+            }
+        } catch (\Throwable $e) {
+            error_log('[AdminController::updateAccount] Activity log write failed: ' . $e->getMessage());
         }
 
         Session::flash('success', 'Account profile and security credentials successfully updated.');
