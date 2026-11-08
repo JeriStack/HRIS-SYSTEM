@@ -223,19 +223,37 @@ jobs:
       - name: Initialize and validate Root Terraform configuration
         run: |
           echo "Validating root Terraform configuration in terraform/..."
-          terraform -chdir=terraform init -backend=false
+          for i in 1 2 3; do
+            terraform -chdir=terraform init -backend=false && break || {
+              if [ "$i" -eq 3 ]; then echo "Terraform init failed after 3 attempts"; exit 1; fi
+              echo "Terraform init failed (attempt $i/3). Retrying in 5s..."
+              sleep 5
+            }
+          done
           terraform -chdir=terraform validate
 
       - name: Initialize and validate Development Environment configuration
         run: |
           echo "Validating development environment configuration in terraform/environments/dev/..."
-          terraform -chdir=terraform/environments/dev init -backend=false
+          for i in 1 2 3; do
+            terraform -chdir=terraform/environments/dev init -backend=false && break || {
+              if [ "$i" -eq 3 ]; then echo "Terraform init failed after 3 attempts"; exit 1; fi
+              echo "Terraform init failed (attempt $i/3). Retrying in 5s..."
+              sleep 5
+            }
+          done
           terraform -chdir=terraform/environments/dev validate
 
       - name: Initialize and validate Production Environment configuration
         run: |
           echo "Validating production environment configuration in terraform/environments/prod/..."
-          terraform -chdir=terraform/environments/prod init -backend=false
+          for i in 1 2 3; do
+            terraform -chdir=terraform/environments/prod init -backend=false && break || {
+              if [ "$i" -eq 3 ]; then echo "Terraform init failed after 3 attempts"; exit 1; fi
+              echo "Terraform init failed (attempt $i/3). Retrying in 5s..."
+              sleep 5
+            }
+          done
           terraform -chdir=terraform/environments/prod validate
 
       - name: Set up TFLint

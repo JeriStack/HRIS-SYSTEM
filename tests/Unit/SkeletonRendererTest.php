@@ -122,8 +122,11 @@ class SkeletonRendererTest extends TestCase
         $components = ['stat_card', 'table', 'card', 'chart', 'list', 'profile', 'form'];
         foreach ($components as $component) {
             $output = render_skeleton($component);
-            $this->assertStringContainsString('aria-hidden="true"', $output, "Component {$component} must have aria-hidden on decorative elements");
+            $this->assertStringContainsString(
+                'aria-hidden="true"',
+                $output,
+                "Component {$component} must have aria-hidden on decorative elements"
+            );
         }
     }
 }
-
