@@ -456,4 +456,42 @@ if (!function_exists('dispatch_job')) {
     }
 }
 
+if (!function_exists('render_skeleton')) {
+    /**
+     * Render a reusable, accessible skeleton loading placeholder.
+     *
+     * @param string $component Component name (stat_card, table, card, chart, list, profile, form)
+     * @param array<string, mixed> $options Rendering configuration options
+     * @return string Safe HTML skeleton markup with accessibility attributes
+     */
+    function render_skeleton(string $component, array $options = []): string
+    {
+        $safeComponent = preg_replace('/[^a-zA-Z0-9_-]/', '', $component);
+        $filePath = __DIR__ . '/../app/views/partials/skeletons/' . $safeComponent . '.php';
+
+        if (!file_exists($filePath)) {
+            return '';
+        }
+
+        extract($options, EXTR_SKIP);
+
+        $loadingText = isset($options['loading_text']) ? (string)$options['loading_text'] : 'Loading content...';
+        $isRaw = !empty($options['raw']);
+
+        ob_start();
+        include $filePath;
+        $html = ob_get_clean() ?: '';
+
+        if ($isRaw) {
+            return $html;
+        }
+
+        return '<div class="skeleton-container" role="status" aria-busy="true">' .
+               '<span class="sr-only">' . htmlspecialchars($loadingText, ENT_QUOTES, 'UTF-8') . '</span>' .
+               $html .
+               '</div>';
+    }
+}
+
+
 

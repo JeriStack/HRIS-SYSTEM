@@ -105,7 +105,22 @@ function initDepartmentPositionCascade() {
             }
 
             posSelect.disabled = true;
-            posSelect.innerHTML = '<option value="">Loading job positions...</option>';
+            const posParent = posSelect.parentElement;
+            let skeletonEl = posParent ? posParent.querySelector('.pos-skeleton') : null;
+            if (!skeletonEl && posParent) {
+                skeletonEl = document.createElement('div');
+                skeletonEl.className = 'skeleton-input pos-skeleton';
+                skeletonEl.setAttribute('aria-hidden', 'true');
+                skeletonEl.style.display = 'none';
+                posSelect.insertAdjacentElement('afterend', skeletonEl);
+            }
+            if (skeletonEl) {
+                posSelect.style.display = 'none';
+                skeletonEl.style.display = 'block';
+                if (posParent) posParent.setAttribute('aria-busy', 'true');
+            } else {
+                posSelect.innerHTML = '<option value="">Loading job positions...</option>';
+            }
 
             try {
                 // Dynamically resolve base URL from meta tag or window global
@@ -135,6 +150,12 @@ function initDepartmentPositionCascade() {
             } catch (err) {
                 console.error(err);
                 posSelect.innerHTML = '<option value="">-- Failed to load positions --</option>';
+            } finally {
+                if (skeletonEl) {
+                    skeletonEl.style.display = 'none';
+                    posSelect.style.display = '';
+                    if (posParent) posParent.removeAttribute('aria-busy');
+                }
             }
         });
     }

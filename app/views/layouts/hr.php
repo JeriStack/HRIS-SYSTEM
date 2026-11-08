@@ -9,6 +9,7 @@
     <!-- Enterprise Design System Stylesheets -->
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
+    <link rel="stylesheet" href="<?= asset('css/skeleton.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/responsive.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/realtime.css') ?>">
 </head>
@@ -39,5 +40,6 @@
     <script src="<?= asset('js/navigation.js') ?>"></script>
     <script src="<?= asset('js/forms.js') ?>"></script>
     <script src="<?= asset('js/realtime.js') ?>"></script>
+    <script src="<?= asset('js/skeleton.js') ?>"></script>
 </body>
 </html>
