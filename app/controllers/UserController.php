@@ -36,23 +36,24 @@ class UserController extends Controller
 
     /**
      * Display all system user accounts.
-     * Route: GET /hr/users (and legacy /admin/users)
-     * Access: HR Only
+     * Route: GET /admin/users (and legacy /hr/users)
+     * Access: Administrator Only
      */
     public function index(): void
     {
         $users = $this->userModel->getAllWithDetails();
 
         $stats = [
-            'total'    => count($users),
-            'active'   => count(array_filter($users, fn($u) => $u['status'] === 'Active')),
-            'inactive' => count(array_filter($users, fn($u) => $u['status'] === 'Inactive')),
-            'hrs'      => count(array_filter($users, fn($u) => $u['role'] === 'hr')),
-            'employees'=> count(array_filter($users, fn($u) => $u['role'] === 'employee')),
+            'total'     => count($users),
+            'active'    => count(array_filter($users, fn($u) => $u['status'] === 'Active')),
+            'inactive'  => count(array_filter($users, fn($u) => $u['status'] === 'Inactive')),
+            'admins'    => count(array_filter($users, fn($u) => $u['role'] === 'admin')),
+            'hrs'       => count(array_filter($users, fn($u) => $u['role'] === 'hr')),
+            'employees' => count(array_filter($users, fn($u) => $u['role'] === 'employee')),
         ];
 
         $this->view('users.index', [
-            'pageTitle' => 'User Account & Role Management - HR Portal',
+            'pageTitle' => 'User Account & Role Management - Administrator Console',
             'user'      => currentUser(),
             'users'     => $users,
             'stats'     => $stats,
@@ -61,8 +62,8 @@ class UserController extends Controller
 
     /**
      * Render the account provisioning form for active employees.
-     * Route: GET /hr/users/create
-     * Access: HR Only
+     * Route: GET /admin/users/create
+     * Access: Administrator Only
      */
     public function create(): void
     {
@@ -70,11 +71,11 @@ class UserController extends Controller
         $selectedEmpId = (int)($_GET['employee_id'] ?? 0);
 
         $this->view('users.create', [
-            'pageTitle'         => 'Provision User Account - HR Portal',
+            'pageTitle'         => 'Provision User Account - Administrator Console',
             'user'              => currentUser(),
             'unlinkedEmployees' => $unlinkedEmployees,
             'selectedEmpId'     => $selectedEmpId,
-            'validRoles'        => ['employee', 'hr'],
+            'validRoles'        => Permission::VALID_ROLES,
             'errors'            => Session::getFlash('errors', []),
             'old'               => Session::getFlash('old', []),
             'stepUpRequired'    => !$this->stepUp->hasRecentVerification(),
@@ -83,8 +84,8 @@ class UserController extends Controller
 
     /**
      * Process provisioning of a new user account for an employee.
-     * Route: POST /hr/users/create
-     * Access: HR Only
+     * Route: POST /admin/users/create
+     * Access: Administrator Only
      */
     public function store(): void
     {
@@ -110,9 +111,9 @@ class UserController extends Controller
             }
         }
 
-        // 2. Validate role against strict allowlist (hr, employee)
-        if (!in_array($role, ['employee', 'hr'], true)) {
-            $errors['role'] = 'Invalid role assignment. Must be either HR or Employee.';
+        // 2. Validate role against strict allowlist (admin, hr, employee)
+        if (!Permission::isValidRole($role)) {
+            $errors['role'] = 'Invalid role assignment. Allowed roles are: admin, hr, employee.';
         }
 
         // 3. Validate password complexity (minimum 8 characters)
@@ -149,7 +150,7 @@ class UserController extends Controller
                 $_POST,
                 array_flip(['password', 'confirm_password', StepUpAuthService::FIELD, '_csrf_token'])
             ));
-            $this->redirect('/hr/users/create' . ($employeeId > 0 ? '?employee_id=' . $employeeId : ''));
+            $this->redirect('/admin/users/create' . ($employeeId > 0 ? '?employee_id=' . $employeeId : ''));
             return;
         }
 
@@ -177,13 +178,13 @@ class UserController extends Controller
         );
 
         Session::flash('success', "User account for {$employee['first_name']} {$employee['last_name']} ({$email}) was successfully provisioned.");
-        $this->redirect('/hr/users');
+        $this->redirect('/admin/users');
     }
 
     /**
      * Render the role assignment and account edit form.
-     * Route: GET /hr/users/{id}/edit
-     * Access: HR Only
+     * Route: GET /admin/users/{id}/edit
+     * Access: Administrator Only
      */
     public function edit(int $id): void
     {
@@ -191,7 +192,7 @@ class UserController extends Controller
 
         if (!$targetUser) {
             Session::flash('error', 'The requested user account was not found.');
-            $this->redirect('/hr/users');
+            $this->redirect('/admin/users');
             return;
         }
 
@@ -206,8 +207,8 @@ class UserController extends Controller
 
     /**
      * Process role and status updates for a user account.
-     * Route: POST /hr/users/{id}/edit
-     * Access: HR Only
+     * Route: POST /admin/users/{id}/edit
+     * Access: Administrator Only
      */
     public function update(int $id): void
     {
@@ -215,17 +216,17 @@ class UserController extends Controller
 
         if (!$targetUser) {
             Session::flash('error', 'User account not found.');
-            $this->redirect('/hr/users');
+            $this->redirect('/admin/users');
             return;
         }
 
         $role = strtolower(trim((string)($_POST['role'] ?? '')));
         $status = trim((string)($_POST['status'] ?? ''));
 
-        // 1. Validate role against strict allowlist (hr, employee)
+        // 1. Validate role against strict allowlist (admin, hr, employee)
         if (!Permission::isValidRole($role)) {
-            Session::flash('error', 'Invalid role selected. Allowed roles are: hr, employee.');
-            $this->redirect("/hr/users/{$id}/edit");
+            Session::flash('error', 'Invalid role selected. Allowed roles are: admin, hr, employee.');
+            $this->redirect("/admin/users/{$id}/edit");
             return;
         }
 
@@ -233,7 +234,7 @@ class UserController extends Controller
         $validStatuses = ['Active', 'Inactive'];
         if (!in_array($status, $validStatuses, true)) {
             Session::flash('error', 'Invalid account status. Allowed values are: Active, Inactive.');
-            $this->redirect("/hr/users/{$id}/edit");
+            $this->redirect("/admin/users/{$id}/edit");
             return;
         }
 
@@ -241,27 +242,41 @@ class UserController extends Controller
 
         // 3. Self-demotion / Self-deactivation Prevention
         if ($id === $currentUserId) {
-            if ($role !== 'hr') {
-                Session::flash('error', 'Security Policy Violation: You cannot demote your own active HR management account.');
-                $this->redirect("/hr/users/{$id}/edit");
+            $currentRole = strtolower((string)$targetUser['role']);
+            if ($currentRole === 'admin' && ($role !== 'admin' || $status !== 'Active')) {
+                Session::flash('error', 'Security Policy Violation: You cannot demote or deactivate your own active Administrator account.');
+                $this->redirect("/admin/users/{$id}/edit");
                 return;
             }
-            if ($status !== 'Active') {
-                Session::flash('error', 'Security Policy Violation: You cannot deactivate your own active HR management account.');
-                $this->redirect("/hr/users/{$id}/edit");
+            if ($currentRole === 'hr' && ($role !== 'hr' || $status !== 'Active')) {
+                Session::flash('error', 'Security Policy Violation: You cannot demote or deactivate your own active HR management account.');
+                $this->redirect("/admin/users/{$id}/edit");
                 return;
             }
         }
 
-        // 4. Last Active HR Lockout Protection
-        $isTargetActiveHr = ($targetUser['role'] === 'hr' && $targetUser['status'] === 'Active');
-        $isBeingDemotedOrDeactivated = ($role !== 'hr' || $status !== 'Active');
+        // 4. Last Active Admin Lockout Protection
+        $isTargetActiveAdmin = ($targetUser['role'] === 'admin' && $targetUser['status'] === 'Active');
+        $isAdminBeingDemotedOrDeactivated = ($role !== 'admin' || $status !== 'Active');
 
-        if ($isTargetActiveHr && $isBeingDemotedOrDeactivated) {
+        if ($isTargetActiveAdmin && $isAdminBeingDemotedOrDeactivated) {
+            $otherActiveAdmins = $this->userModel->countActiveAdmins($id);
+            if ($otherActiveAdmins < 1) {
+                Session::flash('error', 'System Lockout Protection: Cannot demote or deactivate the last remaining active Administrator in the system.');
+                $this->redirect("/admin/users/{$id}/edit");
+                return;
+            }
+        }
+
+        // 4a. Last Active HR Lockout Protection
+        $isTargetActiveHr = ($targetUser['role'] === 'hr' && $targetUser['status'] === 'Active');
+        $isHrBeingDemotedOrDeactivated = ($role !== 'hr' || $status !== 'Active');
+
+        if ($isTargetActiveHr && $isHrBeingDemotedOrDeactivated) {
             $otherActiveHrs = $this->userModel->countActiveHr($id);
             if ($otherActiveHrs < 1) {
                 Session::flash('error', 'System Lockout Protection: Cannot demote or deactivate the last remaining active HR Officer in the system.');
-                $this->redirect("/hr/users/{$id}/edit");
+                $this->redirect("/admin/users/{$id}/edit");
                 return;
             }
         }
@@ -274,7 +289,7 @@ class UserController extends Controller
             $stepUp = $this->stepUp->verify('USER_ROLE_STATUS_UPDATE', $_POST[StepUpAuthService::FIELD] ?? null);
             if (!$stepUp['ok']) {
                 Session::flash('error', $stepUp['error']);
-                $this->redirect("/hr/users/{$id}/edit");
+                $this->redirect("/admin/users/{$id}/edit");
                 return;
             }
         }
@@ -284,7 +299,7 @@ class UserController extends Controller
 
         if (!$updated) {
             Session::flash('error', 'Failed to update user account in database. Please try again.');
-            $this->redirect("/hr/users/{$id}/edit");
+            $this->redirect("/admin/users/{$id}/edit");
             return;
         }
 
@@ -304,6 +319,6 @@ class UserController extends Controller
         );
 
         Session::flash('success', "User '{$targetUser['username']}' updated successfully.");
-        $this->redirect('/hr/users');
+        $this->redirect('/admin/users');
     }
 }

@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Verify production directory layout
         shell: bash
@@ -80,7 +80,7 @@ jobs:
           ls -lh dist/
 
       - name: Upload deployment artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hris-production-artifact
           path: dist/*.tar.gz
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Download deployment artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: hris-production-artifact
           path: dist

@@ -127,8 +127,8 @@ class Session
         $userId = (int)$sessionUser['id'];
         $sessionRole = strtolower(trim((string)($sessionUser['role'] ?? '')));
 
-        // Strictly enforce the 2-role model (HR and Employee only)
-        if ($sessionRole !== 'hr' && $sessionRole !== 'employee') {
+        // Strictly enforce valid application roles (Admin, HR, and Employee)
+        if (!in_array($sessionRole, ['admin', 'hr', 'employee'], true)) {
             self::invalidateAuthenticatedUser('Your session was terminated due to an unauthorized role assignment.');
             return false;
         }
@@ -153,7 +153,7 @@ class Session
                     : 'Active';
 
                 $isStatusActive = ($dbStatus === 'Active' && $empStatus === 'Active');
-                $isRoleValid = ($dbRole === 'hr' || $dbRole === 'employee') && ($dbRole === $sessionRole);
+                $isRoleValid = in_array($dbRole, ['admin', 'hr', 'employee'], true) && ($dbRole === $sessionRole);
                 $isFingerprintValid = empty($sessionUser['auth_fingerprint'])
                     || hash_equals((string)$sessionUser['auth_fingerprint'], self::computeAuthFingerprint($dbUser));
 

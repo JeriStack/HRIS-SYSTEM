@@ -118,7 +118,7 @@ class SecurityAuditTest extends TestCase
 
     public function test_invalid_or_manipulated_roles_fail_closed(): void
     {
-        $bogusRoles = ['admin', 'superadmin', 'guest', 'manager', 'hacker', 'root', '', null];
+        $bogusRoles = ['superadmin', 'guest', 'manager', 'hacker', 'root', '', null];
 
         foreach ($bogusRoles as $role) {
             $this->assertFalse(Permission::can($role, 'manage_employees'));

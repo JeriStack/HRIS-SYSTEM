@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `users` (
     `username` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
-    `role` ENUM('hr', 'employee') NOT NULL DEFAULT 'employee',
+    `role` ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_users_username` UNIQUE (`username`),

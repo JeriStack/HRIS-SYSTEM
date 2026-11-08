@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Status:** Authoritative Security Specification  
-**Date:** November 2026  
+**Date:** November 2026 (ADR-012 Three-Role RBAC & Admin Governance)  
 **Document Owner:** Security Engineering & Repository Maintainer  
 
 ---
@@ -35,7 +35,7 @@ NEXORA HR enforces defense-in-depth security across all architectural layers. Th
 │  [Continuous Live Account State Verification on Every HTTP Request]    │
 │          │                                                             │
 │          ▼                                                             │
-│  [Strict 2-Role RBAC: 'hr' vs 'employee' + Record Ownership Checks]    │
+│  [Strict 3-Role RBAC: 'admin' vs 'hr' vs 'employee' + Ownership Checks]│
 │          │                                                             │
 │          ▼                                                             │
 │  [Data Layer: PDO Prepared Statements + Pessimistic Row-Level Locks]   │
@@ -100,20 +100,31 @@ if (!hash_equals($sessionUser['auth_fingerprint'], $computedFingerprint)) {
 
 ---
 
-## 4. Role-Based Access Control (RBAC) & Ownership
+## 4. Role-Based Access Control (RBAC) & Governance
 
-### 4.1 Strict 2-Role Enforcement
-NEXORA HR recognizes strictly two application roles:
+### 4.1 Authoritative Three-Role Architecture (ADR-012)
+NEXORA HR recognizes exactly three application roles:
 
 | Role | Permitted Capabilities | Prohibited Capabilities |
 |---|---|---|
-| **`hr`** | Workforce CRUD, department/position management, leave approval queue processing, company calendar, workforce analytics, audit logs. | Cannot file leaves on behalf of other employees without logging personal employee record. |
-| **`employee`** | Personal dashboard, viewing own profile, viewing personal leave balances, filing personal leave, cancelling own pending requests. | Strictly blocked from viewing other employees' data, administrative consoles, or workforce management tools. |
+| **`admin`** | Full system-wide administrative oversight, Admin dashboard (`/admin/dashboard`), user account provisioning (`/admin/users*`), role assignment, account deactivation/reactivation, system configuration, audit log review, workforce CRUD, leave review/approval, reports. | Bypassing authentication, MFA, CSRF checks, or last-active Admin safety invariants. |
+| **`hr`** | Workforce operational CRUD (employees, departments, positions), leave approval queue processing, leave balance management, HR calendar, HR operational reports, HR activity logs. | Application-wide role assignment, user creation/deactivation, Admin provisioning, system security configuration. |
+| **`employee`** | Personal self-service dashboard (`/employee/dashboard`), viewing personal profile (`/employee/profile`), viewing personal leave balances, filing personal leave, cancelling own pending requests. | Strictly blocked from viewing other employees' data, administrative consoles, or workforce management tools. |
 
-> [!IMPORTANT]
-> The application contains **no admin role**. Any request targeting `/admin/*` is permanently redirected (HTTP 301) to `/hr/*`.
+### 4.2 Controlled Admin Provisioning
+* **No Public Admin Registration:** Admin accounts cannot be registered publicly or self-promoted by existing users.
+* **CLI Setup Tool:** Initial Administrator bootstrapping is performed strictly via `bin/create_admin_user.php`.
+* **Password Complexity:** Passwords must meet or exceed 8 characters with at least one uppercase letter, one lowercase letter, one number, and one special character.
+* **Audit Trail:** Bootstrapping creates an explicit audit event (`ADMIN_BOOTSTRAPPED_CLI`) recording IP/host and admin username.
+* **Duplicate Protection:** The CLI script refuses to provision additional Admin accounts without explicit `--force` override when an active Admin exists.
 
-### 4.2 Record Ownership Validation
+### 4.3 Last Active Admin Lockout Protection
+To prevent accidental loss of system governance, the application enforces transactional lockout protection:
+* An Administrator cannot delete, deactivate, or demote the last remaining active Administrator in `users`.
+* Administrators and HR officers cannot self-demote or self-deactivate their own active sessions (`Cannot demote or deactivate your own active account.`).
+* Attempting to demote or deactivate the last Administrator halts with a clear security alert: `System Lockout Protection: Cannot demote or deactivate the last remaining active Administrator in the system.`
+
+### 4.4 Record Ownership Validation
 All employee self-service endpoints enforce strict ownership validation:
 * An employee querying `/employee/profile` or `/employee/leave-balances` can only retrieve records matching their own `$_SESSION['user']['employee_id']`.
 * If a query parameter attempts to request another employee ID (e.g., `/employee/profile?emp_id=99`), the controller detects the ownership mismatch and halts execution with **HTTP 403 Forbidden**.

@@ -15,11 +15,11 @@ Essential architectural, design, and product specifications governing NEXORA HR:
 * **[System Architecture](01-core/ARCHITECTURE.md)** (`01-core/ARCHITECTURE.md`)  
   Custom 4-tier MVC framework, database architecture, row-level pessimistic locking (`SELECT ... FOR UPDATE`), Transactional Outbox pattern, and Mermaid architecture diagrams.
 * **[Engineering Rules](01-core/RULES.md)** (`01-core/RULES.md`)  
-  Mandatory 2-role model (`hr` and `employee`), PSR-12 standards, security boundaries, operational safety guardrails, and AI coding agent guidelines.
+  Mandatory 3-role model (`admin`, `hr`, and `employee`) under ADR-012, PSR-12 standards, security boundaries, operational safety guardrails, and AI coding agent guidelines.
 * **[UI/UX Design](01-core/DESIGN.md)** (`01-core/DESIGN.md`)  
   Design tokens, Cobalt Blue / Slate palette, typography, spatial grid, responsive App Shell, component library, and WCAG 2.1 AA accessibility guidelines.
 * **[Development Roadmap](01-core/TASK.md)** (`01-core/TASK.md`)  
-  Comprehensive phase breakdown (Phases 1–11), verified test metrics (592 passing tests, 0 new PSR-12 violations), and live pre-release task tracking.
+  Comprehensive phase breakdown (Phases 1–12), verified test metrics (600 passing tests, 0 new PSR-12 violations), and live pre-release task tracking.
 * **[AI Agent Memory](01-core/MEMORY.md)** (`01-core/MEMORY.md`)  
   High-density context primer, key file paths, core business rules, and essential CLI commands for AI assistants and context engineering.
 
@@ -34,11 +34,11 @@ Deep technical guides and formal specifications:
 * **[Database Documentation](02-technical/database/DATABASE.md)** (`02-technical/database/DATABASE.md`)  
   13-table InnoDB schema catalog, relationships, composite indexes, foreign key constraints, migrations, transactions, and data integrity.
 * **[Testing Documentation](02-technical/testing/TESTING.md)** (`02-technical/testing/TESTING.md`)  
-  PHPUnit (592 tests), PHPStan, PHPCS baseline check, Selenium E2E with Brave/Chromium, test database isolation (`hris_test`), and regression procedures.
+  PHPUnit (600 tests), PHPStan, PHPCS baseline check, Selenium E2E with Brave/Chromium, test database isolation (`hris_test`), and regression procedures.
 * **[API Reference](02-technical/api/API.md)** (`02-technical/api/API.md`)  
   REST API v1 endpoints catalog, HTTP methods, authentication, authorization, request/response formats, error envelopes, and OpenAPI / Swagger UI integration.
 * **[Architecture Decisions](02-technical/decisions/DECISIONS.md)** (`02-technical/decisions/DECISIONS.md`)  
-  Approved technical decisions, business-rule decisions, alternatives, consequences, and superseded decisions (ADR-001 through ADR-011).
+  Approved technical decisions, business-rule decisions, alternatives, consequences, and superseded decisions (ADR-001 through ADR-012).
 
 ---
 

@@ -47,7 +47,7 @@ class RealtimeTicketService
         }
 
         $sessionRole = strtolower((string)($sessionUser['role'] ?? ''));
-        if (!in_array($sessionRole, ['hr', 'employee'], true)) {
+        if (!in_array($sessionRole, ['admin', 'hr', 'employee'], true)) {
             return ['ok' => false, 'status' => 403, 'error' => 'Unsupported role.'];
         }
 

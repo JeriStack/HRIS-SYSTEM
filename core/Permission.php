@@ -16,25 +16,27 @@ class Permission
      * Maps named capability tokens to exact permitted roles.
      */
     private const CAPABILITY_ROLES = [
-        // Dashboard Boundaries (Strictly Isolated; 2-role model, no Admin role)
+        // Dashboard Boundaries
+        'admin_dashboard'           => ['admin'],
         'hr_dashboard'              => ['hr'],
         'employee_dashboard'        => ['employee'],
 
-        // Administrative & User Governance (Managed by HR)
-        'manage_users'              => ['hr'],
-        'assign_roles'              => ['hr'],
-        'system_settings'           => ['hr'],
+        // Administrative & User Governance (Admin Only)
+        'manage_users'              => ['admin'],
+        'assign_roles'              => ['admin'],
+        'system_settings'           => ['admin'],
+        'view_monitoring'           => ['admin'],
 
-        // Workforce & Organization Operations
-        'manage_employees'          => ['hr'],
-        'manage_departments'        => ['hr'],
-        'manage_positions'          => ['hr'],
-        'view_employee_records'     => ['hr'],
+        // Workforce & Organization Operations (Admin & HR)
+        'manage_employees'          => ['admin', 'hr'],
+        'manage_departments'        => ['admin', 'hr'],
+        'manage_positions'          => ['admin', 'hr'],
+        'view_employee_records'     => ['admin', 'hr'],
 
-        // Leave Governance & Balance Adjustments
-        'manage_leave_types'        => ['hr'],
-        'review_leave_requests'     => ['hr'],
-        'manage_leave_balances'     => ['hr'],
+        // Leave Governance & Balance Adjustments (Admin & HR)
+        'manage_leave_types'        => ['admin', 'hr'],
+        'review_leave_requests'     => ['admin', 'hr'],
+        'manage_leave_balances'     => ['admin', 'hr'],
 
         // Employee Self-Service Operations (Ownership-Enforced)
         'view_own_profile'          => ['employee'],
@@ -43,19 +45,24 @@ class Permission
         'view_own_leave_requests'   => ['employee'],
         'cancel_own_leave_requests' => ['employee'],
 
-        // Analytics, Audit & Research
-        'view_reports'              => ['hr'],
-        'view_activity_logs'        => ['hr'],
-        'dsa_laboratory'            => ['hr'],
+        // Analytics, Audit & Research (Admin & HR)
+        'view_reports'              => ['admin', 'hr'],
+        'view_activity_logs'        => ['admin', 'hr'],
+        'dsa_laboratory'            => ['admin', 'hr'],
 
         // Universal Session Operations
-        'logout'                    => ['hr', 'employee'],
+        'logout'                    => ['admin', 'hr', 'employee'],
     ];
 
     /**
-     * Exact valid role allowlist (2-Role Model: HR and Employee).
+     * Exact valid role allowlist (3-Role Model: Admin, HR, and Employee).
      */
-    public const VALID_ROLES = ['hr', 'employee'];
+    public const VALID_ROLES = ['admin', 'hr', 'employee'];
+
+    /**
+     * Public alias for registered capability matrix.
+     */
+    public const ROLE_CAPABILITIES = self::CAPABILITY_ROLES;
 
     /**
      * Check if a given role possesses a specific capability.

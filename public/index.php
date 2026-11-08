@@ -59,28 +59,75 @@ try {
     // Role-Directed Dashboard Entry Point
     $router->get('/dashboard', [AuthController::class, 'dashboard'], [AuthMiddleware::class]);
 
-    // Role Definition Middlewares (2-Role Model: HR and Employee)
+    // Role Definition Middlewares (3-Role Model: Admin, HR, and Employee)
+    $adminOnly       = new RoleMiddleware(['admin']);
     $hrOnly          = new RoleMiddleware(['hr']);
     $employeeOnly    = new RoleMiddleware(['employee']);
-    $workforceRoles  = new RoleMiddleware(['hr']);
+    $workforceRoles  = new RoleMiddleware(['admin', 'hr']);
+
+    // Dedicated Administrator Console Dashboard (Admin Role Only)
+    $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], [AuthMiddleware::class, $adminOnly]);
 
     // Dedicated HR Management Dashboard (HR Role Only)
     $router->get('/hr/dashboard', [DashboardController::class, 'hrDashboard'], [AuthMiddleware::class, $hrOnly]);
 
-    // User Accounts & Role Governance Routes (HR Only)
-    $router->get('/hr/users', [UserController::class, 'index'], [AuthMiddleware::class, $hrOnly]);
-    $router->get('/hr/users/create', [UserController::class, 'create'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/hr/users/create', [UserController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->get('/hr/users/{id}/edit', [UserController::class, 'edit'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/hr/users/{id}/edit', [UserController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    // User Accounts & Role Governance Routes (Admin Role Only)
+    $router->get('/admin/users', [UserController::class, 'index'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/users/create', [UserController::class, 'create'], [AuthMiddleware::class, $adminOnly]);
+    $router->post('/admin/users/create', [UserController::class, 'store'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
+    $router->get('/admin/users/{id}/edit', [UserController::class, 'edit'], [AuthMiddleware::class, $adminOnly]);
+    $router->post('/admin/users/{id}/edit', [UserController::class, 'update'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
 
-    // Backward-Compatibility Aliases for /admin Routes -> Redirect / Service under HR
-    $router->get('/admin/dashboard', function () {
-        redirect('hr/dashboard');
-    }, [AuthMiddleware::class, $hrOnly]);
-    $router->get('/admin/users', [UserController::class, 'index'], [AuthMiddleware::class, $hrOnly]);
-    $router->get('/admin/users/{id}/edit', [UserController::class, 'edit'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/admin/users/{id}/edit', [UserController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    // System Administration, Governance, & Infrastructure Routes (Admin Role Only)
+    $router->get('/admin/roles', [AdminController::class, 'roles'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/provisioning', [AdminController::class, 'provisioning'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/security/events', [AdminController::class, 'securityEvents'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings/auth', [AdminController::class, 'authSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings', [AdminController::class, 'generalSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/system-health', [AdminController::class, 'systemHealth'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings/notifications', [AdminController::class, 'notificationSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/account', [AdminController::class, 'account'], [AuthMiddleware::class, $adminOnly]);
+    $router->post('/admin/account', [AdminController::class, 'updateAccount'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
+
+    // Convenient Admin Route Aliases to existing functional workforce & leave modules
+    $router->get('/admin/employees', function () {
+        redirect('/hr/employees');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/departments', function () {
+        redirect('/hr/departments');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/positions', function () {
+        redirect('/hr/positions');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leaves', function () {
+        redirect('/leaves');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leave-types', function () {
+        redirect('/hr/leave-types');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leave-balances', function () {
+        redirect('/leaves/balances');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/reports', function () {
+        redirect('/reports');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/analytics', function () {
+        redirect('/reports?tab=analytics');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/audit-logs', function () {
+        redirect('/activity-logs');
+    }, [AuthMiddleware::class, $adminOnly]);
+
+    // Backward-Compatibility Aliases for /hr/users -> Redirect to /admin/users (enforces adminOnly)
+    $router->get('/hr/users', function () {
+        redirect('/admin/users');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/hr/users/create', function () {
+        redirect('/admin/users/create');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/hr/users/{id}/edit', function ($id) {
+        redirect('/admin/users/' . (int)$id . '/edit');
+    }, [AuthMiddleware::class, $adminOnly]);
 
     // Phase 7: Employee Management Routes (Administrator & HR Access)
     $router->get('/hr/employees', [EmployeeController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);

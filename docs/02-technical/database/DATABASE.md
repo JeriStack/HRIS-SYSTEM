@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Status:** Authoritative Database Reference  
-**Date:** November 2026  
+**Date:** November 2026 (ADR-012 Three-Role Schema Migration)  
 **Document Owner:** Database Administrator & Backend Architecture Team  
 
 ---
@@ -90,7 +90,7 @@ CREATE TABLE `users` (
     `username` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NULL,
     `password` VARCHAR(255) NOT NULL,
-    `role` ENUM('hr', 'employee') NOT NULL DEFAULT 'employee',
+    `role` ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee',
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_users_username` UNIQUE (`username`),
@@ -348,4 +348,11 @@ php bin/migrate.php
 
 All migrations must adhere to the following naming pattern:
 `database/migrations/YYYY_MM_DD_descriptive_action_name.sql`
+
+### 4.1 Migration History
+* `database/migrations/2026_03_11_create_initial_schema.sql` — Initial 13-table schema definition.
+* `database/migrations/2026_03_11_seed_leave_types.sql` — Default leave types seed (Vacation, Sick, Emergency).
+* `database/migrations/2026_04_01_create_outbox_events.sql` — Outbox table for asynchronous WebSockets.
+* `database/migrations/2026_04_15_create_user_totp.sql` — RFC 6238 TOTP table.
+* `database/migrations/2026_11_06_add_admin_role_to_users.sql` — Modifies `users.role` ENUM to include `'admin'` (`ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee'`). Zero table rewrite, non-destructive, and maintains default role as `'employee'`.
 

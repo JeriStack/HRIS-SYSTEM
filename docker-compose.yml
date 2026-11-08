@@ -64,6 +64,15 @@ services:
       WS_PATH: /ws
       WS_PUBLIC_URL: ""
       WS_TICKET_TTL: 30
+      # Mailpit SMTP delivery (internal container hostname)
+      MAIL_DRIVER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_ENCRYPTION: none
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      MAIL_FROM_ADDRESS: "no-reply@nexora.local"
+      MAIL_FROM_NAME: "NEXORA HR"
     volumes:
       - .:/var/www/html
     depends_on:
@@ -325,6 +334,26 @@ services:
       SUPPORTED_SUBMIT_METHODS: '["get", "post", "put", "delete", "patch"]'
     volumes:
       - ./docs/api/openapi.yaml:/openapi/openapi.yaml:ro
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # 10. Local Mail & OTP Testing: Mailpit
+  # Captures all outgoing email locally without connecting to external SMTP
+  # Web UI: http://localhost:8025 | SMTP Server: localhost:1025
+  # -----------------------------------------------------------------------------
+  mailpit:
+    container_name: hris_mailpit
+    image: axllent/mailpit:v1.22
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
     restart: unless-stopped
     logging:
       driver: "json-file"

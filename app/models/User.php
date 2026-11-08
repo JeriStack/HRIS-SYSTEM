@@ -98,8 +98,8 @@ class User extends Model
         }
 
         $role = strtolower(trim((string)($data['role'] ?? 'employee')));
-        if ($role !== 'hr' && $role !== 'employee') {
-            throw new \InvalidArgumentException("Invalid role '{$role}'. Only 'hr' and 'employee' are permitted.");
+        if (!in_array($role, ['admin', 'hr', 'employee'], true)) {
+            throw new \InvalidArgumentException("Invalid role '{$role}'. Only 'admin', 'hr', and 'employee' are permitted.");
         }
 
         $passwordHash = (string)$data['password'];
@@ -504,21 +504,28 @@ class User extends Model
     }
 
     /**
-     * Count active administrator accounts (delegates to countActiveHr for 2-role system).
+     * Count active administrator accounts, optionally excluding a specific user ID.
+     * Essential for protecting against last-active-Admin lockout.
      *
      * @param int|null $excludeUserId
      * @return int
      */
     public function countActiveAdmins(?int $excludeUserId = null): int
     {
-        return $this->countActiveHr($excludeUserId);
+        if ($excludeUserId !== null) {
+            $sql = "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'Active' AND id != :exclude_id";
+            return (int)$this->fetchColumn($sql, ['exclude_id' => $excludeUserId]);
+        }
+
+        $sql = "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'Active'";
+        return (int)$this->fetchColumn($sql);
     }
 
     /**
      * Update a user account's assigned role and operational status.
      *
      * @param int $id
-     * @param string $role Validated role ('hr', 'employee')
+     * @param string $role Validated role ('admin', 'hr', 'employee')
      * @param string $status Validated status ('Active', 'Inactive')
      * @return bool
      */
