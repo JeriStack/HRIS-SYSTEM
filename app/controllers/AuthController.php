@@ -213,10 +213,15 @@ class AuthController extends Controller
             return;
         }
 
-        // 8b. Server-Side Portal Role Verification (HR vs Employee Portal Selection)
+        // 8b. Server-Side Portal Role Verification (Admin, HR & Employee Portal Selection)
         if ($portalRole !== '' && $portalRole !== $role) {
-            $selectedPortalLabel = $portalRole === 'hr' ? 'HR Portal' : 'Employee Portal';
-            $correctPortalLabel = $role === 'hr' ? 'HR Portal' : 'Employee Portal';
+            $portalLabels = [
+                'admin'    => 'Admin Portal',
+                'hr'       => 'HR Portal',
+                'employee' => 'Employee Portal',
+            ];
+            $selectedPortalLabel = $portalLabels[$portalRole] ?? 'Employee Portal';
+            $correctPortalLabel = $portalLabels[$role] ?? 'Employee Portal';
 
             $this->userModel->logActivity(
                 (int)$user['id'],

@@ -458,7 +458,7 @@ class AdminController extends Controller
         $newPassword = (string)($_POST['new_password'] ?? '');
         $confirmPassword = (string)($_POST['confirm_password'] ?? '');
 
-        $user = $this->getUserModel()->findById($userId);
+        $user = $this->getUserModel()->findByIdWithAuthState($userId);
         if (!$user) {
             Session::flash('error', 'User account not found.');
             redirect('/admin/account');
@@ -478,7 +478,7 @@ class AdminController extends Controller
         // Handle password update if supplied
         $updateData = ['email' => $email];
         if ($newPassword !== '') {
-            if (!password_verify($currentPassword, (string)$user['password'])) {
+            if (!password_verify($currentPassword, (string)($user['password'] ?? ''))) {
                 Session::flash('error', 'Current password verification failed.');
                 redirect('/admin/account');
             }
@@ -497,6 +497,18 @@ class AdminController extends Controller
         }
 
         $this->getUserModel()->update($userId, $updateData);
+
+        // Refresh session email and auth fingerprint so Session::verifyAuthenticatedAccountState() stays in sync
+        $freshUser = $this->getUserModel()->findByIdWithAuthState($userId);
+        $sessionUser = Session::get('user');
+        if (is_array($sessionUser) && is_array($freshUser)) {
+            $sessionUser['email'] = (string)($freshUser['email'] ?? $email);
+            $sessionUser['auth_fingerprint'] = Session::computeAuthFingerprint($freshUser);
+            Session::set('user', $sessionUser);
+            if ($newPassword !== '') {
+                Session::regenerate();
+            }
+        }
 
         try {
             if (class_exists(ActivityLog::class)) {
