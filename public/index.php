@@ -188,6 +188,7 @@ try {
 
     // System Security Audit Activity Trail (Administrator & HR Access)
     $router->get('/activity-logs', [ActivityLogController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
+    $router->get('/activity-logs/export', [ActivityLogController::class, 'export'], [AuthMiddleware::class, $workforceRoles]);
 
     // Data Structures & Algorithms Laboratory (Administrator & HR Access)
     $router->get('/dsa', [DsaController::class, 'playground'], [AuthMiddleware::class, $workforceRoles]);

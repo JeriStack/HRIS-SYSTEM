@@ -125,7 +125,14 @@ class PositionController extends Controller
             'POSITION_CREATED',
             "Created position: {$name} in department ID {$deptId} (Position ID: {$positionId})",
             'POSITION',
-            (string)$positionId
+            (string)$positionId,
+            null,
+            [
+                'position_name' => $name,
+                'department_id' => $deptId,
+                'description'   => $description,
+            ],
+            'SUCCESS'
         );
 
         Session::flash('success', "Position '{$name}' was created successfully.");
@@ -226,7 +233,18 @@ class PositionController extends Controller
             'POSITION_UPDATED',
             "Updated position: {$name} in department ID {$deptId} (Position ID: {$id})",
             'POSITION',
-            (string)$id
+            (string)$id,
+            [
+                'position_name' => $position['position_name'] ?? null,
+                'department_id' => $position['department_id'] ?? null,
+                'description'   => $position['description'] ?? null,
+            ],
+            [
+                'position_name' => $name,
+                'department_id' => $deptId,
+                'description'   => $description,
+            ],
+            'SUCCESS'
         );
 
         Session::flash('success', "Position '{$name}' was updated successfully.");

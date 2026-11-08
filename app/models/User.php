@@ -427,26 +427,29 @@ class User extends Model
      * @param string|null $entityId
      * @return bool
      */
-    public function logActivity(?int $userId, string $action, string $description, ?string $entityType = null, ?string $entityId = null): bool
-    {
+    public function logActivity(
+        ?int $userId,
+        string $action,
+        string $description,
+        ?string $entityType = null,
+        ?string $entityId = null,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        string $status = 'SUCCESS'
+    ): bool {
         try {
-            $sql = "
-                INSERT INTO activity_logs (
-                    user_id, action, description, entity_type, entity_id, ip_address, user_agent, created_at
-                ) VALUES (
-                    :user_id, :action, :description, :entity_type, :entity_id, :ip_address, :user_agent, NOW()
-                )
-            ";
-
-            return $this->execute($sql, [
-                'user_id'     => $userId,
-                'action'      => $action,
-                'description' => $description,
-                'entity_type' => $entityType,
-                'entity_id'   => $entityId,
-                'ip_address'  => client_ip() ?? '127.0.0.1',
-                'user_agent'  => substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255),
+            $eventId = \Core\AuditService::getInstance($this->db)->record([
+                'actor_user_id' => $userId,
+                'action'        => $action,
+                'description'   => $description,
+                'entity_type'   => $entityType,
+                'entity_id'     => $entityId,
+                'old_values'    => $oldValues,
+                'new_values'    => $newValues,
+                'status'        => $status,
             ]);
+
+            return !empty($eventId);
         } catch (\Throwable $e) {
             error_log("Failed to write to activity_logs: " . $e->getMessage());
             return false;

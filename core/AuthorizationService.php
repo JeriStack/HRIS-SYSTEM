@@ -578,7 +578,11 @@ class AuthorizationService
                         'PERMISSIONS_UPDATED',
                         $summaryDesc,
                         'Role',
-                        (string)$roleId
+                        (string)$roleId,
+                        ['permissions' => $currentSlugs],
+                        ['permissions' => $submittedSlugs],
+                        'SUCCESS',
+                        \Core\AuditService::CATEGORY_RBAC
                     );
                 }
             } catch (Throwable $e) {
