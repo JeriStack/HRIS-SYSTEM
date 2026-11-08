@@ -60,6 +60,11 @@ class Permission
     public const VALID_ROLES = ['admin', 'hr', 'employee'];
 
     /**
+     * Public alias for registered capability matrix.
+     */
+    public const ROLE_CAPABILITIES = self::CAPABILITY_ROLES;
+
+    /**
      * Check if a given role possesses a specific capability.
      * Deny-by-default (fails closed) if role is null, invalid, or capability is unrecognized.
      *

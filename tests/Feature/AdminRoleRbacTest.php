@@ -215,4 +215,49 @@ class AdminRoleRbacTest extends TestCase
         $this->assertSame(1, currentUserId());
         $this->assertTrue(isAuthenticated());
     }
+
+    public function test_admin_portal_routes_reject_hr_and_employee(): void
+    {
+        $adminOnly = new RoleMiddleware(['admin']);
+
+        // Authenticate as HR user
+        Session::set('user', ['id' => 2, 'role' => 'hr', 'status' => 'Active']);
+        $this->assertFalse($adminOnly->handle(), 'HR user must be rejected from Admin Portal routes.');
+
+        // Authenticate as Employee user
+        Session::set('user', ['id' => 4, 'role' => 'employee', 'status' => 'Active']);
+        $this->assertFalse($adminOnly->handle(), 'Employee user must be rejected from Admin Portal routes.');
+
+        // Authenticate as Administrator
+        Session::set('user', ['id' => 9991, 'role' => 'admin', 'status' => 'Active']);
+        $this->assertTrue($adminOnly->handle(), 'Administrator must be allowed on Admin Portal routes.');
+    }
+
+    public function test_permission_capabilities_constant_and_getter(): void
+    {
+        $this->assertIsArray(Permission::ROLE_CAPABILITIES);
+        $this->assertNotEmpty(Permission::ROLE_CAPABILITIES);
+        $this->assertSame(Permission::ROLE_CAPABILITIES, Permission::getAllCapabilities());
+        $this->assertArrayHasKey('admin_dashboard', Permission::ROLE_CAPABILITIES);
+        $this->assertArrayHasKey('manage_users', Permission::ROLE_CAPABILITIES);
+        $this->assertArrayHasKey('assign_roles', Permission::ROLE_CAPABILITIES);
+    }
+
+    public function test_admin_controller_instantiation_and_structure(): void
+    {
+        $controller = new \App\Controllers\AdminController();
+        $this->assertInstanceOf(\Core\Controller::class, $controller);
+
+        $reflection = new \ReflectionClass($controller);
+        $this->assertTrue($reflection->hasMethod('dashboard'));
+        $this->assertTrue($reflection->hasMethod('roles'));
+        $this->assertTrue($reflection->hasMethod('provisioning'));
+        $this->assertTrue($reflection->hasMethod('securityEvents'));
+        $this->assertTrue($reflection->hasMethod('authSettings'));
+        $this->assertTrue($reflection->hasMethod('generalSettings'));
+        $this->assertTrue($reflection->hasMethod('systemHealth'));
+        $this->assertTrue($reflection->hasMethod('notificationSettings'));
+        $this->assertTrue($reflection->hasMethod('account'));
+        $this->assertTrue($reflection->hasMethod('updateAccount'));
+    }
 }

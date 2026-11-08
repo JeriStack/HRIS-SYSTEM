@@ -78,6 +78,46 @@ try {
     $router->get('/admin/users/{id}/edit', [UserController::class, 'edit'], [AuthMiddleware::class, $adminOnly]);
     $router->post('/admin/users/{id}/edit', [UserController::class, 'update'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
 
+    // System Administration, Governance, & Infrastructure Routes (Admin Role Only)
+    $router->get('/admin/roles', [AdminController::class, 'roles'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/provisioning', [AdminController::class, 'provisioning'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/security/events', [AdminController::class, 'securityEvents'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings/auth', [AdminController::class, 'authSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings', [AdminController::class, 'generalSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/system-health', [AdminController::class, 'systemHealth'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/settings/notifications', [AdminController::class, 'notificationSettings'], [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/account', [AdminController::class, 'account'], [AuthMiddleware::class, $adminOnly]);
+    $router->post('/admin/account', [AdminController::class, 'updateAccount'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class]);
+
+    // Convenient Admin Route Aliases to existing functional workforce & leave modules
+    $router->get('/admin/employees', function () {
+        redirect('/hr/employees');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/departments', function () {
+        redirect('/hr/departments');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/positions', function () {
+        redirect('/hr/positions');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leaves', function () {
+        redirect('/leaves');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leave-types', function () {
+        redirect('/hr/leave-types');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/leave-balances', function () {
+        redirect('/leaves/balances');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/reports', function () {
+        redirect('/reports');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/analytics', function () {
+        redirect('/reports?tab=analytics');
+    }, [AuthMiddleware::class, $adminOnly]);
+    $router->get('/admin/audit-logs', function () {
+        redirect('/activity-logs');
+    }, [AuthMiddleware::class, $adminOnly]);
+
     // Backward-Compatibility Aliases for /hr/users -> Redirect to /admin/users (enforces adminOnly)
     $router->get('/hr/users', function () {
         redirect('/admin/users');
