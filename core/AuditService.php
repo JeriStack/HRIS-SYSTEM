@@ -143,7 +143,7 @@ class AuditService
 
         if (is_string($data)) {
             // Mask any raw private key content if present
-            if (str_contains($data, 'BEGIN PRIVATE KEY') || str_contains($data, 'BEGIN RSA PRIVATE KEY')) {
+            if (preg_match('/BEGIN\s+[A-Z\s]*PRIVATE\s+KEY/', $data)) {
                 return '[REDACTED_CRYPTOGRAPHIC_KEY]';
             }
         }
