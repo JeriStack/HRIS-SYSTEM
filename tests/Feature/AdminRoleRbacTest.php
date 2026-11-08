@@ -119,16 +119,24 @@ class AdminRoleRbacTest extends TestCase
         $workforceRoles = new RoleMiddleware(['admin', 'hr']);
 
         // Admin allowed
-        Session::set('user', ['id' => 1, 'role' => 'admin', 'status' => 'Active']);
+        Session::set('user', ['id' => 9991, 'role' => 'admin', 'status' => 'Active']);
         $this->assertTrue($adminOnly->handle());
         $this->assertTrue($workforceRoles->handle());
 
         // HR allowed on workforce but denied on adminOnly
+        // (In seeded database, user ID 2 is an active HR account)
         Session::set('user', ['id' => 2, 'role' => 'hr', 'status' => 'Active']);
         $this->assertTrue($workforceRoles->handle());
+        $this->assertFalse($adminOnly->handle());
 
         // Employee denied on both
-        Session::set('user', ['id' => 3, 'role' => 'employee', 'status' => 'Active']);
+        // (In seeded database, user ID 4 is an active Employee account)
+        Session::set('user', ['id' => 4, 'role' => 'employee', 'status' => 'Active']);
+        $this->assertFalse($adminOnly->handle());
+        $this->assertFalse($workforceRoles->handle());
+
+        // Unauthenticated visitor denied on both
+        Session::remove('user');
         $this->assertFalse($adminOnly->handle());
         $this->assertFalse($workforceRoles->handle());
     }

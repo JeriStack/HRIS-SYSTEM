@@ -87,6 +87,9 @@ if (!function_exists('redirect')) {
 
         http_response_code($statusCode);
         header("Location: {$url}");
+        if (getenv('APP_ENV') === 'testing' || (defined('PHPUNIT_RUNNING') && PHPUNIT_RUNNING)) {
+            return;
+        }
         exit;
     }
 }
@@ -100,6 +103,9 @@ if (!function_exists('json_response')) {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (getenv('APP_ENV') === 'testing' || (defined('PHPUNIT_RUNNING') && PHPUNIT_RUNNING)) {
+            return;
+        }
         exit;
     }
 }
