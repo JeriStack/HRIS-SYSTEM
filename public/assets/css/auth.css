@@ -618,8 +618,7 @@ html[data-theme="dark"] .theme-toggle-btn .moon-icon {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: center;
   margin-bottom: 1.25rem;
 }
 
@@ -632,6 +631,7 @@ html[data-theme="dark"] .theme-toggle-btn .moon-icon {
   justify-content: center;
   color: #ffffff;
   flex-shrink: 0;
+  margin: 0 auto;
   box-shadow: 0 8px 18px rgba(21, 61, 112, 0.18);
   transition:
     transform var(--motion-normal) var(--ease-emphasis),
@@ -1019,27 +1019,39 @@ html[data-theme="dark"] .role-card-btn-admin {
 .modal-role-switcher {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.375rem;
-  padding: 0.3125rem;
+  gap: 0.25rem;
+  padding: 0.25rem;
   background-color: var(--surface-subtle);
   border: 1px solid var(--border);
-  border-radius: 0.625rem;
+  border-radius: 0.6875rem;
   margin-bottom: 1.375rem;
+}
+
+html[data-theme="dark"] .modal-role-switcher {
+  background-color: rgba(14, 25, 45, 0.75);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .role-switch-tab {
   min-height: 38px;
-  padding: 0.4375rem 0.75rem;
-  border-radius: 0.4375rem;
+  padding: 0.4375rem 0.5rem;
+  border-radius: 0.5rem;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.375rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
   transition:
     background-color 0.18s ease,
+    border-color 0.18s ease,
     color 0.18s ease,
     box-shadow 0.18s ease;
 }
@@ -1047,17 +1059,76 @@ html[data-theme="dark"] .role-card-btn-admin {
 .role-switch-tab svg {
   width: 0.9375rem;
   height: 0.9375rem;
+  flex-shrink: 0;
 }
 
 .role-switch-tab:hover {
   color: var(--heading);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="dark"] .role-switch-tab:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.role-switch-tab:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
 }
 
 .role-switch-tab.is-active {
-  background-color: var(--surface);
-  color: var(--brand-blue);
+  background-color: #ffffff;
+  color: var(--heading);
   font-weight: 700;
-  box-shadow: var(--shadow-sm);
+  border-color: rgba(203, 213, 225, 0.8);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme="dark"] .role-switch-tab.is-active {
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Role-specific color accents when active */
+.role-switch-tab[data-switch-role="admin"].is-active {
+  color: #4f46e5;
+  border-color: rgba(99, 102, 241, 0.28);
+}
+
+html[data-theme="dark"] .role-switch-tab[data-switch-role="admin"].is-active {
+  color: #818cf8;
+  background-color: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.32);
+}
+
+.role-switch-tab[data-switch-role="hr"].is-active {
+  color: var(--brand-blue);
+  border-color: rgba(37, 99, 235, 0.28);
+}
+
+html[data-theme="dark"] .role-switch-tab[data-switch-role="hr"].is-active {
+  color: #60a5fa;
+  background-color: rgba(37, 99, 235, 0.14);
+  border-color: rgba(96, 165, 250, 0.32);
+}
+
+.role-switch-tab[data-switch-role="employee"].is-active {
+  color: #0d9488;
+  border-color: rgba(20, 184, 166, 0.28);
+}
+
+html[data-theme="dark"] .role-switch-tab[data-switch-role="employee"].is-active {
+  color: #2dd4bf;
+  background-color: rgba(20, 184, 166, 0.14);
+  border-color: rgba(45, 212, 191, 0.32);
+}
+
+@media (max-width: 440px) {
+  .role-switch-tab .tab-label-suffix {
+    display: none;
+  }
 }
 
 /* ==========================================================================

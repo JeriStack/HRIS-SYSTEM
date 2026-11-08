@@ -40,7 +40,11 @@ $modalSubmitLabel = match ($activeVisualRole) {
             }
         })();
     </script>
-    <link rel="stylesheet" href="<?= asset('css/auth.css') ?>">
+    <?php
+    $authCssFile = __DIR__ . '/../../../public/assets/css/auth.css';
+    $authCssVer = file_exists($authCssFile) ? (string)filemtime($authCssFile) : '2.1';
+    ?>
+    <link rel="stylesheet" href="<?= asset('css/auth.css') ?>?v=<?= e($authCssVer) ?>">
 </head>
 
 <body class="auth-landing-page">
@@ -109,14 +113,13 @@ $modalSubmitLabel = match ($activeVisualRole) {
             <!-- CARD 0: ADMIN LOGIN -->
             <article class="role-card role-card-admin <?= $activeVisualRole === 'admin' ? 'is-selected' : '' ?>" data-role-card="admin">
                 <div class="role-card-top">
-                    <div class="role-card-header-row">
-                        <div class="role-card-icon" aria-hidden="true">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                                 <path d="m9 12 2 2 4-4" />
                             </svg>
                         </div>
-                        <span class="role-card-badge">System Administration</span>
                     </div>
 
                     <h2 class="role-card-title">Admin Portal</h2>
@@ -137,14 +140,13 @@ $modalSubmitLabel = match ($activeVisualRole) {
             <!-- CARD 1: HR LOGIN -->
             <article class="role-card role-card-hr <?= $activeVisualRole === 'hr' ? 'is-selected' : '' ?>" data-role-card="hr">
                 <div class="role-card-top">
-                    <div class="role-card-header-row">
-                        <div class="role-card-icon" aria-hidden="true">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                             </svg>
                         </div>
-                        <span class="role-card-badge">HR Administration</span>
                     </div>
 
                     <h2 class="role-card-title">HR Portal</h2>
@@ -165,8 +167,8 @@ $modalSubmitLabel = match ($activeVisualRole) {
             <!-- CARD 2: EMPLOYEE LOGIN -->
             <article class="role-card role-card-employee <?= $activeVisualRole === 'employee' ? 'is-selected' : '' ?>" data-role-card="employee">
                 <div class="role-card-top">
-                    <div class="role-card-header-row">
-                        <div class="role-card-icon" aria-hidden="true">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
@@ -174,7 +176,6 @@ $modalSubmitLabel = match ($activeVisualRole) {
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                         </div>
-                        <span class="role-card-badge">Self-Service Workspace</span>
                     </div>
 
                     <h2 class="role-card-title">Employee Portal</h2>
@@ -270,7 +271,7 @@ $modalSubmitLabel = match ($activeVisualRole) {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
                     </svg>
-                    <span>Admin Portal</span>
+                    <span>Admin</span><span class="tab-label-suffix">&nbsp;Portal</span>
                 </button>
                 <button type="button"
                     role="tab"
@@ -281,7 +282,7 @@ $modalSubmitLabel = match ($activeVisualRole) {
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
-                    <span>HR Portal</span>
+                    <span>HR</span><span class="tab-label-suffix">&nbsp;Portal</span>
                 </button>
                 <button type="button"
                     role="tab"
@@ -289,10 +290,10 @@ $modalSubmitLabel = match ($activeVisualRole) {
                     class="role-switch-tab <?= $activeVisualRole === 'employee' ? 'is-active' : '' ?>"
                     data-switch-role="employee">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                     </svg>
-                    <span>Employee Portal</span>
+                    <span>Employee</span><span class="tab-label-suffix">&nbsp;Portal</span>
                 </button>
             </div>
 
