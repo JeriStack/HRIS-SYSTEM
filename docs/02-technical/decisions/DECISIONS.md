@@ -25,7 +25,7 @@ This document maintains the official Architectural Decision Records (ADRs) gover
 | ADR ID | Title | Status | Impact Area |
 |---|---|---|---|
 | **ADR-001** | Custom Framework-Agnostic PHP 8.5 MVC Architecture | `ACCEPTED` | Core Framework |
-| **ADR-002** | Strict 2-Role Access Control Model (HR & Employee) | `ACCEPTED` (Supersedes DEC-012) | Security / RBAC |
+| **ADR-002** | Strict 2-Role Access Control Model (HR & Employee) | `SUPERSEDED` by ADR-012 | Security / RBAC |
 | **ADR-003** | MySQL 8.0 InnoDB Engine with Referential Integrity | `ACCEPTED` | Database |
 | **ADR-004** | Multi-Container Docker Compose Orchestration | `ACCEPTED` | Infrastructure |
 | **ADR-005** | Mandatory Dual-Factor Authentication (Email OTP & TOTP) | `ACCEPTED` | Authentication |
@@ -35,6 +35,7 @@ This document maintains the official Architectural Decision Records (ADRs) gover
 | **ADR-009** | On-Demand Missing Leave Balance Initialization Policy | `ACCEPTED` | Leave Balances |
 | **ADR-010** | Continuous Session State Verification & Live Profile Sync | `ACCEPTED` | Session Security |
 | **ADR-011** | PSR-12 Baseline Code Quality Gate | `ACCEPTED` | Quality / CI |
+| **ADR-012** | Three-Role RBAC Model with Admin Role, Controlled Provisioning, and Lockout Protection | `ACCEPTED` (Supersedes ADR-002) | Security / RBAC |
 
 ---
 
@@ -49,13 +50,13 @@ This document maintains the official Architectural Decision Records (ADRs) gover
 ---
 
 ### ADR-002: Strict 2-Role Access Control Model
-* **Status:** `ACCEPTED` (Supersedes historical `DEC-012` 3-role proposal)
+* **Status:** `SUPERSEDED` by ADR-012
 * **Context:** Earlier prototypes proposed three separate roles (`admin`, `hr`, `employee`). In production HRIS environments, separating Admin and HR introduces operational ambiguity, permission conflicts, and privilege escalation risks.
 * **Decision:** Enforce strictly **two application roles**: **`hr`** and **`employee`**.
   * The `hr` role consolidates workforce administration, organization configuration, and leave processing.
   * The `employee` role provides isolated self-service.
   * All legacy `/admin/*` routes are permanent HTTP 301 redirects to `/hr/*`.
-* **Consequences:** Eliminates administrative privilege sprawl, simplifies the authorization matrix, and prevents security confusion.
+* **Consequences:** Eliminates administrative privilege sprawl, simplifies the authorization matrix, and prevents security confusion. (Superseded by ADR-012 following approved enterprise governance requirements).
 
 ---
 
@@ -128,4 +129,21 @@ This document maintains the official Architectural Decision Records (ADRs) gover
 * **Context:** Large legacy codebases cannot immediately resolve all historical styling discrepancies without creating massive git merge conflicts.
 * **Decision:** Enforce a baseline sniffer (`bin/check-phpcs-baseline.php`) locking legacy violations to 259, while mandating **zero new violations** on all new code changes and pull requests.
 * **Consequences:** Incrementally improves codebase quality without disrupting active feature development.
+
+---
+
+### ADR-012: Three-Role RBAC Model with Admin Role, Controlled Provisioning, and Lockout Protection
+* **Status:** `ACCEPTED` (Supersedes `ADR-002`)
+* **Context:** Enterprise operational separation requires distinguishing high-privilege system administration, account provisioning, role governance, and security audit log inspection from routine HR workforce tasks and employee self-service. The project owner formally approved introducing a third authoritative role: **Admin**.
+* **Decision:** Implement strictly **three application roles**:
+  1. **`admin`**: Full system-wide administrative authority. Owns the Admin Dashboard (`/admin/dashboard`), user account provisioning, role assignment, account deactivation/reactivation, system settings, audit monitoring, and full access to employee and leave records.
+  2. **`hr`**: Human Resources operational management. Retains workforce operations (employee directory, departments, positions, leave review queue, approvals/rejections, balances, and reports). Strictly prohibited from application-wide role assignments, Admin provisioning, or security configuration.
+  3. **`employee`**: Self-service workspace. Strictly isolated to own profile, own leave balances, leave filing, and personal notifications.
+* **Controlled Provisioning & Security Controls:**
+  * Public Admin registration is prohibited; the initial Admin account is bootstrapped exclusively through a controlled CLI command (`bin/create_admin_user.php`).
+  * Sensitive operations enforce step-up authentication.
+  * **Last Active Admin Protection:** Transactional guard prevents deleting, deactivating, or demoting the last remaining active Administrator.
+  * **Self-Demotion Prevention:** Active administrators cannot demote or deactivate their own session account.
+* **Consequences:** Provides robust enterprise segregation of duties, prevents privilege escalation, and enforces zero-lockout system stability.
+
 

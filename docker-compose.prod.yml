@@ -179,6 +179,92 @@ services:
         max-file: "3"
 
   # -----------------------------------------------------------------------------
+  # 2c. Scheduler Service: Dedicated Cron Daemon (Option A)
+  # -----------------------------------------------------------------------------
+  scheduler:
+    container_name: hris_scheduler
+    build:
+      context: .
+      dockerfile: docker/scheduler/Dockerfile
+    environment:
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
+      APP_ENV: production
+      BASE_URL: "${BASE_URL:-https://hris.example.com}"
+      TIMEZONE: "${TIMEZONE:-Asia/Manila}"
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: "${DB_DATABASE:-hris_db}"
+      DB_USERNAME: "${DB_USERNAME:-hris_prod_user}"
+      DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set in the production .env}"
+      DB_CHARSET: utf8mb4
+      MAIL_DRIVER: "${MAIL_DRIVER:-smtp}"
+      SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_ENCRYPTION: "${SMTP_ENCRYPTION:-tls}"
+      SMTP_USERNAME: "${SMTP_USERNAME}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-HRIS System}"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # 2d. Queue Worker Service: MySQL Background Job Worker
+  # -----------------------------------------------------------------------------
+  worker:
+    container_name: hris_worker
+    image: hris-system-app:latest
+    pull_policy: never
+    command: ["php", "bin/queue-worker.php", "--sleep=2", "--lease=300", "--max-runtime=3600"]
+    user: "www-data"
+    environment:
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
+      APP_ENV: production
+      BASE_URL: "${BASE_URL:-https://hris.example.com}"
+      TIMEZONE: "${TIMEZONE:-Asia/Manila}"
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: "${DB_DATABASE:-hris_db}"
+      DB_USERNAME: "${DB_USERNAME:-hris_prod_user}"
+      DB_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD must be set in the production .env}"
+      DB_CHARSET: utf8mb4
+      MAIL_DRIVER: "${MAIL_DRIVER:-smtp}"
+      SMTP_HOST: "${SMTP_HOST:-smtp.gmail.com}"
+      SMTP_PORT: "${SMTP_PORT:-587}"
+      SMTP_ENCRYPTION: "${SMTP_ENCRYPTION:-tls}"
+      SMTP_USERNAME: "${SMTP_USERNAME}"
+      SMTP_PASSWORD: "${SMTP_PASSWORD}"
+      MAIL_FROM_ADDRESS: "${MAIL_FROM_ADDRESS}"
+      MAIL_FROM_NAME: "${MAIL_FROM_NAME:-HRIS System}"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 15s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
   # 3. Database Service: MySQL 8.0 InnoDB
   # Private internal network only. Zero host port exposure!
   # -----------------------------------------------------------------------------

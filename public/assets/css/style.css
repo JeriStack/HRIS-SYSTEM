@@ -522,3 +522,134 @@ a:hover {
         scroll-behavior: auto !important;
     }
 }
+
+/* ==========================================================================
+   Dark Theme Design System Tokens (NEXORA HR Modern Enterprise)
+   ========================================================================== */
+[data-theme="dark"] {
+    --color-bg-page: #0B1120;
+    --color-bg-surface: #1E293B;
+    --color-bg-muted: #172033;
+    --color-bg-subtle: #0F172A;
+
+    --color-text-main: #F8FAFC;
+    --color-text-body: #E2E8F0;
+    --color-text-muted: #94A3B8;
+    --color-text-inverse: #0F172A;
+
+    --color-border: #334155;
+    --color-border-subtle: #1E293B;
+    --color-border-dark: #475569;
+
+    --color-primary: #3B82F6;
+    --color-primary-hover: #60A5FA;
+    --color-primary-active: #2563EB;
+    --color-primary-light: #1E3A8A;
+    --color-primary-border: #1D4ED8;
+
+    --color-navy-900: #050B14;
+    --color-navy-800: #0B132B;
+    --color-navy-700: #1C2541;
+    --color-navy-hover: #152238;
+
+    --color-success-bg: #064E3B;
+    --color-success-border: #047857;
+    --color-warning-bg: #451A03;
+    --color-warning-border: #B45309;
+    --color-error-bg: #450A0A;
+    --color-error-border: #991B1B;
+    --color-info-bg: #082F49;
+    --color-info-border: #0369A1;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* ==========================================================================
+   Modern Enterprise Admin Portal Component Styles
+   ========================================================================== */
+
+/* Topbar Breadcrumbs & Theme Switcher */
+.header-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+.header-breadcrumb a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+.header-breadcrumb a:hover {
+    color: var(--color-primary);
+}
+.header-breadcrumb .crumb-separator {
+    color: var(--color-text-muted);
+    opacity: 0.5;
+}
+.header-breadcrumb .crumb-current {
+    color: var(--color-text-main);
+    font-weight: 600;
+}
+
+.theme-toggle-btn {
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    line-height: 1;
+    transition: all var(--transition-fast);
+}
+.theme-toggle-btn:hover {
+    background-color: var(--color-bg-muted);
+    color: var(--color-text-main);
+    border-color: var(--color-border-dark);
+}
+
+/* Color-Accented Stat Cards */
+.stat-card.accent-blue {
+    border-bottom: 3px solid #2563EB;
+}
+.stat-card.accent-purple {
+    border-bottom: 3px solid #7C3AED;
+}
+.stat-card.accent-amber {
+    border-bottom: 3px solid #D97706;
+}
+.stat-card.accent-green {
+    border-bottom: 3px solid #059669;
+}
+.stat-card.accent-indigo {
+    border-bottom: 3px solid #4F46E5;
+}
+.stat-card.accent-teal {
+    border-bottom: 3px solid #0D9488;
+}
+
+/* Collapsible Desktop Sidebar Styles */
+.app-shell.sidebar-collapsed .app-sidebar {
+    width: 72px;
+}
+.app-shell.sidebar-collapsed .app-sidebar .sidebar-brand span:not(.brand-icon),
+.app-shell.sidebar-collapsed .app-sidebar .nav-section-title,
+.app-shell.sidebar-collapsed .app-sidebar .nav-item span:not(.icon),
+.app-shell.sidebar-collapsed .app-sidebar .sidebar-user-info {
+    display: none;
+}
+.app-shell.sidebar-collapsed .app-sidebar .nav-item {
+    justify-content: center;
+    padding: var(--space-3);
+}
+.app-shell.sidebar-collapsed .app-container {
+    margin-left: 72px;
+}
+

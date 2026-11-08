@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeModalBtn = document.getElementById("closeLoginModalBtn");
   const backToRolesBtn = document.getElementById("backToRolesBtn");
   const portalRoleInput = document.getElementById("portalRoleInput");
-  const modalRolePillText = document.getElementById("modalRolePillText");
   const modalTitle = document.getElementById("loginModalTitle");
   const submitBtn = document.getElementById("loginSubmitBtn");
   const submitBtnText = document.getElementById("loginSubmitBtnText");
@@ -21,25 +20,31 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const roleCards = document.querySelectorAll("[data-role-card]");
   const roleTriggerBtns = document.querySelectorAll("[data-open-role-modal]");
-  const roleSwitchTabs = document.querySelectorAll("[data-switch-role]");
 
   let lastTriggerElement = null;
   let isSubmitting = false;
 
   /* --------------------------------------------------------------------------
-     1. Role Metadata Configuration (HR and Employee Portals Only)
+     1. Role Metadata Configuration (Admin, HR, and Employee Portals)
      -------------------------------------------------------------------------- */
   const ROLE_CONFIG = {
+    admin: {
+      code: "admin",
+      pill: "Admin Portal Login",
+      title: "Admin Portal Login",
+      submitText: "Sign In to Admin Portal",
+      emailPlaceholder: "admin.name@company.local",
+    },
     hr: {
       code: "hr",
-      pill: "HR Workspace",
+      pill: "HR Portal Login",
       title: "HR Portal Login",
       submitText: "Sign In to HR Portal",
       emailPlaceholder: "hr.name@company.local",
     },
     employee: {
       code: "employee",
-      pill: "Employee Workspace",
+      pill: "Employee Portal Login",
       title: "Employee Portal Login",
       submitText: "Sign In to Employee Portal",
       emailPlaceholder: "employee.name@company.local",
@@ -51,7 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
      -------------------------------------------------------------------------- */
   const THEME_STORAGE_KEY = "nexora_theme";
   let themeTransitionTimer = null;
-  let roleSwitchTimer = null;
 
   const updateThemeButton = (theme) => {
     const isDark = theme === "dark";
@@ -112,10 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
       portalRoleInput.value = setPortalHiddenValue ? config.code : "";
     }
 
-    if (modalRolePillText) {
-      modalRolePillText.textContent = config.pill;
-    }
-
     if (modalTitle) {
       modalTitle.textContent = config.title;
     }
@@ -127,13 +127,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (emailInput) {
       emailInput.setAttribute("placeholder", config.emailPlaceholder);
     }
-
-    roleSwitchTabs.forEach((tab) => {
-      const tabRole = tab.getAttribute("data-switch-role");
-      const active = tabRole === config.code;
-      tab.classList.toggle("is-active", active);
-      tab.setAttribute("aria-selected", String(active));
-    });
 
     roleCards.forEach((card) => {
       const cardRole = card.getAttribute("data-role-card");
@@ -182,23 +175,6 @@ document.addEventListener("DOMContentLoaded", () => {
     btn.addEventListener("click", (event) => {
       const roleKey = btn.getAttribute("data-open-role-modal") || "hr";
       openLoginModal(roleKey, event.currentTarget, true);
-    });
-  });
-
-  roleSwitchTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      if (isSubmitting) return;
-      const roleKey = tab.getAttribute("data-switch-role") || "hr";
-      if (modalDialog) {
-        modalDialog.setAttribute("data-switching", "true");
-        if (roleSwitchTimer) {
-          window.clearTimeout(roleSwitchTimer);
-        }
-        roleSwitchTimer = window.setTimeout(() => {
-          modalDialog.removeAttribute("data-switching");
-        }, 160);
-      }
-      setModalRole(roleKey, true);
     });
   });
 

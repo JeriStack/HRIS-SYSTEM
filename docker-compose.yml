@@ -64,6 +64,15 @@ services:
       WS_PATH: /ws
       WS_PUBLIC_URL: ""
       WS_TICKET_TTL: 30
+      # Mailpit SMTP delivery (internal container hostname)
+      MAIL_DRIVER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_ENCRYPTION: none
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      MAIL_FROM_ADDRESS: "no-reply@nexora.local"
+      MAIL_FROM_NAME: "NEXORA HR"
     volumes:
       - .:/var/www/html
     depends_on:
@@ -131,6 +140,94 @@ services:
       retries: 3
       start_period: 20s
     stop_grace_period: 10s
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # 2c. Scheduler Service: Dedicated Cron Daemon (Option A)
+  # Executes scheduled commands (session cleanup, notification processing, etc.)
+  # -----------------------------------------------------------------------------
+  scheduler:
+    container_name: hris_scheduler
+    build:
+      context: .
+      dockerfile: docker/scheduler/Dockerfile
+    environment:
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
+      APP_ENV: development
+      BASE_URL: "http://localhost:8080"
+      TIMEZONE: "Asia/Manila"
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: hris_db
+      DB_USERNAME: hris_user
+      DB_PASSWORD: hris_password
+      DB_CHARSET: utf8mb4
+      MAIL_DRIVER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_ENCRYPTION: none
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      MAIL_FROM_ADDRESS: "no-reply@nexora.local"
+      MAIL_FROM_NAME: "NEXORA HR"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # 2d. Queue Worker Service: MySQL Background Job Worker
+  # Long-lived PHP CLI daemon processing asynchronous jobs (emails, reminders, etc.)
+  # -----------------------------------------------------------------------------
+  worker:
+    container_name: hris_worker
+    image: hris-system-app:latest
+    pull_policy: never
+    command: ["php", "bin/queue-worker.php", "--sleep=2", "--lease=300", "--max-runtime=3600"]
+    user: "www-data"
+    environment:
+      APP_NAME: "${APP_NAME:-NEXORA HR}"
+      APP_ENV: development
+      BASE_URL: "http://localhost:8080"
+      TIMEZONE: "Asia/Manila"
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: hris_db
+      DB_USERNAME: hris_user
+      DB_PASSWORD: hris_password
+      DB_CHARSET: utf8mb4
+      MAIL_DRIVER: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      SMTP_ENCRYPTION: none
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      MAIL_FROM_ADDRESS: "no-reply@nexora.local"
+      MAIL_FROM_NAME: "NEXORA HR"
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    stop_grace_period: 15s
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -325,6 +422,26 @@ services:
       SUPPORTED_SUBMIT_METHODS: '["get", "post", "put", "delete", "patch"]'
     volumes:
       - ./docs/api/openapi.yaml:/openapi/openapi.yaml:ro
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - hris_network
+
+  # -----------------------------------------------------------------------------
+  # 10. Local Mail & OTP Testing: Mailpit
+  # Captures all outgoing email locally without connecting to external SMTP
+  # Web UI: http://localhost:8025 | SMTP Server: localhost:1025
+  # -----------------------------------------------------------------------------
+  mailpit:
+    container_name: hris_mailpit
+    image: axllent/mailpit:v1.22
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
     restart: unless-stopped
     logging:
       driver: "json-file"

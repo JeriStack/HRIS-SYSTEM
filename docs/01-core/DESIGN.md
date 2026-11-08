@@ -1,7 +1,7 @@
 ---
 name: NEXORA HR — UI/UX Design System
 tagline: People. Processes. Progress.
-version: "3.1"
+version: "3.2"
 status: Authoritative Production Design Specification
 colors:
   primary: "#1D4ED8"
@@ -280,6 +280,7 @@ Buttons provide distinct visual hierarchy, clear hover/focus states, and accessi
 
 ### 4.2 Status & Role Badges
 Badges communicate immediate status using semantic tokens:
+* `.role-badge.admin`: Dark slate container with distinctive enterprise navy badge (`ADMINISTRATOR`).
 * `.role-badge.hr`: Slate/Navy container with enterprise blue label (`HR ACCESS`).
 * `.role-badge.emp`: Light blue container (`EMPLOYEE SELF-SERVICE`).
 * `.badge-active`: Light green container (`#F0FDF4`), border (`#BBF7D0`), green text (`#15803D`).
@@ -308,20 +309,27 @@ Badges communicate immediate status using semantic tokens:
 * **Authentication CTA:** Direct primary button linking to `/login`.
 
 ### 5.2 Sign-In & Authentication Flow (`/login`, `/verify-otp`)
+* **Role Portal Selector:** Three-card selector (Admin, HR, Employee) allowing role context selection before credential entry, accompanied by a dynamic modal switcher tab.
 * **Login Form:** Clean centered authentication card (`max-width: 440px`), with clear labels, password visibility toggle, CSRF protection, and error alerts.
 * **OTP Verification:** Dedicated two-factor screen displaying recipient email address (masked), 6-digit numeric input with auto-focus, 10-minute countdown indicator, and resend trigger.
 
-### 5.3 HR Dashboard (`/hr/dashboard`)
+### 5.3 Admin Dashboard & User Management (`/admin/dashboard`, `/admin/users*`)
+* **Admin Dashboard Overview:** KPI cards displaying Total Workforce, Active Accounts Breakdown (Admins, HR Officers, Employees), Organization Hierarchy, Pending Leave Requests, and Recent Security Audit Events.
+* **User Management Console (`/admin/users`):** Searchable, role-filterable user directory displaying account status, role pills, MFA status, created date, and administrative actions ("Edit Account", "Deactivate/Reactivate").
+* **Controlled Provisioning Form (`/admin/users/create`):** Admin form to provision HR and Employee accounts with mandatory initial password, validation rules, and transactional sync.
+* **Lockout Protection Alerts:** Visual banners warning against self-demotion, self-deactivation, or removing the last active Administrator or HR officer.
+
+### 5.4 HR Dashboard (`/hr/dashboard`)
 * **Metric Overview:** Four top cards displaying Total Workforce, Active Employees, Pending Leave Requests, and Employees on Leave Today.
 * **Pending Approval Queue:** FIFO-sorted table displaying applicant name, leave type, date range, requested business days, and inline "Approve" / "Reject" modal triggers.
 * **Workforce Activity Stream:** Recent audit events and leave submissions.
 
-### 5.4 Employee Self-Service Dashboard (`/employee/dashboard`)
+### 5.5 Employee Self-Service Dashboard (`/employee/dashboard`)
 * **Personal Welcome Header:** Displays dynamic employee name, Employee ID badge (`EMP012`), and quick action buttons ("View My Profile", "File Leave Request").
 * **Leave Balances Grid:** Visual progress bars for each leave entitlement (Vacation, Sick, Emergency, Maternity/Paternity, Bereavement) showing Allocated, Used, and Remaining days.
 * **Recent Leave History:** Table displaying the employee's 5 most recent submissions with real-time status badges.
 
-### 5.5 Employee Profile View (`/employee/profile`)
+### 5.6 Employee Profile View (`/employee/profile`)
 * **Header Card:** Round avatar with initials, full employee name, job title, organizational department, and hire date.
 * **Details Grid:** Two-column cards detailing personal information (Email, Phone, Birth Date, Address) and organizational information (Employee Number, Department, Position, Status).
 

@@ -8,6 +8,34 @@ $user = currentUser() ?? [];
 $userName = $user['name'] ?? $user['username'] ?? 'User';
 $role = strtolower($user['role'] ?? 'employee');
 
+// Determine portal home URL and portal label
+$portalHome = url('/employee/dashboard');
+$portalLabel = 'Employee Workspace';
+if ($role === 'admin') {
+    $portalHome = url('/admin/dashboard');
+    $portalLabel = 'Administration Portal';
+} elseif ($role === 'hr') {
+    $portalHome = url('/hr/dashboard');
+    $portalLabel = 'HR Portal';
+}
+
+// Current page and section breadcrumb resolution
+$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+$sectionTitle = 'Overview';
+if (str_contains($currentPath, '/users') || str_contains($currentPath, '/roles') || str_contains($currentPath, '/provisioning')) {
+    $sectionTitle = 'User Administration';
+} elseif (str_contains($currentPath, '/employees') || str_contains($currentPath, '/departments') || str_contains($currentPath, '/positions')) {
+    $sectionTitle = 'Organization';
+} elseif (str_contains($currentPath, '/leaves')) {
+    $sectionTitle = 'Leave Administration';
+} elseif (str_contains($currentPath, '/reports')) {
+    $sectionTitle = 'Reports & Analytics';
+} elseif (str_contains($currentPath, '/security') || str_contains($currentPath, '/activity-logs')) {
+    $sectionTitle = 'Security & Compliance';
+} elseif (str_contains($currentPath, '/settings') || str_contains($currentPath, '/system-health')) {
+    $sectionTitle = 'System Administration';
+}
+
 // Real-time notification indicator (initial count rendered server-side)
 $rtEnabled = false;
 $rtUnread = 0;
@@ -28,13 +56,23 @@ if (isAuthenticated()) {
         <button type="button" class="sidebar-toggle header-toggle" id="sidebarToggle" aria-label="Toggle navigation drawer" aria-expanded="false" aria-controls="appSidebar">
             ☰
         </button>
-        <div class="header-breadcrumb top-bar-title">
-            <span class="system-status-indicator" title="System Status: Operational" aria-hidden="true"></span>
-            <strong><?= e($pageTitle ?? 'NEXORA HR') ?></strong>
-        </div>
+        <nav class="header-breadcrumb" aria-label="Breadcrumb">
+            <a href="<?= $portalHome ?>"><?= e($portalLabel) ?></a>
+            <span class="crumb-separator" aria-hidden="true">/</span>
+            <span><?= e($sectionTitle) ?></span>
+            <?php if (!empty($pageTitle)): ?>
+                <span class="crumb-separator" aria-hidden="true">/</span>
+                <span class="crumb-current" aria-current="page"><?= e($pageTitle) ?></span>
+            <?php endif; ?>
+        </nav>
     </div>
 
     <div class="header-right top-bar-right">
+        <!-- Theme Toggle Button (Light/Dark Mode) -->
+        <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme mode" title="Toggle theme mode">
+            🌙
+        </button>
+
         <?php if (isAuthenticated()): ?>
         <div class="rt-notify" id="rtNotify"
              data-enabled="<?= $rtEnabled ? '1' : '0' ?>"
@@ -69,12 +107,15 @@ if (isAuthenticated()) {
             </div>
         </div>
         <?php endif; ?>
+
         <span class="role-badge <?= e($role) ?>">
             <?= e(strtoupper($user['role'] ?? 'HR')) ?> ACCESS
         </span>
         <div class="header-user-meta" style="margin-right: 0.5rem;">
-            <div class="header-user-name"><?= e($userName) ?></div>
-            <div class="header-user-role"><?= e($user['employee_no'] ?? strtoupper($role)) ?></div>
+            <a href="<?= ($role === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" style="text-decoration: none; color: inherit;">
+                <div class="header-user-name"><?= e($userName) ?></div>
+                <div class="header-user-role"><?= e($user['employee_no'] ?? strtoupper($role)) ?></div>
+            </a>
         </div>
         <form method="POST" action="<?= url('/logout') ?>" style="margin: 0; display: inline;">
             <?= csrf_field() ?>

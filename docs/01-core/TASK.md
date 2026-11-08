@@ -13,13 +13,14 @@
 
 | Metric | Measured Value | Standard / Target | Status |
 |---|---|---|---|
-| **PHPUnit Test Suite** | 592 tests, 2,583 assertions | 100% Passing (0 failures, 0 errors) | `DONE` |
-| **PSR-12 Code Style** | 236 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
-| **Database Schema** | 13 InnoDB tables, 6 core migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
-| **Role Model** | 2 Roles (`hr`, `employee`) | Strict 2-role model, no admin role | `DONE` |
+| **PHPUnit Test Suite** | 600 tests, 2,152 assertions | 100% Passing (0 failures, 0 errors, 94 skipped) | `DONE` |
+| **PSR-12 Code Style** | 235 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
+| **Database Schema** | 13 InnoDB tables, 7 core migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
+| **Role Model** | 3 Roles (`admin`, `hr`, `employee`) | Strict 3-role RBAC under ADR-012 | `DONE` |
 | **Multi-Factor Auth** | Email OTP (6-digit) + TOTP Authenticator | Mandatory 2FA, 10m TTL | `DONE` |
 | **Real-time Pipeline** | Ratchet WebSocket (:8090) + Outbox Worker | Transactional Outbox, sub-100ms dispatch | `DONE` |
-| **Documentation** | 6 Authoritative Root Docs + 5 Priority Tech Docs | Unified single source of truth | `IN_PROGRESS` |
+| **Documentation** | 5 Numbered Pillars (01-core to 05-reference) | Unified single source of truth | `DONE` |
+| **CI/CD Automation** | 4 Workflows (CI, E2E #44, CD #14, Unit #147) | All green checks, Node 24 actions | `DONE` |
 
 ---
 
@@ -76,16 +77,30 @@
 - [x] Implement Python/Selenium E2E automation targeting Brave/Chromium.
 - [x] Implement PSR-12 baseline enforcement script (`bin/check-phpcs-baseline.php`).
 
-### Phase 10: Documentation Audit & Consolidation (`IN_PROGRESS`)
+### Phase 10: Documentation Audit & Consolidation (`DONE`)
 - [x] Complete inventory of 187 repository Markdown documents.
 - [x] Propose documentation architecture and receive user approval ("Approved all").
 - [x] Create 6 authoritative root-level documents (`PRD.md`, `ARCHITECTURE.md`, `RULES.md`, `DESIGN.md`, `TASK.md`, `MEMORY.md`).
-- [ ] Author 5 priority technical documents (`docs/security/SECURITY.md`, `docs/database/DATABASE.md`, `docs/testing/TESTING.md`, `docs/api/API.md`, `docs/decisions/DECISIONS.md`).
-- [ ] Author supporting documents (`docs/deployment/DEPLOYMENT.md`, `docs/troubleshooting/TROUBLESHOOTING.md`, `docs/glossary/GLOSSARY.md`).
-- [ ] Update root `README.md` and `docs/README.md`.
-- [ ] Validate internal Markdown cross-references.
+- [x] Author 5 priority technical documents (`docs/02-technical/security/SECURITY.md`, `database/DATABASE.md`, `testing/TESTING.md`, `api/API.md`, `decisions/DECISIONS.md`).
+- [x] Author supporting operational & reference documents (`docs/03-operations/deployment/DEPLOYMENT.md`, `troubleshooting/TROUBLESHOOTING.md`, `docs/05-reference/glossary/GLOSSARY.md`).
+- [x] Update root `README.md` and `docs/README.md` as unified documentation portals.
+- [x] Validate all internal Markdown links (0 broken links across 147 markdown files).
+- [x] Modernize GitHub Actions workflows to Node 24 runtime (`checkout@v5`, `setup-terraform@v4`, `setup-python@v6`, `upload-artifact@v6`, `download-artifact@v7`).
 
-### Phase 11: Production Deployment & VPS Release (`PENDING`)
+### Phase 11: Admin Role & Three-Role RBAC Implementation (`DONE`)
+- [x] Author schema migration `2026_11_06_add_admin_role_to_users.sql` adding `admin` to `users.role` ENUM with zero table rewrite and default preservation.
+- [x] Synchronize initialization schema parity across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement controlled initial Admin provisioning CLI tool (`bin/create_admin_user.php`) with password complexity, Bcrypt hashing, audit logging, and duplicate prevention.
+- [x] Implement system-wide capability matrix in `core/Permission.php` separating Admin system governance, HR operational workforce, and Employee self-service.
+- [x] Implement Admin route protection and backward-compatible redirects (`/admin/dashboard`, `/admin/users*`, redirect `/hr/users*` -> `/admin/users*`).
+- [x] Implement Last Active Admin Lockout Protection and self-demotion / self-deactivation prevention in `app/controllers/UserController.php`.
+- [x] Extend workforce models (`User.php`, `Leave.php`, `MySqlLeaveApprovalGuard.php`) and REST APIs (`EmployeeController`, `DepartmentController`, `PositionController`, `LeaveController`) to permit Admin authority.
+- [x] Extend WebSocket real-time event pipeline (`Identity.php`, `ChannelPolicy.php`, `EventAuthorizer.php`, `PdoRealtimeStore.php`, `RealtimeTicketService.php`) for Admin channels and leave alerts.
+- [x] Update frontend views: 3-portal login screen with switcher tab, Admin sidebar branding, Admin dashboard console, and User Management views.
+- [x] Author comprehensive test suite (`tests/Feature/AdminRoleRbacTest.php`) bringing PHPUnit suite to 600 passing tests.
+- [x] Document Architectural Decision Record ADR-012 in `docs/02-technical/decisions/DECISIONS.md`.
+
+### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
 - [ ] Configure production domain DNS and Let's Encrypt automated SSL renewal.
 - [ ] Set up production SMTP transport (SendGrid / AWS SES) for MFA email delivery.

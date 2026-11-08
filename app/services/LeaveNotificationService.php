@@ -82,6 +82,23 @@ class LeaveNotificationService
             (int)$request['id']
         );
 
+        // Queue asynchronous email notification to the employee if an email address exists
+        if (!empty($owner['email']) && class_exists(\App\Queue\QueueService::class)) {
+            try {
+                \App\Queue\QueueService::getInstance()->push(
+                    \App\Queue\JobRegistry::TYPE_SEND_EMAIL,
+                    [
+                        'to'      => $owner['email'],
+                        'subject' => $approved ? 'Leave Request Approved' : 'Leave Request Decision Update',
+                        'body'    => '<p>Hello ' . htmlspecialchars((string)($owner['name'] ?? $owner['username']), ENT_QUOTES, 'UTF-8') . ',</p><p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>',
+                        'name'    => (string)($owner['name'] ?? $owner['username'] ?? ''),
+                    ]
+                );
+            } catch (\Throwable $mailEx) {
+                error_log('[LeaveNotificationService] Asynchronous email queue non-fatal: ' . $mailEx->getMessage());
+            }
+        }
+
         return $notificationId > 0;
     }
 

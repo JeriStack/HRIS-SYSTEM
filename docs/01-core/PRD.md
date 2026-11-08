@@ -28,19 +28,20 @@ Spreadsheet-driven HR processes and legacy web applications suffer from:
 
 ### 2.2 Strategic Objectives
 * **100% Transaction Integrity:** Guarantee ACID compliance for all leave deductions, cancellations, and balance initializations using pessimistic database locking.
-* **Streamlined 2-Role Governance:** Enforce a strict two-role model (`hr` and `employee`), ensuring strict separation of operational management and employee self-service.
+* **Streamlined 3-Role Governance:** Enforce a strict three-role model (`admin`, `hr`, and `employee`), ensuring strict separation of system-wide governance, HR operational management, and employee self-service.
 * **Instantaneous Notifications:** Broadcast critical workflow changes in sub-100ms through a dedicated WebSocket daemon backed by a Transactional Outbox.
-* **Robust Enterprise Security:** Provide defense-in-depth through mandatory Email OTP / TOTP Multi-Factor Authentication (MFA), continuous session state verification, and synchronized CSRF defenses.
+* **Robust Enterprise Security:** Provide defense-in-depth through mandatory Email OTP / TOTP Multi-Factor Authentication (MFA), continuous session state verification, step-up authentication, last-active-admin protection, and synchronized CSRF defenses.
 
 ---
 
 ## 3. Target Users & Application Roles
 
-NEXORA HR strictly enforces **two application roles**. There is **no administrative superuser role**; administrative and human resource capabilities are consolidated into the `hr` role, and legacy `/admin` routes permanently redirect to `/hr`.
+NEXORA HR strictly enforces **three application roles**: **`admin`**, **`hr`**, and **`employee`**.
 
 | Role | Target Audience | Primary Responsibilities | Scope of Access |
 |---|---|---|---|
-| **`hr`** | HR Officers, Personnel Managers, Department Heads | Workforce management, department/position configuration, employee onboarding, leave approval queue processing, company-wide leave calendar review, workforce reporting, audit log analysis. | Company-wide visibility across all departments and employees. Can view, create, edit, deactivate employees and approve/reject leave requests. |
+| **`admin`** | System Administrators, Security Officers, IT Directors | Full system-wide administrative oversight, user account management, role assignment, account activation/deactivation, system settings, security audit monitoring, administrative health monitoring, and full access to workforce and leave records. | Full system-wide visibility and administrative authority across all modules. Access to the dedicated Admin Console (`/admin/dashboard`). |
+| **`hr`** | HR Officers, Personnel Managers, Department Heads | Operational workforce management, department/position configuration, employee onboarding, leave approval queue processing, company-wide leave calendar review, workforce reporting, audit log analysis. | Company-wide visibility across all departments and employees. Can view, create, edit, deactivate employees and approve/reject leave requests. Prohibited from application-wide role assignments, Admin provisioning, or security configuration. |
 | **`employee`** | Active Workforce Members, Individual Contributors | Personal profile view, leave balance tracking, submitting leave requests, cancelling pending requests, viewing personal notification stream. | Restricted strictly to own records (`ownership validation`). Cannot view other employees' records or access organizational management consoles. |
 
 ---

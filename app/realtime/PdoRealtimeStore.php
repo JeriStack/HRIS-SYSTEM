@@ -96,7 +96,7 @@ final class PdoRealtimeStore implements RealtimeStore
             }
 
             $role = strtolower((string)$row['role']);
-            if (!in_array($role, ['hr', 'employee'], true)) {
+            if (!in_array($role, ['admin', 'hr', 'employee'], true)) {
                 return null;
             }
 

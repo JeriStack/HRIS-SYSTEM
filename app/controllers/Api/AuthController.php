@@ -176,8 +176,8 @@ class AuthController extends ApiController
         }
 
         $role = strtolower((string)$user['role']);
-        if ($role !== 'hr' && $role !== 'employee') {
-            $this->error('Access is restricted to active HR and Employee accounts.', 403);
+        if ($role !== 'admin' && $role !== 'hr' && $role !== 'employee') {
+            $this->error('Access is restricted to active Admin, HR, and Employee accounts.', 403);
         }
 
         // Rehash password if cost or algorithm updated
@@ -344,9 +344,9 @@ class AuthController extends ApiController
         }
 
         $role = strtolower((string)$user['role']);
-        if ($role !== 'hr' && $role !== 'employee') {
+        if ($role !== 'admin' && $role !== 'hr' && $role !== 'employee') {
             $this->clearPendingState();
-            $this->error('Access is restricted to active HR and Employee accounts.', 403);
+            $this->error('Access is restricted to active Admin, HR, and Employee accounts.', 403);
         }
 
         if (!empty($user['employee_id']) && isset($user['employment_status']) && $user['employment_status'] !== 'Active') {
@@ -455,7 +455,7 @@ class AuthController extends ApiController
 
         // Re-validate account state so a deactivated account cannot keep receiving codes
         $role = strtolower((string)$user['role']);
-        if ($user['status'] !== 'Active' || ($role !== 'hr' && $role !== 'employee')) {
+        if ($user['status'] !== 'Active' || ($role !== 'admin' && $role !== 'hr' && $role !== 'employee')) {
             $this->otpModel->invalidateUserChallenges($pendingUserId);
             $this->clearPendingState();
             $this->error('Your account is inactive or no longer available.', 403);

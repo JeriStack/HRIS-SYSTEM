@@ -48,7 +48,7 @@ class AuthController extends Controller
         $timeout = Session::getFlash('timeout');
         $oldEmail = Session::getFlash('old_email', '');
         $oldPortalRole = strtolower(trim((string)Session::getFlash('old_portal_role', '')));
-        if ($oldPortalRole !== 'hr' && $oldPortalRole !== 'employee') {
+        if ($oldPortalRole !== 'admin' && $oldPortalRole !== 'hr' && $oldPortalRole !== 'employee') {
             $oldPortalRole = '';
         }
 
@@ -70,7 +70,7 @@ class AuthController extends Controller
     public function login(): void
     {
         $rawPortalRole = strtolower(trim((string)($_POST['portal_role'] ?? $_POST['selected_role'] ?? '')));
-        $portalRole = ($rawPortalRole === 'hr' || $rawPortalRole === 'employee') ? $rawPortalRole : '';
+        $portalRole = in_array($rawPortalRole, ['admin', 'hr', 'employee'], true) ? $rawPortalRole : '';
 
         // 1. Validate CSRF Protection
         $submittedToken = $_POST['_csrf_token'] ?? null;
@@ -194,9 +194,9 @@ class AuthController extends Controller
             return;
         }
 
-        // 8. Confirm Strict Application Role: exactly 'hr' or 'employee'
+        // 8. Confirm Strict Application Role: exactly 'admin', 'hr', or 'employee'
         $role = strtolower((string)$user['role']);
-        if ($role !== 'hr' && $role !== 'employee') {
+        if ($role !== 'admin' && $role !== 'hr' && $role !== 'employee') {
             $this->userModel->logActivity(
                 (int)$user['id'],
                 'AUTH_BLOCKED_ROLE',
@@ -205,7 +205,7 @@ class AuthController extends Controller
                 (string)$user['id']
             );
 
-            Session::flash('error', 'Unauthorized role assignment. Access is restricted to HR and Employee accounts.');
+            Session::flash('error', 'Unauthorized role assignment. Access is restricted to Admin, HR, and Employee accounts.');
             if ($portalRole !== '') {
                 Session::flash('old_portal_role', $portalRole);
             }
@@ -213,10 +213,15 @@ class AuthController extends Controller
             return;
         }
 
-        // 8b. Server-Side Portal Role Verification (HR vs Employee Portal Selection)
+        // 8b. Server-Side Portal Role Verification (Admin, HR & Employee Portal Selection)
         if ($portalRole !== '' && $portalRole !== $role) {
-            $selectedPortalLabel = $portalRole === 'hr' ? 'HR Portal' : 'Employee Portal';
-            $correctPortalLabel = $role === 'hr' ? 'HR Portal' : 'Employee Portal';
+            $portalLabels = [
+                'admin'    => 'Admin Portal',
+                'hr'       => 'HR Portal',
+                'employee' => 'Employee Portal',
+            ];
+            $selectedPortalLabel = $portalLabels[$portalRole] ?? 'Employee Portal';
+            $correctPortalLabel = $portalLabels[$role] ?? 'Employee Portal';
 
             $this->userModel->logActivity(
                 (int)$user['id'],
@@ -487,9 +492,9 @@ class AuthController extends Controller
             return;
         }
 
-        // 6. Enforce Strict Application Roles: Only HR and Employee are permitted
+        // 6. Enforce Strict Application Roles: Admin, HR, and Employee are permitted
         $role = strtolower((string)$user['role']);
-        if ($role !== 'hr' && $role !== 'employee') {
+        if ($role !== 'admin' && $role !== 'hr' && $role !== 'employee') {
             $this->clearPendingOtpSession();
             $this->userModel->logActivity(
                 (int)$user['id'],
@@ -499,7 +504,7 @@ class AuthController extends Controller
                 (string)$user['id']
             );
 
-            Session::flash('error', 'Unauthorized role assignment. Access is restricted to HR and Employee accounts.');
+            Session::flash('error', 'Unauthorized role assignment. Access is restricted to Admin, HR, and Employee accounts.');
             $this->redirect('/login');
             return;
         }
@@ -604,7 +609,7 @@ class AuthController extends Controller
 
         // Re-validate account state so a deactivated account cannot keep receiving codes
         $resendRole = strtolower((string)$user['role']);
-        if ($user['status'] !== 'Active' || ($resendRole !== 'hr' && $resendRole !== 'employee')) {
+        if ($user['status'] !== 'Active' || ($resendRole !== 'admin' && $resendRole !== 'hr' && $resendRole !== 'employee')) {
             $this->otpModel->invalidateUserChallenges($pendingUserId);
             $this->clearPendingOtpSession();
             Session::flash('error', 'Your account is inactive or no longer available.');
@@ -774,12 +779,17 @@ class AuthController extends Controller
 
     /**
      * Role-directed dashboard router.
-     * Strict 2-role model: HR and Employee only.
+     * 3-role model: Admin, HR, and Employee.
      * Route: GET /dashboard
      */
     public function dashboard(): void
     {
         $role = currentUserRole();
+
+        if ($role === 'admin') {
+            $this->redirect('/admin/dashboard');
+            return;
+        }
 
         if ($role === 'hr') {
             $this->redirect('/hr/dashboard');

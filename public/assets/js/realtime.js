@@ -142,6 +142,8 @@
         if (!el.list) {
             return;
         }
+        el.list.removeAttribute('aria-busy');
+        delete el.list.dataset.loading;
         while (el.list.firstChild) {
             el.list.removeChild(el.list.firstChild);
         }
@@ -270,6 +272,9 @@
         el.panel.hidden = false;
         el.bell.setAttribute('aria-expanded', 'true');
         if (Date.now() - historyLoadedAt > 30000) {
+            if (window.Skeleton && el.list && (!el.list.firstChild || el.list.querySelector('.rt-empty'))) {
+                Skeleton.show(el.list, 'list', { count: 3, hasBadge: false, loadingText: 'Loading notification history...' });
+            }
             refreshHistory();
         }
     }
@@ -355,7 +360,11 @@
                 };
             }));
             setCount(body.data.unread_count);
-        }).catch(function () { /* network errors are reflected by connection state */ });
+        }).catch(function () {
+            if (el.list && el.list.getAttribute('aria-busy') === 'true' && window.Skeleton) {
+                Skeleton.hide(el.list);
+            }
+        });
     }
 
     // ------------------------------------------------------------------

@@ -11,6 +11,7 @@ namespace App\Realtime;
 
 final class ChannelPolicy
 {
+    public const ROLE_ADMIN = 'role.admin';
     public const ROLE_HR = 'role.hr';
     public const ROLE_EMPLOYEE = 'role.employee';
 
@@ -26,7 +27,10 @@ final class ChannelPolicy
     {
         $channels = [self::userChannel($identity->userId)];
 
-        if ($identity->isHr()) {
+        if ($identity->isAdmin()) {
+            $channels[] = self::ROLE_ADMIN;
+            $channels[] = self::ROLE_HR;
+        } elseif ($identity->isHr()) {
             $channels[] = self::ROLE_HR;
         } elseif ($identity->isEmployee()) {
             $channels[] = self::ROLE_EMPLOYEE;
@@ -37,8 +41,8 @@ final class ChannelPolicy
 
     public function canSubscribe(Identity $identity, string $channel): bool
     {
-        // Strict format first: user.<digits> or role.<hr|employee>
-        if (!preg_match('/^(user\.[1-9][0-9]{0,9}|role\.(hr|employee))$/D', $channel)) {
+        // Strict format first: user.<digits> or role.<admin|hr|employee>
+        if (!preg_match('/^(user\.[1-9][0-9]{0,9}|role\.(admin|hr|employee))$/D', $channel)) {
             return false;
         }
 
