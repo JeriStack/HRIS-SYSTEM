@@ -93,7 +93,13 @@ class DepartmentController extends Controller
             'DEPARTMENT_CREATED',
             "Created department: {$name} (ID: {$deptId})",
             'DEPARTMENT',
-            (string)$deptId
+            (string)$deptId,
+            null,
+            [
+                'department_name' => $name,
+                'description'     => $description,
+            ],
+            'SUCCESS'
         );
 
         Session::flash('success', "Department '{$name}' was created successfully.");
@@ -173,7 +179,16 @@ class DepartmentController extends Controller
             'DEPARTMENT_UPDATED',
             "Updated department: {$name} (ID: {$id})",
             'DEPARTMENT',
-            (string)$id
+            (string)$id,
+            [
+                'department_name' => $department['department_name'] ?? null,
+                'description'     => $department['description'] ?? null,
+            ],
+            [
+                'department_name' => $name,
+                'description'     => $description,
+            ],
+            'SUCCESS'
         );
 
         Session::flash('success', "Department '{$name}' was updated successfully.");

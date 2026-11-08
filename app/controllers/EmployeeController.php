@@ -198,7 +198,16 @@ class EmployeeController extends Controller
             'EMPLOYEE_CREATED',
             "Created employee record: {$empName} ({$data['employee_no']})",
             'EMPLOYEE',
-            (string)$employeeId
+            (string)$employeeId,
+            null,
+            [
+                'employee_no'       => $data['employee_no'],
+                'name'              => $empName,
+                'email'             => $data['email'],
+                'department_id'     => $data['department_id'],
+                'position_id'       => $data['position_id'],
+                'employment_status' => $data['employment_status'],
+            ]
         );
 
         Session::flash('success', "Employee {$empName} ({$data['employee_no']}) was successfully registered.");
@@ -308,14 +317,26 @@ class EmployeeController extends Controller
             error_log('[EmployeeController] Failed to dispatch HR profile update notification: ' . $e->getMessage());
         }
 
-        // Audit Logging
+        // Audit Logging with before/after state diffing
         $empName = trim("{$data['first_name']} {$data['last_name']}");
+        $trackedFields = ['first_name', 'last_name', 'email', 'phone', 'department_id', 'position_id', 'employment_status', 'date_hired', 'address'];
+        $oldDiff = [];
+        $newDiff = [];
+        foreach ($trackedFields as $field) {
+            if (isset($data[$field]) && (string)($employee[$field] ?? '') !== (string)$data[$field]) {
+                $oldDiff[$field] = $employee[$field] ?? null;
+                $newDiff[$field] = $data[$field];
+            }
+        }
+
         $this->userModel->logActivity(
             currentUserId(),
             'EMPLOYEE_UPDATED',
             "Updated employee record: {$empName} ({$data['employee_no']})",
             'EMPLOYEE',
-            (string)$id
+            (string)$id,
+            !empty($oldDiff) ? $oldDiff : null,
+            !empty($newDiff) ? $newDiff : null
         );
 
         Session::flash('success', "Employee record for {$empName} ({$data['employee_no']}) was updated successfully.");
@@ -361,7 +382,9 @@ class EmployeeController extends Controller
             'EMPLOYEE_DEACTIVATED',
             "Deactivated employee: {$empName} ({$employee['employee_no']})",
             'EMPLOYEE',
-            (string)$id
+            (string)$id,
+            ['employment_status' => (string)($employee['employment_status'] ?? 'Active')],
+            ['employment_status' => 'Inactive']
         );
 
         // Notify HR users so HR dashboard metrics update

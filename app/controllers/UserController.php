@@ -174,7 +174,14 @@ class UserController extends Controller
             'USER_PROVISIONED',
             "Provisioned new user account for {$employee['first_name']} {$employee['last_name']} ({$email}) with role '{$role}'",
             'users',
-            (string)$newUserId
+            (string)$newUserId,
+            null,
+            [
+                'username' => $username,
+                'email'    => $email,
+                'role'     => $role,
+                'status'   => 'Active',
+            ]
         );
 
         Session::flash('success', "User account for {$employee['first_name']} {$employee['last_name']} ({$email}) was successfully provisioned.");
@@ -315,7 +322,16 @@ class UserController extends Controller
             'USER_ROLE_UPDATED',
             $details,
             'users',
-            (string)$id
+            (string)$id,
+            [
+                'role'   => $targetUser['role'],
+                'status' => $targetUser['status'],
+            ],
+            [
+                'role'   => $role,
+                'status' => $status,
+            ],
+            'SUCCESS'
         );
 
         Session::flash('success', "User '{$targetUser['username']}' updated successfully.");

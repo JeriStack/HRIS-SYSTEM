@@ -180,28 +180,58 @@ All employee self-service endpoints enforce strict ownership validation:
 
 ---
 
-## 7. Audit Logging & Tamper Evidence
+## 7. Audit Logging & Security Activity Monitoring
 
-Every security-sensitive action is recorded synchronously in the `activity_logs` table:
+Every security-sensitive and business-critical operation is recorded synchronously through the centralized `Core\AuditService` in the `activity_logs` table:
 
 ```sql
 INSERT INTO activity_logs (
-    user_id, 
-    action, 
-    details, 
-    ip_address, 
-    user_agent, 
-    entity_type, 
-    entity_id, 
+    event_id,
+    user_id,
+    actor_role,
+    action,
+    category,
+    description,
+    entity_type,
+    entity_id,
+    old_values,
+    new_values,
+    status,
+    ip_address,
+    user_agent,
+    request_id,
     created_at
-) VALUES (:user_id, :action, :details, :ip, :ua, :entity, :entity_id, NOW());
+) VALUES (
+    :event_id, :user_id, :actor_role, :action, :category, :description,
+    :entity_type, :entity_id, :old_values, :new_values, :status,
+    :ip_address, :user_agent, :request_id, NOW()
+);
 ```
 
-### Monitored Actions
-* `AUTH_LOGIN`: Successful MFA completion.
-* `AUTH_FAILED`: Failed password or OTP verification.
-* `AUTH_LOCKOUT`: Brute-force threshold exceeded.
-* `USER_DEACTIVATED`: User or employee record deactivated.
-* `LEAVE_APPROVED` / `LEAVE_REJECTED`: Leave status mutations with approving officer ID.
-* `STEP_UP_CHALLENGE`: High-impact operation authorization events.
+### 7.1 Authoritative Event Structure
+* **Event ID (`event_id`)**: Cryptographically random unique event identifier prefixed with `evt_` (e.g., `evt_4a78c19ef201...`).
+* **Correlation ID (`request_id`)**: Persistent request lifecycle correlation identifier prefixed with `req_` (e.g., `req_e8910cb5a123...`).
+* **Actor Identification**: Stores both `user_id` and the immutable `actor_role` at the exact time of the transaction.
+* **Audit Categories**:
+  - `auth`: Authentication events (logins, logouts, OTP verification, lockouts).
+  - `user`: Account lifecycle (provisioning, updates, status changes).
+  - `rbac`: Role permissions and capability modifications.
+  - `employee`: Personnel records CRUD and status mutations.
+  - `organization`: Department and position administration.
+  - `leave`: Leave filing, policy administration, balances, approvals, and rejections.
+  - `reports`: System report queries and CSV audit exports.
+  - `system`: Environment, email, and runtime configuration settings.
+* **Status**: `SUCCESS`, `FAILURE`, or `WARNING`.
+
+### 7.2 Automated Sensitive Data Redaction
+Before any state-change diff or description is persisted, `Core\AuditService::redact()` recursively scrubs sensitive keys, replacing them with `[REDACTED]`. Protected keys include:
+* Passwords and hashes (`password`, `password_hash`, `current_password`, `new_password`)
+* One-Time Passwords (`otp`, `totp`, `totp_secret`)
+* Security tokens and session identifiers (`token`, `secret`, `session_id`, `cookie`, `auth_fingerprint`)
+* Cryptographic keys (`private_key`, `api_key`)
+
+### 7.3 Immutability and Audit Integrity
+* **Strict Read-Only Enforcement**: Audit logs have no update, edit, or delete endpoints in controllers or routing tables.
+* **Spreadsheet Formula Injection Defense**: When exporting audit records via `GET /activity-logs/export`, any leading formula character (`=`, `+`, `-`, `@`, `\t`, `\r`) is safely prefixed with `'` to neutralize CSV formula execution in Excel/Calc.
+* **Self-Auditing Exports**: Every export operation writes an `AUDIT_EXPORTED` event to record who exported logs, matching filters, and timestamp.
 

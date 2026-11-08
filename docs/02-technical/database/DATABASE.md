@@ -179,15 +179,22 @@ CREATE TABLE `leave_requests` (
 ### 2.3 Authentication, Security & Real-Time Tables
 
 #### 8. `activity_logs`
-Tamper-evident audit trail of all operational and security actions.
+Tamper-evident audit trail of all operational and security actions with before/after state diffs, categories, and correlation IDs.
 ```sql
 CREATE TABLE `activity_logs` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `event_id` VARCHAR(64) NULL UNIQUE,
     `user_id` INT UNSIGNED NULL,
+    `actor_role` ENUM('admin', 'hr', 'employee') NULL,
     `action` VARCHAR(50) NOT NULL,
+    `category` VARCHAR(50) NOT NULL DEFAULT 'general',
     `details` TEXT NULL,
+    `old_values` JSON NULL,
+    `new_values` JSON NULL,
+    `status` ENUM('SUCCESS', 'FAILURE', 'WARNING') NOT NULL DEFAULT 'SUCCESS',
     `ip_address` VARCHAR(45) NULL,
     `user_agent` TEXT NULL,
+    `request_id` VARCHAR(64) NULL,
     `entity_type` VARCHAR(50) NULL,
     `entity_id` VARCHAR(50) NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -195,7 +202,12 @@ CREATE TABLE `activity_logs` (
         REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX `idx_logs_user_action` (`user_id`, `action`),
     INDEX `idx_logs_entity` (`entity_type`, `entity_id`),
-    INDEX `idx_logs_created` (`created_at`)
+    INDEX `idx_logs_created` (`created_at`),
+    INDEX `idx_logs_event_id` (`event_id`),
+    INDEX `idx_logs_category` (`category`),
+    INDEX `idx_logs_status` (`status`),
+    INDEX `idx_logs_actor_role` (`actor_role`),
+    INDEX `idx_logs_request_id` (`request_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 

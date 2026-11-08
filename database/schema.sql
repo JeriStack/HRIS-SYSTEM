@@ -183,17 +183,28 @@ CREATE TABLE IF NOT EXISTS `leave_requests` (
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `activity_logs` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `event_id` VARCHAR(64) NULL,
     `user_id` INT UNSIGNED NULL,
+    `actor_role` VARCHAR(30) NULL,
     `action` VARCHAR(50) NOT NULL,
+    `category` VARCHAR(50) NOT NULL DEFAULT 'general',
     `description` TEXT NOT NULL,
     `entity_type` VARCHAR(50) NULL,
     `entity_id` VARCHAR(50) NULL,
+    `old_values` LONGTEXT NULL,
+    `new_values` LONGTEXT NULL,
+    `status` VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
     `ip_address` VARCHAR(45) NULL,
     `user_agent` TEXT NULL,
+    `request_id` VARCHAR(64) NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_activity_logs_user` FOREIGN KEY (`user_id`) 
         REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     INDEX `idx_activity_logs_action` (`action`),
+    INDEX `idx_activity_logs_category` (`category`),
+    INDEX `idx_activity_logs_status` (`status`),
+    INDEX `idx_activity_logs_event_id` (`event_id`),
+    INDEX `idx_activity_logs_entity` (`entity_type`, `entity_id`),
     INDEX `idx_activity_logs_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
