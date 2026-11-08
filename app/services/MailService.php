@@ -308,6 +308,24 @@ HTML;
     }
 
     /**
+     * Dispatch an HTML email to the background queue for asynchronous delivery.
+     */
+    public function queueHtmlEmail(string $to, string $subject, string $htmlBody, string $recipientName = '', int $delaySeconds = 0): int
+    {
+        return \App\Queue\QueueService::getInstance()->push(
+            \App\Queue\JobRegistry::TYPE_SEND_EMAIL,
+            [
+                'to'      => $to,
+                'subject' => $subject,
+                'body'    => $htmlBody,
+                'name'    => $recipientName,
+            ],
+            'default',
+            $delaySeconds
+        );
+    }
+
+    /**
      * Build plain-text alternative body for OTP email.
      */
     private function buildOtpPlainTextTemplate(string $name, string $otp, int $minutes): string

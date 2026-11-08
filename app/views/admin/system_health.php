@@ -114,6 +114,32 @@
                     </td>
                 </tr>
                 <tr>
+                    <td><strong>MySQL Background Queue</strong></td>
+                    <td>
+                        Status: <code><?= e($health['queue']['status'] ?? 'Operational') ?></code> &bull;
+                        Pending: <code><?= (int)($health['queue']['pending'] ?? 0) ?></code> &bull;
+                        Reserved: <code><?= (int)($health['queue']['reserved'] ?? 0) ?></code> &bull;
+                        Completed: <code><?= (int)($health['queue']['completed'] ?? 0) ?></code> &bull;
+                        Dead-Letter: <code><?= (int)($health['queue']['dead_letter'] ?? 0) ?></code>
+                    </td>
+                    <td>
+                        <span class="badge <?= ($health['queue']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-warning' ?>">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <?= e($health['queue']['status'] ?? 'Operational') ?>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Cron Scheduler (Option A)</strong></td>
+                    <td>4 Registered Periodic Tasks (Sessions, Notifications, Leave Reminders, Temporary File Cleanup)</td>
+                    <td>
+                        <span class="badge badge-success">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <?= e($health['scheduler']['status'] ?? 'Operational') ?>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
                     <td><strong>Ratchet WebSocket Server</strong></td>
                     <td>TCP Listener: <code>127.0.0.1:8080</code> (Event Authorizer &amp; Channel Policy)</td>
                     <td>

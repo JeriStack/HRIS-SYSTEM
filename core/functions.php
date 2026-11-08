@@ -444,3 +444,16 @@ if (!function_exists('has_role')) {
     }
 }
 
+if (!function_exists('dispatch_job')) {
+    /**
+     * Dispatch an asynchronous background job to the MySQL queue.
+     *
+     * @param array<string, mixed> $payload
+     */
+    function dispatch_job(string $jobType, array $payload = [], string $queue = 'default', int $delay = 0): int
+    {
+        return \App\Queue\QueueService::getInstance()->push($jobType, $payload, $queue, $delay);
+    }
+}
+
+
