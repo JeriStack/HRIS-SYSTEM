@@ -519,7 +519,7 @@ class LeaveController extends ApiController
 
         // Ownership enforcement: Employee can ONLY view own request
         $isOwner = (!empty($user['employee_id']) && (int)$request['employee_id'] === (int)$user['employee_id']);
-        $isHr = (strtolower((string)($user['role'] ?? '')) === 'hr');
+        $isHr = in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true);
 
         if (!$isOwner && !$isHr) {
             $this->error("Forbidden: You are not authorized to view another employee's leave request.", 403);

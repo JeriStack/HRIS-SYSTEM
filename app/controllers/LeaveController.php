@@ -518,8 +518,8 @@ class LeaveController extends Controller
     public function approve(int $id): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -562,8 +562,8 @@ class LeaveController extends Controller
     public function processNextQueue(): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -596,8 +596,8 @@ class LeaveController extends Controller
     public function reject(int $id): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may reject leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may reject leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -649,7 +649,7 @@ class LeaveController extends Controller
         $userRole = strtolower($user['role'] ?? 'employee');
         $myEmpId = (int)($user['employee_id'] ?? 0);
 
-        $isHr = ($userRole === 'hr');
+        $isHr = in_array($userRole, ['admin', 'hr'], true);
 
         // Capture request state before cancellation so we can notify the owner and
         // describe the action accurately (an HR cancel may reverse an approved request).

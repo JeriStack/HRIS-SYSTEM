@@ -107,22 +107,35 @@ class User extends Model
             $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
         }
 
-        $sql = "
-            INSERT INTO users (
-                employee_id, username, email, password, role, status, created_at
-            ) VALUES (
-                :employee_id, :username, :email, :password, :role, :status, NOW()
-            )
-        ";
-
-        $this->execute($sql, [
+        $params = [
             'employee_id' => !empty($data['employee_id']) ? (int)$data['employee_id'] : null,
             'username'    => $username,
             'email'       => $email,
             'password'    => $passwordHash,
             'role'        => $role,
             'status'      => $data['status'] ?? 'Active',
-        ]);
+        ];
+
+        try {
+            $sqlWithRoleId = "
+                INSERT INTO users (
+                    employee_id, username, email, password, role, role_id, status, created_at
+                ) VALUES (
+                    :employee_id, :username, :email, :password, :role,
+                    (SELECT id FROM roles WHERE slug = :role_slug LIMIT 1), :status, NOW()
+                )
+            ";
+            $this->execute($sqlWithRoleId, $params + ['role_slug' => $role]);
+        } catch (\Throwable) {
+            $sql = "
+                INSERT INTO users (
+                    employee_id, username, email, password, role, status, created_at
+                ) VALUES (
+                    :employee_id, :username, :email, :password, :role, :status, NOW()
+                )
+            ";
+            $this->execute($sql, $params);
+        }
 
         return (int)$this->lastInsertId();
     }
@@ -361,6 +374,7 @@ class User extends Model
                 u.id,
                 u.employee_id,
                 u.username,
+                COALESCE(u.email, e.email) AS email,
                 u.role,
                 u.status,
                 u.created_at,
@@ -375,6 +389,48 @@ class User extends Model
         ";
 
         return $this->fetchOne($sql, ['employee_id' => $employeeId]);
+    }
+
+    /**
+     * Update user account fields (email and/or password).
+     *
+     * @param int $id
+     * @param array<string, mixed> $data
+     * @return bool
+     */
+    public function update(int $id, array $data): bool
+    {
+        if ($id <= 0 || empty($data)) {
+            return false;
+        }
+
+        $sets = [];
+        $params = ['id' => $id];
+
+        if (array_key_exists('email', $data)) {
+            $email = trim((string)$data['email']);
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new \InvalidArgumentException('A valid email address is required.');
+            }
+            $sets[] = 'email = :email';
+            $params['email'] = $email;
+        }
+
+        if (!empty($data['password'])) {
+            $passwordHash = (string)$data['password'];
+            if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
+                $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
+            }
+            $sets[] = 'password = :password';
+            $params['password'] = $passwordHash;
+        }
+
+        if (empty($sets)) {
+            return false;
+        }
+
+        $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = :id';
+        return $this->execute($sql, $params);
     }
 
     /**

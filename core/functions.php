@@ -424,16 +424,6 @@ if (!function_exists('render_server_error')) {
     }
 }
 
-if (!function_exists('can')) {
-    /**
-     * Determine if the currently authenticated user possesses a given permission.
-     */
-    function can(string $permission): bool
-    {
-        return \Core\Permission::can(currentUser(), $permission);
-    }
-}
-
 if (!function_exists('has_role')) {
     /**
      * Determine if the currently authenticated user possesses a given role.

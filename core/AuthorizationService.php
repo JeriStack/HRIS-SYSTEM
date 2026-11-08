@@ -116,7 +116,7 @@ class AuthorizationService
     public function can(mixed $userOrRole, string $permission): bool
     {
         $role = $this->resolveRole($userOrRole);
-        if ($role === null || !in_array($role, PermissionRegistry::ROLES, true) && !in_array($role, ['admin', 'hr', 'employee'], true)) {
+        if ($role === null || !array_key_exists($role, PermissionRegistry::ROLES)) {
             return false;
         }
 

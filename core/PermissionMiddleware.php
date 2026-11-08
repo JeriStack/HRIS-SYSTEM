@@ -23,9 +23,12 @@ class PermissionMiddleware extends Middleware
      */
     public function handle(): bool
     {
+        $isJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')
+            || str_contains($_SERVER['REQUEST_URI'] ?? '', '/api/');
+
         // 1. Must be authenticated with valid live account state
         if (!isAuthenticated() || !Session::verifyAuthenticatedAccountState()) {
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 401,
@@ -46,7 +49,7 @@ class PermissionMiddleware extends Middleware
         if (!Permission::can($userRole, $this->capability)) {
             http_response_code(403);
 
-            if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            if ($isJson) {
                 json_response([
                     'status'  => 'error',
                     'code'    => 403,
