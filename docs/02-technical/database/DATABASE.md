@@ -445,4 +445,7 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_04_15_create_user_totp.sql` — RFC 6238 TOTP table.
 * `database/migrations/2026_11_06_add_admin_role_to_users.sql` — Modifies `users.role` ENUM to include `'admin'` (`ENUM('admin', 'hr', 'employee') NOT NULL DEFAULT 'employee'`). Zero table rewrite, non-destructive, and maintains default role as `'employee'`.
 * `database/migrations/2026_11_08_create_rbac_tables.sql` — Creates `roles`, `permissions`, `role_permissions`, and `permission_audit_logs` tables; adds `role_id` foreign key to `users`; seeds 3 core system roles and 33 granular permissions.
+* `database/migrations/2026_11_08_enhance_audit_trail_schema.sql` — Extends `activity_logs` with `event_id`, `actor_role`, `category`, `old_values`, `new_values`, `status`, and `request_id`.
+* `database/migrations/2026_11_08_create_queue_tables.sql` — Creates `queue_jobs` and `failed_jobs` tables for concurrency-safe asynchronous background job processing.
+
 

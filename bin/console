@@ -1,0 +1,152 @@
+<?php
+
+/**
+ * Universal CLI Console
+ * Employee HRIS & Leave Management System (NEXORA HR)
+ *
+ * Command runner for Scheduler and Queue operations.
+ *
+ * Usage:
+ *   php bin/console schedule:run
+ *   php bin/console schedule:list
+ *   php bin/console queue:work [--queue=default] [--once]
+ *   php bin/console queue:status
+ *   php bin/console queue:retry <failed-job-id>
+ */
+
+declare(strict_types=1);
+
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    echo "Forbidden: CLI access only.\n";
+    exit(1);
+}
+
+require_once __DIR__ . '/../core/bootstrap.php';
+
+use App\Console\Kernel;
+use App\Queue\QueueService;
+use App\Queue\QueueWorker;
+
+$command = $argv[1] ?? 'help';
+
+switch ($command) {
+    case 'schedule:run':
+        $kernel = new Kernel();
+        $tz = config('config.timezone', 'Asia/Manila');
+        $now = new DateTimeImmutable('now', new DateTimeZone($tz));
+
+        echo sprintf("[%s] Running scheduled tasks (Timezone: %s)...\n", $now->format('Y-m-d H:i:s'), $tz);
+
+        $summary = $kernel->runDueTasks($now);
+
+        echo sprintf(
+            "Tasks Due: %d | Executed: %d | Skipped: %d | Failed: %d\n",
+            $summary['total_due'],
+            $summary['executed'],
+            $summary['skipped'],
+            $summary['failed']
+        );
+
+        foreach ($summary['results'] as $taskName => $res) {
+            $statusStr = $res['skipped'] ? 'SKIPPED' : ($res['success'] ? 'SUCCESS' : 'FAILED');
+            echo sprintf("  - %-25s [%s] (%0.2fms)%s\n",
+                $taskName,
+                $statusStr,
+                $res['duration_ms'],
+                $res['error'] ? ' Error: ' . $res['error'] : ''
+            );
+        }
+
+        exit($summary['failed'] > 0 ? 1 : 0);
+
+    case 'schedule:list':
+        $kernel = new Kernel();
+        echo "Registered Scheduled Tasks:\n";
+        echo str_repeat('-', 70) . "\n";
+        printf("%-25s %-15s %s\n", 'Task Name', 'Schedule', 'Description');
+        echo str_repeat('-', 70) . "\n";
+
+        foreach ($kernel->getTasks() as $task) {
+            printf("%-25s %-15s %s\n",
+                $task->getName(),
+                $task->getCronExpression(),
+                $task->getDescription() ?? 'N/A'
+            );
+        }
+        exit(0);
+
+    case 'queue:work':
+        $options = getopt('', ['queue::', 'once', 'limit::', 'sleep::', 'lease::', 'max-runtime::']);
+        $queue = trim((string)($options['queue'] ?? 'default'));
+        if ($queue === '') {
+            $queue = 'default';
+        }
+
+        try {
+            $queueService = QueueService::getInstance();
+        } catch (\Throwable $e) {
+            fwrite(STDERR, "Error: Database connection is not available: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        $worker = new QueueWorker($queueService, $queue);
+        $exitCode = $worker->run([
+            'once'        => isset($options['once']),
+            'limit'       => isset($options['limit']) ? (int)$options['limit'] : 10,
+            'sleep'       => isset($options['sleep']) ? (int)$options['sleep'] : 2,
+            'lease'       => isset($options['lease']) ? (int)$options['lease'] : 300,
+            'max_runtime' => isset($options['max-runtime']) ? (int)$options['max-runtime'] : 3600,
+        ]);
+        exit($exitCode);
+
+    case 'queue:status':
+        $queue = trim((string)($argv[2] ?? 'default'));
+        try {
+            $queueService = QueueService::getInstance();
+            $metrics = $queueService->getMetrics($queue);
+        } catch (\Throwable $e) {
+            fwrite(STDERR, "Error: Unable to retrieve queue metrics: " . $e->getMessage() . "\n");
+            exit(1);
+        }
+
+        echo "Queue Status for '{$queue}':\n";
+        echo str_repeat('-', 40) . "\n";
+        printf("  Pending Jobs:        %d\n", $metrics['pending']);
+        printf("  Reserved (Claimed):  %d\n", $metrics['reserved']);
+        printf("  Completed Jobs:      %d\n", $metrics['completed']);
+        printf("  Failed (In Queue):   %d\n", $metrics['failed']);
+        printf("  Dead-Letter (Total): %d\n", $metrics['total_failed']);
+        printf("  Oldest Pending Age:  %ds\n", $metrics['oldest_pending_s']);
+        echo str_repeat('-', 40) . "\n";
+        exit(0);
+
+    case 'queue:retry':
+        $failedJobId = (int)($argv[2] ?? 0);
+        if ($failedJobId <= 0) {
+            echo "Error: Please specify a valid failed job ID.\n";
+            echo "Usage: php bin/console queue:retry <failed-job-id>\n";
+            exit(1);
+        }
+
+        try {
+            $newJobId = QueueService::getInstance()->retryFailedJob($failedJobId);
+            echo "Successfully requeued failed job #{$failedJobId} as new job #{$newJobId}.\n";
+            exit(0);
+        } catch (\Throwable $e) {
+            echo "Failed to retry job #{$failedJobId}: " . $e->getMessage() . "\n";
+            exit(1);
+        }
+
+    case 'help':
+    default:
+        echo "Employee HRIS & Leave Management System — Console\n\n";
+        echo "Available Commands:\n";
+        echo "  schedule:run          Execute all due scheduled tasks\n";
+        echo "  schedule:list         List all registered scheduled tasks\n";
+        echo "  queue:work            Start the MySQL queue worker daemon\n";
+        echo "  queue:status [queue]  Display real-time queue health & metrics\n";
+        echo "  queue:retry <id>      Retry a failed dead-letter job by ID\n";
+        echo "  help                  Display this help message\n";
+        exit(0);
+}

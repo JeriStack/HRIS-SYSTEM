@@ -13,9 +13,13 @@ class Notification
 {
     private PDO $db;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::getInstance()->getConnection();
+        if ($db !== null) {
+            $this->db = $db;
+        } else {
+            $this->db = Database::getInstance()->getConnection();
+        }
     }
 
     /**
