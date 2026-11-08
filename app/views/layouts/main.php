@@ -6,6 +6,7 @@
     <title><?= isset($title) ? e($title) . ' - ' : '' ?><?= e(config('config.app_name', 'NEXORA HR')) ?></title>
     <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/components.css')) ?>">
+    <link rel="stylesheet" href="<?= e(asset('css/skeleton.css')) ?>">
     <link rel="stylesheet" href="<?= e(asset('css/responsive.css')) ?>">
 </head>
 <body>
@@ -14,5 +15,6 @@
             <?= $content ?? '' ?>
         </main>
     </div>
+    <script src="<?= e(asset('js/skeleton.js')) ?>"></script>
 </body>
 </html>

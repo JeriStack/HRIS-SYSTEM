@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Status:** Authoritative API Reference  
-**Date:** November 2026  
+**Date:** November 2026 (ADR-012 Three-Role API Authorization)  
 **Document Owner:** API Engineering & Integration Team  
 
 ---
@@ -18,8 +18,8 @@ NEXORA HR provides an enterprise REST API v1 for programmatic workforce operatio
 * **Content Type:** `application/json; charset=utf-8` on all request bodies and responses.
 * **Interactive Documentation:** Integrated Swagger UI accessible at `/docs` or `/api/docs`.
 * **Machine-Readable Specifications:**
-  * YAML: [`/api/docs/openapi.yaml`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/docs/api/openapi.yaml)
-  * JSON: [`/api/docs/openapi.json`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/docs/api/openapi.json)
+  * YAML: [`docs/02-technical/api/openapi.yaml`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/docs/02-technical/api/openapi.yaml)
+  * JSON: [`docs/02-technical/api/openapi.json`](file:///c:/xampp/htdocs/GitHub_Clone_File_Projects/HRIS-SYSTEM/docs/02-technical/api/openapi.json)
 
 ---
 
@@ -163,19 +163,19 @@ All API responses follow a structured JSON response envelope:
 
 ---
 
-### 4.3 Workforce & Organizational Management (`hr` Only)
+### 4.3 Workforce & Organizational Management (Admin & HR)
 
 #### List Employees
 * **`GET /api/v1/employees?search=Jeril&department_id=1&status=Active`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Show Employee Details
 * **`GET /api/v1/employees/{id}`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Create Employee
 * **`POST /api/v1/employees`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 * **Payload:**
   ```json
   {
@@ -193,15 +193,15 @@ All API responses follow a structured JSON response envelope:
 
 #### Update Employee Record
 * **`PUT /api/v1/employees/{id}`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Deactivate Employee
 * **`POST /api/v1/employees/{id}/deactivate`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Reactivate Employee
 * **`POST /api/v1/employees/{id}/reactivate`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### List Departments / Positions
 * **`GET /api/v1/departments`**
@@ -235,15 +235,15 @@ All API responses follow a structured JSON response envelope:
 
 #### HR Leave Approval Queue (FIFO)
 * **`GET /api/v1/hr/leaves?status=Pending`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Approve Leave Request (Pessimistic Locking)
 * **`POST /api/v1/hr/leaves/{id}/approve`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 
 #### Reject Leave Request
 * **`POST /api/v1/hr/leaves/{id}/reject`**
-* **Access:** HR Only (`hr`)
+* **Access:** Admin & HR (`admin`, `hr`)
 * **Payload:**
   ```json
   {

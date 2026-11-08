@@ -1,10 +1,27 @@
 <?php
-$resolvedRole = ($oldPortalRole ?? '') === 'employee' ? 'employee' : (($oldPortalRole ?? '') === 'hr' ? 'hr' : '');
+$resolvedRole = in_array($oldPortalRole ?? '', ['admin', 'hr', 'employee'], true) ? $oldPortalRole : '';
 $shouldOpenModal = !empty($error) || $resolvedRole !== '' || !empty($oldEmail);
 $activeVisualRole = $resolvedRole !== '' ? $resolvedRole : 'hr';
-$modalHeaderTitle = $activeVisualRole === 'employee' ? 'Employee Portal Login' : 'HR Portal Login';
-$modalPillLabel = $activeVisualRole === 'employee' ? 'Employee Workspace' : 'HR Workspace';
-$modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Portal' : 'Sign In to HR Portal';
+$modalHeaderTitle = match ($activeVisualRole) {
+    'admin'    => 'Admin Portal Login',
+    'employee' => 'Employee Portal Login',
+    default    => 'HR Portal Login',
+};
+$modalPillLabel = match ($activeVisualRole) {
+    'admin'    => 'Admin Portal Login',
+    'employee' => 'Employee Portal Login',
+    default    => 'HR Portal Login',
+};
+$modalSubmitLabel = match ($activeVisualRole) {
+    'admin'    => 'Sign In to Admin Portal',
+    'employee' => 'Sign In to Employee Portal',
+    default    => 'Sign In to HR Portal',
+};
+$emailPlaceholder = match ($activeVisualRole) {
+    'admin'    => 'admin.name@company.local',
+    'employee' => 'employee.name@company.local',
+    default    => 'hr.name@company.local',
+};
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -28,7 +45,13 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
             }
         })();
     </script>
-    <link rel="stylesheet" href="<?= asset('css/auth.css') ?>">
+    <?php
+    $authCssFile = __DIR__ . '/../../../public/assets/css/auth.css';
+    $authCssVer = file_exists($authCssFile) ? (string)filemtime($authCssFile) : '2.1';
+    $authJsFile = __DIR__ . '/../../../public/assets/js/auth.js';
+    $authJsVer = file_exists($authJsFile) ? (string)filemtime($authJsFile) : '2.1';
+    ?>
+    <link rel="stylesheet" href="<?= asset('css/auth.css') ?>?v=<?= e($authCssVer) ?>">
 </head>
 
 <body class="auth-landing-page">
@@ -92,19 +115,45 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
             </div>
         <?php endif; ?>
 
-        <!-- Role Selection Cards (HR & Employee Only) -->
+        <!-- Role Selection Cards (Admin, HR & Employee) -->
         <section class="role-selection-grid" aria-label="Select your application role">
+            <!-- CARD 0: ADMIN LOGIN -->
+            <article class="role-card role-card-admin <?= $activeVisualRole === 'admin' ? 'is-selected' : '' ?>" data-role-card="admin">
+                <div class="role-card-top">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                                <path d="m9 12 2 2 4-4" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    <h2 class="role-card-title">Admin Portal</h2>
+                    <p class="role-card-desc">
+                        Full administrative oversight, account governance, role assignment, and audit inspection.
+                    </p>
+                </div>
+
+                <button type="button" id="continueAsAdminBtn" class="role-card-btn role-card-btn-admin" data-open-role-modal="admin">
+                    <span>Continue as Admin</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14" />
+                        <path d="m12 5 7 7-7 7" />
+                    </svg>
+                </button>
+            </article>
+
             <!-- CARD 1: HR LOGIN -->
             <article class="role-card role-card-hr <?= $activeVisualRole === 'hr' ? 'is-selected' : '' ?>" data-role-card="hr">
                 <div class="role-card-top">
-                    <div class="role-card-header-row">
-                        <div class="role-card-icon" aria-hidden="true">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                             </svg>
                         </div>
-                        <span class="role-card-badge">HR Administration</span>
                     </div>
 
                     <h2 class="role-card-title">HR Portal</h2>
@@ -125,8 +174,8 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
             <!-- CARD 2: EMPLOYEE LOGIN -->
             <article class="role-card role-card-employee <?= $activeVisualRole === 'employee' ? 'is-selected' : '' ?>" data-role-card="employee">
                 <div class="role-card-top">
-                    <div class="role-card-header-row">
-                        <div class="role-card-icon" aria-hidden="true">
+                    <div class="role-card-header-row" style="display:flex; justify-content:center; width:100%;">
+                        <div class="role-card-icon" style="margin:0 auto;" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                                 <circle cx="9" cy="7" r="4" />
@@ -134,7 +183,6 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
                                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                             </svg>
                         </div>
-                        <span class="role-card-badge">Self-Service Workspace</span>
                     </div>
 
                     <h2 class="role-card-title">Employee Portal</h2>
@@ -181,7 +229,7 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
             <div class="modal-top-bar">
                 <div class="modal-role-pill">
                     <span class="modal-role-pill-dot" aria-hidden="true"></span>
-                    <span id="modalRolePillText"><?= e($modalPillLabel) ?></span>
+                    <span id="loginModalTitle"><?= e($modalPillLabel) ?></span>
                 </div>
 
                 <button type="button"
@@ -196,50 +244,22 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
                 </button>
             </div>
 
-            <!-- Modal Header -->
-            <div class="modal-header">
+            <!-- Hero Role Icon (Centered) -->
+            <div class="modal-hero-icon-row">
                 <div class="modal-role-icon-box" aria-hidden="true">
+                    <svg class="icon-role-admin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
                     <svg class="icon-role-hr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
                         <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                     </svg>
                     <svg class="icon-role-employee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                     </svg>
                 </div>
-
-                <div class="modal-header-text">
-                    <h2 id="loginModalTitle"><?= e($modalHeaderTitle) ?></h2>
-                </div>
-            </div>
-
-            <!-- Quick Role Switcher -->
-            <div class="modal-role-switcher" role="tablist" aria-label="Switch login portal">
-                <button type="button"
-                    role="tab"
-                    aria-selected="<?= $activeVisualRole === 'hr' ? 'true' : 'false' ?>"
-                    class="role-switch-tab <?= $activeVisualRole === 'hr' ? 'is-active' : '' ?>"
-                    data-switch-role="hr">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                    </svg>
-                    <span>HR Portal</span>
-                </button>
-                <button type="button"
-                    role="tab"
-                    aria-selected="<?= $activeVisualRole === 'employee' ? 'true' : 'false' ?>"
-                    class="role-switch-tab <?= $activeVisualRole === 'employee' ? 'is-active' : '' ?>"
-                    data-switch-role="employee">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                    </svg>
-                    <span>Employee Portal</span>
-                </button>
             </div>
 
             <!-- Alert Notices Inside Modal -->
@@ -269,7 +289,7 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
                             id="loginEmail"
                             name="email"
                             class="form-input"
-                            placeholder="hr.name@company.local"
+                            placeholder="<?= e($emailPlaceholder) ?>"
                             value="<?= e($oldEmail ?? '') ?>"
                             required
                             autofocus
@@ -339,7 +359,7 @@ $modalSubmitLabel = $activeVisualRole === 'employee' ? 'Sign In to Employee Port
         </div>
     </div>
 
-    <script src="<?= asset('js/auth.js') ?>" defer></script>
+    <script src="<?= asset('js/auth.js') ?>?v=<?= e($authJsVer) ?>" defer></script>
 </body>
 
 </html>

@@ -219,21 +219,81 @@ function showToast(message, type = 'info') {
 }
 
 // ==========================================================================
-// 4. Client-side Table Filter Helper
+// 4. Client-side Table Filter Helper & Dynamic Skeletons
 // ==========================================================================
 function initTableSearch(inputId, tableId) {
     const input = document.getElementById(inputId);
     const table = document.getElementById(tableId);
 
     if (input && table) {
-        input.addEventListener('keyup', () => {
-            const query = input.value.toLowerCase().trim();
-            const rows = table.querySelectorAll('tbody tr');
+        let debounceTimer = null;
+        input.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const query = input.value.toLowerCase().trim();
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
 
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query) ? '' : 'none';
-            });
+                const rows = Array.from(tbody.querySelectorAll('tr:not(.table-empty-row)'));
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const matches = text.includes(query);
+                    row.style.display = matches ? '' : 'none';
+                    if (matches) visibleCount++;
+                });
+
+                // Manage empty state row
+                let emptyRow = tbody.querySelector('.table-empty-row');
+                if (visibleCount === 0 && query !== '') {
+                    if (!emptyRow) {
+                        emptyRow = document.createElement('tr');
+                        emptyRow.className = 'table-empty-row';
+                        const colCount = table.querySelectorAll('thead th').length || 5;
+                        emptyRow.innerHTML = `<td colspan="${colCount}" class="text-center" style="padding: 2.5rem; color: var(--color-text-muted);">No records found matching "<strong>${escapeHtml(query)}</strong>".</td>`;
+                        tbody.appendChild(emptyRow);
+                    }
+                    emptyRow.style.display = '';
+                } else if (emptyRow) {
+                    emptyRow.style.display = 'none';
+                }
+            }, 120);
         });
     }
 }
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Global Skeleton Helper Shortcuts
+window.showTableSkeleton = function(tableSelector, rows = 5, cols = 5) {
+    if (window.Skeleton) {
+        return window.Skeleton.show(tableSelector, 'table', { rows, cols });
+    }
+    return null;
+};
+
+window.hideTableSkeleton = function(tableSelector, replacementHtml = null) {
+    if (window.Skeleton) {
+        return window.Skeleton.hide(tableSelector, replacementHtml);
+    }
+    return null;
+};
+
+window.showCardSkeleton = function(containerSelector, lines = 3) {
+    if (window.Skeleton) {
+        return window.Skeleton.show(containerSelector, 'card', { lines });
+    }
+    return null;
+};
+
+window.hideCardSkeleton = function(containerSelector, replacementHtml = null) {
+    if (window.Skeleton) {
+        return window.Skeleton.hide(containerSelector, replacementHtml);
+    }
+    return null;
+};

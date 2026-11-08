@@ -175,7 +175,17 @@ class LeaveController extends Controller
                 'LEAVE_BALANCE_ADJUSTED',
                 "Adjusted leave balance for Employee #{$empId}, Leave Type #{$leaveTypeId}, Year {$year} to {$allocatedDays} days. Reason: {$reason}",
                 'LeaveBalance',
-                (string)$empId
+                (string)$empId,
+                null,
+                [
+                    'employee_id'    => $empId,
+                    'leave_type_id'  => $leaveTypeId,
+                    'year'           => $year,
+                    'allocated_days' => $allocatedDays,
+                    'reason'         => $reason,
+                ],
+                'SUCCESS',
+                \Core\AuditService::CATEGORY_LEAVE
             );
             Session::flash('success', "Leave balance successfully updated to {$allocatedDays} allocated days for year {$year}.");
         } else {
@@ -508,8 +518,8 @@ class LeaveController extends Controller
     public function approve(int $id): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -526,7 +536,17 @@ class LeaveController extends Controller
                     "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " ({$req['number_of_days']} days for {$req['leave_name']}) was approved by HR."
                 );
             }
-            $this->activityLog->log($user['id'], 'LEAVE_APPROVED', "Approved leave request #{$id}", 'LeaveRequest', (string)$id);
+            $this->activityLog->log(
+                $user['id'],
+                'LEAVE_APPROVED',
+                "Approved leave request #{$id}",
+                'LeaveRequest',
+                (string)$id,
+                ['status' => 'Pending'],
+                ['status' => 'Approved'],
+                'SUCCESS',
+                \Core\AuditService::CATEGORY_LEAVE
+            );
             Session::flash('success', $result->message);
         } else {
             Session::flash('error', $result->message);
@@ -542,8 +562,8 @@ class LeaveController extends Controller
     public function processNextQueue(): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -576,8 +596,8 @@ class LeaveController extends Controller
     public function reject(int $id): void
     {
         $user = currentUser();
-        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr') {
-            Session::flash('error', 'Forbidden: Only authorized HR personnel may reject leave requests.');
+        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
+            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may reject leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -599,7 +619,17 @@ class LeaveController extends Controller
                     "Your leave request #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . " was rejected. Reason: {$rejectionReason}"
                 );
             }
-            $this->activityLog->log($user['id'], 'LEAVE_REJECTED', "Rejected leave request #{$id}. Reason: {$rejectionReason}", 'LeaveRequest', (string)$id);
+            $this->activityLog->log(
+                $user['id'],
+                'LEAVE_REJECTED',
+                "Rejected leave request #{$id}. Reason: {$rejectionReason}",
+                'LeaveRequest',
+                (string)$id,
+                ['status' => 'Pending'],
+                ['status' => 'Rejected', 'reason' => $rejectionReason],
+                'SUCCESS',
+                \Core\AuditService::CATEGORY_LEAVE
+            );
             Session::flash('warning', $result->message);
         } else {
             Session::flash('error', $result->message);
@@ -619,7 +649,7 @@ class LeaveController extends Controller
         $userRole = strtolower($user['role'] ?? 'employee');
         $myEmpId = (int)($user['employee_id'] ?? 0);
 
-        $isHr = ($userRole === 'hr');
+        $isHr = in_array($userRole, ['admin', 'hr'], true);
 
         // Capture request state before cancellation so we can notify the owner and
         // describe the action accurately (an HR cancel may reverse an approved request).
@@ -638,7 +668,11 @@ class LeaveController extends Controller
                 'LEAVE_CANCELLED',
                 "Cancelled leave request #{$id}" . ($wasApproved ? ' (approved leave reversed, balance restored).' : '.') . $logReason,
                 'LeaveRequest',
-                (string)$id
+                (string)$id,
+                ['status' => $wasApproved ? 'Approved' : 'Pending'],
+                ['status' => 'Cancelled', 'reason' => $reason],
+                'SUCCESS',
+                \Core\AuditService::CATEGORY_LEAVE
             );
 
             if ($userRole === 'employee') {

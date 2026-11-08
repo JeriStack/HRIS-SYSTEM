@@ -202,6 +202,8 @@ jobs:
   terraform-validation:
     name: Terraform Formatting, Validation, and TFLint
     runs-on: ubuntu-24.04
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform.d/plugin-cache
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -220,22 +222,63 @@ jobs:
           echo "Checking canonical Terraform formatting across all configurations..."
           terraform fmt -check -recursive
 
+      - name: Create Terraform plugin cache dir
+        run: mkdir -p "${{ github.workspace }}/.terraform.d/plugin-cache"
+
+      - name: Cache Terraform Provider Plugins
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.terraform.d/plugin-cache
+          key: terraform-plugins-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
+          restore-keys: |
+            terraform-plugins-${{ runner.os }}-
+
       - name: Initialize and validate Root Terraform configuration
         run: |
           echo "Validating root Terraform configuration in terraform/..."
-          terraform -chdir=terraform init -backend=false
+          for i in 1 2 3 4 5; do
+            if terraform -chdir=terraform init -backend=false; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "Terraform init failed after 5 attempts due to upstream registry timeout."
+              exit 1
+            fi
+            echo "Terraform init failed (attempt $i/5). Retrying in 10s..."
+            sleep 10
+          done
           terraform -chdir=terraform validate
 
       - name: Initialize and validate Development Environment configuration
         run: |
           echo "Validating development environment configuration in terraform/environments/dev/..."
-          terraform -chdir=terraform/environments/dev init -backend=false
+          for i in 1 2 3 4 5; do
+            if terraform -chdir=terraform/environments/dev init -backend=false; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "Terraform init failed after 5 attempts due to upstream registry timeout."
+              exit 1
+            fi
+            echo "Terraform init failed (attempt $i/5). Retrying in 10s..."
+            sleep 10
+          done
           terraform -chdir=terraform/environments/dev validate
 
       - name: Initialize and validate Production Environment configuration
         run: |
           echo "Validating production environment configuration in terraform/environments/prod/..."
-          terraform -chdir=terraform/environments/prod init -backend=false
+          for i in 1 2 3 4 5; do
+            if terraform -chdir=terraform/environments/prod init -backend=false; then
+              break
+            fi
+            if [ "$i" -eq 5 ]; then
+              echo "Terraform init failed after 5 attempts due to upstream registry timeout."
+              exit 1
+            fi
+            echo "Terraform init failed (attempt $i/5). Retrying in 10s..."
+            sleep 10
+          done
           terraform -chdir=terraform/environments/prod validate
 
       - name: Set up TFLint

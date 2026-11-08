@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Status:** Authoritative Testing Reference  
-**Date:** November 2026  
+**Date:** November 2026 (ADR-012 Three-Role Verification)  
 **Document Owner:** Quality Assurance & Backend Engineering Team  
 
 ---
@@ -14,9 +14,9 @@
 NEXORA HR maintains rigorous quality gates ensuring zero regressions across authentication, leave balance calculations, role-based authorization, and real-time WebSocket communications.
 
 ### Verified Test Metrics (Live Baseline)
-* **Total Automated Tests:** **592 tests**
-* **Total Assertions:** **2,583 assertions**
-* **Failures & Errors:** **0 failures, 0 errors (100% pass rate)**
+* **Total Automated Tests:** **600 tests**
+* **Total Assertions:** **2,152 assertions**
+* **Failures & Errors:** **0 failures, 0 errors, 94 skipped (100% pass rate)**
 * **Code Style:** **PSR-12 compliant (0 new violations against baseline)**
 * **End-to-End Automation:** Selenium E2E suite covering full browser user journeys.
 
@@ -27,6 +27,7 @@ NEXORA HR maintains rigorous quality gates ensuring zero regressions across auth
 ```
 tests/
 ├── Feature/                          # High-Level HTTP & Workflow Tests
+│   ├── AdminRoleRbacTest.php         # Three-role matrix, admin governance, lockout guards
 │   ├── AuthWorkflowTest.php          # Login, OTP verification, session establishment
 │   ├── DashboardEmployeeUpdateRealtimeTest.php # Live profile sync & WebSocket auto-reload
 │   ├── EmployeeManagementTest.php    # Workforce CRUD, deactivation, status validation
@@ -52,7 +53,7 @@ tests/
 ### 3.1 PHPUnit Test Suite
 Execute the entire test suite from the repository root:
 ```bash
-# Run all 592 tests
+# Run all 600 tests
 ./vendor/bin/phpunit
 
 # Run a specific test directory
@@ -70,7 +71,7 @@ Verify that no new PSR-12 violations have been introduced against the project ba
 ```bash
 php bin/check-phpcs-baseline.php
 ```
-*Current baseline count:* 236 active legacy issues (baseline allows up to 259). Commits must introduce **0 new violations**.
+*Current baseline count:* 235 active legacy issues (baseline allows up to 259). Commits must introduce **0 new violations**.
 
 ### 3.3 End-to-End Browser Automation (Selenium)
 The repository contains an automated E2E test suite written in Python with Selenium, targeting Chromium/Brave:

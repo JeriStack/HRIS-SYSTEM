@@ -20,6 +20,11 @@ final class Identity
     ) {
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function isHr(): bool
     {
         return $this->role === 'hr';

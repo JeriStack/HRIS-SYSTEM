@@ -33,7 +33,7 @@ NEXORA HR is engineered as a high-performance, modular, four-tier Model-View-Con
 ```
 
 ### Core Architectural Principles
-1. **Strict 2-Role Separation:** Authorization is bifurcated strictly into `hr` and `employee`. Administrative and human resource functions are unified under `hr`, while `employee` provides an isolated self-service environment with strict ownership enforcement.
+1. **Strict 3-Role Separation:** Authorization is structured into `admin`, `hr`, and `employee`. `admin` owns system-wide governance, user account management, role assignment, and security audit inspection. `hr` handles operational workforce administration, leave review queue, and reporting (prohibited from administrative user role assignment). `employee` provides an isolated self-service environment with strict ownership enforcement.
 2. **ACID Transaction Integrity:** All operations that modify leave balances or request statuses must execute within an isolated database transaction utilizing pessimistic row locks (`SELECT ... FOR UPDATE`).
 3. **Fail-Closed Security Architecture:** Every incoming request defaults to unauthorized; access is granted only after passing through sequential middleware (`AuthMiddleware`, `RoleMiddleware`, `CsrfMiddleware`, `RateLimitMiddleware`).
 4. **At-Least-Once Real-time Delivery:** Real-time state changes are committed to an `outbox_events` table synchronously with the business transaction. A decoupled worker dispatches events over WebSockets, guaranteeing that network transport failures do not compromise business logic.
@@ -51,7 +51,7 @@ NEXORA HR is engineered as a high-performance, modular, four-tier Model-View-Con
 | **Real-time Daemon** | Ratchet (PHP) | Event-driven WebSocket server running on port `:8090`, utilizing ReactPHP event loop and single-use ticket authentication. |
 | **MFA Delivery** | PHPMailer / SMTP | RFC 821 SMTP transport with TLS encryption for delivering 6-digit cryptographic OTP tokens. |
 | **Observability** | Prometheus & Grafana | Prometheus (:9090) scraping `nginx-exporter` (:9113) and `mysqld-exporter` (:9104); preconfigured Grafana (:3000) dashboards. |
-| **Testing Harness** | PHPUnit & Selenium | PHPUnit 13.4 (592 automated unit/feature/integration tests) and Python/Selenium E2E suite targeting Brave/Chromium. |
+| **Testing Harness** | PHPUnit & Selenium | PHPUnit 13.4 (600 automated unit/feature/integration tests) and Python/Selenium E2E suite targeting Chromium. |
 
 ---
 
@@ -396,4 +396,58 @@ The system is deployed as a coordinated set of Docker containers orchestrated by
 
 * **Health Checks:** Every service includes explicit health checks (e.g., `mysqladmin ping`, `curl http://localhost/health`, socket probes) preventing upstream proxies from dispatching traffic to unready containers.
 * **Storage Volumes:** Persistent data is isolated in dedicated Docker volumes (`db_data`, `prometheus_data`, `grafana_data`), ensuring container restarts or rebuilds never destroy state.
+
+---
+
+## 9. Background Processing, Cron Scheduler & Asynchronous Queue (HRIS-53)
+
+NEXORA HR implements a decoupled, production-ready background execution architecture consisting of two independent worker components:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                   Background Processing Architecture                   │
+│                                                                        │
+│   ┌────────────────────┐          ┌────────────────────┐               │
+│   │  Web App (Apache)  │          │ Dedicated Cron     │               │
+│   │  (Sync Requests)   │          │ Scheduler (Opt A)  │               │
+│   └─────────┬──────────┘          └─────────┬──────────┘               │
+│             │                               │                          │
+│             │ push()                        │ schedule:run             │
+│             ▼                               ▼                          │
+│   ┌────────────────────┐          ┌────────────────────┐               │
+│   │  queue_jobs (MySQL)│◄────────►│ Scripts / Commands │               │
+│   │  (InnoDB Queue)    │          │ (Locks & Overlap)  │               │
+│   └─────────▲──────────┘          └────────────────────┘               │
+│             │                                                          │
+│             │ claimPending() (FOR UPDATE SKIP LOCKED)                  │
+│             ▼                                                          │
+│   ┌────────────────────┐          ┌────────────────────┐               │
+│   │ Dedicated Worker   │─────────►│ Registered Handlers│               │
+│   │ Container (Daemon) │          │ (Email, Notif, etc)│               │
+│   └────────────────────┘          └────────────────────┘               │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### 9.1 Option A — Dedicated Cron Scheduler Container
+* **Service:** `hris_scheduler` (built via `docker/scheduler/Dockerfile`).
+* **Runtime:** PHP 8.5 CLI with Debian cron daemon running in the foreground (`cron -f -L 15`).
+* **Environment Synchronization:** `docker/scheduler/entrypoint.sh` exports container environment variables (`DB_HOST`, `DB_PASSWORD`, `TIMEZONE`, etc.) to `/etc/environment` so cron subshells inherit full runtime configuration.
+* **Streamed Logging:** Cron task standard output and standard error are directed to `/proc/1/fd/1`, making task execution telemetry immediately visible via `docker logs hris_scheduler`.
+* **Overlap Protection:** `App\Console\TaskLock` acquires non-blocking exclusive file locks (`flock(LOCK_EX | LOCK_NB)`) in `storage/locks/`, safely skipping redundant executions if a task is still active.
+
+#### Registered Periodic Tasks
+1. `cleanup-sessions` (`*/15 * * * *`): Safely purges expired session storage files, stale realtime tickets, and expired OTP records.
+2. `process-notifications` (`* * * * *`): Claims and dispatches pending transactional outbox events.
+3. `send-leave-reminders` (`0 8 * * *`): Evaluates approved leaves beginning the following day and dispatches reminder notifications.
+4. `cleanup-temp-files` (`0 2 * * *`): Purges generated CSV report exports older than 24 hours.
+
+### 9.2 MySQL-Backed Queue System & Queue Worker
+* **Service:** `hris_worker` (reusing `hris-system-app:latest` with non-root user `www-data`).
+* **Command:** `php bin/queue-worker.php --sleep=2 --lease=300 --max-runtime=3600`.
+* **Concurrency-Safe Claims:** `App\Queue\QueueService::claimPending()` uses MySQL 8.0 `SELECT ... FOR UPDATE SKIP LOCKED` inside a short transaction, preventing duplicate processing across multiple concurrent workers.
+* **Exponential Backoff & Retries:** Failed jobs retry with exponential backoff and randomized jitter (`delay = min(3600, 2^attempts * 5 + jitter)`).
+* **Dead-Letter Storage:** Permanently failed jobs exceeding `max_attempts` transition to `failed_jobs` for forensic analysis.
+* **Abandoned Reservation Recovery:** Workers periodically scan for jobs reserved for longer than the lease window (default: 300s) and safely recover them to `pending`.
+* **Security Whitelist:** `App\Queue\JobRegistry` strictly whitelists permitted job types (`send_email`, `send_notification`, `leave_reminder`, `report_export`, `outbox_relay`), completely rejecting arbitrary class instantiation or unsanctioned code execution.
+
 

@@ -11,7 +11,7 @@ class RoleMiddleware extends Middleware
     private array $allowedRoles;
 
     /**
-     * @param array|string $roles Allowed role or list of allowed roles (strictly 'hr' or 'employee')
+     * @param array|string $roles Allowed role or list of allowed roles ('admin', 'hr', or 'employee')
      */
     public function __construct(array|string $roles)
     {
@@ -61,11 +61,13 @@ class RoleMiddleware extends Middleware
                 ], 403);
             }
 
-            $errorView = __DIR__ . '/../app/views/errors/403.php';
-            if (file_exists($errorView)) {
-                require $errorView;
-            } else {
-                echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>403 Forbidden</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>403 Forbidden</h1><p>You do not have permission to access this area.</p><p><a href="' . url('/dashboard') . '">Return to Dashboard</a></p></body></html>';
+            if (getenv('APP_ENV') !== 'testing' && (!defined('PHPUNIT_RUNNING') || !PHPUNIT_RUNNING)) {
+                $errorView = __DIR__ . '/../app/views/errors/403.php';
+                if (file_exists($errorView)) {
+                    require $errorView;
+                } else {
+                    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>403 Forbidden</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>403 Forbidden</h1><p>You do not have permission to access this area.</p><p><a href="' . url('/dashboard') . '">Return to Dashboard</a></p></body></html>';
+                }
             }
             return false;
         }

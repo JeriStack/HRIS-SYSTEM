@@ -581,10 +581,10 @@ class Leave
             if (
                 !$reviewer
                 || ($reviewer['status'] ?? '') !== 'Active'
-                || strtolower((string)($reviewer['role'] ?? '')) !== 'hr'
+                || !in_array(strtolower((string)($reviewer['role'] ?? '')), ['admin', 'hr'], true)
             ) {
                 $this->safeRollBack();
-                return $this->failResult('unauthorized_reviewer', 403, 'Approving user is not an active HR account.');
+                return $this->failResult('unauthorized_reviewer', 403, 'Approving user is not an active Administrator or HR account.');
             }
 
             // 2. Load and lock the leave request row
@@ -1102,10 +1102,10 @@ class Leave
             if (
                 !$reviewer
                 || ($reviewer['status'] ?? '') !== 'Active'
-                || strtolower((string)($reviewer['role'] ?? '')) !== 'hr'
+                || !in_array(strtolower((string)($reviewer['role'] ?? '')), ['admin', 'hr'], true)
             ) {
                 $this->safeRollBack();
-                return $this->failResult('unauthorized_reviewer', 403, 'Reviewing user is not an active HR account.');
+                return $this->failResult('unauthorized_reviewer', 403, 'Reviewing user is not an active Administrator or HR account.');
             }
 
             $stmtReq = $this->pdo->prepare("

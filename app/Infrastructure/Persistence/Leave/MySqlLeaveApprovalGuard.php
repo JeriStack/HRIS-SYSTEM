@@ -35,7 +35,7 @@ class MySqlLeaveApprovalGuard implements LeaveApprovalGuardInterface
         $stmt->execute(['uid' => $reviewerUserId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$row || strtolower((string)($row['role'] ?? '')) !== 'hr' || ($row['status'] ?? '') !== 'Active') {
+        if (!$row || !in_array(strtolower((string)($row['role'] ?? '')), ['admin', 'hr'], true) || ($row['status'] ?? '') !== 'Active') {
             return null;
         }
 

@@ -97,7 +97,7 @@ class EmployeeController extends ApiController
     )]
     public function index(): void
     {
-        $this->requireRole('hr');
+        $this->requireRole(['admin', 'hr']);
 
         $search = !empty($_GET['search']) ? trim((string)$_GET['search']) : (!empty($_GET['q']) ? trim((string)$_GET['q']) : null);
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
@@ -143,7 +143,7 @@ class EmployeeController extends ApiController
     )]
     public function show(int $id): void
     {
-        $this->requireRole('hr');
+        $this->requireRole(['admin', 'hr']);
 
         $employee = $this->employeeModel->findById($id);
         if (!$employee) {
@@ -211,7 +211,7 @@ class EmployeeController extends ApiController
     )]
     public function store(): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $input = \App\Services\EmployeeValidator::sanitize($this->getJsonInput());
 
         $errors = $this->validateEmployeeData($input);
@@ -316,7 +316,7 @@ class EmployeeController extends ApiController
     )]
     public function update(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $existing = $this->employeeModel->findById($id);
         if (!$existing) {
             $this->error('Employee record not found.', 404);
@@ -419,7 +419,7 @@ class EmployeeController extends ApiController
     )]
     public function deactivate(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $employee = $this->employeeModel->findById($id);
 
         if (!$employee) {
@@ -484,7 +484,7 @@ class EmployeeController extends ApiController
     )]
     public function reactivate(int $id): void
     {
-        $currentUser = $this->requireRole('hr');
+        $currentUser = $this->requireRole(['admin', 'hr']);
         $employee = $this->employeeModel->findById($id);
 
         if (!$employee) {

@@ -2,15 +2,20 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Target:** AI Coding Agents, Context Engineering, Quick-Onboarding  
-**Updated:** November 2026  
+**Updated:** November 2026 (ADR-012 Three-Role RBAC & Admin Governance)  
 
 ---
 
 ## 1. Core Identity & Architectural Rules
 * **Brand:** NEXORA HR — *People. Processes. Progress.*
-* **Role Boundary:** Strictly 2 roles: **`hr`** and **`employee`**. Under NO circumstances introduce an `admin` role. All legacy `/admin/*` routes redirect to `/hr/*`.
+* **Role Boundary:** Exactly 3 application roles under ADR-012: **`admin`**, **`hr`**, and **`employee`**.
+  * **`admin`**: System-wide administrative governance, user account provisioning (`/admin/users*`), role assignment, account deactivation/reactivation, system settings, security audits, admin dashboard (`/admin/dashboard`), and full workforce/leave oversight.
+  * **`hr`**: Human Resources operational workforce management (employee directory, departments, positions, leave review queue, approvals/rejections, reports). Strictly segregated from application-wide role assignment or admin provisioning.
+  * **`employee`**: Self-service workspace strictly isolated to personal profile (`/employee/profile`), personal leave filing, entitlements, and notifications.
+* **Controlled Admin Provisioning:** Admin accounts cannot be self-registered or created via public endpoints. The initial Administrator is bootstrapped via `bin/create_admin_user.php`.
+* **Last Active Admin Protection:** System-level lockout prevention prohibits deleting, demoting, or deactivating the last remaining active Administrator. Self-demotion is strictly disallowed.
 * **Stack:** Native PHP 8.5.12 MVC (no heavy external framework), MySQL 8.0 (InnoDB), Ratchet WebSocket (:8090), Docker Compose (Nginx :8080 edge proxy, Apache/PHP :80, MySQL :3306/3307).
 * **Test Isolation:** Production/Dev DB: `hris_db` | Automated Test DB: `hris_test`. Never run tests against `hris_db`.
 
@@ -47,8 +52,11 @@
 ## 4. Essential CLI Commands
 
 ```bash
-# Run full automated test suite (592 passing tests)
+# Run full automated test suite (600 passing tests)
 ./vendor/bin/phpunit
+
+# Bootstrap initial Administrator account (CLI only)
+php bin/create_admin_user.php --username=admin --email=admin@nexora.local --password="Password123!"
 
 # Run PSR-12 code style baseline check (must have 0 new violations)
 php bin/check-phpcs-baseline.php

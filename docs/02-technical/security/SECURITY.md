@@ -2,9 +2,9 @@
 
 **Project:** NEXORA HR  
 **Tagline:** People. Processes. Progress.  
-**Version:** 3.1  
+**Version:** 3.2  
 **Status:** Authoritative Security Specification  
-**Date:** November 2026  
+**Date:** November 2026 (ADR-012 Three-Role RBAC & Admin Governance)  
 **Document Owner:** Security Engineering & Repository Maintainer  
 
 ---
@@ -35,7 +35,7 @@ NEXORA HR enforces defense-in-depth security across all architectural layers. Th
 │  [Continuous Live Account State Verification on Every HTTP Request]    │
 │          │                                                             │
 │          ▼                                                             │
-│  [Strict 2-Role RBAC: 'hr' vs 'employee' + Record Ownership Checks]    │
+│  [Strict 3-Role RBAC: 'admin' vs 'hr' vs 'employee' + Ownership Checks]│
 │          │                                                             │
 │          ▼                                                             │
 │  [Data Layer: PDO Prepared Statements + Pessimistic Row-Level Locks]   │
@@ -100,23 +100,42 @@ if (!hash_equals($sessionUser['auth_fingerprint'], $computedFingerprint)) {
 
 ---
 
-## 4. Role-Based Access Control (RBAC) & Ownership
+## 4. Role-Based Access Control (RBAC) & Governance
 
-### 4.1 Strict 2-Role Enforcement
-NEXORA HR recognizes strictly two application roles:
+### 4.1 Authoritative Three-Role Architecture (ADR-012)
+NEXORA HR recognizes exactly three application roles:
 
 | Role | Permitted Capabilities | Prohibited Capabilities |
 |---|---|---|
-| **`hr`** | Workforce CRUD, department/position management, leave approval queue processing, company calendar, workforce analytics, audit logs. | Cannot file leaves on behalf of other employees without logging personal employee record. |
-| **`employee`** | Personal dashboard, viewing own profile, viewing personal leave balances, filing personal leave, cancelling own pending requests. | Strictly blocked from viewing other employees' data, administrative consoles, or workforce management tools. |
+| **`admin`** | Full system-wide administrative oversight, Admin dashboard (`/admin/dashboard`), user account provisioning (`/admin/users*`), role assignment, account deactivation/reactivation, system configuration, audit log review, workforce CRUD, leave review/approval, reports. | Bypassing authentication, MFA, CSRF checks, or last-active Admin safety invariants. |
+| **`hr`** | Workforce operational CRUD (employees, departments, positions), leave approval queue processing, leave balance management, HR calendar, HR operational reports, HR activity logs. | Application-wide role assignment, user creation/deactivation, Admin provisioning, system security configuration. |
+| **`employee`** | Personal self-service dashboard (`/employee/dashboard`), viewing personal profile (`/employee/profile`), viewing personal leave balances, filing personal leave, cancelling own pending requests. | Strictly blocked from viewing other employees' data, administrative consoles, or workforce management tools. |
 
-> [!IMPORTANT]
-> The application contains **no admin role**. Any request targeting `/admin/*` is permanently redirected (HTTP 301) to `/hr/*`.
+### 4.2 Controlled Admin Provisioning
+* **No Public Admin Registration:** Admin accounts cannot be registered publicly or self-promoted by existing users.
+* **CLI Setup Tool:** Initial Administrator bootstrapping is performed strictly via `bin/create_admin_user.php`.
+* **Password Complexity:** Passwords must meet or exceed 8 characters with at least one uppercase letter, one lowercase letter, one number, and one special character.
+* **Audit Trail:** Bootstrapping creates an explicit audit event (`ADMIN_BOOTSTRAPPED_CLI`) recording IP/host and admin username.
+* **Duplicate Protection:** The CLI script refuses to provision additional Admin accounts without explicit `--force` override when an active Admin exists.
 
-### 4.2 Record Ownership Validation
+### 4.3 Last Active Admin Lockout Protection
+To prevent accidental loss of system governance, the application enforces transactional lockout protection:
+* An Administrator cannot delete, deactivate, or demote the last remaining active Administrator in `users`.
+* Administrators and HR officers cannot self-demote or self-deactivate their own active sessions (`Cannot demote or deactivate your own active account.`).
+* Attempting to demote or deactivate the last Administrator halts with a clear security alert: `System Lockout Protection: Cannot demote or deactivate the last remaining active Administrator in the system.`
+
+### 4.4 Record Ownership Validation
 All employee self-service endpoints enforce strict ownership validation:
 * An employee querying `/employee/profile` or `/employee/leave-balances` can only retrieve records matching their own `$_SESSION['user']['employee_id']`.
 * If a query parameter attempts to request another employee ID (e.g., `/employee/profile?emp_id=99`), the controller detects the ownership mismatch and halts execution with **HTTP 403 Forbidden**.
+
+### 4.5 Dynamic Permission Management & Immutable Admin Security
+* **Immutable Administrator Authority:** The `admin` role inherently and permanently retains all 33 registered system permissions. Ordinary permission management endpoints reject any attempt to modify or strip Admin permissions with a strict security rejection: `The Admin role possesses full system authority and cannot be modified.`
+* **Atomic Transaction Safety:** Permission modifications are executed within atomic database transactions (`START TRANSACTION` ... `COMMIT`) to prevent partial or corrupted permission states.
+* **Instant Authorization Cache Invalidation:** Permission modifications invalidate in-memory permission caches across all roles immediately upon commit, applying permission changes on the user's very next HTTP request without requiring re-login.
+* **Granular Audit Trail (`permission_audit_logs`):** Every granted or revoked permission is recorded synchronously, logging the acting administrator's user ID, target role ID, permission ID, action (`granted` / `revoked`), IP address, user agent, and timestamp.
+* **Deny-by-Default Policy:** Unknown roles, unregistered permission strings, or unassigned permissions evaluate to `false` (fail-closed).
+* **CSRF & Step-Up Defense:** Dynamic permission changes require protected `POST` requests guarded by `CsrfMiddleware` and administrative session authentication.
 
 ---
 
@@ -161,28 +180,58 @@ All employee self-service endpoints enforce strict ownership validation:
 
 ---
 
-## 7. Audit Logging & Tamper Evidence
+## 7. Audit Logging & Security Activity Monitoring
 
-Every security-sensitive action is recorded synchronously in the `activity_logs` table:
+Every security-sensitive and business-critical operation is recorded synchronously through the centralized `Core\AuditService` in the `activity_logs` table:
 
 ```sql
 INSERT INTO activity_logs (
-    user_id, 
-    action, 
-    details, 
-    ip_address, 
-    user_agent, 
-    entity_type, 
-    entity_id, 
+    event_id,
+    user_id,
+    actor_role,
+    action,
+    category,
+    description,
+    entity_type,
+    entity_id,
+    old_values,
+    new_values,
+    status,
+    ip_address,
+    user_agent,
+    request_id,
     created_at
-) VALUES (:user_id, :action, :details, :ip, :ua, :entity, :entity_id, NOW());
+) VALUES (
+    :event_id, :user_id, :actor_role, :action, :category, :description,
+    :entity_type, :entity_id, :old_values, :new_values, :status,
+    :ip_address, :user_agent, :request_id, NOW()
+);
 ```
 
-### Monitored Actions
-* `AUTH_LOGIN`: Successful MFA completion.
-* `AUTH_FAILED`: Failed password or OTP verification.
-* `AUTH_LOCKOUT`: Brute-force threshold exceeded.
-* `USER_DEACTIVATED`: User or employee record deactivated.
-* `LEAVE_APPROVED` / `LEAVE_REJECTED`: Leave status mutations with approving officer ID.
-* `STEP_UP_CHALLENGE`: High-impact operation authorization events.
+### 7.1 Authoritative Event Structure
+* **Event ID (`event_id`)**: Cryptographically random unique event identifier prefixed with `evt_` (e.g., `evt_4a78c19ef201...`).
+* **Correlation ID (`request_id`)**: Persistent request lifecycle correlation identifier prefixed with `req_` (e.g., `req_e8910cb5a123...`).
+* **Actor Identification**: Stores both `user_id` and the immutable `actor_role` at the exact time of the transaction.
+* **Audit Categories**:
+  - `auth`: Authentication events (logins, logouts, OTP verification, lockouts).
+  - `user`: Account lifecycle (provisioning, updates, status changes).
+  - `rbac`: Role permissions and capability modifications.
+  - `employee`: Personnel records CRUD and status mutations.
+  - `organization`: Department and position administration.
+  - `leave`: Leave filing, policy administration, balances, approvals, and rejections.
+  - `reports`: System report queries and CSV audit exports.
+  - `system`: Environment, email, and runtime configuration settings.
+* **Status**: `SUCCESS`, `FAILURE`, or `WARNING`.
+
+### 7.2 Automated Sensitive Data Redaction
+Before any state-change diff or description is persisted, `Core\AuditService::redact()` recursively scrubs sensitive keys, replacing them with `[REDACTED]`. Protected keys include:
+* Passwords and hashes (`password`, `password_hash`, `current_password`, `new_password`)
+* One-Time Passwords (`otp`, `totp`, `totp_secret`)
+* Security tokens and session identifiers (`token`, `secret`, `session_id`, `cookie`, `auth_fingerprint`)
+* Cryptographic keys (`private_key`, `api_key`)
+
+### 7.3 Immutability and Audit Integrity
+* **Strict Read-Only Enforcement**: Audit logs have no update, edit, or delete endpoints in controllers or routing tables.
+* **Spreadsheet Formula Injection Defense**: When exporting audit records via `GET /activity-logs/export`, any leading formula character (`=`, `+`, `-`, `@`, `\t`, `\r`) is safely prefixed with `'` to neutralize CSV formula execution in Excel/Calc.
+* **Self-Auditing Exports**: Every export operation writes an `AUDIT_EXPORTED` event to record who exported logs, matching filters, and timestamp.
 

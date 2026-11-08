@@ -125,17 +125,17 @@ class AuthenticationTest extends TestCase
         $this->assertStringContainsString('name="password"', $viewContent, 'Login view must contain password input.');
         $this->assertStringContainsString('Sign In', $viewContent, 'Login view submit button must be Sign In.');
 
-        // Required NEXORA HR Branding & Two-Role Portal Selection (HR & Employee only)
+        // Required NEXORA HR Branding & Three-Role Portal Selection (Admin, HR & Employee)
         $this->assertStringContainsString('Welcome to NEXORA HR', $viewContent, 'Login view must display Welcome to NEXORA HR heading.');
         $this->assertStringContainsString('People. Processes. Progress.', $viewContent, 'Login view must display brand tagline.');
+        $this->assertStringContainsString('Admin Portal', $viewContent, 'Login view must include Admin Portal card.');
+        $this->assertStringContainsString('Continue as Admin', $viewContent, 'Login view must include Continue as Admin action.');
         $this->assertStringContainsString('HR Portal', $viewContent, 'Login view must include HR Portal card.');
         $this->assertStringContainsString('Continue as HR', $viewContent, 'Login view must include Continue as HR action.');
         $this->assertStringContainsString('Employee Portal', $viewContent, 'Login view must include Employee Portal card.');
         $this->assertStringContainsString('Continue as Employee', $viewContent, 'Login view must include Continue as Employee action.');
         $this->assertStringContainsString('role="dialog"', $viewContent, 'Login view must include accessible pop-up modal dialog.');
         $this->assertStringContainsString('aria-modal="true"', $viewContent, 'Login modal must declare aria-modal="true".');
-        $this->assertStringNotContainsString('Admin Portal', $viewContent, 'Login view must not introduce an Admin login portal.');
-        $this->assertStringNotContainsString('Continue as Admin', $viewContent, 'Login view must not introduce a Continue as Admin button.');
 
         // Demo Accounts and shortcuts MUST be completely removed
         $this->assertStringNotContainsString('demo-credentials', $viewContent, 'Demo credentials box must be removed.');
@@ -187,7 +187,7 @@ class AuthenticationTest extends TestCase
         $userModel->create([
             'email'    => 'auditor@company.local',
             'password' => 'SecurePass123!',
-            'role'     => 'admin', // strictly prohibited in 2-role model; only hr and employee
+            'role'     => 'auditor', // strictly prohibited: only admin, hr, and employee allowed
         ]);
     }
 

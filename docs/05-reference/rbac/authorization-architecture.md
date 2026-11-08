@@ -1,8 +1,9 @@
 # Authorization Architecture & Enforcement Mechanism
 ## Employee HRIS & Leave Management System Using PHP, MySQL, and Data Structures & Algorithms
 
-**Document Version:** 2.0  
+**Document Version:** 3.0 (Dynamic Database-Driven RBAC)  
 **Status:** Approved Implementation Architecture  
+**Reconciliation Reference:** Upgrades static RBAC (`DEC-012`) to dynamic database-driven governance (`DEC-013`) via `Core\AuthorizationService` and `Core\PermissionRegistry`.  
 
 ---
 
@@ -10,7 +11,7 @@
 
 Authorization in the Employee HRIS & Leave Management System is enforced server-side before any controller action or business logic is dispatched.
 
-The framework employs a three-tier defense model:
+The framework employs a four-tier defense model:
 
 ```
 [ Incoming HTTP Request ]
@@ -18,7 +19,7 @@ The framework employs a three-tier defense model:
            ▼
 [ Router: Resolve Route & Middleware Stack ]
            │
-           ├─► Tier 1: AuthMiddleware (Must have active session)
+           ├─► Tier 1: AuthMiddleware (Must have active session & active account)
            │     └─ Fail: Redirect to /login (or 401 JSON)
            │
            ├─► Tier 2: RoleMiddleware / PermissionMiddleware (RBAC verification)
@@ -30,15 +31,35 @@ The framework employs a three-tier defense model:
            ▼
 [ Controller Action Execution ]
            │
+           ├─► Dynamic Authorization Checks: can($permission), has_role($role)
+           │     └─ Enforced via Core\AuthorizationService
+           │
            └─► Controller Resource Ownership Checks (ID parameter tampering checks)
 ```
 
 ---
 
-## 2. Core Middleware Implementations
+## 2. Dynamic Authorization Service (`Core\AuthorizationService`)
+
+The central component of the RBAC system is `Core\AuthorizationService`. It provides:
+1. **Dynamic Database Resolution:** Sourced from `roles`, `permissions`, and `role_permissions` join queries.
+2. **Fallback to Authoritative Registry:** If database tables are not yet initialized or during test runs, safely falls back to default policies in `Core\PermissionRegistry`.
+3. **Immutable Administrator Access:** Users with the `admin` role possess all 33 registered permissions unconditionally. Ordinary permission editing operations cannot strip the `admin` role of permissions.
+4. **Deny-by-Default:** Any unassigned permission, unknown role, or unregistered capability evaluates to `false` (fail-closed).
+5. **In-Memory Caching & Instant Invalidation:** Permission sets for roles are cached in memory for the duration of the request. Any administrative modification via `updateRolePermissions()` instantly clears all cached entries across all roles.
+6. **Transaction Safety & Audit Logging:** Updates execute inside atomic database transactions (`START TRANSACTION` ... `COMMIT`). Every granted and revoked permission is logged to `permission_audit_logs`.
+
+### Global Helper Functions
+* `can(string $permission): bool` — Checks if the currently authenticated user possesses the specified permission or capability.
+* `has_role(string $role): bool` — Checks if the currently authenticated user has the specified application role.
+
+---
+
+## 3. Core Middleware Implementations
 
 ### A. AuthMiddleware (`core/AuthMiddleware.php`)
 - Verifies that `isAuthenticated()` returns `true` (valid identity in `$_SESSION['user']`).
+- Re-verifies live account status against the database (`verifyAuthenticatedAccountState()`).
 - Unauthenticated requests are halted immediately:
   - JSON requests: HTTP 401 Unauthorized (`{"status":"error","code":401,"message":"..."}`).
   - Browser requests: HTTP 302 Redirect to `/login` with flash error notice.
@@ -52,8 +73,8 @@ The framework employs a three-tier defense model:
   - Browser requests: Renders `app/views/errors/403.php`.
 
 ### C. PermissionMiddleware (`core/PermissionMiddleware.php`)
-- Accepts a capability name (e.g. `'manage_users'`, `'hr_dashboard'`).
-- Calls `Core\Permission::can(currentUserRole(), $capability)`.
+- Accepts a capability or permission name (e.g. `'users.view'`, `'leave.approve'`, `'manage_users'`).
+- Calls `Core\Permission::can(currentUserRole(), $permission)`.
 - Enforces deny-by-default logic for unknown capabilities or unrecognized roles.
 
 ### D. CsrfMiddleware (`core/CsrfMiddleware.php`)
@@ -62,7 +83,7 @@ The framework employs a three-tier defense model:
 
 ---
 
-## 3. Fail-Closed Design Principle
+## 4. Fail-Closed Design Principle
 
 The system adheres strictly to the fail-closed security principle:
 

@@ -87,6 +87,9 @@ if (!function_exists('redirect')) {
 
         http_response_code($statusCode);
         header("Location: {$url}");
+        if (getenv('APP_ENV') === 'testing' || (defined('PHPUNIT_RUNNING') && PHPUNIT_RUNNING)) {
+            return;
+        }
         exit;
     }
 }
@@ -100,6 +103,9 @@ if (!function_exists('json_response')) {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=UTF-8');
         echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (getenv('APP_ENV') === 'testing' || (defined('PHPUNIT_RUNNING') && PHPUNIT_RUNNING)) {
+            return;
+        }
         exit;
     }
 }
@@ -161,7 +167,7 @@ if (!function_exists('currentUserId')) {
 
 if (!function_exists('currentUserRole')) {
     /**
-     * Retrieve current user role ('hr' or 'employee').
+     * Retrieve current user role ('admin', 'hr', or 'employee').
      */
     function currentUserRole(): ?string
     {
@@ -417,3 +423,65 @@ if (!function_exists('render_server_error')) {
         echo $response['body'];
     }
 }
+
+if (!function_exists('has_role')) {
+    /**
+     * Determine if the currently authenticated user possesses a given role.
+     */
+    function has_role(string $role): bool
+    {
+        return \Core\Permission::hasRole(currentUser(), $role);
+    }
+}
+
+if (!function_exists('dispatch_job')) {
+    /**
+     * Dispatch an asynchronous background job to the MySQL queue.
+     *
+     * @param array<string, mixed> $payload
+     */
+    function dispatch_job(string $jobType, array $payload = [], string $queue = 'default', int $delay = 0): int
+    {
+        return \App\Queue\QueueService::getInstance()->push($jobType, $payload, $queue, $delay);
+    }
+}
+
+if (!function_exists('render_skeleton')) {
+    /**
+     * Render a reusable, accessible skeleton loading placeholder.
+     *
+     * @param string $component Component name (stat_card, table, card, chart, list, profile, form)
+     * @param array<string, mixed> $options Rendering configuration options
+     * @return string Safe HTML skeleton markup with accessibility attributes
+     */
+    function render_skeleton(string $component, array $options = []): string
+    {
+        $safeComponent = preg_replace('/[^a-zA-Z0-9_-]/', '', $component);
+        $filePath = __DIR__ . '/../app/views/partials/skeletons/' . $safeComponent . '.php';
+
+        if (!file_exists($filePath)) {
+            return '';
+        }
+
+        extract($options, EXTR_SKIP);
+
+        $loadingText = isset($options['loading_text']) ? (string)$options['loading_text'] : 'Loading content...';
+        $isRaw = !empty($options['raw']);
+
+        ob_start();
+        include $filePath;
+        $html = ob_get_clean() ?: '';
+
+        if ($isRaw) {
+            return $html;
+        }
+
+        return '<div class="skeleton-container" role="status" aria-busy="true">' .
+               '<span class="sr-only">' . htmlspecialchars($loadingText, ENT_QUOTES, 'UTF-8') . '</span>' .
+               $html .
+               '</div>';
+    }
+}
+
+
+

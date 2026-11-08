@@ -8,6 +8,10 @@
 $_ENV['APP_ENV'] = 'testing';
 putenv('APP_ENV=testing');
 
+if (!defined('PHPUNIT_RUNNING')) {
+    define('PHPUNIT_RUNNING', true);
+}
+
 // Safety guard: automated tests must only ever run against the isolated test database.
 // Override with HRIS_TEST_DATABASE only for another dedicated, disposable test schema.
 $allowedTestDatabase = getenv('HRIS_TEST_DATABASE') ?: 'hris_test';

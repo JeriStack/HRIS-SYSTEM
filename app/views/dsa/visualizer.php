@@ -541,6 +541,12 @@ document.addEventListener('DOMContentLoaded', function () {
             payload.key = 'KEY-1';
         }
 
+        if (window.Skeleton) {
+            Skeleton.show(dynamicStage, 'chart', { height: 180, hasHeader: false, loadingText: 'Simulating algorithm execution trace...' });
+            dynamicStage.style.display = 'block';
+            emptyNotice.style.display = 'none';
+        }
+
         try {
             const resp = await fetch('<?= url('/dsa/execute') ?>', {
                 method: 'POST',
@@ -577,8 +583,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Normalizing trace steps for player
             currentTrace = data;
+            if (window.Skeleton) Skeleton.hide(dynamicStage);
             preparePlayback(data);
         } catch (e) {
+            if (window.Skeleton) Skeleton.hide(dynamicStage);
             btnVisFetch.disabled = false;
             btnVisFetch.innerText = '⚡ Load Trace';
             visStatusBadge.className = 'badge badge-error';

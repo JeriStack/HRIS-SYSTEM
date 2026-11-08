@@ -98,8 +98,8 @@ class User extends Model
         }
 
         $role = strtolower(trim((string)($data['role'] ?? 'employee')));
-        if ($role !== 'hr' && $role !== 'employee') {
-            throw new \InvalidArgumentException("Invalid role '{$role}'. Only 'hr' and 'employee' are permitted.");
+        if (!in_array($role, ['admin', 'hr', 'employee'], true)) {
+            throw new \InvalidArgumentException("Invalid role '{$role}'. Only 'admin', 'hr', and 'employee' are permitted.");
         }
 
         $passwordHash = (string)$data['password'];
@@ -107,22 +107,35 @@ class User extends Model
             $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
         }
 
-        $sql = "
-            INSERT INTO users (
-                employee_id, username, email, password, role, status, created_at
-            ) VALUES (
-                :employee_id, :username, :email, :password, :role, :status, NOW()
-            )
-        ";
-
-        $this->execute($sql, [
+        $params = [
             'employee_id' => !empty($data['employee_id']) ? (int)$data['employee_id'] : null,
             'username'    => $username,
             'email'       => $email,
             'password'    => $passwordHash,
             'role'        => $role,
             'status'      => $data['status'] ?? 'Active',
-        ]);
+        ];
+
+        try {
+            $sqlWithRoleId = "
+                INSERT INTO users (
+                    employee_id, username, email, password, role, role_id, status, created_at
+                ) VALUES (
+                    :employee_id, :username, :email, :password, :role,
+                    (SELECT id FROM roles WHERE slug = :role_slug LIMIT 1), :status, NOW()
+                )
+            ";
+            $this->execute($sqlWithRoleId, $params + ['role_slug' => $role]);
+        } catch (\Throwable) {
+            $sql = "
+                INSERT INTO users (
+                    employee_id, username, email, password, role, status, created_at
+                ) VALUES (
+                    :employee_id, :username, :email, :password, :role, :status, NOW()
+                )
+            ";
+            $this->execute($sql, $params);
+        }
 
         return (int)$this->lastInsertId();
     }
@@ -361,6 +374,7 @@ class User extends Model
                 u.id,
                 u.employee_id,
                 u.username,
+                COALESCE(u.email, e.email) AS email,
                 u.role,
                 u.status,
                 u.created_at,
@@ -375,6 +389,48 @@ class User extends Model
         ";
 
         return $this->fetchOne($sql, ['employee_id' => $employeeId]);
+    }
+
+    /**
+     * Update user account fields (email and/or password).
+     *
+     * @param int $id
+     * @param array<string, mixed> $data
+     * @return bool
+     */
+    public function update(int $id, array $data): bool
+    {
+        if ($id <= 0 || empty($data)) {
+            return false;
+        }
+
+        $sets = [];
+        $params = ['id' => $id];
+
+        if (array_key_exists('email', $data)) {
+            $email = trim((string)$data['email']);
+            if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                throw new \InvalidArgumentException('A valid email address is required.');
+            }
+            $sets[] = 'email = :email';
+            $params['email'] = $email;
+        }
+
+        if (!empty($data['password'])) {
+            $passwordHash = (string)$data['password'];
+            if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
+                $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
+            }
+            $sets[] = 'password = :password';
+            $params['password'] = $passwordHash;
+        }
+
+        if (empty($sets)) {
+            return false;
+        }
+
+        $sql = 'UPDATE users SET ' . implode(', ', $sets) . ' WHERE id = :id';
+        return $this->execute($sql, $params);
     }
 
     /**
@@ -427,26 +483,29 @@ class User extends Model
      * @param string|null $entityId
      * @return bool
      */
-    public function logActivity(?int $userId, string $action, string $description, ?string $entityType = null, ?string $entityId = null): bool
-    {
+    public function logActivity(
+        ?int $userId,
+        string $action,
+        string $description,
+        ?string $entityType = null,
+        ?string $entityId = null,
+        ?array $oldValues = null,
+        ?array $newValues = null,
+        string $status = 'SUCCESS'
+    ): bool {
         try {
-            $sql = "
-                INSERT INTO activity_logs (
-                    user_id, action, description, entity_type, entity_id, ip_address, user_agent, created_at
-                ) VALUES (
-                    :user_id, :action, :description, :entity_type, :entity_id, :ip_address, :user_agent, NOW()
-                )
-            ";
-
-            return $this->execute($sql, [
-                'user_id'     => $userId,
-                'action'      => $action,
-                'description' => $description,
-                'entity_type' => $entityType,
-                'entity_id'   => $entityId,
-                'ip_address'  => client_ip() ?? '127.0.0.1',
-                'user_agent'  => substr($_SERVER['HTTP_USER_AGENT'] ?? 'Unknown', 0, 255),
+            $eventId = \Core\AuditService::getInstance($this->db)->record([
+                'actor_user_id' => $userId,
+                'action'        => $action,
+                'description'   => $description,
+                'entity_type'   => $entityType,
+                'entity_id'     => $entityId,
+                'old_values'    => $oldValues,
+                'new_values'    => $newValues,
+                'status'        => $status,
             ]);
+
+            return !empty($eventId);
         } catch (\Throwable $e) {
             error_log("Failed to write to activity_logs: " . $e->getMessage());
             return false;
@@ -504,32 +563,49 @@ class User extends Model
     }
 
     /**
-     * Count active administrator accounts (delegates to countActiveHr for 2-role system).
+     * Count active administrator accounts, optionally excluding a specific user ID.
+     * Essential for protecting against last-active-Admin lockout.
      *
      * @param int|null $excludeUserId
      * @return int
      */
     public function countActiveAdmins(?int $excludeUserId = null): int
     {
-        return $this->countActiveHr($excludeUserId);
+        if ($excludeUserId !== null) {
+            $sql = "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'Active' AND id != :exclude_id";
+            return (int)$this->fetchColumn($sql, ['exclude_id' => $excludeUserId]);
+        }
+
+        $sql = "SELECT COUNT(*) FROM users WHERE role = 'admin' AND status = 'Active'";
+        return (int)$this->fetchColumn($sql);
     }
 
     /**
      * Update a user account's assigned role and operational status.
      *
      * @param int $id
-     * @param string $role Validated role ('hr', 'employee')
+     * @param string $role Validated role ('admin', 'hr', 'employee')
      * @param string $status Validated status ('Active', 'Inactive')
      * @return bool
      */
     public function updateRoleAndStatus(int $id, string $role, string $status): bool
     {
-        $sql = "UPDATE users SET role = :role, status = :status WHERE id = :id";
-        return $this->execute($sql, [
-            'role'   => $role,
-            'status' => $status,
-            'id'     => $id,
-        ]);
+        try {
+            $sql = "UPDATE users SET role = :role, role_id = (SELECT id FROM roles WHERE slug = :role_slug LIMIT 1), status = :status WHERE id = :id";
+            return $this->execute($sql, [
+                'role'      => $role,
+                'role_slug' => strtolower(trim($role)),
+                'status'    => $status,
+                'id'        => $id,
+            ]);
+        } catch (\Throwable) {
+            $sql = "UPDATE users SET role = :role, status = :status WHERE id = :id";
+            return $this->execute($sql, [
+                'role'   => $role,
+                'status' => $status,
+                'id'     => $id,
+            ]);
+        }
     }
 }
 

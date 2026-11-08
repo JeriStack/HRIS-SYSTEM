@@ -2,17 +2,17 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
         <div>
             <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">User Account & Role Management</h1>
-            <p style="color: #64748B; font-size: 0.875rem; margin: 0;">HR management console for maintaining authentication accounts, roles, and status.</p>
+            <p style="color: #64748B; font-size: 0.875rem; margin: 0;">Administrator console for maintaining authentication accounts, roles, and status.</p>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-            <a href="<?= url('/hr/dashboard') ?>" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
-            <a href="<?= url('/hr/users/create') ?>" class="btn btn-primary btn-sm">+ Provision User Account</a>
+            <a href="<?= url('/admin/dashboard') ?>" class="btn btn-secondary btn-sm">← Back to Dashboard</a>
+            <a href="<?= url('/admin/users/create') ?>" class="btn btn-primary btn-sm">+ Provision User Account</a>
         </div>
     </div>
 
     <!-- Security Information Alert -->
     <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1.5rem; color: #1E40AF; font-size: 0.875rem; line-height: 1.5;">
-        <strong>🛡️ Access & Role Policy (NFR-SEC-002):</strong> Only HR officers can modify roles and account status. Changes to roles are validated against the strict allowlist (<code>hr</code>, <code>employee</code>). Last-active-HR lockout protection is actively enforced.
+        <strong>🛡️ Access & Role Policy (NFR-SEC-002):</strong> Only Administrators can modify roles and account status. Changes to roles are validated against the strict allowlist (<code>admin</code>, <code>hr</code>, <code>employee</code>). Last-active-Administrator lockout protection is actively enforced.
     </div>
 
     <!-- User Metrics Grid -->
@@ -28,6 +28,10 @@
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem;">
             <div style="font-size: 0.75rem; font-weight: 600; color: #B91C1C; text-transform: uppercase;">Inactive Accounts</div>
             <div style="font-size: 1.5rem; font-weight: 700; color: #B91C1C; margin-top: 0.25rem;"><?= e((string)($stats['inactive'] ?? 0)) ?></div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem;">
+            <div style="font-size: 0.75rem; font-weight: 600; color: #6366F1; text-transform: uppercase;">Administrators</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: #4F46E5; margin-top: 0.25rem;"><?= e((string)($stats['admins'] ?? 0)) ?></div>
         </div>
         <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem;">
             <div style="font-size: 0.75rem; font-weight: 600; color: #B45309; text-transform: uppercase;">HR Officers</div>
@@ -105,7 +109,7 @@
                                     <?= e(date('M d, Y', strtotime($u['created_at']))) ?>
                                 </td>
                                 <td style="padding: 0.75rem 1rem; text-align: right;">
-                                    <a href="<?= url('/hr/users/' . $u['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.65rem; font-size: 0.8rem; font-weight: 600;">
+                                    <a href="<?= url('/admin/users/' . $u['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" style="padding: 0.3rem 0.65rem; font-size: 0.8rem; font-weight: 600;">
                                         Edit Role
                                     </a>
                                 </td>
