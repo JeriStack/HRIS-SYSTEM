@@ -129,6 +129,14 @@ All employee self-service endpoints enforce strict ownership validation:
 * An employee querying `/employee/profile` or `/employee/leave-balances` can only retrieve records matching their own `$_SESSION['user']['employee_id']`.
 * If a query parameter attempts to request another employee ID (e.g., `/employee/profile?emp_id=99`), the controller detects the ownership mismatch and halts execution with **HTTP 403 Forbidden**.
 
+### 4.5 Dynamic Permission Management & Immutable Admin Security
+* **Immutable Administrator Authority:** The `admin` role inherently and permanently retains all 33 registered system permissions. Ordinary permission management endpoints reject any attempt to modify or strip Admin permissions with a strict security rejection: `The Admin role possesses full system authority and cannot be modified.`
+* **Atomic Transaction Safety:** Permission modifications are executed within atomic database transactions (`START TRANSACTION` ... `COMMIT`) to prevent partial or corrupted permission states.
+* **Instant Authorization Cache Invalidation:** Permission modifications invalidate in-memory permission caches across all roles immediately upon commit, applying permission changes on the user's very next HTTP request without requiring re-login.
+* **Granular Audit Trail (`permission_audit_logs`):** Every granted or revoked permission is recorded synchronously, logging the acting administrator's user ID, target role ID, permission ID, action (`granted` / `revoked`), IP address, user agent, and timestamp.
+* **Deny-by-Default Policy:** Unknown roles, unregistered permission strings, or unassigned permissions evaluate to `false` (fail-closed).
+* **CSRF & Step-Up Defense:** Dynamic permission changes require protected `POST` requests guarded by `CsrfMiddleware` and administrative session authentication.
+
 ---
 
 ## 5. Input Validation, Output Sanitization & Injection Defense

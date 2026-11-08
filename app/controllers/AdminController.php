@@ -9,13 +9,17 @@
 
 namespace App\Controllers;
 
+use App\Models\ActivityLog;
+use App\Models\User;
+use Core\AuthorizationService;
 use Core\Controller;
 use Core\Database;
 use Core\Permission;
+use Core\PermissionRegistry;
 use Core\Session;
-use App\Models\User;
-use App\Models\ActivityLog;
+use InvalidArgumentException;
 use PDO;
+use Throwable;
 
 class AdminController extends Controller
 {
@@ -153,29 +157,133 @@ class AdminController extends Controller
     }
 
     /**
-     * Roles & Permissions Governance Matrix
+     * Dynamic Roles & Permissions Governance Matrix
      * Route: GET /admin/roles
      */
     public function roles(): void
     {
-        $permissions = Permission::getAllCapabilities();
-        $allRoles = Permission::VALID_ROLES;
+        $authService = AuthorizationService::getInstance();
+        $rolesOverview = $authService->getRolesOverview();
+        $groupedPermissions = PermissionRegistry::getPermissionsByModule();
+        $rolePermissionsMap = $authService->getRolePermissionsMap();
 
-        // Group capabilities by category
-        $categorized = [
-            'System Governance' => ['admin_dashboard', 'manage_users', 'assign_roles', 'system_settings', 'view_monitoring'],
-            'Workforce Operations' => ['hr_dashboard', 'manage_employees', 'manage_departments', 'manage_positions', 'view_employee_records'],
-            'Leave Administration' => ['review_leave_requests', 'manage_leave_types', 'manage_leave_balances'],
-            'Self-Service' => ['employee_dashboard', 'view_own_profile', 'view_own_leave_balances', 'file_leave_requests', 'view_own_leave_requests'],
-            'Analytics & Tools' => ['view_reports', 'view_activity_logs', 'dsa_laboratory', 'logout'],
-        ];
+        // Query user accounts with profile and organizational metadata for User Access Management
+        $userAccessList = [];
+        $recentAuditLogs = [];
+        $pdo = $this->getPdo();
+        if ($pdo !== null) {
+            try {
+                $stmtUsers = $pdo->query("
+                    SELECT 
+                        u.id,
+                        u.username,
+                        u.email,
+                        u.role,
+                        u.status,
+                        u.created_at,
+                        e.first_name,
+                        e.last_name,
+                        e.employee_no,
+                        d.department_name,
+                        pos.position_name
+                    FROM users u
+                    LEFT JOIN employees e ON u.employee_id = e.id
+                    LEFT JOIN departments d ON e.department_id = d.id
+                    LEFT JOIN positions pos ON e.position_id = pos.id
+                    ORDER BY u.id ASC
+                ");
+                $userAccessList = $stmtUsers->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Throwable) {
+                $userAccessList = [];
+            }
+
+            try {
+                $stmt = $pdo->query("
+                    SELECT 
+                        pal.*,
+                        u.username AS actor_username,
+                        r.name AS target_role_name,
+                        r.slug AS target_role_slug,
+                        p.name AS permission_name,
+                        p.slug AS permission_slug,
+                        p.module AS permission_module
+                    FROM permission_audit_logs pal
+                    LEFT JOIN users u ON pal.actor_user_id = u.id
+                    LEFT JOIN roles r ON pal.target_role_id = r.id
+                    LEFT JOIN permissions p ON pal.permission_id = p.id
+                    ORDER BY pal.id DESC
+                    LIMIT 50
+                ");
+                $recentAuditLogs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Throwable) {
+                $recentAuditLogs = [];
+            }
+        }
 
         $this->view('admin.roles', [
-            'pageTitle'     => 'Roles & Permissions',
-            'roles'         => $allRoles,
-            'permissions'   => $permissions,
-            'categorized'   => $categorized,
+            'pageTitle'          => 'Roles & Permissions',
+            'rolesOverview'      => $rolesOverview,
+            'groupedPermissions' => $groupedPermissions,
+            'rolePermissionsMap' => $rolePermissionsMap,
+            'recentAuditLogs'    => $recentAuditLogs,
+            'userAccessList'     => $userAccessList,
+            // Retain backward-compatible view variables
+            'roles'              => Permission::VALID_ROLES,
+            'permissions'        => Permission::getAllCapabilities(),
+            'categorized'        => [
+                'System Governance'    => ['admin_dashboard', 'manage_users', 'assign_roles', 'system_settings', 'view_monitoring'],
+                'Workforce Operations' => ['hr_dashboard', 'manage_employees', 'manage_departments', 'manage_positions', 'view_employee_records'],
+                'Leave Administration' => ['review_leave_requests', 'manage_leave_types', 'manage_leave_balances'],
+                'Self-Service'         => ['employee_dashboard', 'view_own_profile', 'view_own_leave_balances', 'file_leave_requests', 'view_own_leave_requests'],
+                'Analytics & Tools'    => ['view_reports', 'view_activity_logs', 'dsa_laboratory', 'logout'],
+            ],
         ], 'hr');
+    }
+
+    /**
+     * Update Role Permissions
+     * Route: POST /admin/roles/permissions
+     */
+    public function updatePermissions(): void
+    {
+        $roleSlug = strtolower(trim((string)($_POST['role'] ?? '')));
+        $submittedPermissions = (array)($_POST['permissions'] ?? []);
+
+        if ($roleSlug === '') {
+            Session::flash('error', 'Target role must be specified.');
+            redirect('/admin/roles?tab=matrix');
+            return;
+        }
+
+        if ($roleSlug === PermissionRegistry::ROLE_ADMIN) {
+            Session::flash('error', 'The Administrator role has permanent immutable authority and cannot be modified.');
+            redirect('/admin/roles?tab=matrix');
+            return;
+        }
+
+        try {
+            $actorId = (int)currentUserId();
+            $ip = client_ip() ?? '127.0.0.1';
+            $agent = (string)($_SERVER['HTTP_USER_AGENT'] ?? 'Web');
+
+            AuthorizationService::getInstance()->updateRolePermissions(
+                $actorId,
+                $roleSlug,
+                $submittedPermissions,
+                $ip,
+                $agent
+            );
+
+            $roleName = $roleSlug === 'hr' ? 'Human Resources' : 'Employee';
+            Session::flash('success', "Permissions for {$roleName} have been updated successfully and applied in real-time.");
+        } catch (InvalidArgumentException $e) {
+            Session::flash('error', 'Validation error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('[AdminController::updatePermissions] ' . $e->getMessage());
+            Session::flash('error', 'Failed to update permissions. Database transaction was safely rolled back.');
+        }
+
+        redirect('/admin/roles?tab=matrix&role=' . urlencode($roleSlug));
     }
 
     /**

@@ -531,12 +531,22 @@ class User extends Model
      */
     public function updateRoleAndStatus(int $id, string $role, string $status): bool
     {
-        $sql = "UPDATE users SET role = :role, status = :status WHERE id = :id";
-        return $this->execute($sql, [
-            'role'   => $role,
-            'status' => $status,
-            'id'     => $id,
-        ]);
+        try {
+            $sql = "UPDATE users SET role = :role, role_id = (SELECT id FROM roles WHERE slug = :role_slug LIMIT 1), status = :status WHERE id = :id";
+            return $this->execute($sql, [
+                'role'      => $role,
+                'role_slug' => strtolower(trim($role)),
+                'status'    => $status,
+                'id'        => $id,
+            ]);
+        } catch (\Throwable) {
+            $sql = "UPDATE users SET role = :role, status = :status WHERE id = :id";
+            return $this->execute($sql, [
+                'role'   => $role,
+                'status' => $status,
+                'id'     => $id,
+            ]);
+        }
     }
 }
 

@@ -1,10 +1,12 @@
 <?php
+
 /**
  * Centralized Role-Based Access Control (RBAC) Permission Policy Service
- * Employee HRIS & Leave Management System
+ * Employee HRIS & Leave Management System (NEXORA HR)
  *
  * Implements strict, server-side permission resolution according to the baseline
- * capability matrix for Administrator, HR, and Employee.
+ * capability matrix for Administrator, HR, and Employee, backed dynamically by
+ * Core\AuthorizationService.
  */
 
 namespace Core;
@@ -12,7 +14,7 @@ namespace Core;
 class Permission
 {
     /**
-     * Authoritative Capability Matrix
+     * Authoritative Capability Matrix (Default Fallback Baseline)
      * Maps named capability tokens to exact permitted roles.
      */
     private const CAPABILITY_ROLES = [
@@ -65,29 +67,67 @@ class Permission
     public const ROLE_CAPABILITIES = self::CAPABILITY_ROLES;
 
     /**
-     * Check if a given role possesses a specific capability.
+     * Check if a given role or user possesses a specific capability.
      * Deny-by-default (fails closed) if role is null, invalid, or capability is unrecognized.
      *
-     * @param string|null $role
-     * @param string $capability
+     * @param mixed $userOrRole Role string or user array
+     * @param string $capability Granular permission slug or capability key
      * @return bool
      */
-    public static function can(?string $role, string $capability): bool
+    public static function can(mixed $userOrRole, string $capability): bool
     {
-        if ($role === null || $role === '') {
-            return false;
-        }
+        return AuthorizationService::getInstance()->can($userOrRole, $capability);
+    }
 
-        $normalizedRole = strtolower(trim($role));
-        if (!in_array($normalizedRole, self::VALID_ROLES, true)) {
-            return false;
-        }
+    /**
+     * Determine if a user or role possesses a specific role.
+     */
+    public static function hasRole(mixed $userOrRole, string $role): bool
+    {
+        return AuthorizationService::getInstance()->hasRole($userOrRole, $role);
+    }
 
-        if (!array_key_exists($capability, self::CAPABILITY_ROLES)) {
-            return false;
-        }
+    /**
+     * Retrieve all active permissions for a given role or user.
+     *
+     * @param mixed $userOrRole
+     * @return array<string, bool>
+     */
+    public static function getPermissions(mixed $userOrRole): array
+    {
+        return AuthorizationService::getInstance()->getPermissions($userOrRole);
+    }
 
-        return in_array($normalizedRole, self::CAPABILITY_ROLES[$capability], true);
+    /**
+     * Check if a user or role possesses any of the specified permissions.
+     *
+     * @param mixed $userOrRole
+     * @param array<string> $permissions
+     * @return bool
+     */
+    public static function hasAny(mixed $userOrRole, array $permissions): bool
+    {
+        return AuthorizationService::getInstance()->hasAnyPermission($userOrRole, $permissions);
+    }
+
+    /**
+     * Check if a user or role possesses all of the specified permissions.
+     *
+     * @param mixed $userOrRole
+     * @param array<string> $permissions
+     * @return bool
+     */
+    public static function hasAll(mixed $userOrRole, array $permissions): bool
+    {
+        return AuthorizationService::getInstance()->hasAllPermissions($userOrRole, $permissions);
+    }
+
+    /**
+     * Invalidate cached permissions for one or all roles.
+     */
+    public static function invalidateCache(?string $role = null): void
+    {
+        AuthorizationService::invalidateCache($role);
     }
 
     /**
