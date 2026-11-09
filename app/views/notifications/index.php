@@ -1,97 +1,193 @@
 <?php
 /**
- * Notifications Inbox View
- * Employee HRIS & Leave Management System
+ * Notifications & Alerts View
+ * Clean, filterable notification inbox with semantic SVG icons and read-state management.
  */
+$notifications = $notifications ?? [];
+
+$unreadNotifications = 0;
+foreach ($notifications as $n) {
+    if (empty($n['is_read'])) {
+        $unreadNotifications++;
+    }
+}
+$readNotifications = count($notifications) - $unreadNotifications;
 ?>
-<div class="content-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-4);">
+
+<div class="page-header">
     <div>
-        <h1 style="font-size: var(--font-size-2xl); font-weight: 700; color: var(--color-text-main); margin-bottom: var(--space-1);">Notifications &amp; Alerts</h1>
-        <p style="color: var(--color-text-muted); margin: 0; font-size: var(--font-size-sm);">
-            Stay informed with real-time system alerts, leave workflow determinations, and operational updates.
-        </p>
+        <div class="inline-flex items-center gap-3">
+            <h1 class="page-title">Notifications</h1>
+            <?php if ($unreadNotifications > 0) : ?>
+                <span class="badge badge-primary"><?= $unreadNotifications ?> unread</span>
+            <?php endif; ?>
+        </div>
+        <p class="page-subtitle">Updates on your leave requests, approvals, and account activity</p>
     </div>
-    <div style="display: flex; gap: var(--space-3); align-items: center;">
-        <?php if (!empty($unreadCount) && $unreadCount > 0): ?>
-            <span class="badge badge-warning" style="padding: 6px 12px; font-size: 0.85rem;">
-                <?= (int)$unreadCount ?> Unread
-            </span>
-            <form action="<?= url('/notifications/mark-all-read') ?>" method="POST" style="display: inline;">
+    <?php if ($unreadNotifications > 0) : ?>
+        <div class="page-actions">
+            <form method="POST" action="<?= url('/notifications/mark-all-read') ?>">
                 <?= csrf_field() ?>
-                <button type="submit" class="btn btn-outline btn-sm">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;">
-                        <polyline points="20 6 9 17 4 12"></polyline>
-                    </svg>
-                    Mark All as Read
+                <button type="submit" class="btn btn-secondary">
+                    <?= icon('check', 16) ?>
+                    <span>Mark All as Read</span>
                 </button>
             </form>
-        <?php else: ?>
-            <span class="badge badge-success" style="padding: 6px 12px; font-size: 0.85rem;">All Caught Up</span>
-        <?php endif; ?>
-    </div>
+        </div>
+    <?php endif; ?>
 </div>
 
-<?php if (empty($notifications)): ?>
-    <div class="card" style="padding: var(--space-8); text-align: center;">
-        <div style="width: 56px; height: 56px; border-radius: 50%; background-color: var(--color-slate-100); display: inline-flex; align-items: center; justify-content: center; margin-bottom: var(--space-4); color: var(--color-text-muted);">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
+<div class="card">
+    <?php if (!empty($notifications)) : ?>
+        <!-- Filter & Search Bar -->
+        <div class="emp-filter-toolbar">
+            <div class="emp-filter-pills" role="tablist" aria-label="Filter notifications">
+                <button type="button" class="emp-filter-pill active" data-notif-filter="all" role="tab" aria-selected="true">
+                    <span>All</span>
+                    <span class="emp-filter-count"><?= count($notifications) ?></span>
+                </button>
+                <button type="button" class="emp-filter-pill" data-notif-filter="unread" role="tab" aria-selected="false">
+                    <span>Unread</span>
+                    <span class="emp-filter-count"><?= $unreadNotifications ?></span>
+                </button>
+                <button type="button" class="emp-filter-pill" data-notif-filter="read" role="tab" aria-selected="false">
+                    <span>Read</span>
+                    <span class="emp-filter-count"><?= $readNotifications ?></span>
+                </button>
+            </div>
+
+            <div class="emp-search-box">
+                <span class="emp-search-icon"><?= icon('search', 15) ?></span>
+                <input
+                    type="search"
+                    id="notificationSearch"
+                    class="form-control"
+                    placeholder="Search notifications..."
+                    aria-label="Search notifications"
+                >
+            </div>
         </div>
-        <h3 style="font-size: var(--font-size-lg); font-weight: 600; color: var(--color-text-main); margin-bottom: var(--space-2);">No Notifications</h3>
-        <p style="color: var(--color-text-muted); max-width: 420px; margin: 0 auto; font-size: var(--font-size-sm);">
-            You have no active or historical notifications in your inbox. Relevant updates about leave filings and account actions will appear here.
-        </p>
-    </div>
-<?php else: ?>
-    <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-        <?php foreach ($notifications as $notif): ?>
-            <?php
-            $isUnread = empty($notif['is_read']);
-            $cardBorder = $isUnread ? 'border-left: 4px solid var(--color-primary-500);' : 'border-left: 4px solid var(--color-slate-300);';
-            $bg = $isUnread ? '#FFFFFF' : 'var(--color-slate-50)';
-            
-            $badgeClass = 'badge-info';
-            if ($notif['type'] === 'success') $badgeClass = 'badge-success';
-            elseif ($notif['type'] === 'warning') $badgeClass = 'badge-warning';
-            elseif ($notif['type'] === 'error') $badgeClass = 'badge-danger';
-            ?>
-            <div class="card" style="padding: var(--space-4) var(--space-5); background: <?= $bg ?>; <?= $cardBorder ?> display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4);">
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-1); flex-wrap: wrap;">
-                        <span class="badge <?= $badgeClass ?>" style="text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.04em;">
-                            <?= htmlspecialchars(strtoupper($notif['type'])) ?>
-                        </span>
-                        <h4 style="font-size: var(--font-size-base); font-weight: 600; color: var(--color-text-main); margin: 0;">
-                            <?= htmlspecialchars($notif['title']) ?>
-                        </h4>
-                        <?php if ($isUnread): ?>
-                            <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-primary-600); background: var(--color-primary-50); padding: 2px 6px; border-radius: var(--radius-sm);">New</span>
+
+        <div class="card-body p-0">
+            <div class="emp-notif-list" id="notificationListContainer">
+                <?php foreach ($notifications as $n) :
+                    $isUnread = empty($n['is_read']);
+                    $type = strtolower($n['type'] ?? 'info');
+                    $iconName = match ($type) {
+                        'success' => 'check-circle',
+                        'warning' => 'alert-triangle',
+                        'error', 'danger' => 'x-circle',
+                        default   => 'bell',
+                    };
+                    $iconTone = match ($type) {
+                        'success' => 'emp-notif-icon-success',
+                        'warning' => 'emp-notif-icon-warning',
+                        'error', 'danger' => 'emp-notif-icon-danger',
+                        default   => 'emp-notif-icon-info',
+                    };
+                    $createdFormatted = !empty($n['created_at']) ? date('M j, Y \a\t g:i A', strtotime($n['created_at'])) : '';
+                    ?>
+                    <div
+                        class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>"
+                        data-read-state="<?= $isUnread ? 'unread' : 'read' ?>"
+                    >
+                        <div class="emp-notif-icon <?= $iconTone ?>">
+                            <?= icon($iconName, 18) ?>
+                        </div>
+
+                        <div class="emp-notif-content">
+                            <div class="emp-notif-title-row">
+                                <span class="emp-notif-title">
+                                    <?php if ($isUnread) : ?>
+                                        <span class="emp-unread-dot" aria-hidden="true" title="Unread notification"></span>
+                                        <span class="sr-only">Unread: </span>
+                                    <?php endif; ?>
+                                    <?= e($n['title'] ?? 'Notification') ?>
+                                </span>
+                                <span class="emp-notif-time tabular-nums"><?= e($createdFormatted) ?></span>
+                            </div>
+                            <p class="emp-notif-msg"><?= e($n['message'] ?? '') ?></p>
+                        </div>
+
+                        <?php if ($isUnread) : ?>
+                            <div class="flex items-center">
+                                <form method="POST" action="<?= url('/notifications/' . (int)$n['id'] . '/read') ?>">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-secondary btn-sm" title="Mark notification as read">
+                                        Mark Read
+                                    </button>
+                                </form>
+                            </div>
                         <?php endif; ?>
                     </div>
-                    <p style="color: var(--color-text-body); font-size: var(--font-size-sm); margin: var(--space-1) 0 var(--space-2) 0; line-height: 1.5;">
-                        <?= htmlspecialchars($notif['message']) ?>
-                    </p>
-                    <span style="font-size: 0.75rem; color: var(--color-text-muted); display: inline-flex; align-items: center; gap: 4px;">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <?= date('M d, Y h:i A', strtotime($notif['created_at'])) ?>
-                    </span>
-                </div>
-                <?php if ($isUnread): ?>
-                    <div>
-                        <form action="<?= url('/notifications/' . $notif['id'] . '/read') ?>" method="POST" style="margin: 0;">
-                            <?= csrf_field() ?>
-                            <button type="submit" class="btn btn-outline btn-sm" title="Mark as read" style="white-space: nowrap; font-size: 0.75rem; padding: 4px 8px;">
-                                Mark Read
-                            </button>
-                        </form>
-                    </div>
-                <?php endif; ?>
+                <?php endforeach; ?>
             </div>
-        <?php endforeach; ?>
-    </div>
-<?php endif; ?>
+
+            <!-- Filtered Empty State -->
+            <div id="notifFilterEmptyState" class="empty-state" style="display: none;">
+                <div class="empty-state-icon"><?= icon('bell-off', 32) ?></div>
+                <h3 class="empty-state-title">No Matching Notifications</h3>
+                <p class="empty-state-desc">No notifications match your current filter or search criteria.</p>
+            </div>
+        </div>
+    <?php else : ?>
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="empty-state-icon"><?= icon('bell', 40) ?></div>
+                <h3 class="empty-state-title">No Notifications Yet</h3>
+                <p class="empty-state-desc">You are all caught up. Updates regarding your leave requests and profile will appear here.</p>
+            </div>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const filterButtons = document.querySelectorAll('[data-notif-filter]');
+    const searchInput = document.getElementById('notificationSearch');
+    const container = document.getElementById('notificationListContainer');
+    const emptyState = document.getElementById('notifFilterEmptyState');
+    let currentFilter = 'all';
+
+    function applyNotifFilter() {
+        if (!container) return;
+        const items = container.querySelectorAll('.emp-notif-item');
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        let visibleCount = 0;
+
+        items.forEach(function (item) {
+            const state = item.getAttribute('data-read-state') || 'read';
+            const matchesState = (currentFilter === 'all') || (state === currentFilter);
+            const matchesQuery = !query || item.textContent.toLowerCase().includes(query);
+
+            if (matchesState && matchesQuery) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (emptyState) {
+            emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+
+    filterButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            filterButtons.forEach(function (b) {
+                b.classList.remove('active');
+                b.setAttribute('aria-selected', 'false');
+            });
+            btn.classList.add('active');
+            btn.setAttribute('aria-selected', 'true');
+            currentFilter = btn.getAttribute('data-notif-filter') || 'all';
+            applyNotifFilter();
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', applyNotifFilter);
+    }
+});
+</script>

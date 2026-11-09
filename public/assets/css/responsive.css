@@ -29,6 +29,25 @@
     .grid-cols-3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .emp-summary-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .emp-summary-cell:nth-child(2) {
+        border-right: none;
+    }
+
+    .emp-summary-cell:nth-child(1),
+    .emp-summary-cell:nth-child(2) {
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .emp-workspace-grid,
+    .emp-profile-grid,
+    .emp-apply-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ==========================================================================
@@ -68,12 +87,24 @@
     }
 
     .header-toggle,
-    .sidebar-toggle {
+    .sidebar-toggle,
+    .mobile-toggle-only {
         display: inline-flex !important;
     }
 
-    .header-breadcrumb {
+    .header-breadcrumb a,
+    .header-breadcrumb .crumb-separator {
         display: none;
+    }
+
+    .header-breadcrumb .crumb-current {
+        display: inline-block;
+        font-size: var(--font-size-md);
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 220px;
     }
 
     .app-content,
@@ -81,7 +112,8 @@
         padding: var(--space-4) var(--space-4);
     }
 
-    .page-header {
+    .page-header,
+    .emp-welcome-bar {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--space-3);
@@ -91,6 +123,20 @@
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+    }
+
+    .emp-welcome-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        width: 100%;
+        gap: var(--space-2);
+    }
+
+    .emp-welcome-actions .btn,
+    .page-actions .btn {
+        width: 100%;
+        flex: 1 1 auto;
+        justify-content: center;
     }
 
     /* Grids Flatten to Single Column */
@@ -120,9 +166,11 @@
     }
 
     .table th,
-    .table td {
+    .table td,
+    .data-table th,
+    .data-table td {
         padding: 0.65rem 0.75rem;
-        font-size: 0.8125rem;
+        font-size: var(--font-size-sm);
     }
 
     /* Modals Responsive */
@@ -151,12 +199,78 @@
     .filter-bar .btn {
         width: 100%;
     }
+
+    /* Employee Workspace Mobile Refinements */
+    .emp-summary-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .emp-summary-cell {
+        border-right: none !important;
+        border-bottom: 1px solid var(--color-border);
+        padding: var(--space-4);
+    }
+
+    .emp-summary-cell:last-child {
+        border-bottom: none;
+    }
+
+    .emp-dl-grid,
+    .emp-policy-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .emp-filter-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .emp-search-box {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .emp-notif-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .emp-notif-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
+
+/* Touch Device Ergonomics (WCAG 2.5.8 Target Size) */
+@media (pointer: coarse) {
+    .btn,
+    .form-control,
+    .form-input,
+    .form-select,
+    .nav-item,
+    .emp-filter-pill,
+    .emp-quiet-action,
+    .sidebar-toggle,
+    .theme-toggle-btn,
+    .rt-bell {
+        min-height: 44px;
+    }
+
+    .sidebar-toggle,
+    .theme-toggle-btn,
+    .rt-bell {
+        min-width: 44px;
+    }
 }
 
 /* ==========================================================================
    4. Extra Small Mobile Breakpoint (< 420px)
    ========================================================================== */
 @media (max-width: 420px) {
+    .emp-welcome-actions {
+        grid-template-columns: 1fr;
+    }
+
     .top-bar-right .badge,
     .header-right .role-badge {
         display: none;
@@ -174,7 +288,7 @@
 @media print {
     body {
         background: #FFFFFF !important;
-        color: #000000 !important;
+        color: #0F172A !important;
         font-size: 11pt;
     }
 
@@ -199,7 +313,7 @@
     }
 
     .card {
-        border: 1px solid #CCCCCC !important;
+        border: 1px solid #CBD5E1 !important;
         box-shadow: none !important;
         break-inside: avoid;
     }
@@ -210,7 +324,7 @@
 
     .table th,
     .table td {
-        border: 1px solid #DDDDDD !important;
-        color: #000000 !important;
+        border: 1px solid #E2E8F0 !important;
+        color: #0F172A !important;
     }
 }

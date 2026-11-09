@@ -29,6 +29,10 @@ class LeaveHistorySequenceService
     public function buildEmployeeLeaveHistoryChain(int $employeeId, int $limit = 50): LinkedList
     {
         $records = $this->leaveModel->getAllRequests(null, null, $employeeId);
+        $records = array_values(array_filter(
+            $records,
+            static fn(array $r): bool => !isset($r['employee_id']) || (int)$r['employee_id'] === $employeeId
+        ));
 
         // Sort chronologically ascending (oldest first to newest at tail)
         usort($records, function (array $a, array $b): int {

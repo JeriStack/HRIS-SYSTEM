@@ -34,10 +34,13 @@ function initThemeManager() {
 }
 
 function updateThemeButtons(theme) {
+    const sunSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+    const moonSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
     const themeButtons = document.querySelectorAll('.theme-toggle-btn');
     themeButtons.forEach(btn => {
         btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
-        btn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+        btn.setAttribute('title', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+        btn.innerHTML = theme === 'dark' ? sunSvg : moonSvg;
     });
 }
 
@@ -49,9 +52,28 @@ function initMobileNavigation() {
     const sidebar = document.querySelector('.app-sidebar');
     const shell = document.querySelector('.app-shell');
 
+    const collapseIconSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="m15 15-3-3 3-3"></path></svg>';
+    const expandIconSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="m13 9 3 3-3 3"></path></svg>';
+
+    function syncSidebarToggleButtonState(isCollapsed) {
+        toggleButtons.forEach(btn => {
+            if (btn.id === 'mobileSidebarToggle') {
+                return;
+            }
+            btn.classList.toggle('is-collapsed', isCollapsed);
+            btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+            const label = isCollapsed ? 'Expand sidebar' : 'Minimize sidebar';
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('title', label);
+            btn.innerHTML = isCollapsed ? expandIconSvg : collapseIconSvg;
+        });
+    }
+
     // Restore desktop collapsed preference
-    if (shell && window.innerWidth >= 768 && localStorage.getItem('nexora_sidebar_collapsed') === '1') {
-        shell.classList.add('sidebar-collapsed');
+    if (shell && window.innerWidth >= 768) {
+        const initiallyCollapsed = localStorage.getItem('nexora_sidebar_collapsed') === '1';
+        shell.classList.toggle('sidebar-collapsed', initiallyCollapsed);
+        syncSidebarToggleButtonState(initiallyCollapsed);
     }
 
     if (!sidebar) return;
@@ -64,7 +86,7 @@ function initMobileNavigation() {
                 if (shell) {
                     const isCollapsed = shell.classList.toggle('sidebar-collapsed');
                     localStorage.setItem('nexora_sidebar_collapsed', isCollapsed ? '1' : '0');
-                    btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+                    syncSidebarToggleButtonState(isCollapsed);
                 }
             } else {
                 // Mobile: Toggle drawer

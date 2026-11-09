@@ -3,9 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <meta name="base-url" content="<?= e(url('/')) ?>">
     <title><?= isset($pageTitle) ? e($pageTitle) . ' - ' : '' ?><?= e(config('config.app_name', 'NEXORA HR')) ?></title>
-    
+    <script>
+        (function () {
+            try {
+                var savedTheme = localStorage.getItem('hris_theme');
+                if (savedTheme === 'dark' || savedTheme === 'light') {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     <!-- Enterprise Design System Stylesheets -->
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
@@ -14,6 +25,7 @@
     <link rel="stylesheet" href="<?= asset('css/realtime.css') ?>">
 </head>
 <body>
+    <a href="#mainContent" class="skip-link">Skip to main content</a>
     <div class="app-shell">
         <!-- Accessible Role-Aware Sidebar Navigation -->
         <?php require __DIR__ . '/../partials/sidebar.php'; ?>

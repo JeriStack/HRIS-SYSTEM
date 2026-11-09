@@ -99,6 +99,19 @@ class DashboardController extends Controller
 
         $balances = [];
         $pendingLeaves = [];
+        $recentNotifications = [];
+        $unreadNotificationsCount = 0;
+
+        if (!empty($user['id'])) {
+            try {
+                $notifModel = new \App\Models\Notification();
+                $recentNotifications = $notifModel->getByUser((int)$user['id'], 5);
+                $unreadNotificationsCount = $notifModel->getUnreadCount((int)$user['id']);
+            } catch (\Throwable $e) {
+                $recentNotifications = [];
+                $unreadNotificationsCount = 0;
+            }
+        }
 
         if ($employeeId) {
             // Fetch latest employee record so dashboard view is directly synchronized
@@ -130,7 +143,7 @@ class DashboardController extends Controller
 
             // Fetch employee's own leave balances
             $stmtBalances = $this->pdo->prepare("
-                SELECT lb.allocated_days, lb.used_days, lb.remaining_days, lt.leave_name
+                SELECT lb.leave_type_id, lb.allocated_days, lb.used_days, lb.remaining_days, lt.leave_name, lt.description
                 FROM leave_balances lb
                 INNER JOIN leave_types lt ON lb.leave_type_id = lt.id
                 WHERE lb.employee_id = :emp_id AND lb.year = YEAR(CURDATE())
@@ -140,7 +153,7 @@ class DashboardController extends Controller
 
             // Fetch employee's own recent leave requests
             $stmtLeaves = $this->pdo->prepare("
-                SELECT lr.id, lr.start_date, lr.end_date, lr.number_of_days, lr.status, lr.reason, lt.leave_name
+                SELECT lr.id, lr.start_date, lr.end_date, lr.number_of_days, lr.status, lr.reason, lr.rejection_reason, lr.created_at, lt.leave_name
                 FROM leave_requests lr
                 INNER JOIN leave_types lt ON lr.leave_type_id = lt.id
                 WHERE lr.employee_id = :emp_id
@@ -152,10 +165,12 @@ class DashboardController extends Controller
         }
 
         $this->view('dashboard.employee', [
-            'pageTitle'     => 'Employee Self-Service Portal - Employee HRIS',
-            'user'          => $user,
-            'balances'      => $balances,
-            'pendingLeaves' => $pendingLeaves,
+            'pageTitle'                => 'Employee Dashboard',
+            'user'                     => $user,
+            'balances'                 => $balances,
+            'pendingLeaves'            => $pendingLeaves,
+            'recentNotifications'      => $recentNotifications,
+            'unreadNotificationsCount' => $unreadNotificationsCount,
         ], 'hr');
     }
 
@@ -203,7 +218,7 @@ class DashboardController extends Controller
         }
 
         $this->view('dashboard.employee_profile', [
-            'pageTitle' => 'My Personal Profile - Employee HRIS',
+            'pageTitle' => 'My Profile',
             'user'      => $user,
             'profile'   => $profile,
         ], 'hr');
@@ -241,7 +256,7 @@ class DashboardController extends Controller
         // Render full HTML view when requested by browser
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
             $this->view('dashboard.employee_balances', [
-                'pageTitle' => 'My Leave Balances - Employee Self-Service',
+                'pageTitle' => 'My Leave Balances',
                 'user'      => $user,
                 'balances'  => $balances,
                 'year'      => (int)date('Y'),
@@ -295,7 +310,7 @@ class DashboardController extends Controller
         // Render full HTML view when requested by browser
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
             $this->view('dashboard.employee_requests', [
-                'pageTitle'    => 'My Leave Applications - Employee Self-Service',
+                'pageTitle'    => 'My Leave Requests',
                 'user'         => $user,
                 'requests'     => $requests,
                 'historyArray' => $historyArray,

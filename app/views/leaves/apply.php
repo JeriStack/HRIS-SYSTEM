@@ -1,145 +1,205 @@
 <?php
 /**
- * File Leave Request View (Employee Self-Service)
- * Employee HRIS & Leave Management System
+ * File Leave Request View
+ * Guided leave application form with real-time working day calculation and balance check.
  */
+$preselectedType = isset($_GET['type']) ? (int)$_GET['type'] : 0;
+$selectedType = (int)old('leave_type_id', $preselectedType ?: '');
+
+// Build map of remaining balances by leave_type_id
+$balanceMap = [];
+if (!empty($balances)) {
+    foreach ($balances as $b) {
+        if (isset($b['leave_type_id'])) {
+            $balanceMap[(int)$b['leave_type_id']] = $b;
+        }
+    }
+}
 ?>
+
+<!-- Page Header -->
 <div class="page-header">
-    <div class="page-title-group">
-        <h1>File Leave Application</h1>
-        <p>Submit an official absence request for vacation, medical leave, or personal emergency.</p>
+    <div>
+        <h1 class="page-title">File Leave Request</h1>
+        <p class="page-subtitle">Submit a new leave application for HR review and approval</p>
     </div>
     <div class="page-actions">
-        <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary btn-sm">
-            <span>←</span> Back to Dashboard
+        <a href="<?= url('/employee/leave-requests') ?>" class="btn btn-secondary">
+            <?= icon('arrow-left', 16) ?>
+            <span>My Leave Requests</span>
         </a>
     </div>
 </div>
 
-<div class="grid grid-cols-3" style="align-items: start;">
-    <!-- Form Card (Spans 2 columns) -->
-    <div class="card" style="grid-column: span 2;">
+<div class="emp-apply-grid">
+    <!-- Left Column: Leave Application Form -->
+    <div class="card">
         <div class="card-header">
-            <h2 class="card-title"><span>✍️</span> Leave Request Form</h2>
-            <span style="font-size: 0.75rem; color: var(--color-text-muted);">Subject to Management Approval</span>
+            <div class="card-title-group">
+                <h2 class="card-title">Leave Application Details</h2>
+                <p class="card-subtitle">Select your leave category, dates, and reason. Weekends are excluded automatically.</p>
+            </div>
         </div>
-        <div class="card-body">
-            <form method="POST" action="<?= url('/leaves/apply') ?>" id="leaveApplicationForm">
-                <?= csrf_field() ?>
 
+        <form action="<?= url('/leaves/apply') ?>" method="POST" id="leaveApplyForm" novalidate>
+            <?= csrf_field() ?>
+
+            <div class="card-body">
                 <!-- Leave Type Selection -->
                 <div class="form-group">
-                    <label for="leaveTypeSelect" class="form-label required">Leave Classification</label>
-                    <select name="leave_type_id" id="leaveTypeSelect" class="form-select" required>
-                        <option value="">-- Select Approved Leave Type --</option>
-                        <?php foreach ($leaveTypes as $type): 
-                            $matchedBal = 0;
-                            foreach ($balances as $b) {
-                                if ((int)$b['leave_type_id'] === (int)$type['id']) {
-                                    $matchedBal = (int)$b['remaining_days'];
-                                    break;
-                                }
-                            }
-                        ?>
-                            <option value="<?= (int)$type['id'] ?>" data-balance="<?= $matchedBal ?>">
-                                <?= e($type['leave_name']) ?> (<?= $matchedBal ?> days remaining)
+                    <div class="flex justify-between items-center mb-1">
+                        <label for="leave_type_id" class="form-label mb-0">
+                            Leave Category <span class="required">*</span>
+                        </label>
+                        <span id="selectedTypeBalanceHint" class="badge badge-primary" style="display: none;" aria-live="polite"></span>
+                    </div>
+                    <select id="leave_type_id" name="leave_type_id" class="form-control form-select" required>
+                        <option value="" disabled <?= $selectedType === 0 ? 'selected' : '' ?>>Select leave category...</option>
+                        <?php foreach ($leaveTypes as $type) :
+                            $tId = (int)$type['id'];
+                            $typeName = $type['leave_name'] ?? $type['name'] ?? 'Leave';
+                            $balInfo = $balanceMap[$tId] ?? null;
+                            $remDays = $balInfo ? (int)$balInfo['remaining_days'] : (int)($type['default_days'] ?? 0);
+                            ?>
+                            <option
+                                value="<?= $tId ?>"
+                                data-remaining="<?= $remDays ?>"
+                                <?= $selectedType === $tId ? 'selected' : '' ?>
+                            >
+                                <?= e($typeName) ?> (<?= $remDays ?> <?= $remDays === 1 ? 'day' : 'days' ?> available)
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <span class="form-hint">Only active leave types with sufficient balance can be approved.</span>
                 </div>
 
-                <!-- Date Range Grid -->
+                <!-- Start & End Dates -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="leaveStartDate" class="form-label required">Start Date</label>
-                        <input type="date" 
-                               name="start_date" 
-                               id="leaveStartDate" 
-                               class="form-control" 
-                               min="<?= date('Y-m-d') ?>" 
-                               required>
+                        <label for="start_date" class="form-label">Start Date <span class="required">*</span></label>
+                        <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            class="form-control"
+                            required
+                            min="<?= date('Y-m-d') ?>"
+                            value="<?= e((string)old('start_date')) ?>"
+                        >
+                        <span class="form-hint">First day of absence</span>
                     </div>
+
                     <div class="form-group">
-                        <label for="leaveEndDate" class="form-label required">End Date</label>
-                        <input type="date" 
-                               name="end_date" 
-                               id="leaveEndDate" 
-                               class="form-control" 
-                               min="<?= date('Y-m-d') ?>" 
-                               required>
+                        <label for="end_date" class="form-label">End Date <span class="required">*</span></label>
+                        <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            class="form-control"
+                            required
+                            min="<?= date('Y-m-d') ?>"
+                            value="<?= e((string)old('end_date')) ?>"
+                        >
+                        <span class="form-hint">Last day of absence (inclusive)</span>
                     </div>
                 </div>
 
-                <!-- Dynamic Working Days Calculation Display -->
-                <div style="background-color: var(--color-bg-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.85rem 1.15rem; margin-bottom: 1.25rem;">
-                    <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.25rem;">
-                        Calculated Business Days:
+                <!-- Live Working Days Calculator Feedback -->
+                <div id="leaveCalcBox" class="emp-calc-box mb-5" role="status" aria-live="polite">
+                    <div>
+                        <div class="text-xs font-semibold text-muted" style="text-transform: uppercase; letter-spacing: 0.04em;">Calculated Duration</div>
+                        <div id="dateValidationError" class="form-error mt-1" role="alert" style="display: none;"></div>
+                        <div class="text-xs text-muted mt-1">Excludes Saturdays and Sundays</div>
                     </div>
-                    <div id="calculatedDaysDisplay" style="font-size: 1.1rem; font-weight: 700; color: var(--color-text-main);">
-                        0 Working Days
-                    </div>
-                    <input type="hidden" name="number_of_days" id="numberOfDaysInput" value="0">
-                    <div id="dateValidationError" class="form-error" style="display: none; margin-top: 0.35rem;"></div>
+                    <div id="calculatedDaysDisplay" class="emp-calc-days">0 working days</div>
                 </div>
 
                 <!-- Reason for Leave -->
-                <div class="form-group">
-                    <label for="leaveReason" class="form-label required">Reason / Supporting Details</label>
-                    <textarea name="reason" 
-                              id="leaveReason" 
-                              rows="4" 
-                              class="form-textarea" 
-                              placeholder="Provide a concise description of your reason for leave..." 
-                              required></textarea>
-                    <span class="form-hint">Please provide sufficient detail for your supervisor and HR officer to evaluate.</span>
+                <div class="form-group mb-0">
+                    <label for="reason" class="form-label">Reason for Leave <span class="required">*</span></label>
+                    <textarea
+                        id="reason"
+                        name="reason"
+                        class="form-control"
+                        rows="4"
+                        required
+                        placeholder="Provide brief context for your leave request (e.g., family vacation, medical appointment)..."
+                    ><?= e((string)old('reason')) ?></textarea>
                 </div>
+            </div>
 
-                <!-- Submit / Cancel -->
-                <div style="display: flex; gap: 0.75rem; align-items: center; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
-                    <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <span>📤</span> Submit Leave Application
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="card-footer flex justify-between items-center">
+                <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <?= icon('send', 15) ?>
+                    <span>Submit Application</span>
+                </button>
+            </div>
+        </form>
     </div>
 
-    <!-- Right Sidebar: Current Available Balances -->
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title"><span>⚖️</span> Available Balances</h2>
-        </div>
-        <div class="card-body" style="padding: 1.25rem;">
-            <?php if (empty($balances)): ?>
-                <div style="font-size: 0.85rem; color: var(--color-text-muted);">
-                    No balance allocation found for <?= date('Y') ?>.
+    <!-- Right Column: Balances & Guidelines -->
+    <div class="flex flex-col gap-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <h2 class="card-title">Available Leave Balances</h2>
+                    <p class="card-subtitle"><?= date('Y') ?> entitlement summary</p>
                 </div>
-            <?php else: ?>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <?php foreach ($balances as $b): 
-                        $rem = (int)($b['remaining_days'] ?? 0);
-                    ?>
-                        <div style="padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border-subtle);">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                <strong style="font-size: 0.875rem;"><?= e($b['leave_name']) ?></strong>
-                                <span class="badge <?= $rem > 2 ? 'badge-success' : ($rem > 0 ? 'badge-warning' : 'badge-danger') ?>">
-                                    <?= $rem ?> Left
-                                </span>
+            </div>
+            <div class="card-body">
+                <?php if (!empty($balances)) : ?>
+                    <div class="flex flex-col gap-3">
+                        <?php foreach ($balances as $bal) :
+                            $allocated = max(1, (int)($bal['allocated_days'] ?? 1));
+                            $rawAllocated = (int)($bal['allocated_days'] ?? 0);
+                            $used = (int)($bal['used_days'] ?? 0);
+                            $remaining = (int)($bal['remaining_days'] ?? 0);
+                            $pct = min(100, round(($used / $allocated) * 100));
+                            $bTypeId = (int)($bal['leave_type_id'] ?? 0);
+                            $balName = $bal['leave_name'] ?? $bal['leave_type_name'] ?? 'Leave';
+                            ?>
+                            <div
+                                class="p-3 rounded-lg border"
+                                data-balance-type-id="<?= $bTypeId ?>"
+                                style="border-color: var(--color-border-light); transition: border-color 0.15s ease, background-color 0.15s ease;"
+                            >
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-semibold text-sm text-main"><?= e($balName) ?></span>
+                                    <span class="font-bold text-sm text-primary tabular-nums"><?= $remaining ?> <?= $remaining === 1 ? 'day' : 'days' ?> left</span>
+                                </div>
+                                <div class="progress-bar mb-1">
+                                    <div class="progress-fill <?= $remaining === 0 ? 'progress-danger' : ($pct >= 75 ? 'progress-warning' : '') ?>" style="width: <?= $pct ?>%;"></div>
+                                </div>
+                                <div class="text-xs text-muted tabular-nums"><?= $used ?> used of <?= $rawAllocated ?> allocated</div>
                             </div>
-                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                                <?= (int)$b['used_days'] ?> used of <?= (int)$b['allocated_days'] ?> allocated
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else : ?>
+                    <p class="text-sm text-muted">No leave balances initialized for <?= date('Y') ?>.</p>
+                <?php endif; ?>
+            </div>
         </div>
-        <div class="card-footer" style="font-size: 0.75rem; color: var(--color-text-muted);">
-            Year <?= date('Y') ?> Statutory & Corporate Quota
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Filing Guidelines</h2>
+            </div>
+            <div class="card-body">
+                <ul class="flex flex-col gap-3 text-sm text-muted" style="list-style: none; padding: 0; margin: 0;">
+                    <li class="flex items-start gap-2">
+                        <span class="text-primary mt-1"><?= icon('check-circle', 15) ?></span>
+                        <span><strong>Advance Filing:</strong> Submit planned vacation leaves at least 3 working days in advance.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-primary mt-1"><?= icon('calendar', 15) ?></span>
+                        <span><strong>Overlap Check:</strong> Overlapping pending or approved dates are automatically prevented.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-primary mt-1"><?= icon('clock', 15) ?></span>
+                        <span><strong>Balance Deduction:</strong> Days are deducted only when your request is approved by HR.</span>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>

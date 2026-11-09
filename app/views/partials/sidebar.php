@@ -29,16 +29,41 @@ if ($rawRole === 'admin') {
     $iconClass = 'hr';
 } else {
     $dashboardUrl = url('/employee/dashboard');
-    $brandLabel = 'Self-Service';
-    $roleTitle = 'Employee';
+    $brandLabel = 'NEXORA HR';
+    $roleTitle = $user['employee_no'] ?? 'Employee';
     $iconClass = 'emp';
+}
+
+$sidebarUnreadCount = 0;
+if ($rawRole === 'employee' && isAuthenticated()) {
+    try {
+        $sidebarUnreadCount = (new \App\Models\Notification())->getUnreadCount((int)currentUserId());
+    } catch (\Throwable $e) {
+        $sidebarUnreadCount = 0;
+    }
 }
 ?>
 <aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
     <div class="sidebar-header">
-        <a href="<?= $dashboardUrl ?>" class="sidebar-brand">
-            <span class="brand-icon <?= $iconClass ?>"><?= ($rawRole === 'admin') ? 'A' : (($rawRole === 'hr') ? 'H' : 'E') ?></span>
-            <span><?= e($brandLabel) ?></span>
+        <a href="<?= $dashboardUrl ?>" class="sidebar-brand" aria-label="NEXORA HR — People. Processes. Progress." title="NEXORA HR">
+            <img
+                src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
+                alt=""
+                class="sidebar-logo-emblem"
+                width="34"
+                height="34"
+            >
+            <div class="sidebar-brand-lockup">
+                <div class="sidebar-logo-wordmark">
+                    <span class="logo-word-nexora">NEXOR<span class="logo-letter-a">A<svg class="logo-delta-mark" viewBox="0 0 12 10" aria-hidden="true" focusable="false"><polygon points="6,1 11,10 1,10" fill="currentColor"/></svg></span></span>
+                    <span class="logo-word-hr">HR</span>
+                </div>
+                <div class="sidebar-logo-tagline">
+                    <span class="logo-tagline-rule" aria-hidden="true"></span>
+                    <span class="logo-tagline-text">People. Processes. Progress.</span>
+                    <span class="logo-tagline-rule" aria-hidden="true"></span>
+                </div>
+            </div>
         </a>
     </div>
 
@@ -48,110 +73,110 @@ if ($rawRole === 'admin') {
                  ADMINISTRATOR 7-GROUP HIERARCHY
                  ============================================================== -->
             
-            <!-- 01 — Dashboard -->
-            <div class="nav-section-title">01 — Dashboard</div>
-            <a href="<?= url('/admin/dashboard') ?>" class="nav-item <?= $currentPath === '/admin/dashboard' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📊</span>
-                <span>Overview</span>
+            <!-- Dashboard -->
+            <div class="nav-section-title">Dashboard</div>
+            <a href="<?= url('/admin/dashboard') ?>" class="nav-item <?= $currentPath === '/admin/dashboard' ? 'active' : '' ?>" title="Overview">
+                <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
+                <span class="nav-item-label">Overview</span>
             </a>
 
-            <!-- 02 — User Administration -->
-            <div class="nav-section-title">02 — User Administration</div>
-            <a href="<?= url('/admin/users') ?>" class="nav-item <?= ($currentPath === '/admin/users' || str_starts_with($currentPath, '/admin/users/')) ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">👥</span>
-                <span>User Accounts</span>
+            <!-- User Administration -->
+            <div class="nav-section-title">User Administration</div>
+            <a href="<?= url('/admin/users') ?>" class="nav-item <?= ($currentPath === '/admin/users' || str_starts_with($currentPath, '/admin/users/')) ? 'active' : '' ?>" title="User Accounts">
+                <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
+                <span class="nav-item-label">User Accounts</span>
             </a>
-            <a href="<?= url('/admin/roles') ?>" class="nav-item <?= $currentPath === '/admin/roles' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🛡️</span>
-                <span>Roles &amp; Permissions</span>
+            <a href="<?= url('/admin/roles') ?>" class="nav-item <?= $currentPath === '/admin/roles' ? 'active' : '' ?>" title="Roles &amp; Permissions">
+                <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+                <span class="nav-item-label">Roles &amp; Permissions</span>
             </a>
-            <a href="<?= url('/admin/provisioning') ?>" class="nav-item <?= $currentPath === '/admin/provisioning' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">👤</span>
-                <span>Admin Provisioning</span>
-            </a>
-
-            <!-- 03 — Organization Management -->
-            <div class="nav-section-title">03 — Organization Management</div>
-            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= (str_contains($currentPath, '/employees') && !str_contains($currentPath, '/employee/')) ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📋</span>
-                <span>Employee Records</span>
-            </a>
-            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/departments') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🏢</span>
-                <span>Departments</span>
-            </a>
-            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/positions') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">💼</span>
-                <span>Positions</span>
+            <a href="<?= url('/admin/provisioning') ?>" class="nav-item <?= $currentPath === '/admin/provisioning' ? 'active' : '' ?>" title="Admin Provisioning">
+                <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
+                <span class="nav-item-label">Admin Provisioning</span>
             </a>
 
-            <!-- 04 — Leave Administration -->
-            <div class="nav-section-title">04 — Leave Administration</div>
-            <a href="<?= url('/leaves') ?>" class="nav-item <?= ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || $currentPath === '/hr/leave-requests') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📅</span>
-                <span>Leave Requests</span>
+            <!-- Organization Management -->
+            <div class="nav-section-title">Organization Management</div>
+            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= (str_contains($currentPath, '/employees') && !str_contains($currentPath, '/employee/')) ? 'active' : '' ?>" title="Employee Records">
+                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                <span class="nav-item-label">Employee Records</span>
             </a>
-            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/leave-types') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🏷️</span>
-                <span>Leave Types &amp; Policies</span>
+            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/departments') ? 'active' : '' ?>" title="Departments">
+                <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
+                <span class="nav-item-label">Departments</span>
             </a>
-            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">⚖️</span>
-                <span>Leave Balances</span>
-            </a>
-
-            <!-- 05 — Reports & Analytics -->
-            <div class="nav-section-title">05 — Reports &amp; Analytics</div>
-            <a href="<?= url('/reports') ?>" class="nav-item <?= (($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab !== 'analytics') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📈</span>
-                <span>System Reports</span>
-            </a>
-            <a href="<?= url('/reports?tab=analytics') ?>" class="nav-item <?= ((($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab === 'analytics') || $currentPath === '/admin/analytics') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📊</span>
-                <span>HR Analytics</span>
+            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/positions') ? 'active' : '' ?>" title="Positions">
+                <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
+                <span class="nav-item-label">Positions</span>
             </a>
 
-            <!-- 06 — Security & Compliance -->
-            <div class="nav-section-title">06 — Security &amp; Compliance</div>
-            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= $currentPath === '/activity-logs' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📜</span>
-                <span>Audit Logs</span>
+            <!-- Leave Administration -->
+            <div class="nav-section-title">Leave Administration</div>
+            <a href="<?= url('/leaves') ?>" class="nav-item <?= ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || $currentPath === '/hr/leave-requests') ? 'active' : '' ?>" title="Leave Requests">
+                <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
+                <span class="nav-item-label">Leave Requests</span>
             </a>
-            <a href="<?= url('/admin/security/events') ?>" class="nav-item <?= $currentPath === '/admin/security/events' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🚨</span>
-                <span>Security Events</span>
+            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/leave-types') ? 'active' : '' ?>" title="Leave Types &amp; Policies">
+                <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
+                <span class="nav-item-label">Leave Types &amp; Policies</span>
             </a>
-            <a href="<?= url('/admin/settings/auth') ?>" class="nav-item <?= $currentPath === '/admin/settings/auth' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🔐</span>
-                <span>Authentication Settings</span>
+            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>" title="Leave Balances">
+                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+                <span class="nav-item-label">Leave Balances</span>
             </a>
 
-            <!-- 07 — System Administration -->
-            <div class="nav-section-title">07 — System Administration</div>
-            <a href="<?= url('/admin/settings') ?>" class="nav-item <?= $currentPath === '/admin/settings' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">⚙️</span>
-                <span>General Settings</span>
+            <!-- Reports & Analytics -->
+            <div class="nav-section-title">Reports &amp; Analytics</div>
+            <a href="<?= url('/reports') ?>" class="nav-item <?= (($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab !== 'analytics') ? 'active' : '' ?>" title="System Reports">
+                <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
+                <span class="nav-item-label">System Reports</span>
             </a>
-            <a href="<?= url('/admin/system-health') ?>" class="nav-item <?= $currentPath === '/admin/system-health' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🩺</span>
-                <span>System Health</span>
+            <a href="<?= url('/reports?tab=analytics') ?>" class="nav-item <?= ((($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab === 'analytics') || $currentPath === '/admin/analytics') ? 'active' : '' ?>" title="HR Analytics">
+                <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
+                <span class="nav-item-label">HR Analytics</span>
             </a>
-            <a href="<?= url('/admin/settings/notifications') ?>" class="nav-item <?= $currentPath === '/admin/settings/notifications' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🔔</span>
-                <span>Notification Settings</span>
+
+            <!-- Security & Compliance -->
+            <div class="nav-section-title">Security &amp; Compliance</div>
+            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= $currentPath === '/activity-logs' ? 'active' : '' ?>" title="Audit Logs">
+                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                <span class="nav-item-label">Audit Logs</span>
+            </a>
+            <a href="<?= url('/admin/security/events') ?>" class="nav-item <?= $currentPath === '/admin/security/events' ? 'active' : '' ?>" title="Security Events">
+                <span class="icon" aria-hidden="true"><?= icon('alert-triangle', 18) ?></span>
+                <span class="nav-item-label">Security Events</span>
+            </a>
+            <a href="<?= url('/admin/settings/auth') ?>" class="nav-item <?= $currentPath === '/admin/settings/auth' ? 'active' : '' ?>" title="Authentication Settings">
+                <span class="icon" aria-hidden="true"><?= icon('lock', 18) ?></span>
+                <span class="nav-item-label">Authentication Settings</span>
+            </a>
+
+            <!-- System Administration -->
+            <div class="nav-section-title">System Administration</div>
+            <a href="<?= url('/admin/settings') ?>" class="nav-item <?= $currentPath === '/admin/settings' ? 'active' : '' ?>" title="General Settings">
+                <span class="icon" aria-hidden="true"><?= icon('settings', 18) ?></span>
+                <span class="nav-item-label">General Settings</span>
+            </a>
+            <a href="<?= url('/admin/system-health') ?>" class="nav-item <?= $currentPath === '/admin/system-health' ? 'active' : '' ?>" title="System Health">
+                <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
+                <span class="nav-item-label">System Health</span>
+            </a>
+            <a href="<?= url('/admin/settings/notifications') ?>" class="nav-item <?= $currentPath === '/admin/settings/notifications' ? 'active' : '' ?>" title="Notification Settings">
+                <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
+                <span class="nav-item-label">Notification Settings</span>
             </a>
 
             <!-- Account Session -->
             <div class="nav-section-title">Account</div>
-            <a href="<?= url('/admin/account') ?>" class="nav-item <?= $currentPath === '/admin/account' ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">👤</span>
-                <span>My Account</span>
+            <a href="<?= url('/admin/account') ?>" class="nav-item <?= $currentPath === '/admin/account' ? 'active' : '' ?>" title="My Account">
+                <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
+                <span class="nav-item-label">My Account</span>
             </a>
-            <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
+            <form method="POST" action="<?= url('/logout') ?>">
                 <?= csrf_field() ?>
-                <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: inherit; color: inherit;">
-                    <span class="icon" aria-hidden="true">🚪</span>
-                    <span>Sign Out</span>
+                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
+                    <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
+                    <span class="nav-item-label">Sign Out</span>
                 </button>
             </form>
 
@@ -160,114 +185,122 @@ if ($rawRole === 'admin') {
                  HR OFFICER OPERATIONAL NAVIGATION
                  ============================================================== -->
             <div class="nav-section-title">Overview</div>
-            <a href="<?= url('/hr/dashboard') ?>" class="nav-item <?= str_contains($currentPath, '/dashboard') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📊</span>
-                <span>Dashboard</span>
+            <a href="<?= url('/hr/dashboard') ?>" class="nav-item <?= str_contains($currentPath, '/dashboard') ? 'active' : '' ?>" title="Dashboard">
+                <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
+                <span class="nav-item-label">Dashboard</span>
             </a>
 
             <div class="nav-section-title">Workforce Management</div>
-            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= str_contains($currentPath, '/hr/employees') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📋</span>
-                <span>Employees Directory</span>
+            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= str_contains($currentPath, '/hr/employees') ? 'active' : '' ?>" title="Employees Directory">
+                <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
+                <span class="nav-item-label">Employees Directory</span>
             </a>
-            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/hr/departments') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🏢</span>
-                <span>Departments</span>
+            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/hr/departments') ? 'active' : '' ?>" title="Departments">
+                <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
+                <span class="nav-item-label">Departments</span>
             </a>
-            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/hr/positions') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">💼</span>
-                <span>Job Positions</span>
+            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/hr/positions') ? 'active' : '' ?>" title="Job Positions">
+                <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
+                <span class="nav-item-label">Job Positions</span>
             </a>
 
             <div class="nav-section-title">Leave Management</div>
-            <a href="<?= url('/leaves') ?>" class="nav-item <?= (str_contains($currentPath, '/leaves') && !str_contains($currentPath, '/leaves/balances')) ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📅</span>
-                <span>Leave Review Queue</span>
+            <a href="<?= url('/leaves') ?>" class="nav-item <?= (str_contains($currentPath, '/leaves') && !str_contains($currentPath, '/leaves/balances')) ? 'active' : '' ?>" title="Leave Review Queue">
+                <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
+                <span class="nav-item-label">Leave Review Queue</span>
             </a>
-            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">⚖️</span>
-                <span>Workforce Balances</span>
+            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>" title="Workforce Balances">
+                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+                <span class="nav-item-label">Workforce Balances</span>
             </a>
-            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/hr/leave-types') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🏷️</span>
-                <span>Leave Classifications</span>
+            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/hr/leave-types') ? 'active' : '' ?>" title="Leave Classifications">
+                <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
+                <span class="nav-item-label">Leave Classifications</span>
             </a>
 
             <div class="nav-section-title">Analytics &amp; Tools</div>
-            <a href="<?= url('/reports') ?>" class="nav-item <?= str_contains($currentPath, '/reports') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📈</span>
-                <span>Reports &amp; Analytics</span>
+            <a href="<?= url('/reports') ?>" class="nav-item <?= str_contains($currentPath, '/reports') ? 'active' : '' ?>" title="Reports &amp; Analytics">
+                <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
+                <span class="nav-item-label">Reports &amp; Analytics</span>
             </a>
-            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= str_contains($currentPath, '/activity-logs') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📜</span>
-                <span>Audit Activity Logs</span>
+            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= str_contains($currentPath, '/activity-logs') ? 'active' : '' ?>" title="Audit Activity Logs">
+                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                <span class="nav-item-label">Audit Activity Logs</span>
             </a>
 
             <div class="nav-section-title">Communications</div>
-            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains($currentPath, '/notifications') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🔔</span>
-                <span>Notifications</span>
+            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains($currentPath, '/notifications') ? 'active' : '' ?>" title="Notifications">
+                <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
+                <span class="nav-item-label">Notifications</span>
             </a>
 
             <div class="nav-section-title">Account Session</div>
-            <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
+            <form method="POST" action="<?= url('/logout') ?>">
                 <?= csrf_field() ?>
-                <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: inherit; color: inherit;">
-                    <span class="icon" aria-hidden="true">🚪</span>
-                    <span>Sign Out</span>
+                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
+                    <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
+                    <span class="nav-item-label">Sign Out</span>
                 </button>
             </form>
 
         <?php else: ?>
             <!-- ==============================================================
-                 EMPLOYEE SELF-SERVICE NAVIGATION
+                 EMPLOYEE WORKSPACE NAVIGATION
                  ============================================================== -->
-            <div class="nav-section-title">Overview</div>
-            <a href="<?= url('/employee/dashboard') ?>" class="nav-item <?= str_contains($currentPath, '/dashboard') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📊</span>
-                <span>Dashboard</span>
+            <div class="nav-section-title">Workspace</div>
+            <a href="<?= url('/employee/dashboard') ?>" class="nav-item <?= str_contains((string)$currentPath, '/dashboard') ? 'active' : '' ?>" title="Dashboard">
+                <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
+                <span class="nav-item-label">Dashboard</span>
+            </a>
+            <a href="<?= url('/employee/profile') ?>" class="nav-item <?= str_contains((string)$currentPath, '/employee/profile') ? 'active' : '' ?>" title="My Profile">
+                <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
+                <span class="nav-item-label">My Profile</span>
             </a>
 
-            <div class="nav-section-title">Self-Service</div>
-            <a href="<?= url('/employee/profile') ?>" class="nav-item <?= str_contains($currentPath, '/employee/profile') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">👤</span>
-                <span>My Profile</span>
+            <div class="nav-section-title">Leave &amp; Time Off</div>
+            <a href="<?= url('/employee/leave-balances') ?>" class="nav-item <?= str_contains((string)$currentPath, '/employee/leave-balances') ? 'active' : '' ?>" title="Leave Balances">
+                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+                <span class="nav-item-label">Leave Balances</span>
             </a>
-            <a href="<?= url('/employee/leave-balances') ?>" class="nav-item <?= str_contains($currentPath, '/employee/leave-balances') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">⚖️</span>
-                <span>My Leave Balance</span>
+            <a href="<?= url('/employee/leave-requests') ?>" class="nav-item <?= (str_contains((string)$currentPath, '/employee/leave-requests') || preg_match('#^/leaves/\d+$#', (string)$currentPath) === 1) ? 'active' : '' ?>" title="Leave Requests">
+                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                <span class="nav-item-label">Leave Requests</span>
             </a>
-            <a href="<?= url('/employee/leave-requests') ?>" class="nav-item <?= str_contains($currentPath, '/employee/leave-requests') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">📋</span>
-                <span>My Leave Requests</span>
-            </a>
-            <a href="<?= url('/leaves/apply') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/apply') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">✍️</span>
-                <span>File Leave Request</span>
+            <a href="<?= url('/leaves/apply') ?>" class="nav-item <?= str_contains((string)$currentPath, '/leaves/apply') ? 'active' : '' ?>" title="File Leave Request">
+                <span class="icon" aria-hidden="true"><?= icon('file-plus', 18) ?></span>
+                <span class="nav-item-label">File Leave Request</span>
             </a>
 
-            <div class="nav-section-title">Communications</div>
-            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains($currentPath, '/notifications') ? 'active' : '' ?>">
-                <span class="icon" aria-hidden="true">🔔</span>
-                <span>Notifications</span>
+            <div class="nav-section-title">Updates</div>
+            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains((string)$currentPath, '/notifications') ? 'active' : '' ?>" title="Notifications">
+                <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
+                <span class="nav-item-label">Notifications</span>
+                <?php if ($sidebarUnreadCount > 0): ?>
+                    <span class="nav-badge" aria-label="<?= (int)$sidebarUnreadCount ?> unread notifications"><?= $sidebarUnreadCount > 99 ? '99+' : (int)$sidebarUnreadCount ?></span>
+                <?php endif; ?>
             </a>
 
-            <div class="nav-section-title">Account Session</div>
+            <div class="nav-section-title">Session</div>
             <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                 <?= csrf_field() ?>
-                <button type="submit" class="nav-item" style="width: 100%; background: none; border: none; text-align: left; cursor: pointer; font-family: inherit; font-size: inherit; color: inherit;">
-                    <span class="icon" aria-hidden="true">🚪</span>
-                    <span>Sign Out</span>
+                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
+                    <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
+                    <span class="nav-item-label">Sign Out</span>
                 </button>
             </form>
         <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
-        <div class="sidebar-user-avatar" aria-hidden="true"><?= e($initials) ?></div>
-        <div class="sidebar-user-info">
-            <div class="sidebar-user-name"><?= e($userName) ?></div>
-            <div class="sidebar-user-role"><?= e($roleTitle) ?></div>
-        </div>
+        <a href="<?= ($rawRole === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" class="sidebar-user-link" title="View Profile">
+            <div class="sidebar-user-avatar" aria-hidden="true"><?= e($initials) ?></div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name"><?= e($userName) ?></div>
+                <div class="sidebar-user-role"><?= e($roleTitle) ?></div>
+            </div>
+        </a>
+        <button type="button" class="sidebar-toggle sidebar-footer-toggle" id="sidebarToggle" aria-label="Minimize sidebar" title="Minimize sidebar" aria-expanded="true" aria-controls="appSidebar">
+            <?= icon('panel-left-close', 18) ?>
+        </button>
     </div>
 </aside>

@@ -1,140 +1,617 @@
 <?php
 /**
- * Employee Self-Service Portal Dashboard View
- * Employee HRIS & Leave Management System
+ * Employee Dashboard View — "The Executive Ledger" Interactive Workbench
+ * Self-service overview: welcome header, unified 4-cell summary strip with live quota meter,
+ * leave entitlement ledger cards, filterable recent applications with inline pending cancellation,
+ * and interactive alert triage.
  */
+$user = $user ?? currentUser() ?? [];
+$userName = $user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Employee';
+$empNo = $employee['employee_no'] ?? $user['employee_no'] ?? 'EMP';
+$position = $employee['position_name'] ?? $employee['position'] ?? $user['position'] ?? 'Staff Member';
+$department = $employee['department_name'] ?? $user['department'] ?? 'General Operations';
 
-$userName = $user['name'] ?? $user['username'] ?? 'Employee';
-$empNo = $user['employee_no'] ?? 'EMP-Self';
+$balances = $balances ?? $leaveBalances ?? [];
+$requests = $pendingLeaves ?? $recentRequests ?? [];
+$notifications = $recentNotifications ?? [];
+$unreadCount = (int)($unreadNotificationsCount ?? 0);
+
+// Aggregate balance totals
+$totalAllocated = 0;
+$totalUsed = 0;
+$totalRemaining = 0;
+foreach ($balances as $bal) {
+    $totalAllocated += (int)($bal['allocated_days'] ?? 0);
+    $totalUsed += (int)($bal['used_days'] ?? 0);
+    $totalRemaining += (int)($bal['remaining_days'] ?? 0);
+}
+$annualUtilizationPct = $totalAllocated > 0 ? min(100, (int)round(($totalUsed / $totalAllocated) * 100)) : 0;
+
+// Detect next upcoming approved leave across all requests & slice recent workbench rows
+$upcomingApprovedLeave = null;
+$todayDate = date('Y-m-d');
+$pendingCount = 0;
+
+foreach ($requests as $req) {
+    $reqStatus = $req['status'] ?? 'Pending';
+    if ($reqStatus === 'Pending') {
+        $pendingCount++;
+    }
+    if ($reqStatus === 'Approved' && !empty($req['start_date']) && $req['start_date'] >= $todayDate) {
+        if ($upcomingApprovedLeave === null || $req['start_date'] < $upcomingApprovedLeave['start_date']) {
+            $upcomingApprovedLeave = $req;
+        }
+    }
+}
+
+$recentRequestsSlice = array_slice($requests, 0, 6);
+$statusCounts = [
+    'all'       => count($recentRequestsSlice),
+    'Pending'   => 0,
+    'Approved'  => 0,
+    'Rejected'  => 0,
+    'Cancelled' => 0,
+];
+foreach ($recentRequestsSlice as $req) {
+    $reqStatus = $req['status'] ?? 'Pending';
+    if (isset($statusCounts[$reqStatus])) {
+        $statusCounts[$reqStatus]++;
+    }
+}
 ?>
-<div class="page-header">
-    <div class="page-title-group">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
-            <h1>Welcome, <?= e($userName) ?></h1>
-            <span class="role-badge emp" style="font-weight: 700; letter-spacing: 0.05em;">EMPLOYEE SELF-SERVICE</span>
-        </div>
-        <p>Employee Self-Service Portal &bull; Employee ID: <strong style="color: var(--color-primary); font-family: var(--font-mono);"><?= e($empNo) ?></strong></p>
+
+<!-- Welcome & Identity Header -->
+<div class="emp-welcome-bar">
+    <div class="emp-welcome-meta">
+        <h1>Welcome back, <?= e($userName) ?></h1>
+        <p class="emp-welcome-sub">
+            <span class="emp-id-chip"><?= e($empNo) ?></span>
+            <span><?= e($position) ?></span>
+            <span aria-hidden="true">&middot;</span>
+            <span><?= e($department) ?></span>
+            <span aria-hidden="true">&middot;</span>
+            <span class="tabular-nums"><?= date('Y') ?> Leave Cycle</span>
+        </p>
     </div>
-    <div class="page-actions">
-        <a href="<?= url('/employee/profile') ?>" class="btn btn-secondary btn-sm">
-            <span>👤</span> View My Profile
+    <div class="emp-welcome-actions">
+        <a href="<?= url('/employee/profile') ?>" class="btn btn-secondary">
+            <?= icon('user', 16) ?>
+            <span>My Profile</span>
         </a>
-        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
-            <span>✍️</span> File Leave Request
+        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary">
+            <?= icon('plus', 16) ?>
+            <span>File Leave Request</span>
         </a>
     </div>
 </div>
 
-<!-- Personal Leave Balances Grid -->
-<div class="card" style="margin-bottom: var(--space-6);">
+<?php if ($upcomingApprovedLeave !== null) :
+    $upStart = date('M j, Y', strtotime($upcomingApprovedLeave['start_date']));
+    $upEnd = !empty($upcomingApprovedLeave['end_date']) ? date('M j, Y', strtotime($upcomingApprovedLeave['end_date'])) : $upStart;
+    $upDays = (int)($upcomingApprovedLeave['number_of_days'] ?? $upcomingApprovedLeave['total_days'] ?? 1);
+    $upName = $upcomingApprovedLeave['leave_name'] ?? $upcomingApprovedLeave['leave_type_name'] ?? 'Leave';
+    ?>
+    <div class="emp-upcoming-banner" role="status">
+        <div class="emp-upcoming-banner-meta">
+            <span class="text-muted"><?= icon('calendar-check', 16) ?></span>
+            <span class="font-medium text-main">Upcoming time off: <?= e($upName) ?></span>
+            <span class="text-muted" aria-hidden="true">&middot;</span>
+            <span class="text-muted tabular-nums">
+                <?= e($upStart) ?><?= $upStart !== $upEnd ? ' &ndash; ' . e($upEnd) : '' ?> (<?= $upDays ?> working <?= $upDays === 1 ? 'day' : 'days' ?>)
+            </span>
+        </div>
+        <a href="<?= url('/leaves/' . (int)$upcomingApprovedLeave['id']) ?>" class="emp-quiet-action">
+            <span>Details</span>
+            <?= icon('chevron-right', 14) ?>
+        </a>
+    </div>
+<?php endif; ?>
+
+<!-- Unified 4-Cell Executive Summary Strip -->
+<section class="emp-summary-strip" aria-label="Key Leave & Account Metrics">
+    <div class="emp-summary-cell">
+        <span class="emp-summary-label">Available Leave</span>
+        <div class="emp-summary-value-row">
+            <span class="emp-summary-value"><?= $totalRemaining ?></span>
+            <span class="emp-summary-unit">days remaining</span>
+        </div>
+        <span class="emp-summary-meta">Across <?= count($balances) ?> leave <?= count($balances) === 1 ? 'category' : 'categories' ?></span>
+    </div>
+
+    <div class="emp-summary-cell">
+        <span class="emp-summary-label">Days Used</span>
+        <div class="emp-summary-value-row">
+            <span class="emp-summary-value"><?= $totalUsed ?></span>
+            <span class="emp-summary-unit">of <?= $totalAllocated ?> allocated (<?= $annualUtilizationPct ?>%)</span>
+        </div>
+        <div class="progress-bar" role="progressbar" aria-valuenow="<?= $annualUtilizationPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Annual leave quota utilization">
+            <div class="progress-fill <?= $annualUtilizationPct >= 85 ? 'progress-warning' : '' ?>" style="width: <?= $annualUtilizationPct ?>%;"></div>
+        </div>
+    </div>
+
+    <div class="emp-summary-cell">
+        <span class="emp-summary-label">Pending Requests</span>
+        <div class="emp-summary-value-row">
+            <span class="emp-summary-value"><?= $pendingCount ?></span>
+            <span class="emp-summary-unit"><?= $pendingCount === 1 ? 'application' : 'applications' ?></span>
+        </div>
+        <span class="emp-summary-meta">
+            <?= $pendingCount > 0 ? 'Awaiting HR review' : 'No pending approvals' ?>
+        </span>
+    </div>
+
+    <div class="emp-summary-cell">
+        <span class="emp-summary-label">Unread Alerts</span>
+        <div class="emp-summary-value-row">
+            <span class="emp-summary-value"><?= $unreadCount ?></span>
+            <span class="emp-summary-unit"><?= $unreadCount === 1 ? 'notification' : 'notifications' ?></span>
+        </div>
+        <span class="emp-summary-meta">
+            <a href="<?= url('/notifications') ?>" class="text-primary font-medium">Open notification inbox &rarr;</a>
+        </span>
+    </div>
+</section>
+
+<!-- Leave Balances Section -->
+<div class="card mb-6">
     <div class="card-header">
-        <h2 class="card-title"><span>⚖️</span> My Leave Balances (<?= date('Y') ?> Allocation)</h2>
-        <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-secondary btn-sm">JSON API View</a>
+        <div class="card-title-group">
+            <h2 class="card-title">My Leave Balances</h2>
+            <p class="card-subtitle">Available entitlements for the <?= date('Y') ?> leave cycle</p>
+        </div>
+        <a href="<?= url('/employee/leave-balances') ?>" class="emp-quiet-action">
+            <span>Balance details</span>
+            <?= icon('chevron-right', 14) ?>
+        </a>
     </div>
     <div class="card-body">
-        <?php if (empty($balances)): ?>
-            <div class="empty-state" style="padding: 1.5rem;">
-                <div class="empty-state-icon" aria-hidden="true">📅</div>
-                <div class="empty-state-title">No Leave Balances Configured</div>
-                <div class="empty-state-text">Your annual leave balances have not yet been initialized by HR for the current year.</div>
-            </div>
-        <?php else: ?>
-            <div class="grid grid-cols-3">
-                <?php foreach ($balances as $b): 
-                    $allocated = (int)($b['allocated_days'] ?? 0);
-                    $used = (int)($b['used_days'] ?? 0);
-                    $remaining = (int)($b['remaining_days'] ?? 0);
-                    $pct = $allocated > 0 ? min(100, round(($used / $allocated) * 100)) : 0;
-                ?>
-                    <div class="balance-card">
-                        <div class="balance-title">
-                            <strong><?= e($b['leave_name']) ?></strong>
-                            <span class="badge <?= $remaining > 3 ? 'badge-success' : ($remaining > 0 ? 'badge-warning' : 'badge-danger') ?>">
-                                <?= $remaining ?> Day<?= $remaining === 1 ? '' : 's' ?> Left
-                            </span>
+        <?php if (!empty($balances)) : ?>
+            <div class="emp-entitlement-grid">
+                <?php foreach ($balances as $bal) :
+                    $rawAllocated = (int)($bal['allocated_days'] ?? 0);
+                    $allocated = max(1, $rawAllocated);
+                    $used = (int)($bal['used_days'] ?? 0);
+                    $remaining = (int)($bal['remaining_days'] ?? 0);
+                    $pctUsed = $rawAllocated > 0 ? min(100, (int)round(($used / $allocated) * 100)) : 0;
+                    $leaveTypeId = (int)($bal['leave_type_id'] ?? 0);
+                    $leaveName = $bal['leave_name'] ?? $bal['leave_type_name'] ?? 'Leave';
+
+                    $barState = '';
+                    if ($remaining === 0) {
+                        $barState = 'progress-danger';
+                    } elseif ($pctUsed >= 75) {
+                        $barState = 'progress-warning';
+                    }
+                    ?>
+                    <div class="emp-entitlement-card <?= $remaining === 0 ? 'is-exhausted' : '' ?>">
+                        <div class="emp-entitlement-top">
+                            <span class="emp-entitlement-name"><?= e($leaveName) ?></span>
+                            <?php if ($remaining > 0) : ?>
+                                <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>" class="emp-entitlement-action">
+                                    Apply &rarr;
+                                </a>
+                            <?php else : ?>
+                                <span class="emp-entitlement-exhausted" title="Annual quota exhausted for the <?= date('Y') ?> leave cycle">
+                                    Exhausted
+                                </span>
+                            <?php endif; ?>
                         </div>
-                        <div class="balance-meter" role="progressbar" aria-valuenow="<?= $pct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($b['leave_name']) ?> usage">
-                            <div class="balance-fill" style="width: <?= $pct ?>%; background-color: <?= $remaining > 3 ? 'var(--color-primary)' : 'var(--color-warning)' ?>;"></div>
+
+                        <div class="emp-entitlement-main">
+                            <div>
+                                <span class="emp-entitlement-avail"><?= $remaining ?></span>
+                                <span class="emp-entitlement-avail-label"><?= $remaining === 1 ? 'day available' : 'days available' ?></span>
+                            </div>
+                            <span class="text-xs text-muted tabular-nums"><?= $used ?> of <?= $rawAllocated ?> used<?= $remaining === 0 ? ' &middot; Resets Jan 1' : '' ?></span>
                         </div>
-                        <div class="balance-stats">
-                            <span>Allocated: <strong><?= $allocated ?></strong></span>
-                            <span>Used: <strong><?= $used ?></strong></span>
-                            <span>Remaining: <strong><?= $remaining ?></strong></span>
+
+                        <div class="progress-bar" role="progressbar" aria-valuenow="<?= $pctUsed ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($leaveName) ?> utilization">
+                            <div class="progress-fill <?= $barState ?>" style="width: <?= $pctUsed ?>%;"></div>
                         </div>
                     </div>
                 <?php endforeach; ?>
+            </div>
+        <?php else : ?>
+            <div class="empty-state">
+                <div class="empty-state-icon"><?= icon('calendar', 36) ?></div>
+                <h3 class="empty-state-title">No Leave Entitlements Assigned</h3>
+                <p class="empty-state-desc">Your annual leave allocations have not been initialized yet. Please contact HR if you need assistance.</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
-<!-- Recent Personal Leave Requests -->
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title"><span>📋</span> My Leave Applications & Status</h2>
-        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
-            <span>➕</span> New Request
-        </a>
+<!-- Main Two-Column Workbench Grid: Recent Requests & Notifications -->
+<div class="emp-workspace-grid">
+    <!-- Left Column: Interactive Recent Leave Applications Workbench -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title-group">
+                <h2 class="card-title">Recent Leave Applications</h2>
+                <p class="card-subtitle">Filter status or manage pending requests</p>
+            </div>
+            <a href="<?= url('/employee/leave-requests') ?>" class="emp-quiet-action">
+                <span>View all</span>
+                <?= icon('chevron-right', 14) ?>
+            </a>
+        </div>
+
+        <?php if (!empty($recentRequestsSlice)) : ?>
+            <div class="emp-filter-toolbar">
+                <div class="emp-filter-pills" role="tablist" aria-label="Filter recent leave applications by status">
+                    <button type="button" class="emp-filter-pill active" data-dash-req-filter="all" role="tab" aria-selected="true" aria-controls="dashRecentRequestsTable" tabindex="0">
+                        <span>All</span>
+                        <span class="emp-filter-count"><?= $statusCounts['all'] ?></span>
+                    </button>
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Pending" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                        <span>Pending</span>
+                        <span class="emp-filter-count"><?= $statusCounts['Pending'] ?></span>
+                    </button>
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Approved" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                        <span>Approved</span>
+                        <span class="emp-filter-count"><?= $statusCounts['Approved'] ?></span>
+                    </button>
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Rejected" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                        <span>Rejected</span>
+                        <span class="emp-filter-count"><?= $statusCounts['Rejected'] ?></span>
+                    </button>
+                    <?php if ($statusCounts['Cancelled'] > 0) : ?>
+                        <button type="button" class="emp-filter-pill" data-dash-req-filter="Cancelled" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                            <span>Cancelled</span>
+                            <span class="emp-filter-count"><?= $statusCounts['Cancelled'] ?></span>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div class="card-body p-0">
+            <?php if (!empty($recentRequestsSlice)) : ?>
+                <div class="table-responsive">
+                    <table class="data-table" id="dashRecentRequestsTable">
+                        <thead>
+                            <tr>
+                                <th>Leave Type</th>
+                                <th>Dates</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($recentRequestsSlice as $req) :
+                                $reqId = (int)($req['id'] ?? 0);
+                                $status = $req['status'] ?? 'Pending';
+                                $badgeClass = match ($status) {
+                                    'Approved'  => 'badge-success',
+                                    'Rejected'  => 'badge-danger',
+                                    'Cancelled' => 'badge-neutral',
+                                    default     => 'badge-warning',
+                                };
+                                $startFormatted = !empty($req['start_date']) ? date('M j, Y', strtotime($req['start_date'])) : '—';
+                                $endFormatted = !empty($req['end_date']) ? date('M j, Y', strtotime($req['end_date'])) : '—';
+                                $days = (int)($req['number_of_days'] ?? $req['total_days'] ?? 1);
+                                $reqTypeName = $req['leave_name'] ?? $req['leave_type_name'] ?? 'Leave';
+                                $dateRangeLabel = $startFormatted . ($startFormatted !== $endFormatted ? ' – ' . $endFormatted : '');
+                                ?>
+                                <tr data-dash-req-status="<?= e($status) ?>">
+                                    <td>
+                                        <div class="font-semibold text-main"><?= e($reqTypeName) ?></div>
+                                        <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
+                                            <div class="text-xs text-danger mt-1">Note: <?= e(mb_strimwidth($req['rejection_reason'], 0, 55, '...')) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-sm tabular-nums whitespace-nowrap">
+                                        <?= e($startFormatted) ?>
+                                        <?php if ($startFormatted !== $endFormatted) : ?>
+                                            <span class="text-muted">&ndash;</span> <?= e($endFormatted) ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="tabular-nums whitespace-nowrap">
+                                        <span class="font-medium"><?= $days ?></span>
+                                        <span class="text-muted text-xs"><?= $days === 1 ? 'day' : 'days' ?></span>
+                                    </td>
+                                    <td>
+                                        <span class="badge <?= $badgeClass ?> badge-dot"><?= e($status) ?></span>
+                                    </td>
+                                    <td class="text-right whitespace-nowrap">
+                                        <div class="inline-flex items-center gap-2">
+                                            <a href="<?= url('/leaves/' . $reqId) ?>" class="emp-quiet-action">
+                                                View
+                                            </a>
+                                            <?php if ($status === 'Pending') : ?>
+                                                <button
+                                                    type="button"
+                                                    class="emp-quiet-action emp-quiet-action-danger js-dash-cancel-leave"
+                                                    data-leave-id="<?= $reqId ?>"
+                                                    data-leave-type="<?= e($reqTypeName) ?>"
+                                                    data-leave-dates="<?= e($dateRangeLabel) ?>"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="dashRequestsFilterEmpty" class="empty-state" style="display: none;">
+                    <div class="empty-state-icon"><?= icon('search', 32) ?></div>
+                    <h3 class="empty-state-title">No Matching Requests</h3>
+                    <p class="empty-state-desc">No recent applications match the selected status filter.</p>
+                </div>
+            <?php else : ?>
+                <div class="empty-state">
+                    <div class="empty-state-icon"><?= icon('file-text', 36) ?></div>
+                    <h3 class="empty-state-title">No Leave Applications Yet</h3>
+                    <p class="empty-state-desc">When you submit a leave request, its approval progress and details will appear here.</p>
+                    <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
+                        <?= icon('plus', 15) ?>
+                        <span>File Leave Request</span>
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover" aria-label="My Recent Leave Applications">
-            <thead>
-                <tr>
-                    <th>Leave Type</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Duration</th>
-                    <th>Reason / Notes</th>
-                    <th>Approval Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($pendingLeaves)): ?>
-                    <tr>
-                        <td colspan="6" class="text-center" style="padding: 2.5rem; color: var(--color-text-muted);">
-                            <div class="empty-state-icon" aria-hidden="true" style="font-size: 2rem; margin-bottom: 0.5rem;">🏖️</div>
-                            <div>You have no recent leave applications filed.</div>
-                            <div style="margin-top: 0.5rem;">
-                                <a href="<?= url('/leaves/apply') ?>" class="btn btn-outline btn-sm">Submit a Leave Request</a>
-                            </div>
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($pendingLeaves as $req): 
-                        $status = $req['status'] ?? 'Pending';
-                        $statusBadgeClass = match($status) {
-                            'Approved' => 'badge-success',
-                            'Pending'  => 'badge-warning',
-                            'Rejected' => 'badge-danger',
-                            default    => 'badge-neutral',
-                        };
-                    ?>
-                        <tr>
-                            <td>
-                                <strong><?= e($req['leave_name']) ?></strong>
-                            </td>
-                            <td style="font-size: 0.8125rem;">
-                                <?= date('M j, Y', strtotime($req['start_date'])) ?>
-                            </td>
-                            <td style="font-size: 0.8125rem;">
-                                <?= date('M j, Y', strtotime($req['end_date'])) ?>
-                            </td>
-                            <td>
-                                <strong><?= (int)$req['number_of_days'] ?></strong> Day<?= (int)$req['number_of_days'] === 1 ? '' : 's' ?>
-                            </td>
-                            <td style="font-size: 0.8125rem; color: var(--color-text-muted); max-width: 250px;">
-                                <?= e($req['reason']) ?>
-                            </td>
-                            <td>
-                                <span class="badge <?= $statusBadgeClass ?>">
-                                    <span class="badge-dot" aria-hidden="true"></span>
-                                    <?= e($status) ?>
-                                </span>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
+
+    <!-- Right Column: Recent Updates & Alert Triage -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title-group">
+                <h2 class="card-title">Recent Updates</h2>
+                <p class="card-subtitle">Approvals &amp; account alerts</p>
+            </div>
+            <div class="inline-flex items-center gap-2">
+                <?php if ($unreadCount > 0) : ?>
+                    <form method="POST" action="<?= url('/notifications/mark-all-read') ?>">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="emp-quiet-action" title="Mark all notifications as read">
+                            <span>Mark all read</span>
+                        </button>
+                    </form>
                 <?php endif; ?>
-            </tbody>
-        </table>
+                <a href="<?= url('/notifications') ?>" class="emp-quiet-action">
+                    <span>Inbox<?= $unreadCount > 0 ? ' (' . $unreadCount . ')' : '' ?></span>
+                    <?= icon('chevron-right', 14) ?>
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <?php if (!empty($notifications)) : ?>
+                <div class="emp-notif-list">
+                    <?php foreach ($notifications as $notif) :
+                        $notifId = (int)($notif['id'] ?? 0);
+                        $isUnread = empty($notif['is_read']);
+                        $type = strtolower($notif['type'] ?? 'info');
+                        $iconName = match ($type) {
+                            'success' => 'check-circle',
+                            'warning' => 'alert-triangle',
+                            'error', 'danger' => 'x-circle',
+                            default   => 'bell',
+                        };
+                        $iconTone = match ($type) {
+                            'success' => 'emp-notif-icon-success',
+                            'warning' => 'emp-notif-icon-warning',
+                            'error', 'danger' => 'emp-notif-icon-danger',
+                            default   => 'emp-notif-icon-info',
+                        };
+                        $createdStr = !empty($notif['created_at']) ? date('M j, g:i A', strtotime($notif['created_at'])) : '';
+                        ?>
+                        <div class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>">
+                            <div class="emp-notif-icon <?= $iconTone ?>">
+                                <?= icon($iconName, 16) ?>
+                            </div>
+                            <div class="emp-notif-content">
+                                <div class="emp-notif-title-row">
+                                    <span class="emp-notif-title">
+                                        <?php if ($isUnread) : ?>
+                                            <span class="emp-unread-dot" aria-hidden="true" title="Unread"></span>
+                                            <span class="sr-only">Unread: </span>
+                                        <?php endif; ?>
+                                        <?= e($notif['title'] ?? 'System Notification') ?>
+                                    </span>
+                                    <span class="emp-notif-time"><?= e($createdStr) ?></span>
+                                </div>
+                                <p class="emp-notif-msg"><?= e($notif['message'] ?? '') ?></p>
+                            </div>
+                            <?php if ($isUnread && $notifId > 0) : ?>
+                                <div class="emp-notif-actions">
+                                    <form method="POST" action="<?= url('/notifications/' . $notifId . '/read') ?>">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="emp-quiet-action" title="Mark notification as read">
+                                            Mark read
+                                        </button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else : ?>
+                <div class="empty-state">
+                    <div class="empty-state-icon"><?= icon('bell', 32) ?></div>
+                    <h3 class="empty-state-title">You're All Caught Up</h3>
+                    <p class="empty-state-desc">Notifications about your leave approvals and profile updates will appear here.</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
+
+<!-- Accessible Pending Leave Cancellation Modal -->
+<div class="modal-backdrop" id="dashCancelLeaveModal" role="dialog" aria-modal="true" aria-labelledby="dashCancelModalTitle" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="dashCancelModalTitle">Cancel Pending Leave Request</h2>
+            <button type="button" class="modal-close" id="closeDashCancelModalBtn" aria-label="Close dialog">
+                <?= icon('x', 18) ?>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="text-sm text-main mb-3">
+                Are you sure you want to withdraw your pending <strong id="dashCancelLeaveType">Leave</strong> application for <strong id="dashCancelLeaveDates"></strong>?
+            </p>
+            <p class="text-xs text-muted">
+                This request will be marked as Cancelled and removed from the HR review queue immediately.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="dismissDashCancelModalBtn">Keep Application</button>
+            <form method="POST" action="" id="dashCancelLeaveForm">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Inline Status Filter for Recent Leave Applications (with WAI-ARIA keyboard roving tabindex)
+    const filterPills = Array.from(document.querySelectorAll('[data-dash-req-filter]'));
+    const reqTable = document.getElementById('dashRecentRequestsTable');
+    const emptyState = document.getElementById('dashRequestsFilterEmpty');
+
+    function activateFilterPill(pill, moveFocus) {
+        if (!pill) return;
+        const targetStatus = pill.getAttribute('data-dash-req-filter') || 'all';
+
+        filterPills.forEach(function (p) {
+            const isTarget = p === pill;
+            p.classList.toggle('active', isTarget);
+            p.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+            p.setAttribute('tabindex', isTarget ? '0' : '-1');
+        });
+
+        if (moveFocus) {
+            pill.focus();
+        }
+
+        if (!reqTable) return;
+        const rows = reqTable.querySelectorAll('tbody tr');
+        let visibleRows = 0;
+
+        rows.forEach(function (row) {
+            const rowStatus = row.getAttribute('data-dash-req-status') || '';
+            if (targetStatus === 'all' || rowStatus === targetStatus) {
+                row.style.display = '';
+                visibleRows++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (emptyState) {
+            emptyState.style.display = visibleRows === 0 ? 'block' : 'none';
+        }
+    }
+
+    filterPills.forEach(function (pill, idx) {
+        pill.addEventListener('click', function () {
+            activateFilterPill(pill, false);
+        });
+
+        pill.addEventListener('keydown', function (e) {
+            if (filterPills.length === 0) return;
+            let nextIndex = null;
+            if (e.key === 'ArrowRight') {
+                nextIndex = (idx + 1) % filterPills.length;
+            } else if (e.key === 'ArrowLeft') {
+                nextIndex = (idx - 1 + filterPills.length) % filterPills.length;
+            } else if (e.key === 'Home') {
+                nextIndex = 0;
+            } else if (e.key === 'End') {
+                nextIndex = filterPills.length - 1;
+            }
+            if (nextIndex !== null) {
+                e.preventDefault();
+                activateFilterPill(filterPills[nextIndex], true);
+            }
+        });
+    });
+
+    // 2. Accessible Pending Leave Cancellation Modal (with focus restoration & focus trap)
+    const modal = document.getElementById('dashCancelLeaveModal');
+    const cancelForm = document.getElementById('dashCancelLeaveForm');
+    const typeLabel = document.getElementById('dashCancelLeaveType');
+    const datesLabel = document.getElementById('dashCancelLeaveDates');
+    const closeBtn = document.getElementById('closeDashCancelModalBtn');
+    const dismissBtn = document.getElementById('dismissDashCancelModalBtn');
+    const baseCancelUrl = <?= json_encode(url('/leaves/')) ?>;
+    let lastTriggerBtn = null;
+
+    function closeDashModal() {
+        if (!modal) return;
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        if (lastTriggerBtn && typeof lastTriggerBtn.focus === 'function') {
+            lastTriggerBtn.focus();
+            lastTriggerBtn = null;
+        }
+    }
+
+    document.querySelectorAll('.js-dash-cancel-leave').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            lastTriggerBtn = btn;
+            const leaveId = btn.getAttribute('data-leave-id');
+            const leaveType = btn.getAttribute('data-leave-type') || 'Leave';
+            const leaveDates = btn.getAttribute('data-leave-dates') || '';
+
+            if (cancelForm && leaveId) {
+                cancelForm.action = baseCancelUrl.replace(/\/$/, '') + '/' + encodeURIComponent(leaveId) + '/cancel';
+            }
+            if (typeLabel) typeLabel.textContent = leaveType;
+            if (datesLabel) datesLabel.textContent = leaveDates;
+
+            if (modal) {
+                modal.classList.add('show');
+                modal.setAttribute('aria-hidden', 'false');
+                if (dismissBtn) {
+                    dismissBtn.focus();
+                }
+            }
+        });
+    });
+
+    if (cancelForm) {
+        cancelForm.addEventListener('submit', function () {
+            const submitBtn = cancelForm.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('is-loading');
+                submitBtn.textContent = 'Cancelling...';
+            }
+        });
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', closeDashModal);
+    if (dismissBtn) dismissBtn.addEventListener('click', closeDashModal);
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) closeDashModal();
+        });
+    }
+    document.addEventListener('keydown', function (e) {
+        if (!modal || !modal.classList.contains('show')) return;
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeDashModal();
+        } else if (e.key === 'Tab') {
+            const focusable = modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled])');
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+    });
+});
+</script>

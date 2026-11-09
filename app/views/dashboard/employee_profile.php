@@ -1,104 +1,143 @@
 <?php
 /**
- * Employee Personal Profile View (Self-Service)
- * Employee HRIS & Leave Management System
+ * Employee Self-Service: My Profile
+ * Structured employment record and personal contact details with zero field duplication.
  */
+$user = $user ?? currentUser() ?? [];
+$emp = $profile ?? $employee ?? null;
 
-$empNo = $profile['employee_no'] ?? 'N/A';
-$fullName = ($profile['first_name'] ?? '') . ' ' . ($profile['last_name'] ?? '');
-$status = $profile['employment_status'] ?? 'Active';
+$fullName = $emp
+    ? trim(($emp['first_name'] ?? '') . ' ' . ($emp['last_name'] ?? ''))
+    : ($user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Employee');
+
+$initials = 'EM';
+if ($emp && !empty($emp['first_name']) && !empty($emp['last_name'])) {
+    $initials = strtoupper(substr($emp['first_name'], 0, 1) . substr($emp['last_name'], 0, 1));
+} elseif (!empty($fullName)) {
+    $initialsParts = explode(' ', $fullName);
+    $initials = strtoupper(substr($initialsParts[0], 0, 1) . (isset($initialsParts[1]) ? substr($initialsParts[1], 0, 1) : ''));
+}
+
+$status = $emp['employment_status'] ?? $emp['status'] ?? 'Active';
+$positionTitle = $emp['position_name'] ?? $emp['position'] ?? 'Staff Member';
+$statusBadge = $status === 'Active' ? 'badge-success' : 'badge-neutral';
+$hireDateFormatted = (!empty($emp['hire_date'])) ? date('F j, Y', strtotime($emp['hire_date'])) : 'Not specified';
 ?>
+
+<!-- Page Header -->
 <div class="page-header">
-    <div class="page-title-group">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem;">
-            <h1>My Employee Profile</h1>
-            <span class="role-badge emp">EMPLOYEE RECORD</span>
-        </div>
-        <p>Personal employment record and organizational assignment details.</p>
+    <div>
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">Your official employment record and contact information on file</p>
     </div>
     <div class="page-actions">
-        <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary btn-sm">
-            <span>←</span> Back to Dashboard
-        </a>
-        <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-primary btn-sm">
-            <span>⚖️</span> View Balances
+        <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary">
+            <?= icon('arrow-left', 16) ?>
+            <span>Back to Dashboard</span>
         </a>
     </div>
 </div>
 
-<div class="grid grid-cols-3" style="align-items: start;">
-    <!-- Profile Card (Left Column) -->
-    <div class="card">
-        <div class="card-body" style="text-align: center; padding: 2rem 1.5rem;">
-            <div style="width: 72px; height: 72px; border-radius: var(--radius-full); background: #334155; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 700; margin-bottom: 1rem; border: 3px solid #BFDBFE;">
-                <?= strtoupper(substr($profile['first_name'] ?? 'E', 0, 1) . substr($profile['last_name'] ?? 'P', 0, 1)) ?>
+<?php if ($emp) : ?>
+    <div class="emp-profile-grid">
+        <!-- Left Identity Card -->
+        <div class="card emp-identity-card">
+            <div class="emp-avatar-lg" aria-hidden="true"><?= e($initials) ?></div>
+            <h2 class="emp-identity-name"><?= e($fullName) ?></h2>
+            <p class="emp-identity-role"><?= e($positionTitle) ?></p>
+
+            <div class="inline-flex items-center gap-2">
+                <span class="badge <?= $statusBadge ?> badge-dot"><?= e($status) ?></span>
+                <span class="emp-id-chip"><?= e($emp['employee_no'] ?? 'EMP') ?></span>
             </div>
-            <h2 style="font-size: 1.25rem; margin-bottom: 0.25rem;"><?= e($fullName) ?></h2>
-            <div style="font-size: 0.875rem; color: var(--color-text-muted); margin-bottom: 0.75rem;">
-                <?= e($profile['position_name'] ?? 'Position Unassigned') ?>
-            </div>
-            <div style="margin-bottom: 1rem;">
-                <span class="badge <?= $status === 'Active' ? 'badge-success' : 'badge-danger' ?>">
-                    <span class="badge-dot" aria-hidden="true"></span>
-                    <?= e($status) ?>
-                </span>
-            </div>
-            <div style="font-family: var(--font-mono); font-size: 0.875rem; font-weight: 600; color: var(--color-primary); background: var(--color-bg-muted); padding: 0.35rem 0.75rem; border-radius: var(--radius-md); display: inline-block;">
-                <?= e($empNo) ?>
+
+            <div class="emp-identity-Quicklinks">
+                <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-secondary btn-sm w-full justify-between">
+                    <span>View Leave Balances</span>
+                    <?= icon('chevron-right', 14) ?>
+                </a>
+                <a href="<?= url('/employee/leave-requests') ?>" class="btn btn-secondary btn-sm w-full justify-between">
+                    <span>My Leave Requests</span>
+                    <?= icon('chevron-right', 14) ?>
+                </a>
             </div>
         </div>
-        <div class="card-footer" style="flex-direction: column; align-items: stretch; gap: 0.5rem; text-align: center;">
-            <span style="font-size: 0.75rem; color: var(--color-text-muted);">
-                Hire Date: <strong><?= !empty($profile['date_hired']) ? date('F j, Y', strtotime($profile['date_hired'])) : 'Not recorded' ?></strong>
-            </span>
-        </div>
-    </div>
 
-    <!-- Detailed Information Panel (Spans 2 columns) -->
-    <div class="card" style="grid-column: span 2;">
-        <div class="card-header">
-            <h2 class="card-title"><span>📋</span> Personal & Organizational Information</h2>
-            <span style="font-size: 0.75rem; color: var(--color-text-muted);">Confidential Personal Record</span>
-        </div>
-        <div class="card-body">
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Employee Number:</div>
-                <div style="font-family: var(--font-mono); font-weight: 700; color: var(--color-primary);"><?= e($empNo) ?></div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Email Address:</div>
-                <div><?= e($profile['email'] ?? 'Not recorded') ?></div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Department:</div>
-                <div><strong><?= e($profile['department_name'] ?? 'Unassigned') ?></strong></div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Job Position:</div>
-                <div><?= e($profile['position_name'] ?? 'Unassigned') ?></div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Employment Status:</div>
-                <div>
-                    <span class="badge <?= $status === 'Active' ? 'badge-success' : 'badge-danger' ?>">
-                        <?= e($status) ?>
-                    </span>
+        <!-- Right Details Stack -->
+        <div class="flex flex-col gap-6">
+            <!-- Employment & Organization Details -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h3 class="card-title">Employment &amp; Organization</h3>
+                        <p class="card-subtitle">Role classification, department assignment, and tenure</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="emp-dl-grid">
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Employee ID</span>
+                            <span class="emp-dl-value tabular-nums"><?= e($emp['employee_no'] ?? '—') ?></span>
+                        </div>
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Employment Status</span>
+                            <span class="emp-dl-value"><?= e($status) ?></span>
+                        </div>
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Department</span>
+                            <span class="emp-dl-value"><?= e($emp['department_name'] ?? 'Unassigned') ?></span>
+                        </div>
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Job Position</span>
+                            <span class="emp-dl-value"><?= e($positionTitle) ?></span>
+                        </div>
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Date Hired</span>
+                            <span class="emp-dl-value"><?= e($hireDateFormatted) ?></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid var(--color-border-subtle);">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Contact Phone:</div>
-                <div><?= e($profile['phone'] ?? '—') ?></div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 180px 1fr; gap: 1rem; padding: 0.75rem 0;">
-                <div style="font-weight: 600; color: var(--color-text-muted); font-size: 0.8125rem;">Permanent Address:</div>
-                <div><?= e($profile['address'] ?? '—') ?></div>
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title-group">
+                        <h3 class="card-title">Contact Information</h3>
+                        <p class="card-subtitle">Primary communication channels and registered address</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="emp-dl-grid">
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Work Email</span>
+                            <span class="emp-dl-value"><?= e($emp['email'] ?? '—') ?></span>
+                        </div>
+                        <div class="emp-dl-row">
+                            <span class="emp-dl-label">Phone Number</span>
+                            <span class="emp-dl-value tabular-nums"><?= e(!empty($emp['phone']) ? $emp['phone'] : 'Not provided') ?></span>
+                        </div>
+                        <div class="emp-dl-row" style="grid-column: 1 / -1;">
+                            <span class="emp-dl-label">Registered Address</span>
+                            <span class="emp-dl-value"><?= e(!empty($emp['address']) ? $emp['address'] : 'Not provided') ?></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer flex items-center gap-2 text-xs text-muted">
+                    <?= icon('info', 15) ?>
+                    <span>Employment and personal records are maintained by HR Administration. Contact your HR representative to request updates to your official record.</span>
+                </div>
             </div>
         </div>
     </div>
-</div>
+<?php else : ?>
+    <div class="card">
+        <div class="card-body">
+            <div class="empty-state">
+                <div class="empty-state-icon"><?= icon('user', 40) ?></div>
+                <h3 class="empty-state-title">Employee Record Not Linked</h3>
+                <p class="empty-state-desc">Your user account does not have an active employee profile linked yet. Please contact HR Administration for assistance.</p>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>

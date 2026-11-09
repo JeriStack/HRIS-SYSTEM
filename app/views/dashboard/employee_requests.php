@@ -1,154 +1,307 @@
 <?php
 /**
- * Employee Personal Leave Applications History View
- * Employee HRIS & Leave Management System - Phase 8
+ * Employee Self-Service: My Leave Requests
+ * Filterable table of leave applications with status badges, details view, and safe cancellation modal.
  */
+$requests = $requests ?? $leaveRequests ?? [];
 
-$userName = $user['name'] ?? $user['username'] ?? 'Employee';
-$empNo = $user['employee_no'] ?? 'EMP-Self';
+$counts = [
+    'all'       => count($requests),
+    'Pending'   => 0,
+    'Approved'  => 0,
+    'Rejected'  => 0,
+    'Cancelled' => 0,
+];
+foreach ($requests as $r) {
+    $st = $r['status'] ?? 'Pending';
+    if (isset($counts[$st])) {
+        $counts[$st]++;
+    }
+}
 ?>
 
+<!-- Page Header -->
 <div class="page-header">
-    <div class="page-title-group">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
-            <h1>My Leave Requests</h1>
-            <span class="role-badge emp" style="font-weight: 700; letter-spacing: 0.05em;">EMPLOYEE SELF-SERVICE</span>
-        </div>
-        <p>Complete history of your filed leave applications, current status, and adjudication notes &bull; Employee ID: <strong style="color: var(--color-primary); font-family: var(--font-mono);"><?= e($empNo) ?></strong></p>
+    <div>
+        <h1 class="page-title">My Leave Requests</h1>
+        <p class="page-subtitle">Track approval status, review notes, and history of your leave applications</p>
     </div>
     <div class="page-actions">
-        <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-secondary btn-sm">
-            <span>⚖️</span> My Leave Balances
+        <a href="<?= url('/employee/leave-balances') ?>" class="btn btn-secondary">
+            <?= icon('calendar-check', 16) ?>
+            <span>Leave Balances</span>
         </a>
-        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
-            <span>✍️</span> File New Leave Request
+        <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary">
+            <?= icon('plus', 16) ?>
+            <span>File Leave Request</span>
         </a>
     </div>
 </div>
-
-<?php if (!empty($historyArray)): ?>
-    <!-- Chronological Leave Timeline Display -->
-    <div class="card" style="margin-bottom: var(--space-4); padding: 0.85rem 1.25rem; background: var(--color-bg-muted);">
-        <div style="font-size: 0.725rem; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">
-            📅 Chronological Leave Timeline (<?= count($historyArray) ?> Record<?= count($historyArray) === 1 ? '' : 's' ?>)
-        </div>
-        <div style="display: flex; gap: 0.5rem; align-items: center; overflow-x: auto; padding-bottom: 0.25rem;">
-            <?php foreach ($historyArray as $idx => $node): ?>
-                <div style="background: var(--color-bg-surface); border: 1px solid var(--color-border); padding: 0.35rem 0.65rem; border-radius: var(--radius-md); font-size: 0.8125rem; white-space: nowrap;">
-                    <strong style="color: var(--color-primary);">#LR-<?= str_pad((string)$node['id'], 3, '0', STR_PAD_LEFT) ?></strong>
-                    <span style="color: var(--color-text-muted); margin-left: 0.25rem;"><?= e($node['leave_name'] ?? 'Leave') ?> (<?= (int)$node['number_of_days'] ?>d)</span>
-                </div>
-                <?php if ($idx < count($historyArray) - 1): ?>
-                    <span style="color: var(--color-text-muted); font-weight: 700;">&rarr;</span>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        </div>
-    </div>
-<?php endif; ?>
 
 <!-- Requests Table Card -->
 <div class="card">
-    <div class="card-header">
-        <h2 class="card-title">
-            <span>📋</span> My Leave Applications History
-        </h2>
-        <span style="font-size: 0.8125rem; color: var(--color-text-muted);">
-            <?= count($requests) ?> Request<?= count($requests) === 1 ? '' : 's' ?> Recorded
-        </span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-hover" aria-label="My Personal Leave Requests">
-            <thead>
-                <tr>
-                    <th>Ref #</th>
-                    <th>Leave Classification</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Duration</th>
-                    <th>Reason / Notes</th>
-                    <th>Date Filed</th>
-                    <th>Status</th>
-                    <th style="text-align: right;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($requests)): ?>
-                    <tr>
-                        <td colspan="9" class="text-center" style="padding: 3rem; color: var(--color-text-muted);">
-                            <div style="font-size: 2.5rem; margin-bottom: var(--space-2);" aria-hidden="true">🏖️</div>
-                            <h3 style="font-size: var(--font-size-base); font-weight: 600; color: var(--color-text-main); margin-bottom: var(--space-1);">No Leave Applications Found</h3>
-                            <p style="margin: 0 0 var(--space-4) 0; font-size: var(--font-size-sm);">You haven't filed any leave requests yet.</p>
-                            <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">File Your First Leave Request</a>
-                        </td>
-                    </tr>
-                <?php else: ?>
-                    <?php foreach ($requests as $r): 
-                        $status = $r['status'] ?? 'Pending';
-                        $badgeClass = match($status) {
-                            'Approved'  => 'badge-success',
-                            'Pending'   => 'badge-warning',
-                            'Rejected'  => 'badge-danger',
-                            'Cancelled' => 'badge-neutral',
-                            default     => 'badge-neutral',
-                        };
-                    ?>
-                        <tr>
-                            <td>
-                                <a href="<?= url('/leaves/' . $r['id']) ?>" style="font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 700; color: var(--color-primary); text-decoration: none;">
-                                    #LR-<?= str_pad((string)$r['id'], 3, '0', STR_PAD_LEFT) ?>
-                                </a>
-                            </td>
-                            <td>
-                                <strong><?= e($r['leave_name']) ?></strong>
-                            </td>
-                            <td>
-                                <?= date('M d, Y', strtotime($r['start_date'])) ?>
-                            </td>
-                            <td>
-                                <?= date('M d, Y', strtotime($r['end_date'])) ?>
-                            </td>
-                            <td>
-                                <strong><?= (int)$r['number_of_days'] ?></strong> working day<?= (int)$r['number_of_days'] === 1 ? '' : 's' ?>
-                            </td>
-                            <td style="max-width: 250px;">
-                                <span title="<?= e($r['reason']) ?>" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.8125rem;">
-                                    <?= e($r['reason']) ?>
-                                </span>
-                                <?php if ($status === 'Rejected' && !empty($r['rejection_reason'])): ?>
-                                    <div style="font-size: 0.725rem; color: var(--color-danger); margin-top: 3px; font-style: italic;">
-                                        Reason: <?= e($r['rejection_reason']) ?>
-                                    </div>
-                                <?php endif; ?>
-                            </td>
-                            <td style="font-size: 0.8125rem; color: var(--color-text-muted);">
-                                <?= date('M d, Y', strtotime($r['created_at'])) ?>
-                            </td>
-                            <td>
-                                <span class="badge <?= $badgeClass ?>">
-                                    <span class="badge-dot" aria-hidden="true"></span>
-                                    <?= e($status) ?>
-                                </span>
-                            </td>
-                            <td style="text-align: right;">
-                                <div class="table-actions" style="justify-content: flex-end;">
-                                    <a href="<?= url('/leaves/' . $r['id']) ?>" class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 3px 8px;">
-                                        View
-                                    </a>
+    <!-- Filter & Search Toolbar -->
+    <div class="emp-filter-toolbar">
+        <div class="emp-filter-pills" role="tablist" aria-label="Filter leave requests by status">
+            <button type="button" class="emp-filter-pill active" data-status-filter="all" role="tab" aria-selected="true">
+                <span>All</span>
+                <span class="emp-filter-count"><?= $counts['all'] ?></span>
+            </button>
+            <button type="button" class="emp-filter-pill" data-status-filter="Pending" role="tab" aria-selected="false">
+                <span>Pending</span>
+                <span class="emp-filter-count"><?= $counts['Pending'] ?></span>
+            </button>
+            <button type="button" class="emp-filter-pill" data-status-filter="Approved" role="tab" aria-selected="false">
+                <span>Approved</span>
+                <span class="emp-filter-count"><?= $counts['Approved'] ?></span>
+            </button>
+            <button type="button" class="emp-filter-pill" data-status-filter="Rejected" role="tab" aria-selected="false">
+                <span>Rejected</span>
+                <span class="emp-filter-count"><?= $counts['Rejected'] ?></span>
+            </button>
+            <button type="button" class="emp-filter-pill" data-status-filter="Cancelled" role="tab" aria-selected="false">
+                <span>Cancelled</span>
+                <span class="emp-filter-count"><?= $counts['Cancelled'] ?></span>
+            </button>
+        </div>
 
-                                    <?php if ($status === 'Pending'): ?>
-                                        <form action="<?= url('/leaves/' . $r['id'] . '/cancel') ?>" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to cancel this pending leave request?');">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-danger btn-sm" style="font-size: 0.75rem; padding: 3px 8px;">
+        <div class="emp-search-box">
+            <span class="emp-search-icon"><?= icon('search', 15) ?></span>
+            <input
+                type="search"
+                id="leaveRequestSearch"
+                class="form-control"
+                placeholder="Search type, dates, or reason..."
+                aria-label="Search leave requests"
+            >
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <?php if (!empty($requests)) : ?>
+            <div class="table-responsive">
+                <table class="data-table" id="employeeRequestsTable">
+                    <thead>
+                        <tr>
+                            <th>Ref #</th>
+                            <th>Leave Type</th>
+                            <th>Dates</th>
+                            <th>Duration</th>
+                            <th>Reason &amp; Review Notes</th>
+                            <th>Date Filed</th>
+                            <th>Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($requests as $req) :
+                            $id = (int)$req['id'];
+                            $status = $req['status'] ?? 'Pending';
+                            $badgeClass = match ($status) {
+                                'Approved'  => 'badge-success',
+                                'Rejected'  => 'badge-danger',
+                                'Cancelled' => 'badge-neutral',
+                                default     => 'badge-warning',
+                            };
+                            $startStr = !empty($req['start_date']) ? date('M j, Y', strtotime($req['start_date'])) : '—';
+                            $endStr = !empty($req['end_date']) ? date('M j, Y', strtotime($req['end_date'])) : '—';
+                            $filedStr = !empty($req['created_at']) ? date('M j, Y', strtotime($req['created_at'])) : '—';
+                            $days = (int)($req['number_of_days'] ?? $req['total_days'] ?? 1);
+                            $leaveName = $req['leave_name'] ?? $req['leave_type_name'] ?? 'Leave';
+                            ?>
+                            <tr data-request-status="<?= e($status) ?>">
+                                <td class="text-muted text-xs font-semibold tabular-nums">#<?= $id ?></td>
+                                <td>
+                                    <span class="font-semibold text-main"><?= e($leaveName) ?></span>
+                                </td>
+                                <td class="text-sm tabular-nums">
+                                    <div><?= e($startStr) ?></div>
+                                    <?php if ($startStr !== $endStr) : ?>
+                                        <div class="text-xs text-muted">to <?= e($endStr) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="tabular-nums">
+                                    <span class="font-semibold"><?= $days ?></span>
+                                    <span class="text-xs text-muted"><?= $days === 1 ? 'day' : 'days' ?></span>
+                                </td>
+                                <td style="max-width: 280px;">
+                                    <div class="text-sm text-main" style="word-break: break-word;">
+                                        <?= e(mb_strimwidth($req['reason'] ?? '—', 0, 85, '...')) ?>
+                                    </div>
+                                    <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
+                                        <div class="text-xs text-danger mt-1">
+                                            <strong>HR Note:</strong> <?= e($req['rejection_reason']) ?>
+                                        </div>
+                                    <?php elseif (!empty($req['approver_name']) && $status === 'Approved') : ?>
+                                        <div class="text-xs text-muted mt-1">
+                                            Approved by <?= e($req['approver_name']) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-xs text-muted tabular-nums"><?= e($filedStr) ?></td>
+                                <td>
+                                    <span class="badge <?= $badgeClass ?> badge-dot"><?= e($status) ?></span>
+                                </td>
+                                <td class="text-right">
+                                    <div class="inline-flex gap-2">
+                                        <a href="<?= url('/leaves/' . $id) ?>" class="btn btn-secondary btn-sm">
+                                            View
+                                        </a>
+                                        <?php if ($status === 'Pending') : ?>
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-danger btn-sm js-cancel-leave-btn"
+                                                data-leave-id="<?= $id ?>"
+                                                data-leave-type="<?= e($leaveName) ?>"
+                                                data-leave-dates="<?= e($startStr . ($startStr !== $endStr ? ' – ' . $endStr : '')) ?>"
+                                            >
                                                 Cancel
                                             </button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Filtered Empty State -->
+            <div id="requestsFilterEmpty" class="empty-state" style="display: none;">
+                <div class="empty-state-icon"><?= icon('search', 32) ?></div>
+                <h3 class="empty-state-title">No Matching Leave Requests</h3>
+                <p class="empty-state-desc">No applications match your selected status filter or search query.</p>
+            </div>
+        <?php else : ?>
+            <div class="empty-state">
+                <div class="empty-state-icon"><?= icon('file-text', 40) ?></div>
+                <h3 class="empty-state-title">No Leave Requests Submitted</h3>
+                <p class="empty-state-desc">You have not filed any leave applications yet. Click below to submit your first request.</p>
+                <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary">
+                    <?= icon('plus', 16) ?>
+                    <span>File Leave Request</span>
+                </a>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
+
+<!-- Accessible Cancellation Confirmation Modal -->
+<div class="modal-backdrop" id="cancelLeaveModal" role="dialog" aria-modal="true" aria-labelledby="cancelModalTitle" aria-hidden="true">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="cancelModalTitle">Cancel Leave Request</h2>
+            <button type="button" class="modal-close" id="closeCancelModalBtn" aria-label="Close dialog">
+                <?= icon('x', 18) ?>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="text-sm text-main mb-3">
+                Are you sure you want to cancel your pending <strong id="cancelModalLeaveType">Leave</strong> request for <strong id="cancelModalLeaveDates"></strong>?
+            </p>
+            <p class="text-xs text-muted">
+                This action will mark the request as Cancelled and remove it from the HR approval queue.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" id="dismissCancelModalBtn">Keep Request</button>
+            <form method="POST" action="" id="cancelLeaveForm" style="display: inline;">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const pills = document.querySelectorAll('[data-status-filter]');
+    const searchInput = document.getElementById('leaveRequestSearch');
+    const table = document.getElementById('employeeRequestsTable');
+    const emptyNotice = document.getElementById('requestsFilterEmpty');
+    let activeStatus = 'all';
+
+    function filterRows() {
+        if (!table) return;
+        const rows = table.querySelectorAll('tbody tr');
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        let visible = 0;
+
+        rows.forEach(function (row) {
+            const rowStatus = row.getAttribute('data-request-status') || '';
+            const matchesStatus = (activeStatus === 'all') || (rowStatus === activeStatus);
+            const matchesQuery = !query || row.textContent.toLowerCase().includes(query);
+
+            if (matchesStatus && matchesQuery) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (emptyNotice) {
+            emptyNotice.style.display = visible === 0 ? 'block' : 'none';
+        }
+    }
+
+    pills.forEach(function (pill) {
+        pill.addEventListener('click', function () {
+            pills.forEach(function (p) {
+                p.classList.remove('active');
+                p.setAttribute('aria-selected', 'false');
+            });
+            pill.classList.add('active');
+            pill.setAttribute('aria-selected', 'true');
+            activeStatus = pill.getAttribute('data-status-filter') || 'all';
+            filterRows();
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterRows);
+    }
+
+    // Cancellation Modal
+    const modal = document.getElementById('cancelLeaveModal');
+    const cancelForm = document.getElementById('cancelLeaveForm');
+    const typeSpan = document.getElementById('cancelModalLeaveType');
+    const datesSpan = document.getElementById('cancelModalLeaveDates');
+    const closeBtn = document.getElementById('closeCancelModalBtn');
+    const dismissBtn = document.getElementById('dismissCancelModalBtn');
+    const baseCancelUrl = <?= json_encode(url('/leaves/')) ?>;
+
+    function closeModal() {
+        if (!modal) return;
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    document.querySelectorAll('.js-cancel-leave-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const leaveId = btn.getAttribute('data-leave-id');
+            const leaveType = btn.getAttribute('data-leave-type') || 'Leave';
+            const leaveDates = btn.getAttribute('data-leave-dates') || '';
+
+            if (cancelForm) {
+                cancelForm.action = baseCancelUrl.replace(/\/$/, '') + '/' + encodeURIComponent(leaveId) + '/cancel';
+            }
+            if (typeSpan) typeSpan.textContent = leaveType;
+            if (datesSpan) datesSpan.textContent = leaveDates;
+
+            if (modal) {
+                modal.classList.add('show');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+        });
+    });
+
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (dismissBtn) dismissBtn.addEventListener('click', closeModal);
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) closeModal();
+        });
+    }
+});
+</script>
