@@ -3,7 +3,7 @@
 [![PHP Version](https://img.shields.io/badge/PHP-8.2%20--%208.5-blue.svg)](https://www.php.net/)
 [![Database](https://img.shields.io/badge/Database-MySQL%208.0%20InnoDB-orange.svg)](https://www.mysql.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-Custom%204--Tier%20MVC%20%7C%203--Role%20RBAC-green.svg)]()
-[![Backend Tests](https://img.shields.io/badge/PHPUnit-600%20Passed%20(100%25)-brightgreen.svg)]()
+[![Backend Tests](https://img.shields.io/badge/PHPUnit-669%20Tests%20(0%20Failures)-brightgreen.svg)]()
 [![Code Style](https://img.shields.io/badge/PSR--12-Baseline%20Enforced%20(0%20new)-success.svg)]()
 [![UI Tests](https://img.shields.io/badge/Selenium%20E2E-Passed%20(Brave%20%7C%20Chromium)-success.svg)]()
 
@@ -19,21 +19,24 @@ NEXORA HR maintains authoritative documentation centralized within [`docs/`](doc
 |---|---|
 | **[PRD.md](docs/01-core/PRD.md)** | **Product Requirements Document:** Business vision, functional requirements (FR-001–015), leave business rules, NFRs, and RTM table. |
 | **[ARCHITECTURE.md](docs/01-core/ARCHITECTURE.md)** | **System Architecture:** 4-tier MVC engine, database architecture, pessimistic locking, Transactional Outbox, and Mermaid diagrams. |
+| **[user-manual.md](docs/01-core/user-manual.md)** | **Three-Role User Manual:** Step-by-step operations for Admin, HR, and Employee roles with permissions, expected outcomes, and screenshot references. |
 | **[RULES.md](docs/01-core/RULES.md)** | **Engineering & AI Agent Rules:** Mandatory 3-role constraints under ADR-012, PSR-12 standards, operational safety, and prohibited actions. |
 | **[DESIGN.md](docs/01-core/DESIGN.md)** | **UI/UX Design System:** Color tokens, typography, spatial grid, responsive App Shell, and WCAG 2.1 AA accessibility guidelines. |
-| **[TASK.md](docs/01-core/TASK.md)** | **Roadmap & Progress Tracking:** Phase breakdown (Phases 1–12), verified test metrics (600 passing tests), and active tasks. |
+| **[TASK.md](docs/01-core/TASK.md)** | **Roadmap & Progress Tracking:** Phase breakdown (Phases 1–16), verified test metrics (669 passing tests), and active tasks. |
 | **[MEMORY.md](docs/01-core/MEMORY.md)** | **AI Context Primer:** High-density context primer, key file paths, core constraints, and essential CLI commands. |
-| **[docs/README.md](docs/README.md)** | **Technical Documentation Hub:** Unified directory connecting specialized security, database, testing, API, and deployment guides. |
+| **[docs/README.md](docs/README.md)** | **Technical Documentation Hub:** Unified directory connecting specialized security, database, UML, DSA, testing, API, deployment, and defense guides. |
 
-### Priority Technical Guides
+### Priority Technical, QA & Defense Guides
+* 🏛️ **[System Architecture & Components (docs/02-technical/architecture/system-architecture.md)](docs/02-technical/architecture/system-architecture.md):** Verified container topology, Clean Architecture layers, and request/data flow.
+* 📐 **[UML Diagrams Catalog (docs/02-technical/uml/uml-diagrams.md)](docs/02-technical/uml/uml-diagrams.md):** Context, Use Case, Class, Sequence, Activity, Component, and Deployment diagrams.
+* 🔄 **[System Workflows & Flowcharts (docs/02-technical/workflows/system-workflows.md)](docs/02-technical/workflows/system-workflows.md):** Reconciled flowcharts for Authentication, Admin, HR, Employee, Leave, Outbox/Queue, and Audit Trail.
+* 🧮 **[DSA Documentation & Flowcharts (docs/02-technical/dsa/dsa-documentation.md)](docs/02-technical/dsa/dsa-documentation.md):** Custom Data Structures and Algorithms specifications, pseudocode, complexity matrices, and flowcharts.
 * 🔒 **[Security Architecture (docs/02-technical/security/SECURITY.md)](docs/02-technical/security/SECURITY.md):** Authentication lifecycle, Email OTP / TOTP MFA, session security fingerprinting, CSRF, and PII masking.
-* 🗄️ **[Database Architecture (docs/02-technical/database/DATABASE.md)](docs/02-technical/database/DATABASE.md):** 13-table InnoDB schema catalog, foreign key constraints, pessimistic row locking (`SELECT ... FOR UPDATE`), and migrations.
-* 🧪 **[Testing Strategy (docs/02-technical/testing/TESTING.md)](docs/02-technical/testing/TESTING.md):** Comprehensive test execution guide for PHPUnit (600 tests), Selenium E2E, and PSR-12 baseline enforcement.
-* 🌐 **[REST API v1 Reference (docs/02-technical/api/API.md)](docs/02-technical/api/API.md):** OpenAPI 3.0 endpoints catalog, request/response envelopes, and Swagger UI integration.
-* ⚖️ **[Architectural Decisions (docs/02-technical/decisions/DECISIONS.md)](docs/02-technical/decisions/DECISIONS.md):** Official ADR catalog (ADR-001 to ADR-012) documenting 3-role governance, Dockerization, and locking policies.
-* 🚀 **[Deployment Runbook (docs/03-operations/deployment/DEPLOYMENT.md)](docs/03-operations/deployment/DEPLOYMENT.md):** Multi-container Docker Compose and Ubuntu 24.04 VPS production deployment instructions.
-* 🔧 **[Troubleshooting Guide (docs/03-operations/troubleshooting/TROUBLESHOOTING.md)](docs/03-operations/troubleshooting/TROUBLESHOOTING.md):** Diagnostic runbooks for database connections, OTP rate limits, and WebSocket connections.
-* 📖 **[Domain Glossary (docs/05-reference/glossary/GLOSSARY.md)](docs/05-reference/glossary/GLOSSARY.md):** Terminology, definitions, and acronym reference.
+* 🗄️ **[Database Architecture & ERD (docs/02-technical/database/DATABASE.md)](docs/02-technical/database/DATABASE.md):** 18-table InnoDB schema catalog, [Mermaid ERD (`erd.mmd`)](docs/02-technical/database/erd.mmd), foreign key constraints, and pessimistic row locking (`SELECT ... FOR UPDATE`).
+* 🧪 **[QA Test Plan & Verified Results (docs/04-quality-assurance/test-plan-and-results.md)](docs/04-quality-assurance/test-plan-and-results.md):** PHPUnit (669 tests, 2,528 assertions), PHPStan, PSR-12 baseline, and full-system audit regression suite.
+* ⚡ **[Performance Test Plan & Results (docs/04-quality-assurance/performance-test-plan-and-results.md)](docs/04-quality-assurance/performance-test-plan-and-results.md):** Empirical latency percentiles (`avg`, `p50`, `p95`, `ops/sec`) and index analysis.
+* 🚀 **[Installation, Deployment & Readiness (docs/03-operations/installation-and-configuration-guide.md)](docs/03-operations/installation-and-configuration-guide.md):** Complete setup guide, [Deployment Runbook](docs/03-operations/deployment/DEPLOYMENT.md), and [18-Point Production Readiness Checklist](docs/03-operations/production-readiness-checklist.md).
+* 🎓 **[Defense & Presentation Package (docs/05-defense/project-defense-guide.md)](docs/05-defense/project-defense-guide.md):** [Defense Guide](docs/05-defense/project-defense-guide.md), [Anticipated Q&A Bank](docs/05-defense/anticipated-questions.md), [15-Step Live Demo Script](docs/05-defense/demonstration-script.md), and [22-Slide Presentation Outline](docs/05-defense/presentation-outline.md).
 
 ---
 
@@ -95,12 +98,12 @@ docker compose exec app php database/seeds/DatabaseSeeder.php
 
 ## 🧪 Running Automated Tests
 
-### 1. PHPUnit Automated Test Suite (600 Tests)
+### 1. PHPUnit Automated Test Suite (669 Tests)
 Run the entire backend test suite:
 ```bash
 ./vendor/bin/phpunit
 ```
-*Current Live Result:* **600 tests, 2,152 assertions, 0 errors, 0 failures, 94 skipped (100% passing)**.
+*Current Live Result:* **669 tests, 2,528 assertions, 0 errors, 0 failures, 94 skipped in sandboxed CLI (100% passing)**.
 
 ### 2. Code Style & Baseline Check
 ```bash
