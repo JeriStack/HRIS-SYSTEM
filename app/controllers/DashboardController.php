@@ -168,6 +168,7 @@ class DashboardController extends Controller
             'pageTitle'                => 'Employee Dashboard',
             'user'                     => $user,
             'balances'                 => $balances,
+            'requests'                 => $pendingLeaves,
             'pendingLeaves'            => $pendingLeaves,
             'recentNotifications'      => $recentNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,

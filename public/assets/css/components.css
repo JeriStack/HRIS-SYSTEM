@@ -904,6 +904,346 @@ button:focus-visible {
     font-variant-numeric: tabular-nums;
 }
 
+/* ==========================================================================
+   Refined 4-Column Leave & Account KPI Overview
+   ========================================================================== */
+.emp-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.emp-kpi-card {
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    min-height: 112px;
+    box-sizing: border-box;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.emp-kpi-card.emp-kpi-interactive {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.emp-kpi-card.emp-kpi-interactive:hover {
+    border-color: var(--color-border-dark);
+    background-color: var(--color-bg-muted);
+}
+
+.emp-kpi-card.emp-kpi-interactive:hover .emp-kpi-icon {
+    color: var(--color-primary);
+    opacity: 1;
+}
+
+.emp-kpi-card.emp-kpi-interactive:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.emp-kpi-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.emp-kpi-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+}
+
+.emp-kpi-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.emp-kpi-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    line-height: 1;
+}
+
+.emp-kpi-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    letter-spacing: -0.025em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.emp-kpi-unit {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--color-text-muted);
+    line-height: 1.2;
+}
+
+.emp-kpi-footer {
+    display: flex;
+    align-items: center;
+    margin-top: auto;
+    min-height: 18px;
+}
+
+.emp-kpi-meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    line-height: 1.35;
+}
+
+.emp-kpi-meter-line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+}
+
+.emp-kpi-meter-line .emp-kpi-meter {
+    flex: 1;
+    height: 4px;
+    background-color: var(--color-bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.emp-kpi-meter-pct {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.emp-kpi-meter {
+    width: 100%;
+    height: 4px;
+    background-color: var(--color-bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.emp-kpi-meter-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+.emp-kpi-meter-fill.is-warning {
+    background-color: var(--color-warning);
+}
+
+.emp-kpi-action,
+.emp-kpi-link {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: color var(--transition-fast);
+}
+
+.emp-kpi-interactive:hover .emp-kpi-action,
+.emp-kpi-link:hover {
+    color: var(--color-primary-hover);
+}
+
+.emp-kpi-arrow,
+.emp-kpi-link-arrow {
+    display: inline-block;
+    transition: transform var(--transition-fast);
+}
+
+.emp-kpi-interactive:hover .emp-kpi-arrow,
+.emp-kpi-link:hover .emp-kpi-link-arrow {
+    transform: translateX(2px);
+}
+
+/* ==========================================================================
+   My Leave Balances (3 Balanced Category Cards)
+   ========================================================================== */
+.emp-category-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.emp-category-card {
+    background-color: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-3);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.emp-category-card:hover {
+    border-color: var(--color-border-dark);
+}
+
+.emp-category-card.is-exhausted {
+    opacity: 0.75;
+}
+
+.emp-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.emp-category-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text-main);
+    letter-spacing: -0.01em;
+}
+
+.emp-category-apply {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-primary);
+    text-decoration: none;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-primary-border);
+    background-color: var(--color-primary-light);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.emp-category-apply:hover {
+    background-color: var(--color-primary);
+    color: #FFFFFF;
+    border-color: var(--color-primary);
+}
+
+.emp-category-apply-arrow {
+    display: inline-block;
+    transition: transform var(--transition-fast);
+}
+
+.emp-category-apply:hover .emp-category-apply-arrow {
+    transform: translateX(2px);
+}
+
+.emp-category-exhausted {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-muted);
+    border: 1px solid var(--color-border);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.emp-category-balance-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    line-height: 1;
+    margin: 0.25rem 0 0.1rem;
+}
+
+.emp-category-balance-val {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--color-text-main);
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.emp-category-balance-lbl {
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.emp-category-meter {
+    width: 100%;
+    height: 6px;
+    background-color: var(--color-bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.emp-category-meter-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--transition-normal);
+}
+
+.emp-category-meter-fill.is-warning {
+    background-color: var(--color-warning);
+}
+
+.emp-category-meter-fill.is-exhausted {
+    background-color: var(--color-error);
+}
+
+.emp-category-ledger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--color-border-subtle);
+    text-align: center;
+}
+
+.emp-ledger-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.emp-ledger-label {
+    color: var(--color-text-muted);
+}
+
+.emp-ledger-val {
+    color: var(--color-text-body);
+    font-weight: 600;
+}
+
+.emp-ledger-divider {
+    color: var(--color-border-dark);
+}
+
 /* Unified 4-Metric Enterprise Summary Strip */
 .emp-summary-strip {
     display: grid;

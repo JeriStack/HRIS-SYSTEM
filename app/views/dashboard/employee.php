@@ -5,15 +5,28 @@
  * leave entitlement ledger cards, filterable recent applications with inline pending cancellation,
  * and interactive alert triage.
  */
-$user = $user ?? currentUser() ?? [];
+$user = (isset($user) && is_array($user)) ? $user : (currentUser() ?: []);
 $userName = $user['full_name'] ?? $user['name'] ?? $user['username'] ?? 'Employee';
 $empNo = $employee['employee_no'] ?? $user['employee_no'] ?? 'EMP';
 $position = $employee['position_name'] ?? $employee['position'] ?? $user['position'] ?? 'Staff Member';
 $department = $employee['department_name'] ?? $user['department'] ?? 'General Operations';
 
-$balances = $balances ?? $leaveBalances ?? [];
-$requests = $pendingLeaves ?? $recentRequests ?? [];
-$notifications = $recentNotifications ?? [];
+/** @var array<int, array<string, mixed>> $balances */
+$balances = (isset($balances) && is_array($balances))
+    ? $balances
+    : ((isset($leaveBalances) && is_array($leaveBalances)) ? $leaveBalances : []);
+
+/** @var array<int, array<string, mixed>> $requests */
+$requests = (isset($requests) && is_array($requests))
+    ? $requests
+    : ((isset($pendingLeaves) && is_array($pendingLeaves))
+        ? $pendingLeaves
+        : ((isset($recentRequests) && is_array($recentRequests)) ? $recentRequests : []));
+
+/** @var array<int, array<string, mixed>> $notifications */
+$notifications = (isset($notifications) && is_array($notifications))
+    ? $notifications
+    : ((isset($recentNotifications) && is_array($recentNotifications)) ? $recentNotifications : []);
 $unreadCount = (int)($unreadNotificationsCount ?? 0);
 
 // Aggregate balance totals
@@ -107,49 +120,63 @@ foreach ($recentRequestsSlice as $req) {
     </div>
 <?php endif; ?>
 
-<!-- Unified 4-Cell Executive Summary Strip -->
-<section class="emp-summary-strip" aria-label="Key Leave & Account Metrics">
-    <div class="emp-summary-cell">
-        <span class="emp-summary-label">Available Leave</span>
-        <div class="emp-summary-value-row">
-            <span class="emp-summary-value"><?= $totalRemaining ?></span>
-            <span class="emp-summary-unit">days remaining</span>
+<!-- Refined 4-Column Leave & Account KPI Overview -->
+<section class="emp-kpi-grid" aria-label="Key Leave & Account Metrics">
+    <!-- 1. Available Leave (Informational) -->
+    <div class="emp-kpi-card">
+        <div class="emp-kpi-header">
+            <span class="emp-kpi-label">Available Leave</span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('calendar', 16) ?></span>
         </div>
-        <span class="emp-summary-meta">Across <?= count($balances) ?> leave <?= count($balances) === 1 ? 'category' : 'categories' ?></span>
-    </div>
-
-    <div class="emp-summary-cell">
-        <span class="emp-summary-label">Days Used</span>
-        <div class="emp-summary-value-row">
-            <span class="emp-summary-value"><?= $totalUsed ?></span>
-            <span class="emp-summary-unit">of <?= $totalAllocated ?> allocated (<?= $annualUtilizationPct ?>%)</span>
-        </div>
-        <div class="progress-bar" role="progressbar" aria-valuenow="<?= $annualUtilizationPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Annual leave quota utilization">
-            <div class="progress-fill <?= $annualUtilizationPct >= 85 ? 'progress-warning' : '' ?>" style="width: <?= $annualUtilizationPct ?>%;"></div>
+        <div class="emp-kpi-value-row">
+            <span class="emp-kpi-value"><?= $totalRemaining ?></span>
+            <span class="emp-kpi-unit">days</span>
         </div>
     </div>
 
-    <div class="emp-summary-cell">
-        <span class="emp-summary-label">Pending Requests</span>
-        <div class="emp-summary-value-row">
-            <span class="emp-summary-value"><?= $pendingCount ?></span>
-            <span class="emp-summary-unit"><?= $pendingCount === 1 ? 'application' : 'applications' ?></span>
+    <!-- 2. Days Used (Informational with Proportional Utilization Meter) -->
+    <div class="emp-kpi-card">
+        <div class="emp-kpi-header">
+            <span class="emp-kpi-label">Days Used</span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('clock', 16) ?></span>
         </div>
-        <span class="emp-summary-meta">
-            <?= $pendingCount > 0 ? 'Awaiting HR review' : 'No pending approvals' ?>
-        </span>
+        <div class="emp-kpi-value-row">
+            <span class="emp-kpi-value"><?= $totalUsed ?></span>
+            <span class="emp-kpi-unit">days</span>
+        </div>
+        <div class="emp-kpi-footer">
+            <div class="emp-kpi-meter-line">
+                <div class="emp-kpi-meter" role="progressbar" aria-valuenow="<?= $annualUtilizationPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Annual leave utilization: <?= $annualUtilizationPct ?>% used">
+                    <div class="emp-kpi-meter-fill <?= $annualUtilizationPct >= 85 ? 'is-warning' : '' ?>" style="width: <?= $annualUtilizationPct ?>%;"></div>
+                </div>
+                <span class="emp-kpi-meter-pct"><?= $annualUtilizationPct ?>%</span>
+            </div>
+        </div>
     </div>
 
-    <div class="emp-summary-cell">
-        <span class="emp-summary-label">Unread Alerts</span>
-        <div class="emp-summary-value-row">
-            <span class="emp-summary-value"><?= $unreadCount ?></span>
-            <span class="emp-summary-unit"><?= $unreadCount === 1 ? 'notification' : 'notifications' ?></span>
+    <!-- 3. Pending Requests (Interactive -> Links to My Leave Requests) -->
+    <a href="<?= url('/employee/leave-requests') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Pending Requests: <?= $pendingCount ?> <?= $pendingCount === 1 ? 'request' : 'requests' ?>">
+        <div class="emp-kpi-header">
+            <span class="emp-kpi-label">Pending Requests</span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('file-text', 16) ?></span>
         </div>
-        <span class="emp-summary-meta">
-            <a href="<?= url('/notifications') ?>" class="text-primary font-medium">Open notification inbox &rarr;</a>
-        </span>
-    </div>
+        <div class="emp-kpi-value-row">
+            <span class="emp-kpi-value"><?= $pendingCount ?></span>
+            <span class="emp-kpi-unit"><?= $pendingCount === 1 ? 'request' : 'requests' ?></span>
+        </div>
+    </a>
+
+    <!-- 4. Unread Alerts (Interactive -> Links to Notifications Inbox) -->
+    <a href="<?= url('/notifications') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Unread Alerts: <?= $unreadCount ?> <?= $unreadCount === 1 ? 'alert' : 'alerts' ?>">
+        <div class="emp-kpi-header">
+            <span class="emp-kpi-label">Unread Alerts</span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('bell', 16) ?></span>
+        </div>
+        <div class="emp-kpi-value-row">
+            <span class="emp-kpi-value"><?= $unreadCount ?></span>
+            <span class="emp-kpi-unit"><?= $unreadCount === 1 ? 'alert' : 'alerts' ?></span>
+        </div>
+    </a>
 </section>
 
 <!-- Leave Balances Section -->
@@ -166,7 +193,7 @@ foreach ($recentRequestsSlice as $req) {
     </div>
     <div class="card-body">
         <?php if (!empty($balances)) : ?>
-            <div class="emp-entitlement-grid">
+            <div class="emp-category-grid">
                 <?php foreach ($balances as $bal) :
                     $rawAllocated = (int)($bal['allocated_days'] ?? 0);
                     $allocated = max(1, $rawAllocated);
@@ -178,35 +205,47 @@ foreach ($recentRequestsSlice as $req) {
 
                     $barState = '';
                     if ($remaining === 0) {
-                        $barState = 'progress-danger';
+                        $barState = 'is-exhausted';
                     } elseif ($pctUsed >= 75) {
-                        $barState = 'progress-warning';
+                        $barState = 'is-warning';
                     }
                     ?>
-                    <div class="emp-entitlement-card <?= $remaining === 0 ? 'is-exhausted' : '' ?>">
-                        <div class="emp-entitlement-top">
-                            <span class="emp-entitlement-name"><?= e($leaveName) ?></span>
+                    <div class="emp-category-card <?= $remaining === 0 ? 'is-exhausted' : '' ?>">
+                        <div class="emp-category-header">
+                            <span class="emp-category-name"><?= e($leaveName) ?></span>
                             <?php if ($remaining > 0) : ?>
-                                <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>" class="emp-entitlement-action">
-                                    Apply &rarr;
+                                <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>" class="emp-category-apply" aria-label="Apply for <?= e($leaveName) ?>">
+                                    <span>Apply</span>
+                                    <span class="emp-category-apply-arrow" aria-hidden="true">&rarr;</span>
                                 </a>
                             <?php else : ?>
-                                <span class="emp-entitlement-exhausted" title="Annual quota exhausted for the <?= date('Y') ?> leave cycle">
+                                <span class="emp-category-exhausted" title="Annual quota exhausted for the <?= date('Y') ?> leave cycle">
                                     Exhausted
                                 </span>
                             <?php endif; ?>
                         </div>
 
-                        <div class="emp-entitlement-main">
-                            <div>
-                                <span class="emp-entitlement-avail"><?= $remaining ?></span>
-                                <span class="emp-entitlement-avail-label"><?= $remaining === 1 ? 'day available' : 'days available' ?></span>
-                            </div>
-                            <span class="text-xs text-muted tabular-nums"><?= $used ?> of <?= $rawAllocated ?> used<?= $remaining === 0 ? ' &middot; Resets Jan 1' : '' ?></span>
+                        <div class="emp-category-balance-row">
+                            <span class="emp-category-balance-val"><?= $remaining ?></span>
+                            <span class="emp-category-balance-lbl"><?= $remaining === 1 ? 'day available' : 'days available' ?></span>
                         </div>
 
-                        <div class="progress-bar" role="progressbar" aria-valuenow="<?= $pctUsed ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($leaveName) ?> utilization">
-                            <div class="progress-fill <?= $barState ?>" style="width: <?= $pctUsed ?>%;"></div>
+                        <!-- Proportional Progress Meter -->
+                        <div class="emp-category-meter" role="progressbar" aria-valuenow="<?= $pctUsed ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($leaveName) ?> utilization: <?= $used ?> of <?= $rawAllocated ?> days used (<?= $pctUsed ?>%)">
+                            <div class="emp-category-meter-fill <?= $barState ?>" style="width: <?= $pctUsed ?>%;"></div>
+                        </div>
+
+                        <!-- Ledger Breakdown Figures -->
+                        <div class="emp-category-ledger">
+                            <span class="emp-ledger-stat">
+                                <span class="emp-ledger-label">Allocated:</span>
+                                <span class="emp-ledger-val"><?= $rawAllocated ?> <?= $rawAllocated === 1 ? 'day' : 'days' ?></span>
+                            </span>
+                            <span class="emp-ledger-divider" aria-hidden="true">&middot;</span>
+                            <span class="emp-ledger-stat">
+                                <span class="emp-ledger-label">Used:</span>
+                                <span class="emp-ledger-val"><?= $used ?> <?= $used === 1 ? 'day' : 'days' ?> (<?= $pctUsed ?>%)</span>
+                            </span>
                         </div>
                     </div>
                 <?php endforeach; ?>
