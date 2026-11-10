@@ -19,7 +19,7 @@ if (!empty($balances)) {
 
 <!-- Page Header -->
 <div class="page-header">
-    <div>
+    <div class="page-title-group">
         <h1 class="page-title">File Leave Request</h1>
         <p class="page-subtitle">Submit a new leave application for HR review and approval</p>
     </div>
@@ -41,29 +41,32 @@ if (!empty($balances)) {
             </div>
         </div>
 
-        <form action="<?= url('/leaves/apply') ?>" method="POST" id="leaveApplyForm" novalidate>
+        <form action="<?= url('/leaves/apply') ?>" method="POST" id="leaveApplicationForm" novalidate>
             <?= csrf_field() ?>
 
             <div class="card-body">
                 <!-- Leave Type Selection -->
                 <div class="form-group">
                     <div class="flex justify-between items-center mb-1">
-                        <label for="leave_type_id" class="form-label mb-0">
+                        <label for="leaveTypeSelect" class="form-label mb-0">
                             Leave Category <span class="required">*</span>
                         </label>
                         <span id="selectedTypeBalanceHint" class="badge badge-primary" style="display: none;" aria-live="polite"></span>
                     </div>
-                    <select id="leave_type_id" name="leave_type_id" class="form-control form-select" required>
+                    <select id="leaveTypeSelect" name="leave_type_id" class="form-control form-select" required>
                         <option value="" disabled <?= $selectedType === 0 ? 'selected' : '' ?>>Select leave category...</option>
                         <?php foreach ($leaveTypes as $type) :
                             $tId = (int)$type['id'];
                             $typeName = $type['leave_name'] ?? $type['name'] ?? 'Leave';
                             $balInfo = $balanceMap[$tId] ?? null;
                             $remDays = $balInfo ? (int)$balInfo['remaining_days'] : (int)($type['default_days'] ?? 0);
+                            $allocDays = $balInfo ? (int)($balInfo['allocated_days'] ?? $type['default_days'] ?? 0) : (int)($type['default_days'] ?? 0);
                             ?>
                             <option
                                 value="<?= $tId ?>"
                                 data-remaining="<?= $remDays ?>"
+                                data-balance="<?= $remDays ?>"
+                                data-allocated="<?= $allocDays ?>"
                                 <?= $selectedType === $tId ? 'selected' : '' ?>
                             >
                                 <?= e($typeName) ?> (<?= $remDays ?> <?= $remDays === 1 ? 'day' : 'days' ?> available)
@@ -75,10 +78,10 @@ if (!empty($balances)) {
                 <!-- Start & End Dates -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="start_date" class="form-label">Start Date <span class="required">*</span></label>
+                        <label for="leaveStartDate" class="form-label">Start Date <span class="required">*</span></label>
                         <input
                             type="date"
-                            id="start_date"
+                            id="leaveStartDate"
                             name="start_date"
                             class="form-control"
                             required
@@ -89,10 +92,10 @@ if (!empty($balances)) {
                     </div>
 
                     <div class="form-group">
-                        <label for="end_date" class="form-label">End Date <span class="required">*</span></label>
+                        <label for="leaveEndDate" class="form-label">End Date <span class="required">*</span></label>
                         <input
                             type="date"
-                            id="end_date"
+                            id="leaveEndDate"
                             name="end_date"
                             class="form-control"
                             required
@@ -115,9 +118,9 @@ if (!empty($balances)) {
 
                 <!-- Reason for Leave -->
                 <div class="form-group mb-0">
-                    <label for="reason" class="form-label">Reason for Leave <span class="required">*</span></label>
+                    <label for="leaveReason" class="form-label">Reason for Leave <span class="required">*</span></label>
                     <textarea
-                        id="reason"
+                        id="leaveReason"
                         name="reason"
                         class="form-control"
                         rows="4"
@@ -129,7 +132,7 @@ if (!empty($balances)) {
 
             <div class="card-footer flex justify-between items-center">
                 <a href="<?= url('/employee/dashboard') ?>" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary" id="submitBtn">
+                <button type="submit" class="btn btn-primary" id="submitLeaveBtn">
                     <?= icon('send', 15) ?>
                     <span>Submit Application</span>
                 </button>

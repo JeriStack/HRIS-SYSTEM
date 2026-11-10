@@ -1123,6 +1123,15 @@ button:focus-visible {
     letter-spacing: -0.01em;
 }
 
+.emp-category-name.balance-title {
+    display: inline;
+    margin-bottom: 0;
+}
+
+.emp-category-name strong {
+    font-weight: inherit;
+}
+
 .emp-category-apply {
     display: inline-flex;
     align-items: center;

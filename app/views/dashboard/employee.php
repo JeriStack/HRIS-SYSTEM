@@ -75,10 +75,10 @@ foreach ($recentRequestsSlice as $req) {
 
 <!-- Welcome & Identity Header -->
 <div class="emp-welcome-bar">
-    <div class="emp-welcome-meta">
+    <div class="emp-welcome-meta page-title-group">
         <h1>Welcome back, <?= e($userName) ?></h1>
         <p class="emp-welcome-sub">
-            <span class="emp-id-chip"><?= e($empNo) ?></span>
+            <span class="emp-id-chip role-badge emp"><?= e($empNo) ?></span>
             <span><?= e($position) ?></span>
             <span aria-hidden="true">&middot;</span>
             <span><?= e($department) ?></span>
@@ -210,9 +210,9 @@ foreach ($recentRequestsSlice as $req) {
                         $barState = 'is-warning';
                     }
                     ?>
-                    <div class="emp-category-card <?= $remaining === 0 ? 'is-exhausted' : '' ?>">
+                    <div class="emp-category-card balance-card <?= $remaining === 0 ? 'is-exhausted' : '' ?>">
                         <div class="emp-category-header">
-                            <span class="emp-category-name"><?= e($leaveName) ?></span>
+                            <span class="emp-category-name balance-title"><strong><?= e($leaveName) ?></strong></span>
                             <?php if ($remaining > 0) : ?>
                                 <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>" class="emp-category-apply" aria-label="Apply for <?= e($leaveName) ?>">
                                     <span>Apply</span>

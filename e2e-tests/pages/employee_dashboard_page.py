@@ -14,12 +14,12 @@ class EmployeeDashboardPage(BasePage):
     PATH = "/employee/dashboard"
 
     # Locators
-    PAGE_HEADER_TITLE: Tuple[By, str] = (By.CSS_SELECTOR, ".page-title-group h1")
-    ROLE_BADGE: Tuple[By, str] = (By.CSS_SELECTOR, ".role-badge.emp")
+    PAGE_HEADER_TITLE: Tuple[By, str] = (By.CSS_SELECTOR, ".page-title-group h1, .emp-welcome-meta h1, h1")
+    ROLE_BADGE: Tuple[By, str] = (By.CSS_SELECTOR, ".role-badge.emp, .emp-id-chip, .role-badge")
     VIEW_PROFILE_BTN: Tuple[By, str] = (By.XPATH, "//a[contains(@href, '/employee/profile')]")
     FILE_LEAVE_BTN: Tuple[By, str] = (By.XPATH, "//a[contains(@href, '/leaves/apply')]")
-    BALANCE_CARDS: Tuple[By, str] = (By.CSS_SELECTOR, ".balance-card")
-    BALANCE_TITLES: Tuple[By, str] = (By.CSS_SELECTOR, ".balance-title strong")
+    BALANCE_CARDS: Tuple[By, str] = (By.CSS_SELECTOR, ".balance-card, .emp-category-card")
+    BALANCE_TITLES: Tuple[By, str] = (By.CSS_SELECTOR, ".balance-title strong, .balance-title, .emp-category-name")
     LOGOUT_BUTTON: Tuple[By, str] = (By.XPATH, "//form[contains(@action, '/logout')]//button")
 
     def open(self) -> "EmployeeDashboardPage":
