@@ -222,6 +222,16 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.full}"
     padding: "3px 10px"
+  kpi-overview-card:
+    backgroundColor: "{colors.pure-ledger-white}"
+    textColor: "{colors.deep-slate-ink}"
+    rounded: "{rounded.lg}"
+    padding: "20px"
+  leave-category-card:
+    backgroundColor: "{colors.cool-alabaster-canvas}"
+    textColor: "{colors.deep-slate-ink}"
+    rounded: "{rounded.lg}"
+    padding: "20px"
 ---
 
 # Design System: NEXORA HR
@@ -306,9 +316,10 @@ The palette pairs restrained slate neutrals with authoritative Cobalt and Azure 
 The authenticated application uses a persistent left sidebar shell (`.app-shell`) paired with a sticky top utility header (`.app-header`, `64px` height) and a fluid main workspace container (`.page-content`, `max-width: 1360px`, `24px`–`32px` padding).
 
 - **Sidebar Dimensions & Collapse:** Expanded desktop width is `260px` (`--sidebar-width`). Activating `#sidebarToggle` smoothly transitions (`0.22s cubic-bezier(0.22, 1, 0.36, 1)`) the sidebar to a `72px` icon-only rail (`.app-shell.sidebar-collapsed`), centering the `38x38px` NEXORA emblem and surfacing native tooltips on navigation icons.
-- **Summary Strip Architecture:** Top-of-page metrics use a 4-column unified horizontal ledger strip (`.emp-summary-strip`, `grid-template-columns: repeat(4, minmax(0, 1fr))`) inside a single `12px`-radius container divided by `1px solid` vertical hairlines rather than four separate floating cards.
+- **Summary Strip & KPI Overview Architecture:** Employee Dashboard top metrics use a 4-column KPI overview grid (`.emp-kpi-grid`, `grid-template-columns: repeat(4, minmax(0, 1fr))`, `16px` gap) pairing informational KPI cards (`.emp-kpi-card`) with interactive link cards (`.emp-kpi-card.emp-kpi-interactive`) for Pending Requests and Unread Alerts. The dedicated Leave Balances page uses a 4-column unified horizontal ledger strip (`.emp-summary-strip`, `grid-template-columns: repeat(4, minmax(0, 1fr))`) inside a single `12px`-radius container divided by `1px solid` vertical hairlines.
 - **Workspace Grids:**
-  - **Entitlement Grid (`.emp-entitlement-grid`):** Responsive auto-fill grid (`repeat(auto-fill, minmax(260px, 1fr))`, `16px` gap) for leave category cards.
+  - **Leave Category Grid (`.emp-category-grid`):** Balanced 3-column desktop grid (`repeat(3, minmax(0, 1fr))`, `16px` gap) for Employee Dashboard leave category cards (`.emp-category-card`).
+  - **Entitlement Grid (`.emp-entitlement-grid`):** Responsive auto-fill grid (`repeat(auto-fill, minmax(260px, 1fr))`, `16px` gap) for leave category cards on the dedicated Leave Balances page.
   - **Dashboard Split Grid (`.emp-workspace-grid`):** Asymmetric 2-column operational split (`minmax(0, 1.65fr) minmax(300px, 1fr)`, `24px` gap) pairing Recent Leave Applications on the left with Recent Updates on the right.
   - **Profile & Leave Filing Grids (`.emp-profile-grid`, `.emp-apply-grid`):** Focused 2-column layouts (`300px` identity card + `1fr` detail stack on Profile; `1.4fr` form + `1fr` balance/guideline rail on File Leave Request).
 - **Responsive Breakpoints:**
@@ -375,7 +386,9 @@ Every component is built to feel **refined, tactile, and unambiguous**, with exp
 - **Empty States (`.empty-state`):** Centered `48px 24px` container featuring a `36px`–`40px` muted stroke SVG icon (`.empty-state-icon`), a clear `16px` title (`.empty-state-title`), a concise `14px` explanation constrained to `45ch`, and an optional primary action button when the user can resolve the empty state directly.
 
 ### Signature Employee Workspace Components
-- **Unified Summary Strip (`.emp-summary-strip`):** A single 4-cell horizontal ledger bar at the top of Employee Workspace views that replaces scattered KPI cards, pairing an uppercase muted label (`.emp-summary-label`), a `28px` tabular value (`.emp-summary-value`) with inline unit (`.emp-summary-unit`), and a concise secondary caption (`.emp-summary-meta`) per cell.
+- **Refined KPI Overview Cards (`.emp-kpi-grid` & `.emp-kpi-card`):** Four balanced cards displaying Available Leave, Days Used (with proportional `.emp-kpi-meter` and `.emp-kpi-meter-pct`), Pending Requests (`.emp-kpi-card.emp-kpi-interactive`), and Unread Alerts (`.emp-kpi-card.emp-kpi-interactive`).
+- **Balanced Leave Category Cards (`.emp-category-grid` & `.emp-category-card`):** Three category cards displaying the leave type header and compact `Apply ->` action (`.emp-category-apply`), primary remaining days (`.emp-category-balance-val`), proportional `.emp-category-meter` progress bar, and centered `.emp-category-ledger` breakdown (`Allocated` &middot; `Used (%)`).
+- **Unified Summary Strip (`.emp-summary-strip`):** A single 4-cell horizontal ledger bar at the top of the Leave Balances page (`employee_balances.php`), pairing an uppercase muted label (`.emp-summary-label`), a `28px` tabular value (`.emp-summary-value`) with inline unit (`.emp-summary-unit`), and a concise secondary caption (`.emp-summary-meta`) per cell.
 - **Distilled Entitlement Card (`.emp-entitlement-card`):** Displays each leave category's name, a contextual `Apply ->` link, a prominent tabular `days available` figure on the left, `X of Y used` on the right, and an accessible `8px` progress bar underneath—showing each number exactly once.
 - **Filter & Search Toolbar (`.emp-filter-toolbar`):** Combines a `role="tablist"` group of status filter pills (`.emp-filter-pill` with `.emp-filter-count` badges) on the left and an icon-prefixed search input (`.emp-search-box`, `260px` desktop width) on the right for instant client-side table/inbox filtering.
 - **Notification Inbox Row (`.emp-notif-item`):** Full-bleed list row with a `36x36px` (`8px` radius) semantic SVG icon badge (`.emp-notif-icon-success`, `-warning`, `-danger`, `-info`), an `8px` Cobalt unread dot (`.emp-unread-dot`), bold title with right-aligned tabular timestamp, and an inline `Mark Read` button (`POST /notifications/{id}/read`). Unread rows receive a subtle Cobalt Ice tint (`.is-unread`).
