@@ -1473,6 +1473,10 @@ form[hidden] {
   border-color: var(--color-border-dark);
   color: var(--color-text-main);
 }
+.header-account-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
 .header-account-avatar {
   width: 28px;
   height: 28px;
@@ -1484,10 +1488,18 @@ form[hidden] {
   justify-content: center;
   font-size: var(--font-size-xs);
   font-weight: 700;
+  letter-spacing: 0.02em;
   flex-shrink: 0;
+}
+.header-account-avatar.role-hr {
+  background-color: var(--color-accent-hover, #0d9488);
 }
 .header-account-name {
   font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--color-text-main);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

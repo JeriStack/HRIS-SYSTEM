@@ -374,9 +374,14 @@
         display: none;
     }
 
-    .top-bar-right span:not(.badge),
+    .top-bar-right span:not(.badge):not(.header-account-avatar),
     .header-user-meta {
         display: none;
+    }
+
+    .header-account-chip {
+        padding: 0 0.3rem;
+        gap: 0;
     }
 }
 

@@ -111,35 +111,26 @@ if (isAuthenticated()) {
             </div>
         <?php endif; ?>
 
-        <?php if ($role !== 'employee'): ?>
-            <?php
-            $headerProfileUrl = url('/hr/dashboard');
-            if ($role === 'admin') {
-                $headerProfileUrl = url('/admin/account');
-            } elseif (!empty($user['employee_id'])) {
-                $headerProfileUrl = url('/hr/employees/' . (int)$user['employee_id']);
-            }
-            ?>
-            <span class="role-badge <?= e($role) ?>">
-                <?= e(strtoupper($user['role'] ?? 'HR')) ?> ACCESS
-            </span>
-            <div class="header-user-meta" style="margin-right: 0.5rem;">
-                <a href="<?= $headerProfileUrl ?>" style="text-decoration: none; color: inherit;">
-                    <div class="header-user-name"><?= e($userName) ?></div>
-                    <div class="header-user-role"><?= e($user['employee_no'] ?? strtoupper($role)) ?></div>
-                </a>
-            </div>
-            <form method="POST" action="<?= url('/logout') ?>" style="margin: 0; display: inline;">
-                <?= csrf_field() ?>
-                <button type="submit" class="btn btn-secondary btn-sm" aria-label="Sign out of current account">
-                    Sign Out
-                </button>
-            </form>
-        <?php else: ?>
-            <a href="<?= url('/employee/profile') ?>" class="header-account-chip" title="View My Profile">
-                <span class="header-account-avatar" aria-hidden="true"><?= e(strtoupper(substr($userName, 0, 2))) ?></span>
-                <span class="header-account-name"><?= e($userName) ?></span>
-            </a>
-        <?php endif; ?>
+        <?php
+        $headerProfileUrl = url('/employee/profile');
+        $headerProfileTitle = 'View My Profile';
+        if ($role === 'admin') {
+            $headerProfileUrl = url('/admin/account');
+            $headerProfileTitle = 'Account & Security Settings';
+        } elseif ($role === 'hr') {
+            $headerProfileUrl = !empty($user['employee_id'])
+                ? url('/hr/employees/' . (int)$user['employee_id'])
+                : url('/hr/dashboard');
+            $headerProfileTitle = !empty($user['employee_id']) ? 'View My Profile' : 'HR Dashboard';
+        }
+        $avatarInitials = strtoupper(substr(trim($userName), 0, 2)) ?: 'U';
+        ?>
+        <a href="<?= $headerProfileUrl ?>"
+           class="header-account-chip"
+           title="<?= e($headerProfileTitle) ?>"
+           aria-label="<?= e($userName . ' — ' . $headerProfileTitle) ?>">
+            <span class="header-account-avatar role-<?= e($role) ?>" aria-hidden="true"><?= e($avatarInitials) ?></span>
+            <span class="header-account-name"><?= e($userName) ?></span>
+        </a>
     </div>
 </header>
