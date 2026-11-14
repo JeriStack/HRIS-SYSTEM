@@ -1,11 +1,24 @@
 <?php
-$cooldownSeconds = (int)($resendCooldownRemaining ?? 0);
-$hasServerError = !empty($error);
-$hasServerSuccess = !empty($success);
+/** @var int|string|null $resendCooldownRemaining */
+/** @var string|null $error */
+/** @var string|null $success */
+/** @var string|null $pageTitle */
+/** @var string|null $maskedEmail */
+
+$cooldownSeconds = isset($resendCooldownRemaining) ? max(0, (int)$resendCooldownRemaining) : 0;
+$errorMessage = (isset($error) && is_string($error)) ? $error : '';
+$successMessage = (isset($success) && is_string($success)) ? $success : '';
+$maskedEmailDisplay = (isset($maskedEmail) && is_string($maskedEmail)) ? $maskedEmail : '';
+$resolvedPageTitle = (isset($pageTitle) && is_string($pageTitle) && $pageTitle !== '')
+    ? $pageTitle
+    : 'Two-Factor Verification - NEXORA HR';
+
+$hasServerError = ($errorMessage !== '');
+$hasServerSuccess = ($successMessage !== '');
 
 $errorHeading = 'Invalid verification code';
 if ($hasServerError) {
-    $lowerErr = strtolower((string)$error);
+    $lowerErr = strtolower($errorMessage);
     if (str_contains($lowerErr, 'expired')) {
         $errorHeading = 'Verification code expired';
     } elseif (str_contains($lowerErr, 'maximum') || str_contains($lowerErr, 'attempts') || str_contains($lowerErr, 'wait')) {
@@ -19,13 +32,8 @@ if ($hasServerError) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e($pageTitle ?? 'Two-Factor Verification - NEXORA HR') ?></title>
+    <title><?= e($resolvedPageTitle) ?></title>
     <link rel="icon" type="image/png" href="<?= asset('img/nexora-logo-icon.png') ?>">
-
-    <!-- Google Fonts: Inter & Manrope -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 
     <!-- Prevent Theme Flash (FOUC) — Light Default, Persistent Dark Option -->
     <script>
@@ -117,7 +125,7 @@ if ($hasServerError) {
         </aside>
 
         <!-- Column 2: Center 2FA Verification Card -->
-        <main id="otpMainCard" class="center-card-wrapper" role="main">
+        <main id="otpMainCard" class="center-card-wrapper">
             <div class="verification-card">
                 <div class="card-inner">
                     <!-- Top Navy/Blue Lock Badge -->
@@ -135,14 +143,14 @@ if ($hasServerError) {
                     <p class="card-subtitle">Enter the 6-digit verification code sent to your email.</p>
 
                     <!-- Masked Email Chip -->
-                    <?php if (!empty($maskedEmail)): ?>
+                    <?php if ($maskedEmailDisplay !== ''): ?>
                         <div class="email-chip-wrapper">
                             <div class="email-chip">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                     <rect x="2" y="4" width="20" height="16" rx="2" />
                                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
                                 </svg>
-                                <span><?= e($maskedEmail) ?></span>
+                                <span><?= e($maskedEmailDisplay) ?></span>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -158,7 +166,7 @@ if ($hasServerError) {
                             </span>
                             <div>
                                 <strong><?= e($errorHeading) ?></strong>
-                                <span><?= e($error) ?></span>
+                                <span><?= e($errorMessage) ?></span>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -170,7 +178,7 @@ if ($hasServerError) {
                                     <path d="M20 6 9 17l-5-5" />
                                 </svg>
                             </span>
-                            <div><?= e($success) ?></div>
+                            <div><?= e($successMessage) ?></div>
                         </div>
                     <?php elseif (!$hasServerError): ?>
                         <div class="alert-banner alert-info" role="status">
@@ -340,6 +348,13 @@ if ($hasServerError) {
         <aside class="right-security-art" aria-label="Security assurance">
             <div class="orbital-container" aria-hidden="true">
                 <svg width="260" height="260" viewBox="0 0 320 320" fill="none">
+                    <defs>
+                        <linearGradient id="shieldTransGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#EFF6FF" stop-opacity="0.92" />
+                            <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.55" />
+                        </linearGradient>
+                    </defs>
+
                     <!-- Outer Rotating Orbit Group -->
                     <g class="orbit-ring-outer">
                         <circle cx="160" cy="160" r="130" stroke="#60A5FA" stroke-width="1.5" stroke-dasharray="5 7" opacity="0.65" />
@@ -360,13 +375,6 @@ if ($hasServerError) {
                         <circle cx="160" cy="160.5" r="2.2" fill="#FFFFFF" />
                         <path d="M 160 162.7 V 167.2" stroke="#14B8A6" stroke-width="2" stroke-linecap="round" />
                     </g>
-
-                    <defs>
-                        <linearGradient id="shieldTransGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stop-color="#EFF6FF" stop-opacity="0.92" />
-                            <stop offset="100%" stop-color="#DBEAFE" stop-opacity="0.55" />
-                        </linearGradient>
-                    </defs>
                 </svg>
             </div>
 
