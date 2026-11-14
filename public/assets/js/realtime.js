@@ -89,6 +89,12 @@
         if (el.bell) {
             el.bell.setAttribute('aria-label', n > 0 ? 'Notifications, ' + n + ' unread' : 'Notifications');
         }
+        var sidebarBadge = document.getElementById('sidebarUnreadBadge');
+        if (sidebarBadge) {
+            sidebarBadge.textContent = n > 99 ? '99+' : String(n);
+            sidebarBadge.hidden = n === 0;
+            sidebarBadge.setAttribute('aria-label', n + ' unread notifications');
+        }
     }
 
     function remember(id) {

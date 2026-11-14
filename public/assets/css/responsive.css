@@ -65,15 +65,85 @@
    ========================================================================== */
 @media (max-width: 767px) {
     /* Off-canvas Navigation Drawer */
-    .app-sidebar {
+    .app-sidebar,
+    .app-shell.sidebar-collapsed .app-sidebar {
+        width: var(--sidebar-width);
         transform: translateX(-100%);
         box-shadow: var(--shadow-xl);
         z-index: 1050;
     }
 
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-brand-lockup {
+        display: flex !important;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .nav-section-title,
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-user-info {
+        display: block !important;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-header {
+        padding: 0 var(--space-4);
+        justify-content: flex-start;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-brand {
+        justify-content: flex-start;
+        flex: 1;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-logo-emblem {
+        margin: 0;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .nav-item {
+        justify-content: flex-start;
+        padding: 0.55rem var(--space-3);
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .nav-item .nav-item-label {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip-path: none;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .nav-item .nav-badge {
+        position: static;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-footer {
+        height: var(--header-height);
+        min-height: var(--header-height);
+        padding: 0 var(--space-3) 0 var(--space-4);
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-user-link {
+        flex: 1;
+        justify-content: flex-start;
+        width: auto;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-footer-toggle,
+    .sidebar-footer-toggle {
+        display: none;
+    }
+
     body.sidebar-open .app-sidebar,
     .app-sidebar.active {
         transform: translateX(0);
+    }
+
+    body.sidebar-open .mobile-drawer-close,
+    .app-sidebar.active .mobile-drawer-close {
+        display: inline-flex;
     }
 
     /* Modal / Drawer Overlay Backdrop */
@@ -272,13 +342,15 @@
     .emp-quiet-action,
     .sidebar-toggle,
     .theme-toggle-btn,
-    .rt-bell {
+    .rt-bell,
+    .mobile-drawer-close {
         min-height: 44px;
     }
 
     .sidebar-toggle,
     .theme-toggle-btn,
-    .rt-bell {
+    .rt-bell,
+    .mobile-drawer-close {
         min-width: 44px;
     }
 }

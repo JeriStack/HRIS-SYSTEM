@@ -5,7 +5,8 @@
  * Supports 7-Group Admin Navigation Structure, Operational HR Navigation, and Employee Self-Service
  */
 
-$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+$rawPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+$currentPath = rtrim((string)$rawPath, '/') ?: '/';
 $currentQuery = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY) ?? '';
 $queryParams = [];
 if ($currentQuery !== '') {
@@ -35,17 +36,26 @@ if ($rawRole === 'admin') {
 }
 
 $sidebarUnreadCount = 0;
+$sidebarPendingCount = 0;
 if ($rawRole === 'employee' && isAuthenticated()) {
     try {
         $sidebarUnreadCount = (new \App\Models\Notification())->getUnreadCount((int)currentUserId());
     } catch (\Throwable $e) {
         $sidebarUnreadCount = 0;
     }
+
+    if (!empty($user['employee_id'])) {
+        try {
+            $sidebarPendingCount = (new \App\Models\Leave())->countPendingByEmployee((int)$user['employee_id']);
+        } catch (\Throwable $e) {
+            $sidebarPendingCount = 0;
+        }
+    }
 }
 ?>
 <aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
     <div class="sidebar-header">
-        <a href="<?= $dashboardUrl ?>" class="sidebar-brand" aria-label="NEXORA HR — People. Processes. Progress." title="NEXORA HR">
+        <a href="<?= $dashboardUrl ?>" class="sidebar-brand" aria-label="NEXORA HR — People. Processes. Progress." title="NEXORA HR" data-tooltip="NEXORA HR">
             <img
                 src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
                 alt=""
@@ -65,6 +75,9 @@ if ($rawRole === 'employee' && isAuthenticated()) {
                 </div>
             </div>
         </a>
+        <button type="button" class="mobile-drawer-close" id="mobileSidebarClose" aria-label="Close navigation menu" title="Close navigation menu">
+            <?= icon('x', 18) ?>
+        </button>
     </div>
 
     <nav class="sidebar-nav">
@@ -247,43 +260,56 @@ if ($rawRole === 'employee' && isAuthenticated()) {
             <!-- ==============================================================
                  EMPLOYEE WORKSPACE NAVIGATION
                  ============================================================== -->
+            <?php
+            $isEmpDashboard = ($currentPath === '/employee/dashboard' || str_contains($currentPath, '/dashboard'));
+            $isEmpProfile   = str_starts_with($currentPath, '/employee/profile');
+            $isEmpBalances  = str_starts_with($currentPath, '/employee/leave-balances');
+            $isEmpRequests  = (
+                str_starts_with($currentPath, '/employee/leave-requests')
+                || str_starts_with($currentPath, '/employee/leave-history')
+                || preg_match('#^/leaves/\d+$#', $currentPath) === 1
+            );
+            $isEmpApply     = str_starts_with($currentPath, '/leaves/apply');
+            $isEmpNotifs    = str_starts_with($currentPath, '/notifications');
+            ?>
             <div class="nav-section-title">Workspace</div>
-            <a href="<?= url('/employee/dashboard') ?>" class="nav-item <?= str_contains((string)$currentPath, '/dashboard') ? 'active' : '' ?>" title="Dashboard">
+            <a href="<?= url('/employee/dashboard') ?>" class="nav-item <?= $isEmpDashboard ? 'active' : '' ?>"<?= $isEmpDashboard ? ' aria-current="page"' : '' ?> title="Dashboard" data-tooltip="Dashboard">
                 <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
                 <span class="nav-item-label">Dashboard</span>
             </a>
-            <a href="<?= url('/employee/profile') ?>" class="nav-item <?= str_contains((string)$currentPath, '/employee/profile') ? 'active' : '' ?>" title="My Profile">
+            <a href="<?= url('/employee/profile') ?>" class="nav-item <?= $isEmpProfile ? 'active' : '' ?>"<?= $isEmpProfile ? ' aria-current="page"' : '' ?> title="My Profile" data-tooltip="My Profile">
                 <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
                 <span class="nav-item-label">My Profile</span>
             </a>
 
             <div class="nav-section-title">Leave &amp; Time Off</div>
-            <a href="<?= url('/employee/leave-balances') ?>" class="nav-item <?= str_contains((string)$currentPath, '/employee/leave-balances') ? 'active' : '' ?>" title="Leave Balances">
-                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+            <a href="<?= url('/employee/leave-balances') ?>" class="nav-item <?= $isEmpBalances ? 'active' : '' ?>"<?= $isEmpBalances ? ' aria-current="page"' : '' ?> title="Leave Balances" data-tooltip="Leave Balances">
+                <span class="icon" aria-hidden="true"><?= icon('calendar-check', 18) ?></span>
                 <span class="nav-item-label">Leave Balances</span>
             </a>
-            <a href="<?= url('/employee/leave-requests') ?>" class="nav-item <?= (str_contains((string)$currentPath, '/employee/leave-requests') || preg_match('#^/leaves/\d+$#', (string)$currentPath) === 1) ? 'active' : '' ?>" title="Leave Requests">
+            <a href="<?= url('/employee/leave-requests') ?>" class="nav-item <?= $isEmpRequests ? 'active' : '' ?>"<?= $isEmpRequests ? ' aria-current="page"' : '' ?> title="Leave Requests" data-tooltip="Leave Requests<?= $sidebarPendingCount > 0 ? ' (' . (int)$sidebarPendingCount . ' pending)' : '' ?>">
                 <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
                 <span class="nav-item-label">Leave Requests</span>
+                <?php if ($sidebarPendingCount > 0): ?>
+                    <span class="nav-badge nav-badge-pending" id="sidebarPendingBadge" aria-label="<?= (int)$sidebarPendingCount ?> pending leave requests"><?= $sidebarPendingCount > 99 ? '99+' : (int)$sidebarPendingCount ?></span>
+                <?php endif; ?>
             </a>
-            <a href="<?= url('/leaves/apply') ?>" class="nav-item <?= str_contains((string)$currentPath, '/leaves/apply') ? 'active' : '' ?>" title="File Leave Request">
+            <a href="<?= url('/leaves/apply') ?>" class="nav-item <?= $isEmpApply ? 'active' : '' ?>"<?= $isEmpApply ? ' aria-current="page"' : '' ?> title="File Leave Request" data-tooltip="File Leave Request">
                 <span class="icon" aria-hidden="true"><?= icon('file-plus', 18) ?></span>
                 <span class="nav-item-label">File Leave Request</span>
             </a>
 
             <div class="nav-section-title">Updates</div>
-            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains((string)$currentPath, '/notifications') ? 'active' : '' ?>" title="Notifications">
+            <a href="<?= url('/notifications') ?>" class="nav-item <?= $isEmpNotifs ? 'active' : '' ?>"<?= $isEmpNotifs ? ' aria-current="page"' : '' ?> title="Notifications" data-tooltip="Notifications">
                 <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
                 <span class="nav-item-label">Notifications</span>
-                <?php if ($sidebarUnreadCount > 0): ?>
-                    <span class="nav-badge" aria-label="<?= (int)$sidebarUnreadCount ?> unread notifications"><?= $sidebarUnreadCount > 99 ? '99+' : (int)$sidebarUnreadCount ?></span>
-                <?php endif; ?>
+                <span class="nav-badge" id="sidebarUnreadBadge"<?= $sidebarUnreadCount > 0 ? '' : ' hidden' ?> aria-label="<?= (int)$sidebarUnreadCount ?> unread notifications"><?= $sidebarUnreadCount > 99 ? '99+' : (int)$sidebarUnreadCount ?></span>
             </a>
 
             <div class="nav-section-title">Session</div>
             <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                 <?= csrf_field() ?>
-                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
+                <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out">
                     <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
                     <span class="nav-item-label">Sign Out</span>
                 </button>
@@ -292,14 +318,14 @@ if ($rawRole === 'employee' && isAuthenticated()) {
     </nav>
 
     <div class="sidebar-footer">
-        <a href="<?= ($rawRole === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" class="sidebar-user-link" title="View Profile">
+        <a href="<?= ($rawRole === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" class="sidebar-user-link" title="View Profile" aria-label="<?= e($userName) ?> (<?= e($roleTitle) ?>) — View Profile" data-tooltip="<?= e($userName) ?> · <?= e($roleTitle) ?>">
             <div class="sidebar-user-avatar" aria-hidden="true"><?= e($initials) ?></div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name"><?= e($userName) ?></div>
                 <div class="sidebar-user-role"><?= e($roleTitle) ?></div>
             </div>
         </a>
-        <button type="button" class="sidebar-toggle sidebar-footer-toggle" id="sidebarToggle" aria-label="Minimize sidebar" title="Minimize sidebar" aria-expanded="true" aria-controls="appSidebar">
+        <button type="button" class="sidebar-toggle sidebar-footer-toggle" id="sidebarToggle" aria-label="Minimize sidebar (Ctrl+B)" title="Minimize sidebar (Ctrl+B)" aria-expanded="true" aria-controls="appSidebar" data-tooltip="Minimize sidebar (Ctrl+B)">
             <?= icon('panel-left-close', 18) ?>
         </button>
     </div>

@@ -105,6 +105,20 @@ class Leave
     }
 
     /**
+     * Count pending leave requests submitted by a specific employee.
+     */
+    public function countPendingByEmployee(int $employeeId): int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT COUNT(*)
+            FROM leave_requests
+            WHERE employee_id = :emp_id AND status = 'Pending'
+        ");
+        $stmt->execute(['emp_id' => $employeeId]);
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
      * Find a single leave request by ID with complete relationship data.
      */
     public function getRequestById(int $id): ?array
