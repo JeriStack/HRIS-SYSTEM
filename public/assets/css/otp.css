@@ -28,6 +28,9 @@ html:not([data-theme="dark"]) {
   --brand-teal-hover: #0d9488;
   --brand-green: #10b981;
   --brand-red: #ef4444;
+  --logo-word-nexora: #04132a;
+  --logo-word-hr: #0066eb;
+  --logo-tagline-color: #1e3a5f;
 
   /* Surfaces & Canvas */
   --otp-bg: #f4f7fb;
@@ -105,6 +108,9 @@ html[data-theme="dark"] {
   --brand-teal-hover: #2dd4bf;
   --brand-green: #10b981;
   --brand-red: #f87171;
+  --logo-word-nexora: #f8fafc;
+  --logo-word-hr: #38bdf8;
+  --logo-tagline-color: #94a3b8;
 
   /* Surfaces & Canvas */
   --otp-bg: #0b1528;
@@ -375,18 +381,101 @@ html[data-theme="dark"] .theme-toggle-btn .moon-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
   background-color: transparent;
   border: none;
   padding: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
   box-shadow: none;
+  max-width: 100%;
 }
 
-.brand-logo-img {
-  max-width: 280px;
-  width: 100%;
-  height: auto;
+.brand-logo-emblem {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  flex-shrink: 0;
   display: block;
+}
+
+.brand-logo-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  line-height: 1;
+}
+
+.brand-logo-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-family:
+    "Manrope",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 1.85rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.logo-word-nexora {
+  color: var(--logo-word-nexora);
+  font-weight: 800;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.logo-letter-a {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-delta-mark {
+  position: absolute;
+  width: 0.44em;
+  height: 0.36em;
+  bottom: 0.08em;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--logo-word-hr);
+  pointer-events: none;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.logo-word-hr {
+  color: var(--logo-word-hr);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.brand-logo-tagline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--logo-tagline-color);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+
+.logo-tagline-rule {
+  width: 14px;
+  height: 1px;
+  flex: 0 0 14px;
+  background-color: var(--logo-tagline-color);
+  opacity: 0.55;
 }
 
 .brand-official-tagline {
@@ -1022,8 +1111,23 @@ html.theme-transitioning .email-chip {
     max-width: 300px;
   }
 
-  .brand-logo-img {
-    max-width: 220px;
+  .brand-logo-emblem {
+    width: 50px;
+    height: 50px;
+  }
+
+  .brand-logo-wordmark {
+    font-size: 1.5rem;
+  }
+
+  .brand-logo-tagline {
+    font-size: 0.6875rem;
+    gap: 0.35rem;
+  }
+
+  .logo-tagline-rule {
+    width: 10px;
+    flex-basis: 10px;
   }
 
   .verification-card {
@@ -1062,10 +1166,21 @@ html.theme-transitioning .email-chip {
   .brand-logo-shell {
     padding: 0;
     margin-bottom: 0.5rem;
+    gap: 0.625rem;
   }
 
-  .brand-logo-img {
-    max-width: 200px;
+  .brand-logo-emblem {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand-logo-wordmark {
+    font-size: 1.375rem;
+  }
+
+  .brand-logo-tagline {
+    font-size: 0.625rem;
+    gap: 0.3rem;
   }
 
   .brand-support-desc {
@@ -1121,6 +1236,23 @@ html.theme-transitioning .email-chip {
 @media (max-width: 360px) {
   body.otp-verification-page {
     padding: 0.75rem 0.5rem;
+  }
+
+  .brand-logo-shell {
+    gap: 0.5rem;
+  }
+
+  .brand-logo-emblem {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand-logo-wordmark {
+    font-size: 1.2rem;
+  }
+
+  .logo-tagline-rule {
+    display: none;
   }
 
   .verification-card {

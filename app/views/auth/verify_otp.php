@@ -78,8 +78,24 @@ if ($hasServerError) {
 
         <!-- Column 1: Left Branding Panel -->
         <aside class="left-branding" aria-label="NEXORA HR Brand Information">
-            <div class="brand-logo-shell">
-                <img src="<?= asset('img/hris-logo.png') ?>" alt="NEXORA HR — People. Processes. Progress." class="brand-logo-img">
+            <div class="brand-logo-shell" role="img" aria-label="NEXORA HR — People. Processes. Progress.">
+                <img
+                    src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
+                    alt=""
+                    class="brand-logo-emblem"
+                    width="62"
+                    height="62">
+                <div class="brand-logo-lockup" aria-hidden="true">
+                    <div class="brand-logo-wordmark">
+                        <span class="logo-word-nexora">NEXOR<span class="logo-letter-a">A<svg class="logo-delta-mark" viewBox="0 0 12 10" aria-hidden="true" focusable="false"><polygon points="6,1 11,10 1,10" fill="currentColor" /></svg></span></span>
+                        <span class="logo-word-hr">HR</span>
+                    </div>
+                    <div class="brand-logo-tagline">
+                        <span class="logo-tagline-rule"></span>
+                        <span class="logo-tagline-text">People. Processes. Progress.</span>
+                        <span class="logo-tagline-rule"></span>
+                    </div>
+                </div>
             </div>
 
             <div class="brand-official-tagline">
