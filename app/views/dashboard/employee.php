@@ -106,14 +106,16 @@ foreach ($recentRequestsSlice as $req) {
     ?>
     <div class="emp-upcoming-banner" role="status">
         <div class="emp-upcoming-banner-meta">
-            <span class="text-muted"><?= icon('calendar-check', 16) ?></span>
-            <span class="font-medium text-main">Upcoming time off: <?= e($upName) ?></span>
-            <span class="text-muted" aria-hidden="true">&middot;</span>
-            <span class="text-muted tabular-nums">
+            <span class="emp-upcoming-icon" aria-hidden="true"><?= icon('calendar-check', 16) ?></span>
+            <span class="emp-upcoming-label">Upcoming approved leave: <strong><?= e($upName) ?></strong></span>
+            <span class="emp-meta-divider" aria-hidden="true">&middot;</span>
+            <span class="emp-upcoming-dates tabular-nums">
                 <?= e($upStart) ?><?= $upStart !== $upEnd ? ' &ndash; ' . e($upEnd) : '' ?> (<?= $upDays ?> working <?= $upDays === 1 ? 'day' : 'days' ?>)
             </span>
         </div>
-        <a href="<?= url('/leaves/' . (int)$upcomingApprovedLeave['id']) ?>" class="emp-quiet-action">
+        <a href="<?= url('/leaves/' . (int)$upcomingApprovedLeave['id']) ?>"
+           class="emp-quiet-action"
+           aria-label="Details for upcoming <?= e($upName) ?>">
             <span>Details</span>
             <?= icon('chevron-right', 14) ?>
         </a>
@@ -130,7 +132,10 @@ foreach ($recentRequestsSlice as $req) {
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $totalRemaining ?></span>
-            <span class="emp-kpi-unit">days</span>
+            <span class="emp-kpi-unit"><?= $totalRemaining === 1 ? 'day' : 'days' ?></span>
+        </div>
+        <div class="emp-kpi-footer">
+            <span class="emp-kpi-meta tabular-nums">Of <?= $totalAllocated ?> allocated <?= $totalAllocated === 1 ? 'day' : 'days' ?> in <?= date('Y') ?></span>
         </div>
     </div>
 
@@ -142,7 +147,7 @@ foreach ($recentRequestsSlice as $req) {
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $totalUsed ?></span>
-            <span class="emp-kpi-unit">days</span>
+            <span class="emp-kpi-unit"><?= $totalUsed === 1 ? 'day' : 'days' ?></span>
         </div>
         <div class="emp-kpi-footer">
             <div class="emp-kpi-meter-line">
@@ -158,11 +163,17 @@ foreach ($recentRequestsSlice as $req) {
     <a href="<?= url('/employee/leave-requests') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Pending Requests: <?= $pendingCount ?> <?= $pendingCount === 1 ? 'request' : 'requests' ?>">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Pending Requests</span>
-            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('file-text', 16) ?></span>
+            <span class="emp-kpi-icon <?= $pendingCount > 0 ? 'is-pending' : '' ?>" aria-hidden="true"><?= icon('file-text', 16) ?></span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $pendingCount ?></span>
             <span class="emp-kpi-unit"><?= $pendingCount === 1 ? 'request' : 'requests' ?></span>
+        </div>
+        <div class="emp-kpi-footer">
+            <span class="emp-kpi-action <?= $pendingCount > 0 ? 'is-pending-text' : '' ?>">
+                <span><?= $pendingCount > 0 ? 'Awaiting HR review' : 'View request history' ?></span>
+                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
+            </span>
         </div>
     </a>
 
@@ -170,11 +181,17 @@ foreach ($recentRequestsSlice as $req) {
     <a href="<?= url('/notifications') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Unread Alerts: <?= $unreadCount ?> <?= $unreadCount === 1 ? 'alert' : 'alerts' ?>">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Unread Alerts</span>
-            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('bell', 16) ?></span>
+            <span class="emp-kpi-icon <?= $unreadCount > 0 ? 'is-alert' : '' ?>" aria-hidden="true"><?= icon('bell', 16) ?></span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $unreadCount ?></span>
             <span class="emp-kpi-unit"><?= $unreadCount === 1 ? 'alert' : 'alerts' ?></span>
+        </div>
+        <div class="emp-kpi-footer">
+            <span class="emp-kpi-action">
+                <span><?= $unreadCount > 0 ? 'Open alert inbox' : 'All alerts read' ?></span>
+                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
+            </span>
         </div>
     </a>
 </section>
@@ -266,7 +283,7 @@ foreach ($recentRequestsSlice as $req) {
     <div class="card">
         <div class="card-header">
             <div class="card-title-group">
-                <h2 class="card-title">Recent Leave Applications</h2>
+                <h2 class="card-title" id="recentRequestsHeading">Recent Leave Applications</h2>
                 <p class="card-subtitle">Filter status or manage pending requests</p>
             </div>
             <a href="<?= url('/employee/leave-requests') ?>" class="emp-quiet-action">
@@ -301,20 +318,22 @@ foreach ($recentRequestsSlice as $req) {
                         </button>
                     <?php endif; ?>
                 </div>
+                <div id="dashRequestsFilterStatus" class="sr-only" aria-live="polite"></div>
             </div>
         <?php endif; ?>
 
         <div class="card-body p-0">
             <?php if (!empty($recentRequestsSlice)) : ?>
-                <div class="table-responsive">
-                    <table class="data-table" id="dashRecentRequestsTable">
+                <div class="table-responsive emp-requests-table-wrap" tabindex="0" role="region" aria-labelledby="recentRequestsHeading">
+                    <table class="data-table emp-requests-table" id="dashRecentRequestsTable">
+                        <caption class="sr-only">Recent leave applications</caption>
                         <thead>
                             <tr>
-                                <th>Leave Type</th>
-                                <th>Dates</th>
-                                <th>Duration</th>
-                                <th>Status</th>
-                                <th class="text-right">Actions</th>
+                                <th scope="col">Leave Type</th>
+                                <th scope="col">Dates</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Status</th>
+                                <th scope="col" class="text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -334,28 +353,32 @@ foreach ($recentRequestsSlice as $req) {
                                 $dateRangeLabel = $startFormatted . ($startFormatted !== $endFormatted ? ' – ' . $endFormatted : '');
                                 ?>
                                 <tr data-dash-req-status="<?= e($status) ?>">
-                                    <td>
-                                        <div class="font-semibold text-main"><?= e($reqTypeName) ?></div>
-                                        <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
-                                            <div class="text-xs text-danger mt-1">Note: <?= e(mb_strimwidth($req['rejection_reason'], 0, 55, '...')) ?></div>
-                                        <?php endif; ?>
+                                    <td data-label="Leave Type">
+                                        <div class="emp-req-type-cell">
+                                            <div class="font-semibold text-main"><?= e($reqTypeName) ?></div>
+                                            <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
+                                                <div class="emp-rejection-note">Note: <?= e(mb_strimwidth($req['rejection_reason'], 0, 55, '...')) ?></div>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
-                                    <td class="text-sm tabular-nums whitespace-nowrap">
+                                    <td data-label="Dates" class="text-sm tabular-nums whitespace-nowrap">
                                         <?= e($startFormatted) ?>
                                         <?php if ($startFormatted !== $endFormatted) : ?>
                                             <span class="text-muted">&ndash;</span> <?= e($endFormatted) ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="tabular-nums whitespace-nowrap">
-                                        <span class="font-medium"><?= $days ?></span>
-                                        <span class="text-muted text-xs"><?= $days === 1 ? 'day' : 'days' ?></span>
+                                    <td data-label="Duration" class="tabular-nums whitespace-nowrap">
+                                        <span class="font-semibold text-main"><?= $days ?></span>
+                                        <span class="text-muted text-sm"><?= $days === 1 ? 'day' : 'days' ?></span>
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         <span class="badge <?= $badgeClass ?> badge-dot"><?= e($status) ?></span>
                                     </td>
-                                    <td class="text-right whitespace-nowrap">
+                                    <td data-label="Actions" class="text-right whitespace-nowrap">
                                         <div class="inline-flex items-center gap-2">
-                                            <a href="<?= url('/leaves/' . $reqId) ?>" class="emp-quiet-action">
+                                            <a href="<?= url('/leaves/' . $reqId) ?>"
+                                               class="emp-quiet-action"
+                                               aria-label="View <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
                                                 View
                                             </a>
                                             <?php if ($status === 'Pending') : ?>
@@ -365,6 +388,7 @@ foreach ($recentRequestsSlice as $req) {
                                                     data-leave-id="<?= $reqId ?>"
                                                     data-leave-type="<?= e($reqTypeName) ?>"
                                                     data-leave-dates="<?= e($dateRangeLabel) ?>"
+                                                    aria-label="Cancel <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)"
                                                 >
                                                     Cancel
                                                 </button>
@@ -438,9 +462,10 @@ foreach ($recentRequestsSlice as $req) {
                             default   => 'emp-notif-icon-info',
                         };
                         $createdStr = !empty($notif['created_at']) ? date('M j, g:i A', strtotime($notif['created_at'])) : '';
+                        $notifTitle = $notif['title'] ?? 'System Notification';
                         ?>
                         <div class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>">
-                            <div class="emp-notif-icon <?= $iconTone ?>">
+                            <div class="emp-notif-icon <?= $iconTone ?>" aria-hidden="true">
                                 <?= icon($iconName, 16) ?>
                             </div>
                             <div class="emp-notif-content">
@@ -450,7 +475,7 @@ foreach ($recentRequestsSlice as $req) {
                                             <span class="emp-unread-dot" aria-hidden="true" title="Unread"></span>
                                             <span class="sr-only">Unread: </span>
                                         <?php endif; ?>
-                                        <?= e($notif['title'] ?? 'System Notification') ?>
+                                        <?= e($notifTitle) ?>
                                     </span>
                                     <span class="emp-notif-time"><?= e($createdStr) ?></span>
                                 </div>
@@ -460,7 +485,10 @@ foreach ($recentRequestsSlice as $req) {
                                 <div class="emp-notif-actions">
                                     <form method="POST" action="<?= url('/notifications/' . $notifId . '/read') ?>">
                                         <?= csrf_field() ?>
-                                        <button type="submit" class="emp-quiet-action" title="Mark notification as read">
+                                        <button type="submit"
+                                                class="emp-quiet-action"
+                                                title="Mark notification as read"
+                                                aria-label="Mark read: <?= e($notifTitle) ?>">
                                             Mark read
                                         </button>
                                     </form>
@@ -513,6 +541,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const filterPills = Array.from(document.querySelectorAll('[data-dash-req-filter]'));
     const reqTable = document.getElementById('dashRecentRequestsTable');
     const emptyState = document.getElementById('dashRequestsFilterEmpty');
+    const filterStatus = document.getElementById('dashRequestsFilterStatus');
 
     function activateFilterPill(pill, moveFocus) {
         if (!pill) return;
@@ -543,8 +572,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
+        reqTable.hidden = visibleRows === 0;
         if (emptyState) {
             emptyState.style.display = visibleRows === 0 ? 'block' : 'none';
+        }
+        if (filterStatus) {
+            const label = targetStatus === 'all' ? 'all' : targetStatus.toLowerCase();
+            filterStatus.textContent = 'Showing ' + visibleRows + ' ' + label + (visibleRows === 1 ? ' application.' : ' applications.');
         }
     }
 
