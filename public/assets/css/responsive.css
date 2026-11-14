@@ -378,11 +378,6 @@
     .header-user-meta {
         display: none;
     }
-
-    .header-account-chip {
-        padding: 0 0.3rem;
-        gap: 0;
-    }
 }
 
 /* ==========================================================================

@@ -127,10 +127,9 @@ if (isAuthenticated()) {
         ?>
         <a href="<?= $headerProfileUrl ?>"
            class="header-account-chip"
-           title="<?= e($headerProfileTitle) ?>"
+           title="<?= e($userName . ' — ' . $headerProfileTitle) ?>"
            aria-label="<?= e($userName . ' — ' . $headerProfileTitle) ?>">
             <span class="header-account-avatar role-<?= e($role) ?>" aria-hidden="true"><?= e($avatarInitials) ?></span>
-            <span class="header-account-name"><?= e($userName) ?></span>
         </a>
     </div>
 </header>
