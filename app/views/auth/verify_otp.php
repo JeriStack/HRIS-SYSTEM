@@ -208,20 +208,24 @@ if ($hasServerError) {
                     </div>
 
                     <!-- OTP Verification Form -->
-                    <form method="POST" action="<?= url('/verify-otp') ?>" id="otpVerifyForm" autocomplete="off">
+                    <form method="POST" action="<?= url('/verify-otp') ?>" id="otpVerifyForm" autocomplete="on">
                         <?= csrf_field() ?>
 
                         <label class="otp-section-label" for="otp_digit_0">Verification Code (OTP)</label>
 
                         <!-- 6 Separate Digit Boxes -->
-                        <div class="otp-boxes-group" id="otpBoxesGroup" role="group" aria-label="6-digit verification code">
+                        <div class="otp-boxes-group" id="otpBoxesGroup" role="group" aria-label="6-digit verification code" aria-describedby="otpExpiryMeta">
                             <input type="text"
                                 id="otp_digit_0"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
                                 autocomplete="one-time-code"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="next"
                                 data-index="0"
                                 aria-label="Digit 1 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>
@@ -229,45 +233,65 @@ if ($hasServerError) {
                             <input type="text"
                                 id="otp_digit_1"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="next"
                                 data-index="1"
                                 aria-label="Digit 2 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>>
                             <input type="text"
                                 id="otp_digit_2"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="next"
                                 data-index="2"
                                 aria-label="Digit 3 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>>
                             <input type="text"
                                 id="otp_digit_3"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="next"
                                 data-index="3"
                                 aria-label="Digit 4 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>>
                             <input type="text"
                                 id="otp_digit_4"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="next"
                                 data-index="4"
                                 aria-label="Digit 5 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>>
                             <input type="text"
                                 id="otp_digit_5"
                                 class="otp-box-digit <?= $hasServerError ? 'is-invalid' : '' ?>"
-                                maxlength="1"
+                                maxlength="6"
                                 inputmode="numeric"
                                 pattern="[0-9]"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                enterkeyhint="done"
                                 data-index="5"
                                 aria-label="Digit 6 of verification code"
                                 <?= $hasServerError ? 'aria-invalid="true"' : '' ?>>
@@ -276,8 +300,23 @@ if ($hasServerError) {
                         <!-- Hidden Canonical Field Submitted to POST /verify-otp -->
                         <input type="hidden" name="otp" id="otpFullValue" value="">
 
+                        <!-- Clipboard Autofill Action (Revealed via JS when Clipboard API is supported) -->
+                        <div class="otp-autofill-row" id="otpAutofillRow" hidden>
+                            <button type="button"
+                                id="otpAutofillBtn"
+                                class="btn-autofill-otp"
+                                title="Autofill 6-digit verification code from clipboard">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                                    <path d="m9 14 2 2 4-4" />
+                                </svg>
+                                <span>Autofill from Clipboard</span>
+                            </button>
+                        </div>
+
                         <!-- Expiry and Attempts Info -->
-                        <div class="otp-expiry-meta">
+                        <div class="otp-expiry-meta" id="otpExpiryMeta">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <circle cx="12" cy="12" r="10" />
                                 <polyline points="12 6 12 12 16 14" />
