@@ -53,4 +53,36 @@ class LeaveSidebarCountTest extends TestCase
         $leave = new Leave($pdo);
         $this->assertSame(0, $leave->countPendingByEmployee(7));
     }
+
+    public function test_count_pending_all_queries_pending_requests_across_organization(): void
+    {
+        $stmt = $this->createMock(PDOStatement::class);
+        $stmt->expects($this->once())
+            ->method('fetchColumn')
+            ->willReturn('8');
+
+        $pdo = $this->createMock(PDO::class);
+        $pdo->expects($this->once())
+            ->method('query')
+            ->with($this->callback(static function (string $sql): bool {
+                return str_contains($sql, 'FROM leave_requests')
+                    && str_contains($sql, "status = 'Pending'")
+                    && !str_contains($sql, 'employee_id');
+            }))
+            ->willReturn($stmt);
+
+        $leave = new Leave($pdo);
+        $this->assertSame(8, $leave->countPendingAll());
+    }
+
+    public function test_count_pending_all_returns_zero_when_query_fails(): void
+    {
+        $pdo = $this->createMock(PDO::class);
+        $pdo->expects($this->once())
+            ->method('query')
+            ->willReturn(false);
+
+        $leave = new Leave($pdo);
+        $this->assertSame(0, $leave->countPendingAll());
+    }
 }

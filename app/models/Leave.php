@@ -119,6 +119,19 @@ class Leave
     }
 
     /**
+     * Count all pending leave requests across the organization (for HR/Admin review queue).
+     */
+    public function countPendingAll(): int
+    {
+        $stmt = $this->pdo->query("
+            SELECT COUNT(*)
+            FROM leave_requests
+            WHERE status = 'Pending'
+        ");
+        return $stmt ? (int)$stmt->fetchColumn() : 0;
+    }
+
+    /**
      * Find a single leave request by ID with complete relationship data.
      */
     public function getRequestById(int $id): ?array

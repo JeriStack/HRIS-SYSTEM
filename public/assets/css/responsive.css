@@ -78,8 +78,14 @@
     }
 
     .app-shell.sidebar-collapsed .app-sidebar .nav-section-title,
+    .app-shell.sidebar-collapsed .app-sidebar .nav-section-toggle,
+    .app-shell.sidebar-collapsed .app-sidebar .sidebar-search,
     .app-shell.sidebar-collapsed .app-sidebar .sidebar-user-info {
         display: block !important;
+    }
+
+    .app-shell.sidebar-collapsed .app-sidebar .nav-section-toggle {
+        display: flex !important;
     }
 
     .app-shell.sidebar-collapsed .app-sidebar .sidebar-header {

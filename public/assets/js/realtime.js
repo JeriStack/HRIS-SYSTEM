@@ -94,6 +94,10 @@
             sidebarBadge.textContent = n > 99 ? '99+' : String(n);
             sidebarBadge.hidden = n === 0;
             sidebarBadge.setAttribute('aria-label', n + ' unread notifications');
+            var notifLink = sidebarBadge.closest('.nav-item');
+            if (notifLink) {
+                notifLink.setAttribute('data-tooltip', n > 0 ? 'Notifications (' + n + ' unread)' : 'Notifications');
+            }
         }
     }
 

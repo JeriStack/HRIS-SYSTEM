@@ -37,23 +37,35 @@ if ($rawRole === 'admin') {
 
 $sidebarUnreadCount = 0;
 $sidebarPendingCount = 0;
-if ($rawRole === 'employee' && isAuthenticated()) {
+if (isAuthenticated()) {
     try {
         $sidebarUnreadCount = (new \App\Models\Notification())->getUnreadCount((int)currentUserId());
     } catch (\Throwable $e) {
         $sidebarUnreadCount = 0;
     }
 
-    if (!empty($user['employee_id'])) {
-        try {
-            $sidebarPendingCount = (new \App\Models\Leave())->countPendingByEmployee((int)$user['employee_id']);
-        } catch (\Throwable $e) {
-            $sidebarPendingCount = 0;
+    try {
+        $leaveSidebarModel = new \App\Models\Leave();
+        if ($rawRole === 'hr' || $rawRole === 'admin') {
+            $sidebarPendingCount = $leaveSidebarModel->countPendingAll();
+        } elseif (!empty($user['employee_id'])) {
+            $sidebarPendingCount = $leaveSidebarModel->countPendingByEmployee((int)$user['employee_id']);
         }
+    } catch (\Throwable $e) {
+        $sidebarPendingCount = 0;
     }
 }
+
+$sidebarProfileUrl = url('/employee/profile');
+if ($rawRole === 'admin') {
+    $sidebarProfileUrl = url('/admin/account');
+} elseif ($rawRole === 'hr') {
+    $sidebarProfileUrl = !empty($user['employee_id'])
+        ? url('/hr/employees/' . (int)$user['employee_id'])
+        : url('/hr/dashboard');
+}
 ?>
-<aside class="app-sidebar" id="appSidebar" aria-label="Main Navigation">
+<aside class="app-sidebar" id="appSidebar" data-role="<?= e($rawRole) ?>" aria-label="Main Navigation">
     <div class="sidebar-header">
         <a href="<?= $dashboardUrl ?>" class="sidebar-brand" aria-label="NEXORA HR — People. Processes. Progress." title="NEXORA HR" data-tooltip="NEXORA HR">
             <img
@@ -81,180 +93,338 @@ if ($rawRole === 'employee' && isAuthenticated()) {
     </div>
 
     <nav class="sidebar-nav">
+        <?php if ($rawRole === 'admin' || $rawRole === 'hr'): ?>
+            <search class="sidebar-search" role="search">
+                <label for="sidebarNavFilter" class="sr-only">Filter navigation menu</label>
+                <div class="sidebar-search-field">
+                    <span class="sidebar-search-icon" aria-hidden="true"><?= icon('search', 14) ?></span>
+                    <input
+                        type="search"
+                        id="sidebarNavFilter"
+                        class="sidebar-search-input"
+                        placeholder="Quick jump..."
+                        aria-label="Filter navigation menu"
+                        aria-keyshortcuts="/"
+                        autocomplete="off"
+                        autocorrect="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                    >
+                    <kbd class="sidebar-search-shortcut" aria-hidden="true">/</kbd>
+                    <button type="button" id="sidebarNavFilterClear" class="sidebar-search-clear" aria-label="Clear navigation filter" title="Clear filter" hidden>
+                        <?= icon('x', 13) ?>
+                    </button>
+                </div>
+            </search>
+        <?php endif; ?>
+
         <?php if ($rawRole === 'admin'): ?>
             <!-- ==============================================================
                  ADMINISTRATOR 7-GROUP HIERARCHY
                  ============================================================== -->
-            
+            <?php
+            $isAdmOverview  = ($currentPath === '/admin/dashboard');
+            $isAdmUsers     = ($currentPath === '/admin/users' || str_starts_with($currentPath, '/admin/users/'));
+            $isAdmRoles     = ($currentPath === '/admin/roles');
+            $isAdmProvision = ($currentPath === '/admin/provisioning');
+            $isAdmEmployees = (str_starts_with($currentPath, '/hr/employees') || $currentPath === '/admin/employees');
+            $isAdmDepts     = (str_starts_with($currentPath, '/hr/departments') || $currentPath === '/admin/departments');
+            $isAdmPositions = (str_starts_with($currentPath, '/hr/positions') || $currentPath === '/admin/positions');
+            $isAdmLeaves    = ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || str_starts_with($currentPath, '/hr/leave-requests') || preg_match('#^/leaves/\d+$#', $currentPath) === 1);
+            $isAdmTypes     = (str_starts_with($currentPath, '/hr/leave-types') || $currentPath === '/admin/leave-types');
+            $isAdmBalances  = (str_starts_with($currentPath, '/leaves/balances') || $currentPath === '/admin/leave-balances');
+            $isAdmReports   = (($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab !== 'analytics');
+            $isAdmAnalytics = ((($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab === 'analytics') || $currentPath === '/admin/analytics');
+            $isAdmAudit     = ($currentPath === '/activity-logs' || $currentPath === '/admin/audit-logs');
+            $isAdmSecurity  = ($currentPath === '/admin/security/events');
+            $isAdmAuthCfg   = ($currentPath === '/admin/settings/auth');
+            $isAdmSettings  = ($currentPath === '/admin/settings');
+            $isAdmHealth    = ($currentPath === '/admin/system-health');
+            $isAdmNotifCfg  = ($currentPath === '/admin/settings/notifications');
+            $isAdmAccount   = ($currentPath === '/admin/account');
+            ?>
+
             <!-- Dashboard -->
-            <div class="nav-section-title">Dashboard</div>
-            <a href="<?= url('/admin/dashboard') ?>" class="nav-item <?= $currentPath === '/admin/dashboard' ? 'active' : '' ?>" title="Overview">
-                <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
-                <span class="nav-item-label">Overview</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-dashboard">
+                <div class="nav-section-title">Dashboard</div>
+                <div class="nav-section-items" id="navGroupAdminDashboard">
+                    <a href="<?= url('/admin/dashboard') ?>" class="nav-item <?= $isAdmOverview ? 'active' : '' ?>"<?= $isAdmOverview ? ' aria-current="page"' : '' ?> title="Overview" data-tooltip="Overview" data-keywords="home summary metrics">
+                        <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
+                        <span class="nav-item-label">Overview</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- User Administration -->
-            <div class="nav-section-title">User Administration</div>
-            <a href="<?= url('/admin/users') ?>" class="nav-item <?= ($currentPath === '/admin/users' || str_starts_with($currentPath, '/admin/users/')) ? 'active' : '' ?>" title="User Accounts">
-                <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
-                <span class="nav-item-label">User Accounts</span>
-            </a>
-            <a href="<?= url('/admin/roles') ?>" class="nav-item <?= $currentPath === '/admin/roles' ? 'active' : '' ?>" title="Roles &amp; Permissions">
-                <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
-                <span class="nav-item-label">Roles &amp; Permissions</span>
-            </a>
-            <a href="<?= url('/admin/provisioning') ?>" class="nav-item <?= $currentPath === '/admin/provisioning' ? 'active' : '' ?>" title="Admin Provisioning">
-                <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
-                <span class="nav-item-label">Admin Provisioning</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-users">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminUsers">
+                    <span class="nav-section-toggle-label">User Administration</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminUsers">
+                    <a href="<?= url('/admin/users') ?>" class="nav-item <?= $isAdmUsers ? 'active' : '' ?>"<?= $isAdmUsers ? ' aria-current="page"' : '' ?> title="User Accounts" data-tooltip="User Accounts" data-keywords="accounts credentials access">
+                        <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
+                        <span class="nav-item-label">User Accounts</span>
+                    </a>
+                    <a href="<?= url('/admin/roles') ?>" class="nav-item <?= $isAdmRoles ? 'active' : '' ?>"<?= $isAdmRoles ? ' aria-current="page"' : '' ?> title="Roles &amp; Permissions" data-tooltip="Roles &amp; Permissions" data-keywords="rbac policy">
+                        <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+                        <span class="nav-item-label">Roles &amp; Permissions</span>
+                    </a>
+                    <a href="<?= url('/admin/provisioning') ?>" class="nav-item <?= $isAdmProvision ? 'active' : '' ?>"<?= $isAdmProvision ? ' aria-current="page"' : '' ?> title="Admin Provisioning" data-tooltip="Admin Provisioning" data-keywords="onboarding accounts">
+                        <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
+                        <span class="nav-item-label">Admin Provisioning</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Organization Management -->
-            <div class="nav-section-title">Organization Management</div>
-            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= (str_contains($currentPath, '/employees') && !str_contains($currentPath, '/employee/')) ? 'active' : '' ?>" title="Employee Records">
-                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
-                <span class="nav-item-label">Employee Records</span>
-            </a>
-            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/departments') ? 'active' : '' ?>" title="Departments">
-                <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
-                <span class="nav-item-label">Departments</span>
-            </a>
-            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/positions') ? 'active' : '' ?>" title="Positions">
-                <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
-                <span class="nav-item-label">Positions</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-org">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminOrg">
+                    <span class="nav-section-toggle-label">Organization Management</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminOrg">
+                    <a href="<?= url('/hr/employees') ?>" class="nav-item <?= $isAdmEmployees ? 'active' : '' ?>"<?= $isAdmEmployees ? ' aria-current="page"' : '' ?> title="Employee Records" data-tooltip="Employee Records" data-keywords="staff directory personnel">
+                        <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                        <span class="nav-item-label">Employee Records</span>
+                    </a>
+                    <a href="<?= url('/hr/departments') ?>" class="nav-item <?= $isAdmDepts ? 'active' : '' ?>"<?= $isAdmDepts ? ' aria-current="page"' : '' ?> title="Departments" data-tooltip="Departments" data-keywords="teams units division">
+                        <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
+                        <span class="nav-item-label">Departments</span>
+                    </a>
+                    <a href="<?= url('/hr/positions') ?>" class="nav-item <?= $isAdmPositions ? 'active' : '' ?>"<?= $isAdmPositions ? ' aria-current="page"' : '' ?> title="Positions" data-tooltip="Positions" data-keywords="jobs titles roles">
+                        <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
+                        <span class="nav-item-label">Positions</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Leave Administration -->
-            <div class="nav-section-title">Leave Administration</div>
-            <a href="<?= url('/leaves') ?>" class="nav-item <?= ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || $currentPath === '/hr/leave-requests') ? 'active' : '' ?>" title="Leave Requests">
-                <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
-                <span class="nav-item-label">Leave Requests</span>
-            </a>
-            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/leave-types') ? 'active' : '' ?>" title="Leave Types &amp; Policies">
-                <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
-                <span class="nav-item-label">Leave Types &amp; Policies</span>
-            </a>
-            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>" title="Leave Balances">
-                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
-                <span class="nav-item-label">Leave Balances</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-leave">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminLeave">
+                    <span class="nav-section-toggle-label">Leave Administration</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminLeave">
+                    <a href="<?= url('/leaves') ?>" class="nav-item <?= $isAdmLeaves ? 'active' : '' ?>"<?= $isAdmLeaves ? ' aria-current="page"' : '' ?> title="Leave Requests" data-tooltip="Leave Requests<?= $sidebarPendingCount > 0 ? ' (' . (int)$sidebarPendingCount . ' pending)' : '' ?>" data-keywords="approvals queue pending pto">
+                        <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
+                        <span class="nav-item-label">Leave Requests</span>
+                        <?php if ($sidebarPendingCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" id="sidebarPendingBadge" aria-label="<?= (int)$sidebarPendingCount ?> pending leave requests"><?= $sidebarPendingCount > 99 ? '99+' : (int)$sidebarPendingCount ?></span>
+                        <?php endif; ?>
+                    </a>
+                    <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= $isAdmTypes ? 'active' : '' ?>"<?= $isAdmTypes ? ' aria-current="page"' : '' ?> title="Leave Types &amp; Policies" data-tooltip="Leave Types &amp; Policies" data-keywords="classifications rules">
+                        <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
+                        <span class="nav-item-label">Leave Types &amp; Policies</span>
+                    </a>
+                    <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= $isAdmBalances ? 'active' : '' ?>"<?= $isAdmBalances ? ' aria-current="page"' : '' ?> title="Leave Balances" data-tooltip="Leave Balances" data-keywords="credits quota allocation">
+                        <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+                        <span class="nav-item-label">Leave Balances</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Reports & Analytics -->
-            <div class="nav-section-title">Reports &amp; Analytics</div>
-            <a href="<?= url('/reports') ?>" class="nav-item <?= (($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab !== 'analytics') ? 'active' : '' ?>" title="System Reports">
-                <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
-                <span class="nav-item-label">System Reports</span>
-            </a>
-            <a href="<?= url('/reports?tab=analytics') ?>" class="nav-item <?= ((($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab === 'analytics') || $currentPath === '/admin/analytics') ? 'active' : '' ?>" title="HR Analytics">
-                <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
-                <span class="nav-item-label">HR Analytics</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-reports">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminReports">
+                    <span class="nav-section-toggle-label">Reports &amp; Analytics</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminReports">
+                    <a href="<?= url('/reports') ?>" class="nav-item <?= $isAdmReports ? 'active' : '' ?>"<?= $isAdmReports ? ' aria-current="page"' : '' ?> title="System Reports" data-tooltip="System Reports" data-keywords="export csv summary">
+                        <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
+                        <span class="nav-item-label">System Reports</span>
+                    </a>
+                    <a href="<?= url('/reports?tab=analytics') ?>" class="nav-item <?= $isAdmAnalytics ? 'active' : '' ?>"<?= $isAdmAnalytics ? ' aria-current="page"' : '' ?> title="HR Analytics" data-tooltip="HR Analytics" data-keywords="charts trends insights">
+                        <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
+                        <span class="nav-item-label">HR Analytics</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Security & Compliance -->
-            <div class="nav-section-title">Security &amp; Compliance</div>
-            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= $currentPath === '/activity-logs' ? 'active' : '' ?>" title="Audit Logs">
-                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
-                <span class="nav-item-label">Audit Logs</span>
-            </a>
-            <a href="<?= url('/admin/security/events') ?>" class="nav-item <?= $currentPath === '/admin/security/events' ? 'active' : '' ?>" title="Security Events">
-                <span class="icon" aria-hidden="true"><?= icon('alert-triangle', 18) ?></span>
-                <span class="nav-item-label">Security Events</span>
-            </a>
-            <a href="<?= url('/admin/settings/auth') ?>" class="nav-item <?= $currentPath === '/admin/settings/auth' ? 'active' : '' ?>" title="Authentication Settings">
-                <span class="icon" aria-hidden="true"><?= icon('lock', 18) ?></span>
-                <span class="nav-item-label">Authentication Settings</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-security">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminSecurity">
+                    <span class="nav-section-toggle-label">Security &amp; Compliance</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminSecurity">
+                    <a href="<?= url('/activity-logs') ?>" class="nav-item <?= $isAdmAudit ? 'active' : '' ?>"<?= $isAdmAudit ? ' aria-current="page"' : '' ?> title="Audit Logs" data-tooltip="Audit Logs" data-keywords="trail history actions">
+                        <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                        <span class="nav-item-label">Audit Logs</span>
+                    </a>
+                    <a href="<?= url('/admin/security/events') ?>" class="nav-item <?= $isAdmSecurity ? 'active' : '' ?>"<?= $isAdmSecurity ? ' aria-current="page"' : '' ?> title="Security Events" data-tooltip="Security Events" data-keywords="alerts threats auth">
+                        <span class="icon" aria-hidden="true"><?= icon('alert-triangle', 18) ?></span>
+                        <span class="nav-item-label">Security Events</span>
+                    </a>
+                    <a href="<?= url('/admin/settings/auth') ?>" class="nav-item <?= $isAdmAuthCfg ? 'active' : '' ?>"<?= $isAdmAuthCfg ? ' aria-current="page"' : '' ?> title="Authentication Settings" data-tooltip="Authentication Settings" data-keywords="otp mfa password">
+                        <span class="icon" aria-hidden="true"><?= icon('lock', 18) ?></span>
+                        <span class="nav-item-label">Authentication Settings</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- System Administration -->
-            <div class="nav-section-title">System Administration</div>
-            <a href="<?= url('/admin/settings') ?>" class="nav-item <?= $currentPath === '/admin/settings' ? 'active' : '' ?>" title="General Settings">
-                <span class="icon" aria-hidden="true"><?= icon('settings', 18) ?></span>
-                <span class="nav-item-label">General Settings</span>
-            </a>
-            <a href="<?= url('/admin/system-health') ?>" class="nav-item <?= $currentPath === '/admin/system-health' ? 'active' : '' ?>" title="System Health">
-                <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
-                <span class="nav-item-label">System Health</span>
-            </a>
-            <a href="<?= url('/admin/settings/notifications') ?>" class="nav-item <?= $currentPath === '/admin/settings/notifications' ? 'active' : '' ?>" title="Notification Settings">
-                <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
-                <span class="nav-item-label">Notification Settings</span>
-            </a>
+            <div class="nav-section-group" data-section-id="admin-system">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminSystem">
+                    <span class="nav-section-toggle-label">System Administration</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupAdminSystem">
+                    <a href="<?= url('/admin/settings') ?>" class="nav-item <?= $isAdmSettings ? 'active' : '' ?>"<?= $isAdmSettings ? ' aria-current="page"' : '' ?> title="General Settings" data-tooltip="General Settings" data-keywords="config preferences">
+                        <span class="icon" aria-hidden="true"><?= icon('settings', 18) ?></span>
+                        <span class="nav-item-label">General Settings</span>
+                    </a>
+                    <a href="<?= url('/admin/system-health') ?>" class="nav-item <?= $isAdmHealth ? 'active' : '' ?>"<?= $isAdmHealth ? ' aria-current="page"' : '' ?> title="System Health" data-tooltip="System Health" data-keywords="diagnostics status db">
+                        <span class="icon" aria-hidden="true"><?= icon('activity', 18) ?></span>
+                        <span class="nav-item-label">System Health</span>
+                    </a>
+                    <a href="<?= url('/admin/settings/notifications') ?>" class="nav-item <?= $isAdmNotifCfg ? 'active' : '' ?>"<?= $isAdmNotifCfg ? ' aria-current="page"' : '' ?> title="Notification Settings" data-tooltip="Notification Settings" data-keywords="email alerts smtp">
+                        <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
+                        <span class="nav-item-label">Notification Settings</span>
+                    </a>
+                </div>
+            </div>
 
             <!-- Account Session -->
-            <div class="nav-section-title">Account</div>
-            <a href="<?= url('/admin/account') ?>" class="nav-item <?= $currentPath === '/admin/account' ? 'active' : '' ?>" title="My Account">
-                <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
-                <span class="nav-item-label">My Account</span>
-            </a>
-            <form method="POST" action="<?= url('/logout') ?>">
-                <?= csrf_field() ?>
-                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
-                    <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
-                    <span class="nav-item-label">Sign Out</span>
+            <div class="nav-section-group" data-section-id="admin-account">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupAdminAccount">
+                    <span class="nav-section-toggle-label">Account</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
                 </button>
-            </form>
+                <div class="nav-section-items" id="navGroupAdminAccount">
+                    <a href="<?= url('/admin/account') ?>" class="nav-item <?= $isAdmAccount ? 'active' : '' ?>"<?= $isAdmAccount ? ' aria-current="page"' : '' ?> title="My Account" data-tooltip="My Account" data-keywords="profile password">
+                        <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
+                        <span class="nav-item-label">My Account</span>
+                    </a>
+                    <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out" data-keywords="logout exit">
+                            <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
+                            <span class="nav-item-label">Sign Out</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
 
         <?php elseif ($rawRole === 'hr'): ?>
             <!-- ==============================================================
                  HR OFFICER OPERATIONAL NAVIGATION
                  ============================================================== -->
-            <div class="nav-section-title">Overview</div>
-            <a href="<?= url('/hr/dashboard') ?>" class="nav-item <?= str_contains($currentPath, '/dashboard') ? 'active' : '' ?>" title="Dashboard">
-                <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
-                <span class="nav-item-label">Dashboard</span>
-            </a>
+            <?php
+            $isHrDashboard   = ($currentPath === '/hr/dashboard');
+            $isHrEmployees   = str_starts_with($currentPath, '/hr/employees');
+            $isHrDepartments = str_starts_with($currentPath, '/hr/departments');
+            $isHrPositions   = str_starts_with($currentPath, '/hr/positions');
+            $isHrLeaveQueue  = (
+                $currentPath === '/leaves'
+                || str_starts_with($currentPath, '/hr/leave-requests')
+                || preg_match('#^/leaves/\d+$#', $currentPath) === 1
+            );
+            $isHrBalances    = str_starts_with($currentPath, '/leaves/balances');
+            $isHrLeaveTypes  = str_starts_with($currentPath, '/hr/leave-types');
+            $isHrReports     = str_starts_with($currentPath, '/reports');
+            $isHrAuditLogs   = str_starts_with($currentPath, '/activity-logs');
+            $isHrNotifs      = str_starts_with($currentPath, '/notifications');
+            ?>
+            <div class="nav-section-group" data-section-id="hr-overview">
+                <div class="nav-section-title">Overview</div>
+                <div class="nav-section-items" id="navGroupHrOverview">
+                    <a href="<?= url('/hr/dashboard') ?>" class="nav-item <?= $isHrDashboard ? 'active' : '' ?>"<?= $isHrDashboard ? ' aria-current="page"' : '' ?> title="Dashboard" data-tooltip="Dashboard" data-keywords="overview metrics summary home">
+                        <span class="icon" aria-hidden="true"><?= icon('dashboard', 18) ?></span>
+                        <span class="nav-item-label">Dashboard</span>
+                    </a>
+                </div>
+            </div>
 
-            <div class="nav-section-title">Workforce Management</div>
-            <a href="<?= url('/hr/employees') ?>" class="nav-item <?= str_contains($currentPath, '/hr/employees') ? 'active' : '' ?>" title="Employees Directory">
-                <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
-                <span class="nav-item-label">Employees Directory</span>
-            </a>
-            <a href="<?= url('/hr/departments') ?>" class="nav-item <?= str_contains($currentPath, '/hr/departments') ? 'active' : '' ?>" title="Departments">
-                <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
-                <span class="nav-item-label">Departments</span>
-            </a>
-            <a href="<?= url('/hr/positions') ?>" class="nav-item <?= str_contains($currentPath, '/hr/positions') ? 'active' : '' ?>" title="Job Positions">
-                <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
-                <span class="nav-item-label">Job Positions</span>
-            </a>
-
-            <div class="nav-section-title">Leave Management</div>
-            <a href="<?= url('/leaves') ?>" class="nav-item <?= (str_contains($currentPath, '/leaves') && !str_contains($currentPath, '/leaves/balances')) ? 'active' : '' ?>" title="Leave Review Queue">
-                <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
-                <span class="nav-item-label">Leave Review Queue</span>
-            </a>
-            <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= str_contains($currentPath, '/leaves/balances') ? 'active' : '' ?>" title="Workforce Balances">
-                <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
-                <span class="nav-item-label">Workforce Balances</span>
-            </a>
-            <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= str_contains($currentPath, '/hr/leave-types') ? 'active' : '' ?>" title="Leave Classifications">
-                <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
-                <span class="nav-item-label">Leave Classifications</span>
-            </a>
-
-            <div class="nav-section-title">Analytics &amp; Tools</div>
-            <a href="<?= url('/reports') ?>" class="nav-item <?= str_contains($currentPath, '/reports') ? 'active' : '' ?>" title="Reports &amp; Analytics">
-                <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
-                <span class="nav-item-label">Reports &amp; Analytics</span>
-            </a>
-            <a href="<?= url('/activity-logs') ?>" class="nav-item <?= str_contains($currentPath, '/activity-logs') ? 'active' : '' ?>" title="Audit Activity Logs">
-                <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
-                <span class="nav-item-label">Audit Activity Logs</span>
-            </a>
-
-            <div class="nav-section-title">Communications</div>
-            <a href="<?= url('/notifications') ?>" class="nav-item <?= str_contains($currentPath, '/notifications') ? 'active' : '' ?>" title="Notifications">
-                <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
-                <span class="nav-item-label">Notifications</span>
-            </a>
-
-            <div class="nav-section-title">Account Session</div>
-            <form method="POST" action="<?= url('/logout') ?>">
-                <?= csrf_field() ?>
-                <button type="submit" class="nav-item nav-item-btn" title="Sign Out">
-                    <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
-                    <span class="nav-item-label">Sign Out</span>
+            <div class="nav-section-group" data-section-id="hr-workforce">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupHrWorkforce">
+                    <span class="nav-section-toggle-label">Workforce Management</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
                 </button>
-            </form>
+                <div class="nav-section-items" id="navGroupHrWorkforce">
+                    <a href="<?= url('/hr/employees') ?>" class="nav-item <?= $isHrEmployees ? 'active' : '' ?>"<?= $isHrEmployees ? ' aria-current="page"' : '' ?> title="Employees Directory" data-tooltip="Employees Directory" data-keywords="staff people records hire roster">
+                        <span class="icon" aria-hidden="true"><?= icon('users', 18) ?></span>
+                        <span class="nav-item-label">Employees Directory</span>
+                    </a>
+                    <a href="<?= url('/hr/departments') ?>" class="nav-item <?= $isHrDepartments ? 'active' : '' ?>"<?= $isHrDepartments ? ' aria-current="page"' : '' ?> title="Departments" data-tooltip="Departments" data-keywords="teams units division org">
+                        <span class="icon" aria-hidden="true"><?= icon('building', 18) ?></span>
+                        <span class="nav-item-label">Departments</span>
+                    </a>
+                    <a href="<?= url('/hr/positions') ?>" class="nav-item <?= $isHrPositions ? 'active' : '' ?>"<?= $isHrPositions ? ' aria-current="page"' : '' ?> title="Job Positions" data-tooltip="Job Positions" data-keywords="roles titles designations">
+                        <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
+                        <span class="nav-item-label">Job Positions</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section-group" data-section-id="hr-leave">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupHrLeave">
+                    <span class="nav-section-toggle-label">Leave Management</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupHrLeave">
+                    <a href="<?= url('/leaves') ?>" class="nav-item <?= $isHrLeaveQueue ? 'active' : '' ?>"<?= $isHrLeaveQueue ? ' aria-current="page"' : '' ?> title="Leave Review Queue" data-tooltip="Leave Review Queue<?= $sidebarPendingCount > 0 ? ' (' . (int)$sidebarPendingCount . ' pending)' : '' ?>" data-keywords="approvals requests pending pto review">
+                        <span class="icon" aria-hidden="true"><?= icon('calendar', 18) ?></span>
+                        <span class="nav-item-label">Leave Review Queue</span>
+                        <?php if ($sidebarPendingCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" id="sidebarPendingBadge" aria-label="<?= (int)$sidebarPendingCount ?> pending leave requests"><?= $sidebarPendingCount > 99 ? '99+' : (int)$sidebarPendingCount ?></span>
+                        <?php endif; ?>
+                    </a>
+                    <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= $isHrBalances ? 'active' : '' ?>"<?= $isHrBalances ? ' aria-current="page"' : '' ?> title="Workforce Balances" data-tooltip="Workforce Balances" data-keywords="credits quota remaining entitlement">
+                        <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
+                        <span class="nav-item-label">Workforce Balances</span>
+                    </a>
+                    <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= $isHrLeaveTypes ? 'active' : '' ?>"<?= $isHrLeaveTypes ? ' aria-current="page"' : '' ?> title="Leave Classifications" data-tooltip="Leave Classifications" data-keywords="types policies vacation sick">
+                        <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
+                        <span class="nav-item-label">Leave Classifications</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section-group" data-section-id="hr-analytics">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupHrAnalytics">
+                    <span class="nav-section-toggle-label">Analytics &amp; Tools</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupHrAnalytics">
+                    <a href="<?= url('/reports') ?>" class="nav-item <?= $isHrReports ? 'active' : '' ?>"<?= $isHrReports ? ' aria-current="page"' : '' ?> title="Reports &amp; Analytics" data-tooltip="Reports &amp; Analytics" data-keywords="export csv metrics trends">
+                        <span class="icon" aria-hidden="true"><?= icon('bar-chart', 18) ?></span>
+                        <span class="nav-item-label">Reports &amp; Analytics</span>
+                    </a>
+                    <a href="<?= url('/activity-logs') ?>" class="nav-item <?= $isHrAuditLogs ? 'active' : '' ?>"<?= $isHrAuditLogs ? ' aria-current="page"' : '' ?> title="Audit Activity Logs" data-tooltip="Audit Activity Logs" data-keywords="trail history compliance">
+                        <span class="icon" aria-hidden="true"><?= icon('file-text', 18) ?></span>
+                        <span class="nav-item-label">Audit Activity Logs</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section-group" data-section-id="hr-comms">
+                <button type="button" class="nav-section-toggle" aria-expanded="true" aria-controls="navGroupHrComms">
+                    <span class="nav-section-toggle-label">Communications</span>
+                    <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
+                </button>
+                <div class="nav-section-items" id="navGroupHrComms">
+                    <a href="<?= url('/notifications') ?>" class="nav-item <?= $isHrNotifs ? 'active' : '' ?>"<?= $isHrNotifs ? ' aria-current="page"' : '' ?> title="Notifications" data-tooltip="Notifications" data-keywords="alerts inbox messages">
+                        <span class="icon" aria-hidden="true"><?= icon('bell', 18) ?></span>
+                        <span class="nav-item-label">Notifications</span>
+                        <span class="nav-badge" id="sidebarUnreadBadge"<?= $sidebarUnreadCount > 0 ? '' : ' hidden' ?> aria-label="<?= (int)$sidebarUnreadCount ?> unread notifications"><?= $sidebarUnreadCount > 99 ? '99+' : (int)$sidebarUnreadCount ?></span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="nav-section-group" data-section-id="hr-session">
+                <div class="nav-section-title">Account Session</div>
+                <div class="nav-section-items" id="navGroupHrSession">
+                    <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
+                        <?= csrf_field() ?>
+                        <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out" data-keywords="logout exit">
+                            <span class="icon" aria-hidden="true"><?= icon('log-out', 18) ?></span>
+                            <span class="nav-item-label">Sign Out</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
 
         <?php else: ?>
             <!-- ==============================================================
@@ -315,10 +485,17 @@ if ($rawRole === 'employee' && isAuthenticated()) {
                 </button>
             </form>
         <?php endif; ?>
+
+        <?php if ($rawRole === 'admin' || $rawRole === 'hr'): ?>
+            <div class="sidebar-search-empty" id="sidebarSearchEmpty" role="status" hidden>
+                <p>No matching menu items</p>
+                <button type="button" id="sidebarSearchResetBtn" class="sidebar-search-reset-btn">Clear filter</button>
+            </div>
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
-        <a href="<?= ($rawRole === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" class="sidebar-user-link" title="View Profile" aria-label="<?= e($userName) ?> (<?= e($roleTitle) ?>) — View Profile" data-tooltip="<?= e($userName) ?> · <?= e($roleTitle) ?>">
+        <a href="<?= $sidebarProfileUrl ?>" class="sidebar-user-link" title="<?= ($rawRole === 'hr' && empty($user['employee_id'])) ? 'HR Dashboard' : 'View Profile' ?>" aria-label="<?= e($userName) ?> (<?= e($roleTitle) ?>) — <?= ($rawRole === 'hr' && empty($user['employee_id'])) ? 'HR Dashboard' : 'View Profile' ?>" data-tooltip="<?= e($userName) ?> · <?= e($roleTitle) ?>">
             <div class="sidebar-user-avatar" aria-hidden="true"><?= e($initials) ?></div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name"><?= e($userName) ?></div>

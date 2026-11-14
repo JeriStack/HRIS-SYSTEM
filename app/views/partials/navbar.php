@@ -112,11 +112,19 @@ if (isAuthenticated()) {
         <?php endif; ?>
 
         <?php if ($role !== 'employee'): ?>
+            <?php
+            $headerProfileUrl = url('/hr/dashboard');
+            if ($role === 'admin') {
+                $headerProfileUrl = url('/admin/account');
+            } elseif (!empty($user['employee_id'])) {
+                $headerProfileUrl = url('/hr/employees/' . (int)$user['employee_id']);
+            }
+            ?>
             <span class="role-badge <?= e($role) ?>">
                 <?= e(strtoupper($user['role'] ?? 'HR')) ?> ACCESS
             </span>
             <div class="header-user-meta" style="margin-right: 0.5rem;">
-                <a href="<?= ($role === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" style="text-decoration: none; color: inherit;">
+                <a href="<?= $headerProfileUrl ?>" style="text-decoration: none; color: inherit;">
                     <div class="header-user-name"><?= e($userName) ?></div>
                     <div class="header-user-role"><?= e($user['employee_no'] ?? strtoupper($role)) ?></div>
                 </a>

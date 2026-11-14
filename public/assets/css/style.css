@@ -308,8 +308,7 @@ a:hover {
   bottom: 0;
   left: 0;
   z-index: 100;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   transition:
     width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     transform var(--transition-normal),
@@ -321,6 +320,7 @@ a:hover {
 .sidebar-header {
   height: var(--header-height);
   min-height: var(--header-height);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   padding: 0 var(--space-4);
@@ -478,19 +478,209 @@ a:hover {
 
 .sidebar-nav {
   flex: 1;
-  padding: var(--space-4) var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-border) transparent;
+  padding: var(--space-3) var(--space-3) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.nav-section-title {
+.sidebar-search {
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.sidebar-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-search-icon {
+  position: absolute;
+  left: 0.625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sidebar-section-color);
+  pointer-events: none;
+}
+
+.sidebar-search-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0.3125rem 2.125rem 0.3125rem 1.95rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--sidebar-border);
+  background-color: var(--sidebar-item-hover-bg);
+  color: var(--sidebar-item-hover-color);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.sidebar-search-input::placeholder {
+  color: var(--sidebar-section-color);
+  opacity: 0.9;
+}
+
+.sidebar-search-input:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 1px;
+  border-color: var(--color-primary-500);
+}
+
+.sidebar-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.sidebar-search-shortcut {
+  position: absolute;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 4px;
+  border: 1px solid var(--sidebar-border);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--sidebar-section-color);
+  pointer-events: none;
+}
+
+.sidebar-search-shortcut[hidden],
+.sidebar-search-clear[hidden],
+.sidebar-search-empty[hidden],
+.nav-section-group[hidden],
+.nav-section-items[hidden],
+.nav-item[hidden],
+form[hidden] {
+  display: none !important;
+}
+
+.sidebar-search-clear {
+  position: absolute;
+  right: 0.375rem;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--sidebar-section-color);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-search-clear:hover {
+  background-color: var(--sidebar-item-hover-bg);
+  color: var(--sidebar-item-hover-color);
+}
+
+.sidebar-search-empty {
+  padding: var(--space-4) var(--space-3);
+  margin-top: var(--space-2);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--sidebar-border);
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--sidebar-section-color);
+}
+
+.sidebar-search-empty p {
+  margin: 0 0 var(--space-2);
+}
+
+.sidebar-search-reset-btn {
+  border: 1px solid var(--sidebar-border);
+  background: transparent;
+  color: var(--sidebar-item-hover-color);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sidebar-search-reset-btn:hover {
+  background-color: var(--sidebar-item-hover-bg);
+}
+
+.nav-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-section-title,
+.nav-section-toggle {
   font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--sidebar-section-color);
   padding: var(--space-3) var(--space-3) var(--space-1) var(--space-3);
   font-weight: 700;
+}
+
+.nav-section-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.nav-section-toggle:hover {
+  color: var(--sidebar-item-hover-color);
+}
+
+.nav-section-toggle:focus-visible,
+.sidebar-search-clear:focus-visible,
+.sidebar-search-reset-btn:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.nav-section-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.75;
+  transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-section-toggle[aria-expanded="true"] .nav-section-chevron {
+  transform: rotate(90deg);
 }
 
 .nav-item {
@@ -528,6 +718,24 @@ a:hover {
   background-color: var(--sidebar-item-active-bg);
   color: var(--sidebar-item-active-color);
   font-weight: 600;
+}
+
+.nav-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 6px;
+  width: 3px;
+  border-radius: 999px;
+  background-color: #ffffff;
+  opacity: 0.85;
+}
+
+@media (forced-colors: active) {
+  .nav-item[aria-current="page"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
 }
 
 .nav-item .icon {
@@ -583,6 +791,7 @@ a:hover {
 .sidebar-footer {
   height: var(--header-height);
   min-height: var(--header-height);
+  flex-shrink: 0;
   padding: 0 var(--space-3) 0 var(--space-4);
   border-top: 1px solid var(--sidebar-border);
   background-color: var(--sidebar-footer-bg);
@@ -1080,7 +1289,10 @@ a:hover {
 .app-shell.sidebar-collapsed .app-sidebar .sidebar-brand-lockup,
 .app-shell.sidebar-collapsed .app-sidebar .sidebar-brand span:not(.brand-icon),
 .app-shell.sidebar-collapsed .app-sidebar .sidebar-brand-text,
+.app-shell.sidebar-collapsed .app-sidebar .sidebar-search,
+.app-shell.sidebar-collapsed .app-sidebar .sidebar-search-empty,
 .app-shell.sidebar-collapsed .app-sidebar .nav-section-title,
+.app-shell.sidebar-collapsed .app-sidebar .nav-section-toggle,
 .app-shell.sidebar-collapsed
   .app-sidebar
   .nav-item
