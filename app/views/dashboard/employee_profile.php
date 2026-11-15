@@ -348,10 +348,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                 </div>
 
                 <?php if ($primaryEmergency === null && $activeForm !== 'emergency'): ?>
-                    <div class="profile-inline-notice" role="status">
-                        <?= icon('info', 15, 'profile-inline-notice-icon') ?>
-                        <span>No emergency contact on file yet.</span>
-                    </div>
+                    <p class="profile-inline-notice" role="status">No emergency contact on file yet.</p>
                 <?php endif; ?>
 
                 <form method="POST" action="<?= url('/employee/profile/emergency-contact') ?>" class="profile-form-stack" novalidate>
@@ -366,7 +363,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                         $hasEmAddressError = $activeForm === 'emergency' && isset($formErrors['address']);
                         ?>
                         <div class="form-group mb-0">
-                            <label for="emergencyFullName" class="form-label">Full Name <span class="required">*</span></label>
+                            <label for="emergencyFullName" class="form-label">Full Name</label>
                             <input
                                 type="text"
                                 id="emergencyFullName"
@@ -375,7 +372,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 value="<?= e($valEmergency('full_name')) ?>"
                                 maxlength="120"
                                 required
-                                placeholder="e.g. Maria Clara Santos"
+                                placeholder="Full name"
                                 <?= $hasEmNameError ? 'aria-invalid="true" aria-describedby="emergencyFullNameError"' : '' ?>
                             >
                             <?php if ($hasEmNameError): ?>
@@ -384,7 +381,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                         </div>
 
                         <div class="form-group mb-0">
-                            <label for="emergencyRelationship" class="form-label">Relationship <span class="required">*</span></label>
+                            <label for="emergencyRelationship" class="form-label">Relationship</label>
                             <?php $currentRel = $valEmergency('relationship'); ?>
                             <select
                                 id="emergencyRelationship"
@@ -404,7 +401,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                         </div>
 
                         <div class="form-group mb-0">
-                            <label for="emergencyPhone" class="form-label">Primary Contact Number <span class="required">*</span></label>
+                            <label for="emergencyPhone" class="form-label">Primary Contact Number</label>
                             <input
                                 type="tel"
                                 id="emergencyPhone"
@@ -414,7 +411,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 inputmode="tel"
                                 maxlength="25"
                                 required
-                                placeholder="+63 918 555 0199"
+                                placeholder="+63 9XX XXX XXXX"
                                 <?= $hasEmPhoneError ? 'aria-invalid="true" aria-describedby="emergencyPhoneError"' : '' ?>
                             >
                             <?php if ($hasEmPhoneError): ?>
@@ -432,7 +429,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 value="<?= e($valEmergency('alternative_contact_number')) ?>"
                                 inputmode="tel"
                                 maxlength="25"
-                                placeholder="Secondary contact number"
+                                placeholder="Secondary number (optional)"
                                 <?= $hasEmAltError ? 'aria-invalid="true" aria-describedby="emergencyAltError"' : '' ?>
                             >
                             <?php if ($hasEmAltError): ?>
@@ -449,7 +446,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 class="form-control<?= $hasEmAddressError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valEmergency('address')) ?>"
                                 maxlength="500"
-                                placeholder="House/Unit, Street, Barangay, City/Province"
+                                placeholder="Street address, city (optional)"
                                 <?= $hasEmAddressError ? 'aria-invalid="true" aria-describedby="emergencyAddressError"' : '' ?>
                             >
                             <?php if ($hasEmAddressError): ?>
@@ -845,7 +842,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
 
         <div class="profile-dialog-body profile-form-stack">
             <div class="form-group mb-0">
-                <label for="correctionFieldSelect" class="form-label">Profile Field to Correct <span class="required">*</span></label>
+                <label for="correctionFieldSelect" class="form-label">Profile Field to Correct</label>
                 <select id="correctionFieldSelect" name="field_name" class="form-select<?= ($activeForm === 'correction' && isset($formErrors['field_name'])) ? ' is-invalid' : '' ?>" data-correction-select required>
                     <?php foreach (($allowedCorrectionFields ?? []) as $fieldKey => $meta): ?>
                         <option value="<?= e((string)$fieldKey) ?>" <?= $selectedCorrField === $fieldKey ? 'selected' : '' ?>>
@@ -864,7 +861,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
             </div>
 
             <div class="form-group mb-0">
-                <label for="correctionRequestedValue" class="form-label">Requested Corrected Value <span class="required">*</span></label>
+                <label for="correctionRequestedValue" class="form-label">Requested Corrected Value</label>
                 <div id="correctionValueContainer"></div>
                 <?php if ($activeForm === 'correction' && isset($formErrors['requested_value'])): ?>
                     <span class="field-error-text" role="alert"><?= e($formErrors['requested_value']) ?></span>
@@ -872,7 +869,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
             </div>
 
             <div class="form-group mb-0">
-                <label for="correctionReasonInput" class="form-label">Reason / Supporting Details <span class="required">*</span></label>
+                <label for="correctionReasonInput" class="form-label">Reason / Supporting Details</label>
                 <textarea
                     id="correctionReasonInput"
                     name="reason"

@@ -3883,23 +3883,11 @@ a.admin-kpi-card:focus-visible {
 }
 
 .profile-inline-notice {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.6rem 0.85rem;
-  margin-bottom: var(--space-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-subtle);
+  margin: 0 0 var(--space-4);
   font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--color-text-muted);
   line-height: 1.4;
-}
-
-.profile-inline-notice-icon {
-  color: var(--color-info);
-  flex-shrink: 0;
 }
 
 .profile-card-footer .btn-sm,
