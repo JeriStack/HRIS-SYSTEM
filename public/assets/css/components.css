@@ -261,6 +261,12 @@
   color: var(--color-error);
   border-color: var(--color-error);
 }
+[data-theme="dark"] .btn-outline-danger {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+[data-theme="dark"] .btn-outline-danger:hover:not(:disabled) {
+  border-color: var(--color-error);
+}
 
 .btn-danger {
   background-color: var(--color-error);
@@ -3384,7 +3390,7 @@ a.admin-kpi-card:focus-visible {
 
 .profile-hero-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--space-5);
   flex-wrap: wrap;
@@ -3395,7 +3401,7 @@ a.admin-kpi-card:focus-visible {
   align-items: center;
   gap: var(--space-5);
   min-width: 0;
-  flex: 1 1 340px;
+  flex: 1 1 360px;
 }
 
 .profile-avatar-frame {
@@ -3404,7 +3410,8 @@ a.admin-kpi-card:focus-visible {
   border-radius: var(--radius-full);
   background-color: var(--color-primary-light);
   color: var(--color-primary);
-  border: 2px solid var(--color-primary-border);
+  border: 1px solid var(--color-primary-border);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3415,6 +3422,12 @@ a.admin-kpi-card:focus-visible {
   flex-shrink: 0;
 }
 
+.profile-avatar-frame.has-photo {
+  padding: 3px;
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border-dark);
+}
+
 .profile-hero-identity {
   min-width: 0;
 }
@@ -3423,14 +3436,29 @@ a.admin-kpi-card:focus-visible {
   margin: 0 0 0.25rem;
   font-size: 1.4rem;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-text-main);
   line-height: 1.25;
 }
 
 .profile-hero-subtitle {
-  margin: 0 0 var(--space-2);
+  margin: 0 0 var(--space-3);
   font-size: var(--font-size-base);
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  line-height: 1.4;
+}
+
+.profile-hero-role {
   color: var(--color-text-body);
+  font-weight: 500;
+}
+
+.profile-hero-sep {
+  color: var(--color-text-muted);
 }
 
 .profile-hero-meta {
@@ -3440,6 +3468,14 @@ a.admin-kpi-card:focus-visible {
   gap: var(--space-2);
 }
 
+.profile-photo-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
 .profile-photo-actions {
   display: flex;
   align-items: center;
@@ -3447,27 +3483,54 @@ a.admin-kpi-card:focus-visible {
   gap: var(--space-2);
 }
 
+.profile-photo-actions .btn-sm {
+  min-height: 36px;
+  padding: 0.4rem 0.875rem;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+.profile-photo-hint {
+  margin: 0;
+  font-size: 0.725rem;
+  color: var(--color-text-muted);
+  text-align: right;
+  line-height: 1.35;
+}
+
 .profile-hero-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: 0;
   margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
 }
 
 .profile-strip-item {
   min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.profile-strip-item:last-child {
+  border-right: none;
 }
 
 .profile-strip-label {
   display: block;
-  font-size: var(--font-size-xs);
+  font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.055em;
   color: var(--color-text-muted);
-  margin-bottom: 0.2rem;
+  line-height: 1.2;
 }
 
 .profile-strip-value {
@@ -3476,6 +3539,19 @@ a.admin-kpi-card:focus-visible {
   font-weight: 600;
   color: var(--color-text-main);
   font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.profile-strip-value.is-mono {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.profile-strip-value.is-muted {
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .profile-two-col {

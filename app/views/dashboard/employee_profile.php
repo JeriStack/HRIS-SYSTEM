@@ -114,40 +114,43 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                 <div class="profile-hero-identity">
                     <h2 class="profile-hero-title" id="profileHeroName"><?= e($fullName) ?></h2>
                     <p class="profile-hero-subtitle">
-                        <?= e($emp['position_name'] ?? 'Position Unassigned') ?>
-                        &middot;
-                        <?= e($emp['department_name'] ?? 'Department Unassigned') ?>
+                        <span class="profile-hero-role"><?= e($emp['position_name'] ?? 'Position Unassigned') ?></span>
+                        <span class="profile-hero-sep" aria-hidden="true">&middot;</span>
+                        <span><?= e($emp['department_name'] ?? 'Department Unassigned') ?></span>
                     </p>
                     <div class="profile-hero-meta">
-                        <span class="badge <?= $empStatus === 'Active' ? 'badge-success' : 'badge-danger' ?>">
+                        <span class="badge badge-dot <?= $empStatus === 'Active' ? 'badge-success' : 'badge-danger' ?>">
                             <?= e($empStatus) ?>
                         </span>
                         <span class="badge badge-info"><?= e($empType) ?></span>
-                        <span class="profile-governance-tag">ID: <?= e($emp['employee_no'] ?? 'N/A') ?></span>
                     </div>
                 </div>
             </div>
 
-            <div class="profile-photo-actions">
-                <button type="button" class="btn btn-primary btn-sm" data-open-dialog="avatarCropModal">
-                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    <span><?= $hasAvatar ? 'Change Photo' : 'Upload Photo' ?></span>
-                </button>
-                <?php if ($hasAvatar): ?>
-                    <form method="POST" action="<?= url('/employee/profile/avatar/delete') ?>" onsubmit="return confirm('Remove your current profile picture and restore your default initials avatar?');">
-                        <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-outline-danger btn-sm">
-                            <span>Remove Photo</span>
-                        </button>
-                    </form>
-                <?php endif; ?>
+            <div class="profile-photo-panel">
+                <div class="profile-photo-actions">
+                    <button type="button" class="btn btn-primary btn-sm" data-open-dialog="avatarCropModal">
+                        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span><?= $hasAvatar ? 'Change Photo' : 'Upload Photo' ?></span>
+                    </button>
+                    <?php if ($hasAvatar): ?>
+                        <form method="POST" action="<?= url('/employee/profile/avatar/delete') ?>" onsubmit="return confirm('Remove your current profile picture and restore your default initials avatar?');">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Remove Photo</span>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+                <p class="profile-photo-hint">JPEG, PNG or WebP &middot; Max <?= e($maxMbText) ?> MB</p>
             </div>
         </div>
 
         <div class="profile-hero-strip" aria-label="Employment Highlights">
             <div class="profile-strip-item">
                 <span class="profile-strip-label">Employee ID</span>
-                <span class="profile-strip-value"><?= e($emp['employee_no'] ?? 'Not assigned') ?></span>
+                <span class="profile-strip-value is-mono"><?= e($emp['employee_no'] ?? 'Not assigned') ?></span>
             </div>
             <div class="profile-strip-item">
                 <span class="profile-strip-label">Date Hired</span>
@@ -159,7 +162,9 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
             </div>
             <div class="profile-strip-item">
                 <span class="profile-strip-label">Date of Last Promotion</span>
-                <span class="profile-strip-value"><?= e($lastPromotionDate) ?></span>
+                <span class="profile-strip-value<?= (!is_array($lastPromotion ?? null) || empty($lastPromotion['effective_date'])) ? ' is-muted' : '' ?>">
+                    <?= e($lastPromotionDate) ?>
+                </span>
             </div>
         </div>
     </section>
