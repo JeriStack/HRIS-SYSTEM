@@ -119,7 +119,7 @@ foreach ($recentRequestsSlice as $req) {
 
 <!-- Refined 4-Column Leave & Account KPI Overview -->
 <section class="emp-kpi-grid" aria-label="Key Leave & Account Metrics">
-    <!-- 1. Available Leave (Informational) -->
+    <!-- 1. Available Leave -->
     <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Available Leave</span>
@@ -129,15 +129,9 @@ foreach ($recentRequestsSlice as $req) {
             <span class="emp-kpi-value"><?= $totalRemaining ?></span>
             <span class="emp-kpi-unit"><?= $totalRemaining === 1 ? 'day' : 'days' ?></span>
         </div>
-        <div class="emp-kpi-footer">
-            <span class="emp-kpi-meta tabular-nums">
-                Of <strong><?= $totalAllocated ?></strong> allocated
-                <?= $totalAllocated === 1 ? 'day' : 'days' ?> in <?= date('Y') ?>
-            </span>
-        </div>
     </div>
 
-    <!-- 2. Days Used (Informational with Proportional Utilization Meter) -->
+    <!-- 2. Days Used (with Proportional Utilization Meter) -->
     <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Days Used</span>
@@ -163,10 +157,8 @@ foreach ($recentRequestsSlice as $req) {
         </div>
     </div>
 
-    <!-- 3. Pending Requests (Interactive -> Links to My Leave Requests) -->
-    <a href="<?= url('/employee/leave-requests') ?>"
-       class="emp-kpi-card emp-kpi-interactive"
-       aria-label="Pending Requests: <?= $pendingCount ?> <?= $pendingCount === 1 ? 'request' : 'requests' ?>">
+    <!-- 3. Pending Requests -->
+    <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Pending Requests</span>
             <span class="emp-kpi-icon <?= $pendingCount > 0 ? 'is-pending' : '' ?>" aria-hidden="true">
@@ -177,18 +169,10 @@ foreach ($recentRequestsSlice as $req) {
             <span class="emp-kpi-value"><?= $pendingCount ?></span>
             <span class="emp-kpi-unit"><?= $pendingCount === 1 ? 'request' : 'requests' ?></span>
         </div>
-        <div class="emp-kpi-footer">
-            <span class="emp-kpi-action <?= $pendingCount > 0 ? 'is-pending-text' : '' ?>">
-                <span><?= $pendingCount > 0 ? 'Awaiting HR review' : 'View request history' ?></span>
-                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
-            </span>
-        </div>
-    </a>
+    </div>
 
-    <!-- 4. Unread Alerts (Interactive -> Links to Notifications Inbox) -->
-    <a href="<?= url('/notifications') ?>"
-       class="emp-kpi-card emp-kpi-interactive"
-       aria-label="Unread Alerts: <?= $unreadCount ?> <?= $unreadCount === 1 ? 'alert' : 'alerts' ?>">
+    <!-- 4. Unread Alerts -->
+    <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Unread Alerts</span>
             <span class="emp-kpi-icon <?= $unreadCount > 0 ? 'is-alert' : '' ?>" aria-hidden="true">
@@ -199,13 +183,7 @@ foreach ($recentRequestsSlice as $req) {
             <span class="emp-kpi-value"><?= $unreadCount ?></span>
             <span class="emp-kpi-unit"><?= $unreadCount === 1 ? 'alert' : 'alerts' ?></span>
         </div>
-        <div class="emp-kpi-footer">
-            <span class="emp-kpi-action">
-                <span><?= $unreadCount > 0 ? 'Open alert inbox' : 'All alerts read' ?></span>
-                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
-            </span>
-        </div>
-    </a>
+    </div>
 </section>
 
 <!-- Leave Balances Section -->
