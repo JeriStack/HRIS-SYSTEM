@@ -57,7 +57,7 @@ foreach ($requests as $req) {
     }
 }
 
-$recentRequestsSlice = array_slice($requests, 0, 6);
+$recentRequestsSlice = array_slice($requests, 0, 3);
 $statusCounts = [
     'all'       => count($recentRequestsSlice),
     'Pending'   => 0,
@@ -71,6 +71,8 @@ foreach ($recentRequestsSlice as $req) {
         $statusCounts[$reqStatus]++;
     }
 }
+
+$recentNotificationsSlice = array_slice($notifications, 0, 3);
 ?>
 
 <!-- Welcome & Identity Header -->
@@ -311,7 +313,7 @@ foreach ($recentRequestsSlice as $req) {
 <!-- Main Two-Column Workbench Grid: Recent Requests & Notifications -->
 <div class="emp-workspace-grid">
     <!-- Left Column: Interactive Recent Leave Applications Workbench -->
-    <div class="card">
+    <div class="card emp-requests-card">
         <div class="card-header">
             <div class="card-title-group">
                 <h2 class="card-title" id="recentRequestsHeading">Recent Leave Applications</h2>
@@ -319,31 +321,31 @@ foreach ($recentRequestsSlice as $req) {
             </div>
             <a href="<?= url('/employee/leave-requests') ?>" class="emp-quiet-action">
                 <span>View all</span>
-                <?= icon('chevron-right', 14) ?>
+                <?= icon('chevron-right', 16) ?>
             </a>
         </div>
 
         <?php if (!empty($recentRequestsSlice)) : ?>
             <div class="emp-filter-toolbar">
                 <div class="emp-filter-pills" role="tablist" aria-label="Filter recent leave applications by status">
-                    <button type="button" class="emp-filter-pill active" data-dash-req-filter="all" role="tab" aria-selected="true" aria-controls="dashRecentRequestsTable" tabindex="0">
+                    <button type="button" class="emp-filter-pill active" data-dash-req-filter="all" role="tab" aria-selected="true" tabindex="0">
                         <span>All</span>
                         <span class="emp-filter-count"><?= $statusCounts['all'] ?></span>
                     </button>
-                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Pending" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Pending" role="tab" aria-selected="false" tabindex="-1">
                         <span>Pending</span>
                         <span class="emp-filter-count"><?= $statusCounts['Pending'] ?></span>
                     </button>
-                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Approved" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Approved" role="tab" aria-selected="false" tabindex="-1">
                         <span>Approved</span>
                         <span class="emp-filter-count"><?= $statusCounts['Approved'] ?></span>
                     </button>
-                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Rejected" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                    <button type="button" class="emp-filter-pill" data-dash-req-filter="Rejected" role="tab" aria-selected="false" tabindex="-1">
                         <span>Rejected</span>
                         <span class="emp-filter-count"><?= $statusCounts['Rejected'] ?></span>
                     </button>
                     <?php if ($statusCounts['Cancelled'] > 0) : ?>
-                        <button type="button" class="emp-filter-pill" data-dash-req-filter="Cancelled" role="tab" aria-selected="false" aria-controls="dashRecentRequestsTable" tabindex="-1">
+                        <button type="button" class="emp-filter-pill" data-dash-req-filter="Cancelled" role="tab" aria-selected="false" tabindex="-1">
                             <span>Cancelled</span>
                             <span class="emp-filter-count"><?= $statusCounts['Cancelled'] ?></span>
                         </button>
@@ -386,32 +388,27 @@ foreach ($recentRequestsSlice as $req) {
                                 <tr data-dash-req-status="<?= e($status) ?>">
                                     <td data-label="Leave Type">
                                         <div class="emp-req-type-cell">
-                                            <div class="font-semibold text-main"><?= e($reqTypeName) ?></div>
+                                            <div class="emp-req-type-name"><?= e($reqTypeName) ?></div>
                                             <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
                                                 <div class="emp-rejection-note">Note: <?= e(mb_strimwidth($req['rejection_reason'], 0, 55, '...')) ?></div>
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td data-label="Dates" class="text-sm tabular-nums whitespace-nowrap">
+                                    <td data-label="Dates" class="emp-req-dates tabular-nums whitespace-nowrap">
                                         <?= e($startFormatted) ?>
                                         <?php if ($startFormatted !== $endFormatted) : ?>
                                             <span class="text-muted">&ndash;</span> <?= e($endFormatted) ?>
                                         <?php endif; ?>
                                     </td>
-                                    <td data-label="Duration" class="tabular-nums whitespace-nowrap">
-                                        <span class="font-semibold text-main"><?= $days ?></span>
-                                        <span class="text-muted text-sm"><?= $days === 1 ? 'day' : 'days' ?></span>
+                                    <td data-label="Duration" class="emp-req-duration tabular-nums whitespace-nowrap">
+                                        <span class="emp-req-days-val"><?= $days ?></span>
+                                        <span class="emp-req-days-unit"><?= $days === 1 ? 'day' : 'days' ?></span>
                                     </td>
                                     <td data-label="Status">
                                         <span class="badge <?= $badgeClass ?> badge-dot"><?= e($status) ?></span>
                                     </td>
                                     <td data-label="Actions" class="text-right whitespace-nowrap">
-                                        <div class="inline-flex items-center gap-2">
-                                            <a href="<?= url('/leaves/' . $reqId) ?>"
-                                               class="emp-quiet-action"
-                                               aria-label="View <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
-                                                View
-                                            </a>
+                                        <div class="emp-req-actions">
                                             <?php if ($status === 'Pending') : ?>
                                                 <button
                                                     type="button"
@@ -424,6 +421,11 @@ foreach ($recentRequestsSlice as $req) {
                                                     Cancel
                                                 </button>
                                             <?php endif; ?>
+                                            <a href="<?= url('/leaves/' . $reqId) ?>"
+                                               class="emp-quiet-action"
+                                               aria-label="View <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
+                                                View
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
@@ -452,31 +454,31 @@ foreach ($recentRequestsSlice as $req) {
     </div>
 
     <!-- Right Column: Recent Updates & Alert Triage -->
-    <div class="card">
+    <div class="card emp-updates-card">
         <div class="card-header">
             <div class="card-title-group">
-                <h2 class="card-title">Recent Updates</h2>
+                <h2 class="card-title" id="recentUpdatesHeading">Recent Updates</h2>
                 <p class="card-subtitle">Approvals &amp; account alerts</p>
             </div>
             <div class="inline-flex items-center gap-2">
                 <?php if ($unreadCount > 0) : ?>
                     <form method="POST" action="<?= url('/notifications/mark-all-read') ?>">
                         <?= csrf_field() ?>
-                        <button type="submit" class="emp-quiet-action" title="Mark all notifications as read">
+                        <button type="submit" class="emp-quiet-action emp-quiet-action-secondary" title="Mark all notifications as read">
                             <span>Mark all read</span>
                         </button>
                     </form>
                 <?php endif; ?>
                 <a href="<?= url('/notifications') ?>" class="emp-quiet-action">
                     <span>Inbox<?= $unreadCount > 0 ? ' (' . $unreadCount . ')' : '' ?></span>
-                    <?= icon('chevron-right', 14) ?>
+                    <?= icon('chevron-right', 16) ?>
                 </a>
             </div>
         </div>
         <div class="card-body p-0">
-            <?php if (!empty($notifications)) : ?>
-                <div class="emp-notif-list">
-                    <?php foreach ($notifications as $notif) :
+            <?php if (!empty($recentNotificationsSlice)) : ?>
+                <ul class="emp-notif-list" role="list" aria-labelledby="recentUpdatesHeading">
+                    <?php foreach ($recentNotificationsSlice as $notif) :
                         $notifId = (int)($notif['id'] ?? 0);
                         $isUnread = empty($notif['is_read']);
                         $type = strtolower($notif['type'] ?? 'info');
@@ -495,9 +497,9 @@ foreach ($recentRequestsSlice as $req) {
                         $createdStr = !empty($notif['created_at']) ? date('M j, g:i A', strtotime($notif['created_at'])) : '';
                         $notifTitle = $notif['title'] ?? 'System Notification';
                         ?>
-                        <div class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>">
+                        <li class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>">
                             <div class="emp-notif-icon <?= $iconTone ?>" aria-hidden="true">
-                                <?= icon($iconName, 16) ?>
+                                <?= icon($iconName, 18) ?>
                             </div>
                             <div class="emp-notif-content">
                                 <div class="emp-notif-title-row">
@@ -511,23 +513,23 @@ foreach ($recentRequestsSlice as $req) {
                                     <span class="emp-notif-time"><?= e($createdStr) ?></span>
                                 </div>
                                 <p class="emp-notif-msg"><?= e($notif['message'] ?? '') ?></p>
+                                <?php if ($isUnread && $notifId > 0) : ?>
+                                    <div class="emp-notif-actions">
+                                        <form method="POST" action="<?= url('/notifications/' . $notifId . '/read') ?>">
+                                            <?= csrf_field() ?>
+                                            <button type="submit"
+                                                    class="emp-quiet-action"
+                                                    title="Mark notification as read"
+                                                    aria-label="Mark read: <?= e($notifTitle) ?>">
+                                                Mark read
+                                            </button>
+                                        </form>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                            <?php if ($isUnread && $notifId > 0) : ?>
-                                <div class="emp-notif-actions">
-                                    <form method="POST" action="<?= url('/notifications/' . $notifId . '/read') ?>">
-                                        <?= csrf_field() ?>
-                                        <button type="submit"
-                                                class="emp-quiet-action"
-                                                title="Mark notification as read"
-                                                aria-label="Mark read: <?= e($notifTitle) ?>">
-                                            Mark read
-                                        </button>
-                                    </form>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                        </li>
                     <?php endforeach; ?>
-                </div>
+                </ul>
             <?php else : ?>
                 <div class="empty-state">
                     <div class="empty-state-icon"><?= icon('bell', 32) ?></div>
@@ -587,6 +589,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (moveFocus) {
             pill.focus();
+        }
+        if (typeof pill.scrollIntoView === 'function') {
+            pill.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         }
 
         if (!reqTable) return;

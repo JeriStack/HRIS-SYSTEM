@@ -22,6 +22,10 @@
     .emp-category-grid {
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     }
+
+    .emp-workspace-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ==========================================================================
@@ -329,6 +333,7 @@
     .emp-filter-toolbar {
         flex-direction: column;
         align-items: stretch;
+        padding: var(--space-3) var(--space-5);
     }
 
     .emp-search-box {
@@ -339,11 +344,21 @@
     .emp-notif-item {
         flex-direction: column;
         align-items: flex-start;
+        padding: var(--space-4) var(--space-5);
     }
 
     .emp-notif-actions {
         width: 100%;
         justify-content: flex-end;
+    }
+
+    .emp-updates-card .emp-notif-item {
+        flex-direction: row;
+    }
+
+    .emp-updates-card .emp-notif-actions {
+        width: auto;
+        justify-content: flex-start;
     }
 }
 
