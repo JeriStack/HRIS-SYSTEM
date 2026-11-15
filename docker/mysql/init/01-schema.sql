@@ -56,14 +56,18 @@ CREATE TABLE IF NOT EXISTS `employees` (
     `middle_name` VARCHAR(50) NULL,
     `last_name` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NOT NULL,
+    `personal_email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(25) NULL,
     `address` TEXT NULL,
     `birth_date` DATE NOT NULL,
     `gender` ENUM('Male', 'Female', 'Other') NOT NULL,
+    `civil_status` ENUM('Single', 'Married', 'Widowed', 'Separated', 'Divorced') NULL DEFAULT NULL,
     `department_id` INT UNSIGNED NOT NULL,
     `position_id` INT UNSIGNED NOT NULL,
     `date_hired` DATE NOT NULL,
+    `employment_type` VARCHAR(50) NOT NULL DEFAULT 'Regular',
     `employment_status` ENUM('Active', 'Inactive', 'Terminated') NOT NULL DEFAULT 'Active',
+    `profile_picture` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_employees_emp_no` UNIQUE (`employee_no`),
     CONSTRAINT `uq_employees_email` UNIQUE (`email`),
@@ -72,6 +76,7 @@ CREATE TABLE IF NOT EXISTS `employees` (
     CONSTRAINT `fk_employees_position` FOREIGN KEY (`position_id`) 
         REFERENCES `positions` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX `idx_employees_status` (`employment_status`),
+    INDEX `idx_employees_employment_type` (`employment_type`),
     INDEX `idx_employees_dept` (`department_id`),
     INDEX `idx_employees_pos` (`position_id`),
     INDEX `idx_employees_name` (`last_name`, `first_name`)
@@ -436,6 +441,87 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
     INDEX `idx_failed_jobs_job_id` (`job_id`),
     INDEX `idx_failed_jobs_queue_type` (`queue`, `job_type`),
     INDEX `idx_failed_jobs_failed_at` (`failed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 19. Employee Emergency Contacts Table
+-- Normalized emergency contacts per employee (self-service editable)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employee_emergency_contacts` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `full_name` VARCHAR(120) NOT NULL,
+    `relationship` VARCHAR(60) NOT NULL,
+    `contact_number` VARCHAR(30) NOT NULL,
+    `alternative_contact_number` VARCHAR(30) NULL DEFAULT NULL,
+    `address` TEXT NULL,
+    `is_primary` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emergency_contacts_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_emergency_contacts_emp` (`employee_id`, `is_primary`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 20. Employment History Table
+-- Chronological career progression records distinct from security activity logs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employment_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `event_type` VARCHAR(50) NOT NULL,
+    `effective_date` DATE NOT NULL,
+    `previous_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `previous_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `employment_type` VARCHAR(50) NULL DEFAULT NULL,
+    `description` TEXT NULL,
+    `recorded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emp_history_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_dept` FOREIGN KEY (`previous_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_dept` FOREIGN KEY (`new_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_pos` FOREIGN KEY (`previous_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_pos` FOREIGN KEY (`new_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_recorded_by` FOREIGN KEY (`recorded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_emp_history_timeline` (`employee_id`, `effective_date`, `id`),
+    INDEX `idx_emp_history_event_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 21. Profile Correction Requests Table
+-- Employee-initiated correction requests for HR-controlled profile attributes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `profile_correction_requests` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `requested_by_user_id` INT UNSIGNED NOT NULL,
+    `field_name` VARCHAR(50) NOT NULL,
+    `current_value` TEXT NULL,
+    `requested_value` TEXT NOT NULL,
+    `reason` TEXT NOT NULL,
+    `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
+    `reviewed_by` INT UNSIGNED NULL DEFAULT NULL,
+    `reviewed_at` DATETIME NULL DEFAULT NULL,
+    `decision_reason` TEXT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pcr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_requested_by` FOREIGN KEY (`requested_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_reviewed_by` FOREIGN KEY (`reviewed_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_pcr_emp_status` (`employee_id`, `status`, `created_at`),
+    INDEX `idx_pcr_status_created` (`status`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

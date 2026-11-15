@@ -26,6 +26,7 @@ use App\Controllers\ReportController;
 use App\Controllers\ActivityLogController;
 use App\Controllers\DsaController;
 use App\Controllers\NotificationController;
+use App\Controllers\ProfileController;
 use App\Controllers\RealtimeController;
 use App\Controllers\Api\AuthController as ApiAuthController;
 use App\Controllers\Api\ProfileController as ApiProfileController;
@@ -139,6 +140,10 @@ try {
     $router->post('/hr/employees/{id}/edit', [EmployeeController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/hr/employees/{id}/deactivate', [EmployeeController::class, 'deactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/hr/employees/{id}/reactivate', [EmployeeController::class, 'reactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/employees/{id}/history', [EmployeeController::class, 'storeHistory'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->get('/hr/correction-requests', [EmployeeController::class, 'correctionRequests'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/correction-requests/{id}/approve', [EmployeeController::class, 'approveCorrection'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/correction-requests/{id}/reject', [EmployeeController::class, 'rejectCorrection'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
     // Phase 7: Department Management Routes (Administrator & HR Access)
     $router->get('/hr/departments', [DepartmentController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
@@ -204,8 +209,16 @@ try {
     $router->post('/realtime/ticket', [RealtimeController::class, 'ticket'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Protected Employee Self-Service Routes (Employee Only - Enforces Ownership)
+    $router->get('/media/avatars/{id}', [ProfileController::class, 'avatar'], [AuthMiddleware::class]);
     $router->get('/employee/dashboard', [DashboardController::class, 'employeeDashboard'], [AuthMiddleware::class, $employeeOnly]);
     $router->get('/employee/profile', [DashboardController::class, 'employeeProfile'], [AuthMiddleware::class, $employeeOnly]);
+    $router->post('/employee/profile/avatar', [ProfileController::class, 'uploadAvatar'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/avatar/delete', [ProfileController::class, 'deleteAvatar'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/contact', [ProfileController::class, 'updateContact'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/emergency-contact', [ProfileController::class, 'saveEmergencyContact'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/emergency-contact/{id}/delete', [ProfileController::class, 'deleteEmergencyContact'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/correction-requests', [ProfileController::class, 'storeCorrectionRequest'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
+    $router->post('/employee/profile/correction-requests/{id}/cancel', [ProfileController::class, 'cancelCorrectionRequest'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class]);
     $router->get('/employee/leave-balances', [DashboardController::class, 'employeeLeaveBalances'], [AuthMiddleware::class, $employeeOnly]);
     $router->get('/employee/leave-requests', [DashboardController::class, 'employeeLeaveRequests'], [AuthMiddleware::class, $employeeOnly]);
     $router->get('/employee/leave-history', [DashboardController::class, 'employeeLeaveRequests'], [AuthMiddleware::class, $employeeOnly]);

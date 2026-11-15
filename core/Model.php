@@ -17,9 +17,9 @@ abstract class Model
     /**
      * Initialize the base model with the shared PDO connection.
      */
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::getInstance()->getConnection();
+        $this->db = $db ?? Database::getInstance()->getConnection();
     }
 
     /**

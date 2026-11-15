@@ -73,6 +73,23 @@ class DashboardController extends Controller
             ];
         }
 
+        if ($eventType === \App\Realtime\EventAuthorizer::CORRECTION_REQUESTED) {
+            return [
+                'path'  => '/hr/correction-requests',
+                'label' => 'Review request',
+            ];
+        }
+
+        if (
+            $eventType === \App\Realtime\EventAuthorizer::CORRECTION_APPROVED
+            || $eventType === \App\Realtime\EventAuthorizer::CORRECTION_REJECTED
+        ) {
+            return [
+                'path'  => '/employee/profile#correction-requests',
+                'label' => 'View request',
+            ];
+        }
+
         return null;
     }
 
@@ -310,18 +327,94 @@ class DashboardController extends Controller
         $stmt->execute(['emp_id' => $myEmpId]);
         $profile = $stmt->fetch(PDO::FETCH_ASSOC);
 
+        if (is_array($profile)) {
+            $sessionUser = Session::get('user');
+            if (is_array($sessionUser)) {
+                $sessionUser['profile_picture'] = $profile['profile_picture'] ?? null;
+                Session::set('user', $sessionUser);
+                $user = $sessionUser;
+            }
+        }
+
+        $empIdInt = is_array($profile) && !empty($profile['id']) ? (int)$profile['id'] : (int)$myEmpId;
+        $tenure = \App\Services\EmployeeTenureCalculator::calculate(is_array($profile) ? ($profile['date_hired'] ?? null) : null);
+        $avatarUrl = \App\Services\ProfilePictureService::avatarUrl(
+            $empIdInt > 0 ? $empIdInt : null,
+            is_array($profile) ? ($profile['profile_picture'] ?? null) : null
+        );
+
+        $emergencyContacts = [];
+        try {
+            if ($empIdInt > 0) {
+                $emergencyContacts = (new \App\Models\EmergencyContact($this->pdo))->getByEmployee($empIdInt);
+            }
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Emergency contacts query skipped: ' . $e->getMessage());
+        }
+
+        $employmentHistory = [];
+        $lastPromotion = null;
+        try {
+            if ($empIdInt > 0) {
+                $historyModel = new \App\Models\EmploymentHistory($this->pdo);
+                $employmentHistory = $historyModel->getByEmployee($empIdInt);
+                $lastPromotion = $historyModel->getLastPromotion($empIdInt);
+            }
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Employment history query skipped: ' . $e->getMessage());
+        }
+
+        $correctionRequests = [];
+        try {
+            if ($empIdInt > 0) {
+                $correctionRequests = (new \App\Models\ProfileCorrectionRequest($this->pdo))->getByEmployee($empIdInt);
+            }
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Correction requests query skipped: ' . $e->getMessage());
+        }
+
+        $departments = [];
+        $positions = [];
+        try {
+            $departments = $this->pdo->query("SELECT id, department_name FROM departments ORDER BY department_name ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $positions = $this->pdo->query("SELECT id, position_name, department_id FROM positions ORDER BY position_name ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Org lookup query skipped: ' . $e->getMessage());
+        }
+
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
             $this->json([
                 'status'  => 'success',
                 'profile' => $profile,
+                'tenure'  => $tenure,
             ]);
             return;
         }
 
+        $formErrors = Session::getFlash('profile_form_errors', []);
+        $formOld    = Session::getFlash('profile_form_old', []);
+        $activeForm = Session::getFlash('profile_active_form', '');
+
         $this->view('dashboard.employee_profile', [
-            'pageTitle' => 'My Profile',
-            'user'      => $user,
-            'profile'   => $profile,
+            'pageTitle'               => 'My Profile',
+            'user'                    => $user,
+            'profile'                 => $profile ?: [],
+            'avatarUrl'               => $avatarUrl,
+            'avatarMaxBytes'          => (int)config('profile.avatar_max_bytes', 5 * 1024 * 1024),
+            'tenure'                  => $tenure,
+            'lastPromotion'           => $lastPromotion,
+            'emergencyContacts'       => $emergencyContacts,
+            'employmentHistory'       => $employmentHistory,
+            'correctionRequests'      => $correctionRequests,
+            'allowedCorrectionFields' => \App\Models\ProfileCorrectionRequest::getAllowedFields(),
+            'departments'             => $departments,
+            'positions'               => $positions,
+            'civilStatuses'           => (array)config('profile.civil_statuses', []),
+            'employmentTypes'         => (array)config('profile.employment_types', []),
+            'relationships'           => \App\Models\EmergencyContact::VALID_RELATIONSHIPS,
+            'formErrors'              => is_array($formErrors) ? $formErrors : [],
+            'formOld'                 => is_array($formOld) ? $formOld : [],
+            'activeForm'              => is_string($activeForm) ? $activeForm : '',
         ], 'hr');
     }
 

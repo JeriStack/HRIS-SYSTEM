@@ -33,6 +33,21 @@ final class NotificationPayload
             'message' => 'Your employee profile record was updated by Human Resources.',
             'level'   => 'info',
         ],
+        EventAuthorizer::CORRECTION_REQUESTED => [
+            'title'   => 'Profile correction request',
+            'message' => 'A profile correction request %s is awaiting HR review.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::CORRECTION_APPROVED => [
+            'title'   => 'Profile correction approved',
+            'message' => 'Your profile correction request %s was approved.',
+            'level'   => 'success',
+        ],
+        EventAuthorizer::CORRECTION_REJECTED => [
+            'title'   => 'Profile correction not approved',
+            'message' => 'Your profile correction request %s was not approved. Open My Profile for details.',
+            'level'   => 'warning',
+        ],
     ];
 
     /**
@@ -62,6 +77,15 @@ final class NotificationPayload
             } else {
                 $link = 'employee/profile';
             }
+        } elseif (
+            $event === EventAuthorizer::CORRECTION_REQUESTED
+            || $event === EventAuthorizer::CORRECTION_APPROVED
+            || $event === EventAuthorizer::CORRECTION_REJECTED
+        ) {
+            $reference = $entityId > 0 ? 'PCR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
+            $link = $event === EventAuthorizer::CORRECTION_REQUESTED
+                ? 'hr/correction-requests'
+                : 'employee/profile#correction-requests';
         } else {
             $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
             $link = $entityId > 0 ? 'leaves/' . $entityId : 'notifications';

@@ -7,28 +7,47 @@
 
 namespace App\Controllers;
 
-use Core\Controller;
-use Core\Session;
-use App\Models\Employee;
 use App\Models\Department;
+use App\Models\EmergencyContact;
+use App\Models\Employee;
+use App\Models\EmploymentHistory;
+use App\Models\Notification;
 use App\Models\Position;
+use App\Models\ProfileCorrectionRequest;
 use App\Models\User;
 use App\Services\AccountRevocationService;
+use App\Services\EmployeeTenureCalculator;
+use App\Services\ProfilePictureService;
 use App\Services\StepUpAuthService;
+use Core\AuditService;
+use Core\Controller;
+use Core\Database;
+use Core\Session;
+use PDO;
 
 class EmployeeController extends Controller
 {
+    private PDO $pdo;
     private Employee $employeeModel;
     private Department $departmentModel;
     private Position $positionModel;
     private User $userModel;
+    private EmploymentHistory $historyModel;
+    private EmergencyContact $emergencyModel;
+    private ProfileCorrectionRequest $correctionModel;
+    private bool $terminateOnRedirect;
 
-    public function __construct()
+    public function __construct(?PDO $pdo = null, bool $terminateOnRedirect = true)
     {
-        $this->employeeModel = new Employee();
-        $this->departmentModel = new Department();
-        $this->positionModel = new Position();
-        $this->userModel = new User();
+        $this->pdo = $pdo ?? Database::getInstance()->getConnection();
+        $this->employeeModel = new Employee($this->pdo);
+        $this->departmentModel = new Department($this->pdo);
+        $this->positionModel = new Position($this->pdo);
+        $this->userModel = new User($this->pdo);
+        $this->historyModel = new EmploymentHistory($this->pdo);
+        $this->emergencyModel = new EmergencyContact($this->pdo);
+        $this->correctionModel = new ProfileCorrectionRequest($this->pdo);
+        $this->terminateOnRedirect = $terminateOnRedirect;
     }
 
     /**
@@ -127,14 +146,52 @@ class EmployeeController extends Controller
 
         if (!$employee) {
             Session::flash('error', 'The requested employee profile was not found.');
-            $this->redirect('/hr/employees');
+            $this->navigate('/hr/employees');
             return;
         }
 
+        $tenure = EmployeeTenureCalculator::calculate($employee['date_hired'] ?? null);
+        $avatarUrl = ProfilePictureService::avatarUrl((int)$employee['id'], $employee['profile_picture'] ?? null);
+
+        $emergencyContacts = [];
+        try {
+            $emergencyContacts = $this->emergencyModel->getByEmployee($id);
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::show] Emergency contacts query skipped: ' . $e->getMessage());
+        }
+
+        $employmentHistory = [];
+        $lastPromotion = null;
+        try {
+            $employmentHistory = $this->historyModel->getByEmployee($id);
+            $lastPromotion = $this->historyModel->getLastPromotion($id);
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::show] Employment history query skipped: ' . $e->getMessage());
+        }
+
+        $correctionRequests = [];
+        try {
+            $correctionRequests = $this->correctionModel->getByEmployee($id, 20);
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::show] Correction requests query skipped: ' . $e->getMessage());
+        }
+
         $this->view('employees.show', [
-            'pageTitle'      => "Profile: {$employee['first_name']} {$employee['last_name']} ({$employee['employee_no']})",
-            'employee'       => $employee,
-            'stepUpRequired' => $this->stepUpRequired(),
+            'pageTitle'          => "Profile: {$employee['first_name']} {$employee['last_name']} ({$employee['employee_no']})",
+            'employee'           => $employee,
+            'avatarUrl'          => $avatarUrl,
+            'tenure'             => $tenure,
+            'lastPromotion'      => $lastPromotion,
+            'emergencyContacts'  => $emergencyContacts,
+            'employmentHistory'  => $employmentHistory,
+            'correctionRequests' => $correctionRequests,
+            'departments'        => $this->fetchDepartmentsList(),
+            'positions'          => $this->fetchPositionsList(),
+            'employmentTypes'    => (array)config('profile.employment_types', []),
+            'eventTypes'         => EmploymentHistory::VALID_EVENT_TYPES,
+            'historyErrors'      => Session::getFlash('history_form_errors', []),
+            'historyOld'         => Session::getFlash('history_form_old', []),
+            'stepUpRequired'     => $this->stepUpRequired(),
         ], 'hr');
     }
 
@@ -148,11 +205,13 @@ class EmployeeController extends Controller
         $positions = $this->positionModel->getAll();
 
         $this->view('employees.create', [
-            'pageTitle'   => 'Add New Employee Record',
-            'departments' => $departments,
-            'positions'   => $positions,
-            'errors'      => Session::getFlash('errors', []),
-            'old'         => Session::getFlash('old', []),
+            'pageTitle'       => 'Add New Employee Record',
+            'departments'     => $departments,
+            'positions'       => $positions,
+            'civilStatuses'   => (array)config('profile.civil_statuses', []),
+            'employmentTypes' => (array)config('profile.employment_types', []),
+            'errors'          => Session::getFlash('errors', []),
+            'old'             => Session::getFlash('old', []),
         ], 'hr');
     }
 
@@ -168,12 +227,30 @@ class EmployeeController extends Controller
         if (!empty($errors)) {
             Session::flash('errors', $errors);
             Session::flash('old', $_POST);
-            $this->redirect('/hr/employees/create');
+            $this->navigate('/hr/employees/create');
             return;
         }
 
         // Insert new employee record
         $employeeId = $this->employeeModel->create($data);
+
+        // Record immutable initial hiring milestone in employment history
+        try {
+            $this->historyModel->recordEvent([
+                'employee_id'            => $employeeId,
+                'event_type'             => EmploymentHistory::EVENT_INITIAL_HIRING,
+                'effective_date'         => $data['date_hired'],
+                'previous_department_id' => null,
+                'new_department_id'      => !empty($data['department_id']) ? (int)$data['department_id'] : null,
+                'previous_position_id'   => null,
+                'new_position_id'        => !empty($data['position_id']) ? (int)$data['position_id'] : null,
+                'employment_type'        => $data['employment_type'] ?? 'Regular',
+                'description'            => 'Initial appointment upon employee onboarding.',
+                'recorded_by'            => currentUserId(),
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::store] Initial hiring history failed: ' . $e->getMessage());
+        }
 
         // Real-time notification for HR workforce views
         try {
@@ -232,13 +309,15 @@ class EmployeeController extends Controller
         $positions = $this->positionModel->getAll();
 
         $this->view('employees.edit', [
-            'pageTitle'      => "Edit Employee Record: {$employee['employee_no']}",
-            'employee'       => $employee,
-            'departments'    => $departments,
-            'positions'      => $positions,
-            'errors'         => Session::getFlash('errors', []),
-            'old'            => Session::getFlash('old', []),
-            'stepUpRequired' => $this->stepUpRequired(),
+            'pageTitle'       => "Edit Employee Record: {$employee['employee_no']}",
+            'employee'        => $employee,
+            'departments'     => $departments,
+            'positions'       => $positions,
+            'civilStatuses'   => (array)config('profile.civil_statuses', []),
+            'employmentTypes' => (array)config('profile.employment_types', []),
+            'errors'          => Session::getFlash('errors', []),
+            'old'             => Session::getFlash('old', []),
+            'stepUpRequired'  => $this->stepUpRequired(),
         ], 'hr');
     }
 
@@ -280,13 +359,15 @@ class EmployeeController extends Controller
 
         // Execute database update
         $this->employeeModel->update($id, $data);
+        $this->recordAutomaticHistoryTransitions($id, $employee, $data, $_POST);
+
         if ($data['employment_status'] !== 'Active') {
             $this->revokeLinkedAccount($id);
         }
 
         // Find linked user account for this employee and dispatch real-time notification
         $linkedUser = $this->userModel->findByEmployeeId($id);
-        $notificationModel = new \App\Models\Notification();
+        $notificationModel = new Notification($this->pdo);
         if ($linkedUser && !empty($linkedUser['id'])) {
             try {
                 $notificationModel->create(
@@ -319,11 +400,15 @@ class EmployeeController extends Controller
 
         // Audit Logging with before/after state diffing
         $empName = trim("{$data['first_name']} {$data['last_name']}");
-        $trackedFields = ['first_name', 'last_name', 'email', 'phone', 'department_id', 'position_id', 'employment_status', 'date_hired', 'address'];
+        $trackedFields = [
+            'first_name', 'middle_name', 'last_name', 'email', 'personal_email',
+            'phone', 'civil_status', 'department_id', 'position_id',
+            'employment_type', 'employment_status', 'date_hired', 'address',
+        ];
         $oldDiff = [];
         $newDiff = [];
         foreach ($trackedFields as $field) {
-            if (isset($data[$field]) && (string)($employee[$field] ?? '') !== (string)$data[$field]) {
+            if (array_key_exists($field, $data) && (string)($employee[$field] ?? '') !== (string)($data[$field] ?? '')) {
                 $oldDiff[$field] = $employee[$field] ?? null;
                 $newDiff[$field] = $data[$field];
             }
@@ -340,7 +425,7 @@ class EmployeeController extends Controller
         );
 
         Session::flash('success', "Employee record for {$empName} ({$data['employee_no']}) was updated successfully.");
-        $this->redirect("/hr/employees/{$id}");
+        $this->navigate("/hr/employees/{$id}");
     }
 
     /**
@@ -502,6 +587,193 @@ class EmployeeController extends Controller
     }
 
     /**
+     * Record a manual HR employment milestone and optionally synchronize current employee assignment.
+     * Route: POST /hr/employees/{id}/history
+     */
+    public function storeHistory(int $id): void
+    {
+        $employee = $this->employeeModel->findById($id);
+        if (!$employee) {
+            Session::flash('error', 'The requested employee record was not found.');
+            $this->navigate('/hr/employees');
+            return;
+        }
+
+        $validation = EmploymentHistory::validateEventInput($_POST);
+        $data = $validation['data'];
+        $errors = $validation['errors'];
+
+        $newDeptId = $data['new_department_id'];
+        $newPosId  = $data['new_position_id'];
+
+        if ($newDeptId !== null && !$this->findDepartmentById($newDeptId)) {
+            $errors['new_department_id'] = 'Selected department does not exist.';
+        }
+        if ($newPosId !== null) {
+            $pos = $this->findPositionById($newPosId);
+            if (!$pos) {
+                $errors['new_position_id'] = 'Selected job position does not exist.';
+            } elseif ($newDeptId !== null && (int)$pos['department_id'] !== $newDeptId) {
+                $errors['new_position_id'] = 'Selected position does not belong to the chosen department.';
+            }
+        }
+
+        if (!empty($errors)) {
+            Session::flash('history_form_errors', $errors);
+            Session::flash('history_form_old', $_POST);
+            Session::flash('error', 'Please review the employment milestone details.');
+            $this->navigate("/hr/employees/{$id}#employment-history");
+            return;
+        }
+
+        $prevDeptId = $data['previous_department_id'] ?? (!empty($employee['department_id']) ? (int)$employee['department_id'] : null);
+        $prevPosId  = $data['previous_position_id'] ?? (!empty($employee['position_id']) ? (int)$employee['position_id'] : null);
+        $syncCurrent = !empty($_POST['sync_current_assignment']) && $_POST['sync_current_assignment'] === '1';
+
+        $ownTx = !$this->pdo->inTransaction();
+        if ($ownTx) {
+            $this->pdo->beginTransaction();
+        }
+
+        try {
+            $historyId = $this->historyModel->recordEvent([
+                'employee_id'            => $id,
+                'event_type'             => $data['event_type'],
+                'effective_date'         => $data['effective_date'],
+                'previous_department_id' => $prevDeptId,
+                'new_department_id'      => $newDeptId ?? $prevDeptId,
+                'previous_position_id'   => $prevPosId,
+                'new_position_id'        => $newPosId ?? $prevPosId,
+                'employment_type'        => $data['employment_type'] ?? ($employee['employment_type'] ?? null),
+                'description'            => $data['description'],
+                'recorded_by'            => currentUserId(),
+            ]);
+
+            if ($syncCurrent) {
+                if ($newDeptId !== null && $newDeptId !== (int)($employee['department_id'] ?? 0)) {
+                    $this->employeeModel->applyCorrectionField($id, 'department_id', $newDeptId);
+                }
+                if ($newPosId !== null && $newPosId !== (int)($employee['position_id'] ?? 0)) {
+                    $this->employeeModel->applyCorrectionField($id, 'position_id', $newPosId);
+                }
+                if (
+                    !empty($data['employment_type'])
+                    && $data['employment_type'] !== ($employee['employment_type'] ?? '')
+                ) {
+                    $this->employeeModel->applyCorrectionField($id, 'employment_type', $data['employment_type']);
+                }
+            }
+
+            if ($ownTx && $this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
+        } catch (\Throwable $e) {
+            if ($ownTx && $this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('[EmployeeController::storeHistory] Failed: ' . $e->getMessage());
+            Session::flash('error', 'Unable to record employment milestone right now.');
+            $this->navigate("/hr/employees/{$id}#employment-history");
+            return;
+        }
+
+        try {
+            AuditService::getInstance($this->pdo)->record([
+                'actor_user_id' => (int)currentUserId(),
+                'action'        => 'EMPLOYEE_HISTORY_RECORDED',
+                'category'      => AuditService::CATEGORY_EMPLOYEE,
+                'description'   => "Recorded {$data['event_type']} milestone (#{$historyId}) for {$employee['employee_no']}.",
+                'entity_type'   => 'EMPLOYMENT_HISTORY',
+                'entity_id'     => (string)$historyId,
+                'old_values'    => [
+                    'department_id' => $employee['department_id'] ?? null,
+                    'position_id'   => $employee['position_id'] ?? null,
+                ],
+                'new_values'    => $data + ['synced_current_record' => $syncCurrent],
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::storeHistory] Audit log failed: ' . $e->getMessage());
+        }
+
+        Session::flash('success', "{$data['event_type']} milestone recorded in employment history.");
+        $this->navigate("/hr/employees/{$id}#employment-history");
+    }
+
+    /**
+     * Display HR review queue for employee profile correction requests.
+     * Route: GET /hr/correction-requests
+     */
+    public function correctionRequests(): void
+    {
+        $rawStatus = trim((string)($_GET['status'] ?? 'All'));
+        $filterStatus = in_array($rawStatus, ProfileCorrectionRequest::VALID_STATUSES, true)
+            ? $rawStatus
+            : null;
+
+        $requests = [];
+        $pendingCount = 0;
+        try {
+            $requests = $this->correctionModel->getAllForReview($filterStatus);
+            $pendingCount = $this->correctionModel->countPending();
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::correctionRequests] Query failed: ' . $e->getMessage());
+        }
+
+        $this->view('employees.correction_requests', [
+            'pageTitle'      => 'Profile Correction Requests',
+            'requests'       => $requests,
+            'pendingCount'   => $pendingCount,
+            'selectedStatus' => $filterStatus ?? 'All',
+        ], 'hr');
+    }
+
+    /**
+     * Approve a pending profile correction request inside an atomic DB transaction.
+     * Route: POST /hr/correction-requests/{id}/approve
+     */
+    public function approveCorrection(int $id): void
+    {
+        $reason = trim((string)($_POST['decision_reason'] ?? ''));
+        $result = $this->correctionModel->review(
+            $id,
+            ProfileCorrectionRequest::STATUS_APPROVED,
+            (int)currentUserId(),
+            $reason !== '' ? $reason : null
+        );
+
+        if (!$result['ok']) {
+            Session::flash('error', (string)($result['error'] ?? 'Unable to approve correction request.'));
+        } else {
+            Session::flash('success', "Profile correction request #{$id} has been approved and applied.");
+        }
+
+        $this->navigate('/hr/correction-requests');
+    }
+
+    /**
+     * Reject a pending profile correction request with a mandatory reason.
+     * Route: POST /hr/correction-requests/{id}/reject
+     */
+    public function rejectCorrection(int $id): void
+    {
+        $reason = trim((string)($_POST['decision_reason'] ?? ''));
+        $result = $this->correctionModel->review(
+            $id,
+            ProfileCorrectionRequest::STATUS_REJECTED,
+            (int)currentUserId(),
+            $reason
+        );
+
+        if (!$result['ok']) {
+            Session::flash('error', (string)($result['error'] ?? 'Unable to reject correction request.'));
+        } else {
+            Session::flash('success', "Profile correction request #{$id} has been rejected and the employee was notified.");
+        }
+
+        $this->navigate('/hr/correction-requests');
+    }
+
+    /**
      * Sanitize input payload.
      */
     private function sanitizeInput(array $raw): array
@@ -512,13 +784,16 @@ class EmployeeController extends Controller
             'middle_name'       => trim((string)($raw['middle_name'] ?? '')),
             'last_name'         => trim((string)($raw['last_name'] ?? '')),
             'email'             => trim((string)($raw['email'] ?? '')),
+            'personal_email'    => trim((string)($raw['personal_email'] ?? '')),
             'phone'             => trim((string)($raw['phone'] ?? '')),
             'address'           => trim((string)($raw['address'] ?? '')),
             'birth_date'        => trim((string)($raw['birth_date'] ?? '')),
             'gender'            => trim((string)($raw['gender'] ?? '')),
+            'civil_status'      => trim((string)($raw['civil_status'] ?? '')),
             'department_id'     => (int)($raw['department_id'] ?? 0),
             'position_id'       => (int)($raw['position_id'] ?? 0),
             'date_hired'        => trim((string)($raw['date_hired'] ?? '')),
+            'employment_type'   => trim((string)($raw['employment_type'] ?? 'Regular')) ?: 'Regular',
             'employment_status' => trim((string)($raw['employment_status'] ?? 'Active')),
         ];
     }
@@ -534,19 +809,21 @@ class EmployeeController extends Controller
     {
         $errors = [];
 
-        $empNo      = trim((string)($data['employee_no'] ?? ''));
-        $firstName  = trim((string)($data['first_name'] ?? ''));
-        $middleName = trim((string)($data['middle_name'] ?? ''));
-        $lastName   = trim((string)($data['last_name'] ?? ''));
-        $email      = trim((string)($data['email'] ?? ''));
-        $phone      = trim((string)($data['phone'] ?? ''));
-        $address    = trim((string)($data['address'] ?? ''));
-        $birthDate  = trim((string)($data['birth_date'] ?? ''));
-        $gender     = trim((string)($data['gender'] ?? ''));
-        $deptId     = (int)($data['department_id'] ?? 0);
-        $posId      = (int)($data['position_id'] ?? 0);
-        $dateHired  = trim((string)($data['date_hired'] ?? ''));
-        $status     = trim((string)($data['employment_status'] ?? 'Active'));
+        $empNo         = trim((string)($data['employee_no'] ?? ''));
+        $firstName     = trim((string)($data['first_name'] ?? ''));
+        $middleName    = trim((string)($data['middle_name'] ?? ''));
+        $lastName      = trim((string)($data['last_name'] ?? ''));
+        $email         = trim((string)($data['email'] ?? ''));
+        $personalEmail = trim((string)($data['personal_email'] ?? ''));
+        $phone         = trim((string)($data['phone'] ?? ''));
+        $birthDate     = trim((string)($data['birth_date'] ?? ''));
+        $gender        = trim((string)($data['gender'] ?? ''));
+        $civilStatus   = trim((string)($data['civil_status'] ?? ''));
+        $deptId        = (int)($data['department_id'] ?? 0);
+        $posId         = (int)($data['position_id'] ?? 0);
+        $dateHired     = trim((string)($data['date_hired'] ?? ''));
+        $empType       = trim((string)($data['employment_type'] ?? 'Regular'));
+        $status        = trim((string)($data['employment_status'] ?? 'Active'));
 
         // 1. Employee Number
         if ($empNo === '') {
@@ -574,7 +851,7 @@ class EmployeeController extends Controller
             $errors['last_name'] = 'Last name cannot exceed 50 characters.';
         }
 
-        // 3. Email
+        // 3. Work & Personal Emails
         if ($email === '') {
             $errors['email'] = 'Email address is required.';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -583,6 +860,14 @@ class EmployeeController extends Controller
             $errors['email'] = 'Email cannot exceed 100 characters.';
         } elseif (!$this->employeeModel->isEmailUnique($email, $excludeId)) {
             $errors['email'] = "Email address '{$email}' is already registered to another employee.";
+        }
+
+        if ($personalEmail !== '') {
+            if (!filter_var($personalEmail, FILTER_VALIDATE_EMAIL)) {
+                $errors['personal_email'] = 'Please enter a valid personal email address.';
+            } elseif (mb_strlen($personalEmail) > 100) {
+                $errors['personal_email'] = 'Personal email cannot exceed 100 characters.';
+            }
         }
 
         // 4. Phone & Address
@@ -602,25 +887,30 @@ class EmployeeController extends Controller
             }
         }
 
-        // 6. Gender
+        // 6. Gender & Civil Status
         if (!in_array($gender, ['Male', 'Female', 'Other'], true)) {
             $errors['gender'] = 'Please select a valid gender option.';
         }
 
+        $validCivilStatuses = (array)config('profile.civil_statuses', ['Single', 'Married', 'Widowed', 'Separated', 'Divorced']);
+        if ($civilStatus !== '' && !in_array($civilStatus, $validCivilStatuses, true)) {
+            $errors['civil_status'] = 'Please select a valid civil status option.';
+        }
+
         // 7. Department & Position Validation
-        $department = $deptId > 0 ? $this->departmentModel->findById($deptId) : null;
+        $department = $deptId > 0 ? $this->findDepartmentById($deptId) : null;
         if (!$department) {
             $errors['department_id'] = 'Please select a valid department.';
         }
 
-        $position = $posId > 0 ? $this->positionModel->findById($posId) : null;
+        $position = $posId > 0 ? $this->findPositionById($posId) : null;
         if (!$position) {
             $errors['position_id'] = 'Please select a valid job position.';
         } elseif ($department && (int)$position['department_id'] !== $deptId) {
             $errors['position_id'] = 'The selected position does not belong to the selected department.';
         }
 
-        // 8. Date Hired
+        // 8. Date Hired & Employment Type
         if ($dateHired === '') {
             $errors['date_hired'] = 'Date hired is required.';
         } else {
@@ -632,11 +922,155 @@ class EmployeeController extends Controller
             }
         }
 
+        $validEmpTypes = (array)config('profile.employment_types', ['Regular', 'Probationary', 'Contractual', 'Project-Based', 'Part-Time']);
+        if (!in_array($empType, $validEmpTypes, true)) {
+            $errors['employment_type'] = 'Please select a valid employment type.';
+        }
+
         // 9. Employment Status (Strictly Active or Inactive)
         if (!in_array($status, ['Active', 'Inactive'], true)) {
             $errors['employment_status'] = 'Please select a valid employment status (Active or Inactive).';
         }
 
         return $errors;
+    }
+
+    /**
+     * Automatically append immutable history records when HR updates organizational fields.
+     *
+     * @param array<string, mixed> $before
+     * @param array<string, mixed> $after
+     * @param array<string, mixed> $rawPost
+     */
+    private function recordAutomaticHistoryTransitions(int $employeeId, array $before, array $after, array $rawPost): void
+    {
+        $prevDept = !empty($before['department_id']) ? (int)$before['department_id'] : null;
+        $newDept  = !empty($after['department_id']) ? (int)$after['department_id'] : null;
+        $prevPos  = !empty($before['position_id']) ? (int)$before['position_id'] : null;
+        $newPos   = !empty($after['position_id']) ? (int)$after['position_id'] : null;
+        $prevType = (string)($before['employment_type'] ?? 'Regular');
+        $newType  = (string)($after['employment_type'] ?? 'Regular');
+        $prevStat = (string)($before['employment_status'] ?? 'Active');
+        $newStat  = (string)($after['employment_status'] ?? 'Active');
+
+        $note = trim((string)($rawPost['transition_note'] ?? ''));
+        $isPromotion = !empty($rawPost['is_promotion']) && $rawPost['is_promotion'] === '1';
+        $today = date('Y-m-d');
+        $actorId = currentUserId();
+
+        try {
+            if ($prevPos !== $newPos) {
+                $eventType = $isPromotion ? EmploymentHistory::EVENT_PROMOTION : EmploymentHistory::EVENT_POSITION_CHANGE;
+                $desc = $note !== ''
+                    ? $note
+                    : ($isPromotion ? 'Promoted to updated position.' : 'Position updated by Human Resources.');
+                $this->historyModel->recordEvent([
+                    'employee_id'            => $employeeId,
+                    'event_type'             => $eventType,
+                    'effective_date'         => $today,
+                    'previous_department_id' => $prevDept,
+                    'new_department_id'      => $newDept,
+                    'previous_position_id'   => $prevPos,
+                    'new_position_id'        => $newPos,
+                    'employment_type'        => $newType,
+                    'description'            => $desc,
+                    'recorded_by'            => $actorId,
+                ]);
+            } elseif ($prevDept !== $newDept) {
+                $this->historyModel->recordEvent([
+                    'employee_id'            => $employeeId,
+                    'event_type'             => EmploymentHistory::EVENT_DEPT_TRANSFER,
+                    'effective_date'         => $today,
+                    'previous_department_id' => $prevDept,
+                    'new_department_id'      => $newDept,
+                    'previous_position_id'   => $prevPos,
+                    'new_position_id'        => $newPos,
+                    'employment_type'        => $newType,
+                    'description'            => $note !== '' ? $note : 'Department assignment updated by Human Resources.',
+                    'recorded_by'            => $actorId,
+                ]);
+            }
+
+            if ($prevType !== $newType) {
+                $this->historyModel->recordEvent([
+                    'employee_id'            => $employeeId,
+                    'event_type'             => EmploymentHistory::EVENT_TYPE_CHANGE,
+                    'effective_date'         => $today,
+                    'previous_department_id' => $newDept,
+                    'new_department_id'      => $newDept,
+                    'previous_position_id'   => $newPos,
+                    'new_position_id'        => $newPos,
+                    'employment_type'        => $newType,
+                    'description'            => $note !== ''
+                        ? $note
+                        : "Employment type changed from {$prevType} to {$newType}.",
+                    'recorded_by'            => $actorId,
+                ]);
+            }
+
+            if ($prevStat !== $newStat) {
+                $this->historyModel->recordEvent([
+                    'employee_id'            => $employeeId,
+                    'event_type'             => EmploymentHistory::EVENT_STATUS_CHANGE,
+                    'effective_date'         => $today,
+                    'previous_department_id' => $newDept,
+                    'new_department_id'      => $newDept,
+                    'previous_position_id'   => $newPos,
+                    'new_position_id'        => $newPos,
+                    'employment_type'        => $newType,
+                    'description'            => "Employment status changed from {$prevStat} to {$newStat}.",
+                    'recorded_by'            => $actorId,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            error_log('[EmployeeController::recordAutomaticHistoryTransitions] Failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchDepartmentsList(): array
+    {
+        try {
+            return $this->pdo->query("SELECT id, department_name FROM departments ORDER BY department_name ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchPositionsList(): array
+    {
+        try {
+            return $this->pdo->query("SELECT id, position_name, department_id FROM positions ORDER BY position_name ASC")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    private function findDepartmentById(int $deptId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT id, department_name FROM departments WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $deptId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    private function findPositionById(int $posId): ?array
+    {
+        $stmt = $this->pdo->prepare("SELECT id, position_name, department_id FROM positions WHERE id = :id LIMIT 1");
+        $stmt->execute(['id' => $posId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    private function navigate(string $url, int $statusCode = 302): void
+    {
+        if ($this->terminateOnRedirect) {
+            $this->redirect($url, $statusCode);
+        }
     }
 }

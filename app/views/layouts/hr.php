@@ -67,6 +67,7 @@
     <script src="<?= asset('js/navigation.js') ?>"></script>
     <script src="<?= asset('js/forms.js') ?>"></script>
     <script src="<?= asset('js/realtime.js') ?>"></script>
+    <script src="<?= asset('js/profile.js') ?>"></script>
     <script src="<?= asset('js/skeleton.js') ?>"></script>
 </body>
 </html>

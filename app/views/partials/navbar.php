@@ -124,12 +124,22 @@ if (isAuthenticated()) {
             $headerProfileTitle = !empty($user['employee_id']) ? 'View My Profile' : 'HR Dashboard';
         }
         $avatarInitials = strtoupper(substr(trim($userName), 0, 2)) ?: 'U';
+        $headerAvatarUrl = \App\Services\ProfilePictureService::avatarUrl(
+            !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+            is_string($user['profile_picture'] ?? null) ? $user['profile_picture'] : null
+        );
         ?>
         <a href="<?= $headerProfileUrl ?>"
            class="header-account-chip"
            title="<?= e($userName . ' — ' . $headerProfileTitle) ?>"
            aria-label="<?= e($userName . ' — ' . $headerProfileTitle) ?>">
-            <span class="header-account-avatar role-<?= e($role) ?>" aria-hidden="true"><?= e($avatarInitials) ?></span>
+            <span class="header-account-avatar role-<?= e($role) ?><?= $headerAvatarUrl ? ' has-photo' : '' ?>" aria-hidden="true">
+                <?php if ($headerAvatarUrl): ?>
+                    <img src="<?= e($headerAvatarUrl) ?>" alt="" class="avatar-img-cover" width="30" height="30" decoding="async">
+                <?php else: ?>
+                    <?= e($avatarInitials) ?>
+                <?php endif; ?>
+            </span>
         </a>
     </div>
 </header>

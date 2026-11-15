@@ -14,14 +14,14 @@
 NEXORA HR utilizes **MySQL 8.0 Community Server** configured with the **InnoDB** storage engine as its single source of truth. The database is architected for strict ACID transactional compliance, row-level locking concurrency control, high referential integrity, and complete isolation between production and testing environments.
 
 ### Core Configuration Parameters
-* **Storage Engine:** `InnoDB` strictly enforced across all 17 tables.
+* **Storage Engine:** `InnoDB` strictly enforced across all 22 tables.
 * **Character Set & Collation:** `utf8mb4` with `utf8mb4_unicode_ci` collation supporting full Unicode text and international employee names.
 * **Transaction Isolation Level:** `READ COMMITTED` or `REPEATABLE READ` (default) with explicit pessimistic locks (`SELECT ... FOR UPDATE`) for critical balance transactions.
 * **Timezone Synchronization:** UTC normalized timestamps with application-level display timezone conversion.
 
 ---
 
-## 2. Authoritative 17-Table Schema Catalog
+## 2. Authoritative 22-Table Schema Catalog
 
 ### 2.1 Organizational & Workforce Tables
 
@@ -59,14 +59,18 @@ CREATE TABLE `employees` (
     `middle_name` VARCHAR(50) NULL,
     `last_name` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NOT NULL,
+    `personal_email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(25) NULL,
     `address` TEXT NULL,
     `birth_date` DATE NOT NULL,
     `gender` ENUM('Male', 'Female', 'Other') NOT NULL,
+    `civil_status` ENUM('Single', 'Married', 'Widowed', 'Separated', 'Divorced') NULL DEFAULT NULL,
     `department_id` INT UNSIGNED NOT NULL,
     `position_id` INT UNSIGNED NOT NULL,
     `date_hired` DATE NOT NULL,
+    `employment_type` VARCHAR(50) NOT NULL DEFAULT 'Regular',
     `employment_status` ENUM('Active', 'Inactive', 'Terminated') NOT NULL DEFAULT 'Active',
+    `profile_picture` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_employees_emp_no` UNIQUE (`employee_no`),
     CONSTRAINT `uq_employees_email` UNIQUE (`email`),
@@ -75,6 +79,7 @@ CREATE TABLE `employees` (
     CONSTRAINT `fk_employees_position` FOREIGN KEY (`position_id`) 
         REFERENCES `positions` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX `idx_employees_status` (`employment_status`),
+    INDEX `idx_employees_employment_type` (`employment_type`),
     INDEX `idx_employees_dept` (`department_id`),
     INDEX `idx_employees_pos` (`position_id`),
     INDEX `idx_employees_name` (`last_name`, `first_name`)
@@ -367,6 +372,94 @@ CREATE TABLE `permission_audit_logs` (
 
 ---
 
+### 2.5 Background Queue & Employee Profile Self-Service Tables `[IMPLEMENTED]`
+
+#### 18. `queue_jobs` & 19. `failed_jobs`
+Database-backed asynchronous queue storage introduced by `2026_11_08_create_queue_tables.sql` (see `database/schema.sql` for full columns and indexes).
+
+#### 20. `employee_emergency_contacts` `[IMPLEMENTED]`
+Normalized emergency contacts linked per employee (`ON DELETE CASCADE`, self-service managed by the authenticated owner or HR).
+```sql
+CREATE TABLE IF NOT EXISTS `employee_emergency_contacts` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `full_name` VARCHAR(120) NOT NULL,
+    `relationship` VARCHAR(60) NOT NULL,
+    `contact_number` VARCHAR(30) NOT NULL,
+    `alternative_contact_number` VARCHAR(30) NULL DEFAULT NULL,
+    `address` TEXT NULL,
+    `is_primary` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emergency_contacts_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_emergency_contacts_emp` (`employee_id`, `is_primary`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 21. `employment_history` `[IMPLEMENTED]`
+Chronological career milestone log (separate from `activity_logs` security audit events) recording hiring, promotions, department transfers, position changes, employment status changes, and employment type transitions.
+```sql
+CREATE TABLE IF NOT EXISTS `employment_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `event_type` VARCHAR(50) NOT NULL,
+    `effective_date` DATE NOT NULL,
+    `previous_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `previous_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `employment_type` VARCHAR(50) NULL DEFAULT NULL,
+    `description` TEXT NULL,
+    `recorded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emp_history_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_dept` FOREIGN KEY (`previous_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_dept` FOREIGN KEY (`new_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_pos` FOREIGN KEY (`previous_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_pos` FOREIGN KEY (`new_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_recorded_by` FOREIGN KEY (`recorded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_emp_history_timeline` (`employee_id`, `effective_date`, `id`),
+    INDEX `idx_emp_history_event_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 22. `profile_correction_requests` `[IMPLEMENTED]`
+Structured approval queue for HR-controlled employee profile attributes (`first_name`, `middle_name`, `last_name`, `birth_date`, `gender`, `civil_status`, `email`, `department_id`, `position_id`, `employment_type`, `date_hired`), with row-level `FOR UPDATE` transactional review.
+```sql
+CREATE TABLE IF NOT EXISTS `profile_correction_requests` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `requested_by_user_id` INT UNSIGNED NOT NULL,
+    `field_name` VARCHAR(50) NOT NULL,
+    `current_value` TEXT NULL,
+    `requested_value` TEXT NOT NULL,
+    `reason` TEXT NOT NULL,
+    `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
+    `reviewed_by` INT UNSIGNED NULL DEFAULT NULL,
+    `reviewed_at` DATETIME NULL DEFAULT NULL,
+    `decision_reason` TEXT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pcr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_requested_by` FOREIGN KEY (`requested_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_reviewed_by` FOREIGN KEY (`reviewed_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_pcr_emp_status` (`employee_id`, `status`, `created_at`),
+    INDEX `idx_pcr_status_created` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
 ## 3. Concurrency Control & Row-Level Locking
 
 Leave balance mutations execute inside atomic transactions using **pessimistic row-level locking**:
@@ -447,5 +540,6 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_11_08_create_rbac_tables.sql` — Creates `roles`, `permissions`, `role_permissions`, and `permission_audit_logs` tables; adds `role_id` foreign key to `users`; seeds 3 core system roles and 33 granular permissions.
 * `database/migrations/2026_11_08_enhance_audit_trail_schema.sql` — Extends `activity_logs` with `event_id`, `actor_role`, `category`, `old_values`, `new_values`, `status`, and `request_id`.
 * `database/migrations/2026_11_08_create_queue_tables.sql` — Creates `queue_jobs` and `failed_jobs` tables for concurrency-safe asynchronous background job processing.
+* `database/migrations/2026_11_15_enhance_employee_profiles.sql` — Adds `civil_status`, `personal_email`, `employment_type`, and `profile_picture` (plus `idx_employees_employment_type`) to `employees`, and creates `employee_emergency_contacts`, `employment_history`, and `profile_correction_requests`.
 
 

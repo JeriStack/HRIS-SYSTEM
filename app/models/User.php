@@ -40,6 +40,7 @@ class User extends Model
                 e.middle_name,
                 e.last_name,
                 e.employment_status,
+                e.profile_picture,
                 e.department_id,
                 e.position_id,
                 d.department_name,
@@ -163,6 +164,7 @@ class User extends Model
                 e.middle_name,
                 e.last_name,
                 e.employment_status,
+                e.profile_picture,
                 e.department_id,
                 e.position_id,
                 d.department_name,
@@ -200,6 +202,7 @@ class User extends Model
                 e.middle_name,
                 e.last_name,
                 e.employment_status,
+                e.profile_picture,
                 e.department_id,
                 e.position_id,
                 d.department_name,
@@ -239,6 +242,7 @@ class User extends Model
                 e.middle_name,
                 e.last_name,
                 e.employment_status,
+                e.profile_picture,
                 d.department_name,
                 p.position_name
             FROM users u

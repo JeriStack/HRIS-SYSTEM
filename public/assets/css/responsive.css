@@ -55,8 +55,13 @@
 
   .emp-workspace-grid,
   .emp-profile-grid,
-  .emp-apply-grid {
+  .emp-apply-grid,
+  .profile-two-col {
     grid-template-columns: 1fr;
+  }
+
+  .profile-hero-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .emp-kpi-grid {
@@ -362,6 +367,29 @@
   .emp-notif-actions {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .profile-hero-card {
+    padding: var(--space-4);
+  }
+
+  .profile-hero-lead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+  }
+
+  .profile-hero-strip,
+  .profile-two-col,
+  .profile-dl-grid,
+  .profile-form-grid,
+  .cropper-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-photo-actions,
+  .profile-card-actions {
+    width: 100%;
   }
 }
 

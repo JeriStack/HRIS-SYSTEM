@@ -37,6 +37,7 @@ if ($rawRole === 'admin') {
 
 $sidebarUnreadCount = 0;
 $sidebarPendingCount = 0;
+$sidebarCorrectionPendingCount = 0;
 if (isAuthenticated()) {
     try {
         $sidebarUnreadCount = (new \App\Models\Notification())->getUnreadCount((int)currentUserId());
@@ -54,7 +55,20 @@ if (isAuthenticated()) {
     } catch (\Throwable $e) {
         $sidebarPendingCount = 0;
     }
+
+    if ($rawRole === 'hr' || $rawRole === 'admin') {
+        try {
+            $sidebarCorrectionPendingCount = (new \App\Models\ProfileCorrectionRequest())->countPending();
+        } catch (\Throwable $e) {
+            $sidebarCorrectionPendingCount = 0;
+        }
+    }
 }
+
+$sidebarAvatarUrl = \App\Services\ProfilePictureService::avatarUrl(
+    !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+    is_string($user['profile_picture'] ?? null) ? $user['profile_picture'] : null
+);
 
 $sidebarProfileUrl = url('/employee/profile');
 if ($rawRole === 'admin') {
@@ -127,8 +141,9 @@ if ($rawRole === 'admin') {
             $isAdmUsers     = ($currentPath === '/admin/users' || str_starts_with($currentPath, '/admin/users/'));
             $isAdmRoles     = ($currentPath === '/admin/roles');
             $isAdmProvision = ($currentPath === '/admin/provisioning');
-            $isAdmEmployees = (str_starts_with($currentPath, '/hr/employees') || $currentPath === '/admin/employees');
-            $isAdmDepts     = (str_starts_with($currentPath, '/hr/departments') || $currentPath === '/admin/departments');
+            $isAdmEmployees   = (str_starts_with($currentPath, '/hr/employees') || $currentPath === '/admin/employees');
+            $isAdmCorrections = str_starts_with($currentPath, '/hr/correction-requests');
+            $isAdmDepts       = (str_starts_with($currentPath, '/hr/departments') || $currentPath === '/admin/departments');
             $isAdmPositions = (str_starts_with($currentPath, '/hr/positions') || $currentPath === '/admin/positions');
             $isAdmLeaves    = ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || str_starts_with($currentPath, '/hr/leave-requests') || preg_match('#^/leaves/\d+$#', $currentPath) === 1);
             $isAdmTypes     = (str_starts_with($currentPath, '/hr/leave-types') || $currentPath === '/admin/leave-types');
@@ -195,6 +210,13 @@ if ($rawRole === 'admin') {
                     <a href="<?= url('/hr/positions') ?>" class="nav-item <?= $isAdmPositions ? 'active' : '' ?>"<?= $isAdmPositions ? ' aria-current="page"' : '' ?> title="Positions" data-tooltip="Positions" data-keywords="jobs titles roles">
                         <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
                         <span class="nav-item-label">Positions</span>
+                    </a>
+                    <a href="<?= url('/hr/correction-requests') ?>" class="nav-item <?= $isAdmCorrections ? 'active' : '' ?>"<?= $isAdmCorrections ? ' aria-current="page"' : '' ?> title="Profile Corrections" data-tooltip="Profile Corrections<?= $sidebarCorrectionPendingCount > 0 ? ' (' . (int)$sidebarCorrectionPendingCount . ' pending)' : '' ?>" data-keywords="correction requests profile edits approvals">
+                        <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
+                        <span class="nav-item-label">Profile Corrections</span>
+                        <?php if ($sidebarCorrectionPendingCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarCorrectionPendingCount ?> pending profile corrections"><?= $sidebarCorrectionPendingCount > 99 ? '99+' : (int)$sidebarCorrectionPendingCount ?></span>
+                        <?php endif; ?>
                     </a>
                 </div>
             </div>
@@ -314,6 +336,7 @@ if ($rawRole === 'admin') {
             <?php
             $isHrDashboard   = ($currentPath === '/hr/dashboard');
             $isHrEmployees   = str_starts_with($currentPath, '/hr/employees');
+            $isHrCorrections = str_starts_with($currentPath, '/hr/correction-requests');
             $isHrDepartments = str_starts_with($currentPath, '/hr/departments');
             $isHrPositions   = str_starts_with($currentPath, '/hr/positions');
             $isHrLeaveQueue  = (
@@ -354,6 +377,13 @@ if ($rawRole === 'admin') {
                     <a href="<?= url('/hr/positions') ?>" class="nav-item <?= $isHrPositions ? 'active' : '' ?>"<?= $isHrPositions ? ' aria-current="page"' : '' ?> title="Job Positions" data-tooltip="Job Positions" data-keywords="roles titles designations">
                         <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
                         <span class="nav-item-label">Job Positions</span>
+                    </a>
+                    <a href="<?= url('/hr/correction-requests') ?>" class="nav-item <?= $isHrCorrections ? 'active' : '' ?>"<?= $isHrCorrections ? ' aria-current="page"' : '' ?> title="Profile Corrections" data-tooltip="Profile Corrections<?= $sidebarCorrectionPendingCount > 0 ? ' (' . (int)$sidebarCorrectionPendingCount . ' pending)' : '' ?>" data-keywords="correction requests approvals profile changes">
+                        <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
+                        <span class="nav-item-label">Profile Corrections</span>
+                        <?php if ($sidebarCorrectionPendingCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarCorrectionPendingCount ?> pending profile corrections"><?= $sidebarCorrectionPendingCount > 99 ? '99+' : (int)$sidebarCorrectionPendingCount ?></span>
+                        <?php endif; ?>
                     </a>
                 </div>
             </div>
@@ -496,7 +526,13 @@ if ($rawRole === 'admin') {
 
     <div class="sidebar-footer">
         <a href="<?= $sidebarProfileUrl ?>" class="sidebar-user-link" title="<?= ($rawRole === 'hr' && empty($user['employee_id'])) ? 'HR Dashboard' : 'View Profile' ?>" aria-label="<?= e($userName) ?> (<?= e($roleTitle) ?>) — <?= ($rawRole === 'hr' && empty($user['employee_id'])) ? 'HR Dashboard' : 'View Profile' ?>" data-tooltip="<?= e($userName) ?> · <?= e($roleTitle) ?>">
-            <div class="sidebar-user-avatar" aria-hidden="true"><?= e($initials) ?></div>
+            <div class="sidebar-user-avatar<?= $sidebarAvatarUrl ? ' has-photo' : '' ?>" aria-hidden="true">
+                <?php if ($sidebarAvatarUrl): ?>
+                    <img src="<?= e($sidebarAvatarUrl) ?>" alt="" class="avatar-img-cover" width="38" height="38" decoding="async">
+                <?php else: ?>
+                    <?= e($initials) ?>
+                <?php endif; ?>
+            </div>
             <div class="sidebar-user-info">
                 <div class="sidebar-user-name"><?= e($userName) ?></div>
                 <div class="sidebar-user-role"><?= e($roleTitle) ?></div>

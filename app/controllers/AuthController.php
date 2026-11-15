@@ -524,16 +524,17 @@ class AuthController extends Controller
         $displayName = $fullName !== '' ? $fullName : $user['username'];
 
         Session::set('user', [
-            'id'          => (int)$user['id'],
-            'username'    => $user['username'],
-            'role'        => $role,
-            'employee_id' => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
-            'employee_no' => $user['employee_no'] ?? null,
-            'name'        => $displayName,
-            'email'       => $user['email'] ?? null,
-            'department'  => $user['department_name'] ?? 'Unassigned',
-            'position'    => $user['position_name'] ?? 'Unassigned',
-            'login_time'  => time(),
+            'id'              => (int)$user['id'],
+            'username'        => $user['username'],
+            'role'            => $role,
+            'employee_id'     => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+            'employee_no'     => $user['employee_no'] ?? null,
+            'name'            => $displayName,
+            'email'           => $user['email'] ?? null,
+            'profile_picture' => $user['profile_picture'] ?? null,
+            'department'      => $user['department_name'] ?? 'Unassigned',
+            'position'        => $user['position_name'] ?? 'Unassigned',
+            'login_time'      => time(),
             'last_mfa_verified_at' => time(),
             'auth_fingerprint'     => $authFingerprint,
         ]);
