@@ -128,14 +128,17 @@ foreach ($recentRequestsSlice as $req) {
     <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Available Leave</span>
-            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('calendar', 16) ?></span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('calendar', 20) ?></span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $totalRemaining ?></span>
             <span class="emp-kpi-unit"><?= $totalRemaining === 1 ? 'day' : 'days' ?></span>
         </div>
         <div class="emp-kpi-footer">
-            <span class="emp-kpi-meta tabular-nums">Of <?= $totalAllocated ?> allocated <?= $totalAllocated === 1 ? 'day' : 'days' ?> in <?= date('Y') ?></span>
+            <span class="emp-kpi-meta tabular-nums">
+                Of <strong><?= $totalAllocated ?></strong> allocated
+                <?= $totalAllocated === 1 ? 'day' : 'days' ?> in <?= date('Y') ?>
+            </span>
         </div>
     </div>
 
@@ -143,7 +146,7 @@ foreach ($recentRequestsSlice as $req) {
     <div class="emp-kpi-card">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Days Used</span>
-            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('clock', 16) ?></span>
+            <span class="emp-kpi-icon" aria-hidden="true"><?= icon('clock', 20) ?></span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $totalUsed ?></span>
@@ -151,19 +154,29 @@ foreach ($recentRequestsSlice as $req) {
         </div>
         <div class="emp-kpi-footer">
             <div class="emp-kpi-meter-line">
-                <div class="emp-kpi-meter" role="progressbar" aria-valuenow="<?= $annualUtilizationPct ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Annual leave utilization: <?= $annualUtilizationPct ?>% used">
-                    <div class="emp-kpi-meter-fill <?= $annualUtilizationPct >= 85 ? 'is-warning' : '' ?>" style="width: <?= $annualUtilizationPct ?>%;"></div>
+                <div class="emp-kpi-meter"
+                     role="progressbar"
+                     aria-valuenow="<?= $annualUtilizationPct ?>"
+                     aria-valuemin="0"
+                     aria-valuemax="100"
+                     aria-label="Annual leave utilization: <?= $annualUtilizationPct ?>% used">
+                    <div class="emp-kpi-meter-fill <?= $annualUtilizationPct >= 85 ? 'is-warning' : '' ?>"
+                         style="<?= e('width: ' . $annualUtilizationPct . '%;') ?>"></div>
                 </div>
-                <span class="emp-kpi-meter-pct"><?= $annualUtilizationPct ?>%</span>
+                <span class="emp-kpi-meter-pct"><?= $annualUtilizationPct ?>% used</span>
             </div>
         </div>
     </div>
 
     <!-- 3. Pending Requests (Interactive -> Links to My Leave Requests) -->
-    <a href="<?= url('/employee/leave-requests') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Pending Requests: <?= $pendingCount ?> <?= $pendingCount === 1 ? 'request' : 'requests' ?>">
+    <a href="<?= url('/employee/leave-requests') ?>"
+       class="emp-kpi-card emp-kpi-interactive"
+       aria-label="Pending Requests: <?= $pendingCount ?> <?= $pendingCount === 1 ? 'request' : 'requests' ?>">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Pending Requests</span>
-            <span class="emp-kpi-icon <?= $pendingCount > 0 ? 'is-pending' : '' ?>" aria-hidden="true"><?= icon('file-text', 16) ?></span>
+            <span class="emp-kpi-icon <?= $pendingCount > 0 ? 'is-pending' : '' ?>" aria-hidden="true">
+                <?= icon('file-text', 20) ?>
+            </span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $pendingCount ?></span>
@@ -178,10 +191,14 @@ foreach ($recentRequestsSlice as $req) {
     </a>
 
     <!-- 4. Unread Alerts (Interactive -> Links to Notifications Inbox) -->
-    <a href="<?= url('/notifications') ?>" class="emp-kpi-card emp-kpi-interactive" aria-label="Unread Alerts: <?= $unreadCount ?> <?= $unreadCount === 1 ? 'alert' : 'alerts' ?>">
+    <a href="<?= url('/notifications') ?>"
+       class="emp-kpi-card emp-kpi-interactive"
+       aria-label="Unread Alerts: <?= $unreadCount ?> <?= $unreadCount === 1 ? 'alert' : 'alerts' ?>">
         <div class="emp-kpi-header">
             <span class="emp-kpi-label">Unread Alerts</span>
-            <span class="emp-kpi-icon <?= $unreadCount > 0 ? 'is-alert' : '' ?>" aria-hidden="true"><?= icon('bell', 16) ?></span>
+            <span class="emp-kpi-icon <?= $unreadCount > 0 ? 'is-alert' : '' ?>" aria-hidden="true">
+                <?= icon('bell', 20) ?>
+            </span>
         </div>
         <div class="emp-kpi-value-row">
             <span class="emp-kpi-value"><?= $unreadCount ?></span>
