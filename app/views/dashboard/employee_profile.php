@@ -213,7 +213,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                 <div class="profile-card-footer">
                     <span class="profile-footer-note">
                         <?= icon('lock', 14, 'profile-footer-note-icon') ?>
-                        <span>Verified identity records require HR review to change.</span>
+                        <span>Managed by HR.</span>
                     </span>
                     <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="civil_status">
                         Request Correction
@@ -337,68 +337,49 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
         <section class="card profile-section-card" id="emergency-contact" aria-labelledby="emergencyHeading">
             <div class="card-body">
                 <div class="profile-card-head">
-                    <div>
+                    <div class="profile-card-head-main">
                         <h2 class="profile-card-title" id="emergencyHeading">
                             <?= icon('phone', 18) ?>
                             <span>Emergency Contact Information</span>
                         </h2>
-                        <p class="profile-card-desc">Primary person HR should reach in case of workplace emergency.</p>
+                        <p class="profile-card-desc">Primary contact for workplace emergencies.</p>
                     </div>
                     <span class="profile-governance-tag is-self">Self-Service</span>
                 </div>
 
                 <?php if ($primaryEmergency === null && $activeForm !== 'emergency'): ?>
-                    <div class="profile-empty-state mb-4">
-                        <strong>No emergency contact on file yet</strong>
-                        <p>Add a trusted family member or guardian contact below so HR can reach someone promptly when needed.</p>
+                    <div class="profile-inline-notice" role="status">
+                        <?= icon('info', 15, 'profile-inline-notice-icon') ?>
+                        <span>No emergency contact on file yet.</span>
                     </div>
-                <?php elseif ($primaryEmergency !== null): ?>
-                    <dl class="profile-dl-grid mb-4">
-                        <div class="profile-dl-item">
-                            <dt class="profile-dl-label">Primary Contact</dt>
-                            <dd class="profile-dl-value"><?= e($primaryEmergency['full_name']) ?></dd>
-                        </div>
-                        <div class="profile-dl-item">
-                            <dt class="profile-dl-label">Relationship</dt>
-                            <dd class="profile-dl-value"><?= e($primaryEmergency['relationship']) ?></dd>
-                        </div>
-                        <div class="profile-dl-item">
-                            <dt class="profile-dl-label">Primary Number</dt>
-                            <dd class="profile-dl-value"><?= e($primaryEmergency['contact_number']) ?></dd>
-                        </div>
-                        <div class="profile-dl-item">
-                            <dt class="profile-dl-label">Alternative Number</dt>
-                            <dd class="profile-dl-value <?= empty($primaryEmergency['alternative_contact_number']) ? 'is-muted' : '' ?>">
-                                <?= e(!empty($primaryEmergency['alternative_contact_number']) ? $primaryEmergency['alternative_contact_number'] : 'None provided') ?>
-                            </dd>
-                        </div>
-                        <div class="profile-dl-item is-full">
-                            <dt class="profile-dl-label">Address</dt>
-                            <dd class="profile-dl-value <?= empty($primaryEmergency['address']) ? 'is-muted' : '' ?>">
-                                <?= e(!empty($primaryEmergency['address']) ? $primaryEmergency['address'] : 'Not specified') ?>
-                            </dd>
-                        </div>
-                    </dl>
                 <?php endif; ?>
 
                 <form method="POST" action="<?= url('/employee/profile/emergency-contact') ?>" class="profile-form-stack" novalidate>
                     <?= csrf_field() ?>
 
                     <div class="profile-form-grid">
+                        <?php
+                        $hasEmNameError    = $activeForm === 'emergency' && isset($formErrors['full_name']);
+                        $hasEmRelError     = $activeForm === 'emergency' && isset($formErrors['relationship']);
+                        $hasEmPhoneError   = $activeForm === 'emergency' && isset($formErrors['contact_number']);
+                        $hasEmAltError     = $activeForm === 'emergency' && isset($formErrors['alternative_contact_number']);
+                        $hasEmAddressError = $activeForm === 'emergency' && isset($formErrors['address']);
+                        ?>
                         <div class="form-group mb-0">
                             <label for="emergencyFullName" class="form-label">Full Name <span class="required">*</span></label>
                             <input
                                 type="text"
                                 id="emergencyFullName"
                                 name="full_name"
-                                class="form-control<?= ($activeForm === 'emergency' && isset($formErrors['full_name'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasEmNameError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valEmergency('full_name')) ?>"
                                 maxlength="120"
                                 required
                                 placeholder="e.g. Maria Clara Santos"
+                                <?= $hasEmNameError ? 'aria-invalid="true" aria-describedby="emergencyFullNameError"' : '' ?>
                             >
-                            <?php if ($activeForm === 'emergency' && isset($formErrors['full_name'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['full_name']) ?></span>
+                            <?php if ($hasEmNameError): ?>
+                                <span id="emergencyFullNameError" class="field-error-text" role="alert"><?= e($formErrors['full_name']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -408,16 +389,17 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                             <select
                                 id="emergencyRelationship"
                                 name="relationship"
-                                class="form-select<?= ($activeForm === 'emergency' && isset($formErrors['relationship'])) ? ' is-invalid' : '' ?>"
+                                class="form-select<?= $hasEmRelError ? ' is-invalid' : '' ?>"
                                 required
+                                <?= $hasEmRelError ? 'aria-invalid="true" aria-describedby="emergencyRelError"' : '' ?>
                             >
-                                <option value="">-- Select Relationship --</option>
+                                <option value="">Select relationship</option>
                                 <?php foreach (($relationships ?? []) as $rel): ?>
                                     <option value="<?= e($rel) ?>" <?= $currentRel === $rel ? 'selected' : '' ?>><?= e($rel) ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <?php if ($activeForm === 'emergency' && isset($formErrors['relationship'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['relationship']) ?></span>
+                            <?php if ($hasEmRelError): ?>
+                                <span id="emergencyRelError" class="field-error-text" role="alert"><?= e($formErrors['relationship']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -427,14 +409,16 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 type="tel"
                                 id="emergencyPhone"
                                 name="contact_number"
-                                class="form-control<?= ($activeForm === 'emergency' && isset($formErrors['contact_number'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasEmPhoneError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valEmergency('contact_number')) ?>"
+                                inputmode="tel"
                                 maxlength="25"
                                 required
                                 placeholder="+63 918 555 0199"
+                                <?= $hasEmPhoneError ? 'aria-invalid="true" aria-describedby="emergencyPhoneError"' : '' ?>
                             >
-                            <?php if ($activeForm === 'emergency' && isset($formErrors['contact_number'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['contact_number']) ?></span>
+                            <?php if ($hasEmPhoneError): ?>
+                                <span id="emergencyPhoneError" class="field-error-text" role="alert"><?= e($formErrors['contact_number']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -444,13 +428,15 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 type="tel"
                                 id="emergencyAltPhone"
                                 name="alternative_contact_number"
-                                class="form-control<?= ($activeForm === 'emergency' && isset($formErrors['alternative_contact_number'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasEmAltError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valEmergency('alternative_contact_number')) ?>"
+                                inputmode="tel"
                                 maxlength="25"
-                                placeholder="Optional secondary number"
+                                placeholder="Secondary contact number"
+                                <?= $hasEmAltError ? 'aria-invalid="true" aria-describedby="emergencyAltError"' : '' ?>
                             >
-                            <?php if ($activeForm === 'emergency' && isset($formErrors['alternative_contact_number'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['alternative_contact_number']) ?></span>
+                            <?php if ($hasEmAltError): ?>
+                                <span id="emergencyAltError" class="field-error-text" role="alert"><?= e($formErrors['alternative_contact_number']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -460,18 +446,25 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 type="text"
                                 id="emergencyAddress"
                                 name="address"
-                                class="form-control<?= ($activeForm === 'emergency' && isset($formErrors['address'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasEmAddressError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valEmergency('address')) ?>"
                                 maxlength="500"
-                                placeholder="Optional residential address of emergency contact"
+                                placeholder="House/Unit, Street, Barangay, City/Province"
+                                <?= $hasEmAddressError ? 'aria-invalid="true" aria-describedby="emergencyAddressError"' : '' ?>
                             >
-                            <?php if ($activeForm === 'emergency' && isset($formErrors['address'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['address']) ?></span>
+                            <?php if ($hasEmAddressError): ?>
+                                <span id="emergencyAddressError" class="field-error-text" role="alert"><?= e($formErrors['address']) ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
 
-                    <div class="profile-form-footer">
+                    <div class="profile-form-footer<?= $primaryEmergency !== null ? ' is-split' : '' ?>">
+                        <?php if ($primaryEmergency !== null): ?>
+                            <button type="submit" form="emergencyDeleteForm" class="btn btn-outline-danger btn-sm">
+                                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                <span>Remove Contact</span>
+                            </button>
+                        <?php endif; ?>
                         <button type="submit" class="btn btn-primary btn-sm">
                             <?= icon('check', 16) ?>
                             <span><?= $primaryEmergency ? 'Update Emergency Contact' : 'Add Emergency Contact' ?></span>
@@ -480,9 +473,8 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                 </form>
 
                 <?php if ($primaryEmergency !== null): ?>
-                    <form method="POST" action="<?= url('/employee/profile/emergency-contact/' . (int)$primaryEmergency['id'] . '/delete') ?>" class="mt-1" onsubmit="return confirm('Delete your saved emergency contact record?');">
+                    <form id="emergencyDeleteForm" method="POST" action="<?= url('/employee/profile/emergency-contact/' . (int)$primaryEmergency['id'] . '/delete') ?>" onsubmit="return confirm('Delete your saved emergency contact record?');">
                         <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Remove Emergency Contact</button>
                     </form>
                 <?php endif; ?>
             </div>
@@ -497,7 +489,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                             <?= icon('briefcase', 18) ?>
                             <span>Employment &amp; Organization</span>
                         </h2>
-                        <p class="profile-card-desc">Official department assignment, role classification, and calculated service tenure.</p>
+                        <p class="profile-card-desc">Department assignment, role classification, and service tenure.</p>
                     </div>
                     <span class="profile-governance-tag">HR Verified</span>
                 </div>
@@ -554,7 +546,7 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                 <div class="profile-card-footer">
                     <span class="profile-footer-note">
                         <?= icon('lock', 14, 'profile-footer-note-icon') ?>
-                        <span>Organizational assignments are managed by HR.</span>
+                        <span>Managed by HR.</span>
                     </span>
                     <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="department_id">
                         Request Correction

@@ -320,10 +320,14 @@
   margin-bottom: var(--space-1);
 }
 
-.form-label.required::after {
-  content: " *";
+.form-label.required::after,
+.form-label .required {
   color: var(--color-error);
   font-weight: 700;
+}
+
+.form-label.required::after {
+  content: " *";
 }
 
 .form-control,
@@ -3736,7 +3740,8 @@ a.admin-kpi-card:focus-visible {
   margin-bottom: 0.35rem;
 }
 
-.profile-form-stack .form-control {
+.profile-form-stack .form-control,
+.profile-form-stack .form-select {
   min-height: 40px;
   border-color: #94a3b8;
 }
@@ -3752,25 +3757,31 @@ a.admin-kpi-card:focus-visible {
   opacity: 0.85;
 }
 
-.profile-form-stack .form-control:hover:not(:focus):not(.is-invalid) {
+.profile-form-stack .form-control:hover:not(:focus):not(.is-invalid),
+.profile-form-stack .form-select:hover:not(:focus):not(.is-invalid) {
   border-color: var(--color-text-muted);
 }
 
-[data-theme="dark"] .profile-form-stack .form-control {
+[data-theme="dark"] .profile-form-stack .form-control,
+[data-theme="dark"] .profile-form-stack .form-select {
   background-color: var(--color-bg-subtle);
   border-color: #64748b;
 }
 
-[data-theme="dark"] .profile-form-stack .form-control:hover:not(:focus):not(.is-invalid) {
+[data-theme="dark"] .profile-form-stack .form-control:hover:not(:focus):not(.is-invalid),
+[data-theme="dark"] .profile-form-stack .form-select:hover:not(:focus):not(.is-invalid) {
   border-color: #94a3b8;
 }
 
-[data-theme="dark"] .profile-form-stack .form-control:focus {
+[data-theme="dark"] .profile-form-stack .form-control:focus,
+[data-theme="dark"] .profile-form-stack .form-select:focus {
   border-color: var(--color-primary);
 }
 
 [data-theme="dark"] .profile-form-stack .form-control.is-invalid,
-.profile-form-stack .form-control.is-invalid {
+.profile-form-stack .form-control.is-invalid,
+[data-theme="dark"] .profile-form-stack .form-select.is-invalid,
+.profile-form-stack .form-select.is-invalid {
   border-color: var(--color-error);
   background-color: var(--color-error-bg);
 }
@@ -3865,6 +3876,30 @@ a.admin-kpi-card:focus-visible {
 
 .profile-form-footer {
   justify-content: flex-end;
+}
+
+.profile-form-footer.is-split {
+  justify-content: space-between;
+}
+
+.profile-inline-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.profile-inline-notice-icon {
+  color: var(--color-info);
+  flex-shrink: 0;
 }
 
 .profile-card-footer .btn-sm,
