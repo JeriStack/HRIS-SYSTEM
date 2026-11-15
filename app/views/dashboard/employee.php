@@ -214,7 +214,7 @@ foreach ($recentRequestsSlice as $req) {
 </section>
 
 <!-- Leave Balances Section -->
-<div class="card mb-6">
+<div class="card emp-balances-card mb-6">
     <div class="card-header">
         <div class="card-title-group">
             <h2 class="card-title">My Leave Balances</h2>
@@ -222,7 +222,7 @@ foreach ($recentRequestsSlice as $req) {
         </div>
         <a href="<?= url('/employee/leave-balances') ?>" class="emp-quiet-action">
             <span>Balance details</span>
-            <?= icon('chevron-right', 14) ?>
+            <?= icon('chevron-right', 16) ?>
         </a>
     </div>
     <div class="card-body">
@@ -248,12 +248,15 @@ foreach ($recentRequestsSlice as $req) {
                         <div class="emp-category-header">
                             <span class="emp-category-name balance-title"><strong><?= e($leaveName) ?></strong></span>
                             <?php if ($remaining > 0) : ?>
-                                <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>" class="emp-category-apply" aria-label="Apply for <?= e($leaveName) ?>">
+                                <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>"
+                                   class="emp-category-apply"
+                                   aria-label="Apply for <?= e($leaveName) ?>">
                                     <span>Apply</span>
                                     <span class="emp-category-apply-arrow" aria-hidden="true">&rarr;</span>
                                 </a>
                             <?php else : ?>
-                                <span class="emp-category-exhausted" title="Annual quota exhausted for the <?= date('Y') ?> leave cycle">
+                                <span class="emp-category-exhausted"
+                                      title="Annual quota exhausted for the <?= date('Y') ?> leave cycle">
                                     Exhausted
                                 </span>
                             <?php endif; ?>
@@ -261,24 +264,35 @@ foreach ($recentRequestsSlice as $req) {
 
                         <div class="emp-category-balance-row">
                             <span class="emp-category-balance-val"><?= $remaining ?></span>
-                            <span class="emp-category-balance-lbl"><?= $remaining === 1 ? 'day available' : 'days available' ?></span>
+                            <span class="emp-category-balance-lbl">
+                                <?= $remaining === 1 ? 'day available' : 'days available' ?>
+                            </span>
                         </div>
 
                         <!-- Proportional Progress Meter -->
-                        <div class="emp-category-meter" role="progressbar" aria-valuenow="<?= $pctUsed ?>" aria-valuemin="0" aria-valuemax="100" aria-label="<?= e($leaveName) ?> utilization: <?= $used ?> of <?= $rawAllocated ?> days used (<?= $pctUsed ?>%)">
-                            <div class="emp-category-meter-fill <?= $barState ?>" style="width: <?= $pctUsed ?>%;"></div>
+                        <div class="emp-category-meter"
+                             role="progressbar"
+                             aria-valuenow="<?= $pctUsed ?>"
+                             aria-valuemin="0"
+                             aria-valuemax="100"
+                             aria-label="<?= e($leaveName) ?> utilization: <?= $used ?> of <?= $rawAllocated ?> days used (<?= $pctUsed ?>%)">
+                            <div class="emp-category-meter-fill <?= $barState ?>"
+                                 style="<?= e('width: ' . $pctUsed . '%;') ?>"></div>
                         </div>
 
                         <!-- Ledger Breakdown Figures -->
                         <div class="emp-category-ledger">
                             <span class="emp-ledger-stat">
                                 <span class="emp-ledger-label">Allocated:</span>
-                                <span class="emp-ledger-val"><?= $rawAllocated ?> <?= $rawAllocated === 1 ? 'day' : 'days' ?></span>
+                                <span class="emp-ledger-val">
+                                    <?= $rawAllocated ?> <?= $rawAllocated === 1 ? 'day' : 'days' ?>
+                                </span>
                             </span>
-                            <span class="emp-ledger-divider" aria-hidden="true">&middot;</span>
                             <span class="emp-ledger-stat">
                                 <span class="emp-ledger-label">Used:</span>
-                                <span class="emp-ledger-val"><?= $used ?> <?= $used === 1 ? 'day' : 'days' ?> (<?= $pctUsed ?>%)</span>
+                                <span class="emp-ledger-val">
+                                    <?= $used ?> <?= $used === 1 ? 'day' : 'days' ?> (<?= $pctUsed ?>%)
+                                </span>
                             </span>
                         </div>
                     </div>
