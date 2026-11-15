@@ -5620,3 +5620,498 @@ dialog.support-dialog::backdrop {
     justify-content: center;
   }
 }
+
+/* ==========================================================================
+   Smart OTP & Trusted Device Security Center Styles
+   ========================================================================== */
+
+.security-page-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1200px;
+}
+
+.security-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: 0;
+}
+
+.security-heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: 0.25rem;
+}
+
+.security-page-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.security-page-subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  max-width: 68ch;
+}
+
+.security-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning-border, #f59e0b);
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-text-main);
+}
+
+.security-alert-banner strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.security-alert-banner p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.security-alert-icon {
+  flex-shrink: 0;
+  color: var(--color-warning, #d97706);
+  margin-top: 0.1rem;
+}
+
+.security-posture-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.security-posture-card {
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.security-posture-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.security-posture-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.security-posture-icon {
+  color: var(--color-primary, #2563eb);
+}
+
+.security-posture-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-height: 1.75rem;
+}
+
+.security-posture-value strong {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.security-posture-cap {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.security-posture-note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.security-section-card {
+  margin: 0;
+}
+
+.security-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.security-card-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.security-section-card .card-title {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.security-card-subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.security-table-card-body {
+  padding: 0;
+}
+
+.security-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  container-type: inline-size;
+  container-name: security-table;
+}
+
+.security-device-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.security-device-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.security-this-browser-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background-color: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary, #1d4ed8);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+}
+
+[data-theme="dark"] .security-this-browser-pill {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+  border-color: rgba(96, 165, 250, 0.45);
+}
+
+.security-device-subtext,
+.security-revoke-reason {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.security-revoke-reason {
+  margin-top: 0.2rem;
+}
+
+.security-ip-code,
+.security-event-code {
+  font-size: var(--font-size-xs);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  background-color: var(--color-bg-muted);
+  color: var(--color-text-main);
+  word-break: break-word;
+}
+
+.security-col-action {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.security-empty-state {
+  text-align: center;
+  padding: 2.25rem 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.security-empty-compact {
+  padding: 1.5rem 1rem;
+}
+
+.security-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: var(--color-bg-muted);
+  color: var(--color-primary, #2563eb);
+  margin-bottom: 0.75rem;
+}
+
+.security-empty-state h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: var(--color-text-main);
+}
+
+.security-empty-state p {
+  margin: 0 auto;
+  max-width: 54ch;
+  font-size: var(--font-size-sm);
+}
+
+.security-two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.security-body-copy {
+  margin: 0 0 1rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
+
+.security-recovery-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.security-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.security-policy-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.security-policy-list strong {
+  color: var(--color-text-main);
+}
+
+.security-profile-summary-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.security-profile-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.security-profile-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.security-profile-stat-label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.security-profile-stat-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+dialog.security-dialog {
+  max-width: 480px;
+  width: calc(100% - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-main);
+  box-shadow: var(--shadow-lg, 0 20px 45px rgba(15, 23, 42, 0.25));
+}
+
+dialog.security-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.security-dialog::backdrop {
+  background-color: rgba(15, 23, 42, 0.56);
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.security-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.security-dialog-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.security-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.security-dialog-close:hover {
+  background-color: var(--color-bg-muted);
+  color: var(--color-text-main);
+}
+
+.security-dialog-body {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.security-dialog-body p {
+  margin: 0;
+}
+
+.security-dialog-current-note {
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-warning-border, #f59e0b);
+  background-color: var(--color-warning-bg, #fffbeb);
+  color: var(--color-text-main);
+  font-size: var(--font-size-xs);
+}
+
+[data-theme="dark"] .security-dialog-current-note {
+  background-color: rgba(180, 83, 9, 0.25);
+  color: #fde68a;
+}
+
+.security-dialog-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-muted);
+}
+
+[data-theme="dark"] dialog.security-dialog {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-main);
+}
+
+@container security-table (width < 680px) {
+  .security-devices-table thead,
+  .security-events-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .security-devices-table tbody,
+  .security-devices-table tr,
+  .security-devices-table td,
+  .security-events-table tbody,
+  .security-events-table tr,
+  .security-events-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .security-devices-table tr,
+  .security-events-table tr {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .security-devices-table td,
+  .security-events-table td {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+    border: 0;
+    text-align: right;
+  }
+
+  .security-devices-table td[data-label]::before,
+  .security-events-table td[data-label]::before {
+    content: attr(data-label);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-align: left;
+  }
+
+  .security-devices-table td.security-col-action {
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+  }
+
+  .security-device-cell {
+    align-items: flex-end;
+    text-align: right;
+  }
+}
+
+@media (max-width: 960px) {
+  .security-posture-grid,
+  .security-two-col-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

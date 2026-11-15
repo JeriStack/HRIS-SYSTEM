@@ -108,6 +108,14 @@
 - [x] Integrate `Help & Support` into Employee navigation & compact Employee Dashboard widget, and `Support Inbox` into HR/Admin workspaces with full Light & Dark Mode parity.
 - [x] Verify with PSR-12 baseline check, PHPStan, PHPUnit unit/feature/security suites, and Selenium E2E tests.
 
+### Phase 11C: Smart OTP Authentication & Trusted Device Management (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [SMART-OTP-TRUSTED-DEVICES-SPEC.md](SMART-OTP-TRUSTED-DEVICES-SPEC.md).*
+- [x] Create database migration (`2026_11_18_create_trusted_devices_and_auth_security.sql`) for `trusted_devices` & `user_auth_security_states`, and synchronize canonical `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement `config/auth_devices.php`, `TrustedDevice`, `UserAuthSecurityState`, `TrustedDeviceService` (single-use atomic validator rotation, HMAC-SHA256 hashed validators, fixed 30d/7d expiration, HTTPS/proxy-aware cookies), `AuthRiskService` (risk-based step-up without false-positive IP blocking), and `AuthSecurityNotificationService`.
+- [x] Wire Smart OTP & `"Remember this device"` opt-in into `AuthController`, `Api\AuthController`, `AdminController::updateAccount()`, and self-service `/account/security` management & lost-device recovery (`AccountSecurityController`).
+- [x] Build accessible `/verify-otp` opt-in & `/account/security` UI (Light/Dark Mode, `@container` mobile table responsiveness, native `<dialog>` confirmations, explicit Email OTP assurance disclosure).
+- [x] Verify with `InitSchemaParityTest`, `TrustedDeviceServiceTest`, `SmartOtpAuthenticationTest`, Selenium + Mailpit E2E tests (`test_smart_otp_trusted_devices.py`), PSR-12 baseline check, PHPStan, and full PHPUnit suite.
+
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
 - [ ] Configure production domain DNS and Let's Encrypt automated SSL renewal.

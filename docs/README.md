@@ -24,6 +24,8 @@ Essential architectural, design, user manual, and product specifications governi
   Comprehensive phase breakdown (Phases 1–16), verified test metrics (669 passing tests, 0 new PSR-12 violations), and live pre-release task tracking.
 * **[AI Agent Memory](01-core/MEMORY.md)** (`01-core/MEMORY.md`)  
   High-density context primer, key file paths, core business rules, and essential CLI commands for AI assistants and context engineering.
+* **[Smart OTP & Trusted Devices Specification](01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md)** (`01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md`)  
+  Architecture, token/cookie cryptography, single-use rotation, risk-based step-up rules, and self-service `/account/security` design.
 
 ---
 

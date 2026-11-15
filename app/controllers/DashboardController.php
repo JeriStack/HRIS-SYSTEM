@@ -474,6 +474,18 @@ class DashboardController extends Controller
         $formOld    = Session::getFlash('profile_form_old', []);
         $activeForm = Session::getFlash('profile_active_form', '');
 
+        $trustedDevicesList = [];
+        $trustedDeviceDays = 30;
+        $stepUpQueuedReason = null;
+        try {
+            $tdService = new \App\Services\TrustedDeviceService();
+            $trustedDevicesList = $tdService->listDevicesForDisplay((int)$user['id'], $tdService->readCookieFromRequest());
+            $trustedDeviceDays = $tdService->trustDaysForRole((string)($user['role'] ?? 'employee'));
+            $stepUpQueuedReason = (new \App\Models\UserAuthSecurityState())->getRequiredStepUpReason((int)$user['id']);
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Trusted device summary skipped: ' . $e->getMessage());
+        }
+
         $this->view('dashboard.employee_profile', [
             'pageTitle'               => 'My Profile',
             'user'                    => $user,
@@ -494,6 +506,9 @@ class DashboardController extends Controller
             'formErrors'              => is_array($formErrors) ? $formErrors : [],
             'formOld'                 => is_array($formOld) ? $formOld : [],
             'activeForm'              => is_string($activeForm) ? $activeForm : '',
+            'trustedDevices'          => $trustedDevicesList,
+            'trustedDeviceDays'       => $trustedDeviceDays,
+            'stepUpQueuedReason'      => $stepUpQueuedReason,
         ], 'hr');
     }
 

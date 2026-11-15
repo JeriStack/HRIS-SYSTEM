@@ -4,11 +4,15 @@
 /** @var string|null $success */
 /** @var string|null $pageTitle */
 /** @var string|null $maskedEmail */
+/** @var int|null $trustDays */
+/** @var string|null $stepUpNotice */
 
 $cooldownSeconds = isset($resendCooldownRemaining) ? max(0, (int)$resendCooldownRemaining) : 0;
 $errorMessage = (isset($error) && is_string($error)) ? $error : '';
 $successMessage = (isset($success) && is_string($success)) ? $success : '';
 $maskedEmailDisplay = (isset($maskedEmail) && is_string($maskedEmail)) ? $maskedEmail : '';
+$trustedPeriodDays = isset($trustDays) ? max(1, (int)$trustDays) : 30;
+$stepUpAlertMessage = (isset($stepUpNotice) && is_string($stepUpNotice)) ? trim($stepUpNotice) : '';
 $resolvedPageTitle = (isset($pageTitle) && is_string($pageTitle) && $pageTitle !== '')
     ? $pageTitle
     : 'Two-Factor Verification - NEXORA HR';
@@ -171,6 +175,21 @@ if ($hasServerError) {
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($stepUpAlertMessage !== ''): ?>
+                        <div class="alert-banner alert-warning" role="alert">
+                            <span class="status-circle-warning" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 9v4" />
+                                    <path d="M12 17h.01" />
+                                </svg>
+                            </span>
+                            <div>
+                                <strong>Additional verification required</strong>
+                                <span><?= e($stepUpAlertMessage) ?></span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($hasServerSuccess): ?>
                         <div class="alert-banner alert-success" role="status">
                             <span class="status-circle-success" aria-hidden="true">
@@ -322,6 +341,34 @@ if ($hasServerError) {
                                 <polyline points="12 6 12 12 16 14" />
                             </svg>
                             <span>Code expires in <strong>5 minutes</strong> &bull; 5 attempts maximum</span>
+                        </div>
+
+                        <!-- Remember This Device (Smart OTP Trusted Browser Opt-In) -->
+                        <div class="remember-device-field">
+                            <label class="remember-device-option" for="rememberDeviceCheckbox">
+                                <input
+                                    type="checkbox"
+                                    id="rememberDeviceCheckbox"
+                                    name="remember_device"
+                                    value="1"
+                                    class="remember-device-input"
+                                    aria-describedby="rememberDeviceHint"
+                                >
+                                <span class="remember-device-control" aria-hidden="true">
+                                    <svg viewBox="0 0 12 10" width="12" height="10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1.5 5.5 4.5 8.5 10.5 1.5" />
+                                    </svg>
+                                </span>
+                                <span class="remember-device-copy">
+                                    <span class="remember-device-title-row">
+                                        <span class="remember-device-title">Remember this device</span>
+                                        <span class="remember-device-period">Up to <?= (int)$trustedPeriodDays ?> days</span>
+                                    </span>
+                                    <span id="rememberDeviceHint" class="remember-device-hint">
+                                        Skip email verification on this browser for a limited period. Only enable this on your personal device.
+                                    </span>
+                                </span>
+                            </label>
                         </div>
 
                         <!-- Primary Submit Button -->

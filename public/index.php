@@ -15,6 +15,7 @@ use Core\CsrfMiddleware;
 use Core\PermissionMiddleware;
 use App\Controllers\HomeController;
 use App\Controllers\AuthController;
+use App\Controllers\AccountSecurityController;
 use App\Controllers\DashboardController;
 use App\Controllers\AdminController;
 use App\Controllers\UserController;
@@ -213,6 +214,12 @@ try {
     $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->post('/notifications/{id}/delete', [NotificationController::class, 'delete'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Self-Service Account Security & Trusted Devices (Authenticated - All Roles Own-Scope)
+    $router->get('/account/security', [AccountSecurityController::class, 'index'], [AuthMiddleware::class]);
+    $router->post('/account/security/devices/{id}/revoke', [AccountSecurityController::class, 'revokeDevice'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/account/security/devices/revoke-all', [AccountSecurityController::class, 'revokeAllDevices'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/account/security/recover', [AccountSecurityController::class, 'recoverLostDevices'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Real-time WebSocket connection ticket (fully authenticated sessions only)
     $router->post('/realtime/ticket', [RealtimeController::class, 'ticket'], [AuthMiddleware::class, CsrfMiddleware::class]);

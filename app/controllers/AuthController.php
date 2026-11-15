@@ -12,23 +12,31 @@ use Core\Controller;
 use Core\Session;
 use App\Models\User;
 use App\Models\EmailOtp;
+use App\Services\AuthRiskService;
 use App\Services\MailService;
 use App\Services\RealtimeTicketService;
+use App\Services\TrustedDeviceService;
 
 class AuthController extends Controller
 {
     private User $userModel;
     private EmailOtp $otpModel;
     private MailService $mailService;
+    private TrustedDeviceService $trustedDeviceService;
+    private AuthRiskService $riskService;
 
     public function __construct(
         ?User $userModel = null,
         ?EmailOtp $otpModel = null,
-        ?MailService $mailService = null
+        ?MailService $mailService = null,
+        ?TrustedDeviceService $trustedDeviceService = null,
+        ?AuthRiskService $riskService = null
     ) {
-        $this->userModel   = $userModel ?? new User();
-        $this->otpModel    = $otpModel ?? new EmailOtp();
-        $this->mailService = $mailService ?? new MailService();
+        $this->userModel            = $userModel ?? new User();
+        $this->otpModel             = $otpModel ?? new EmailOtp();
+        $this->mailService          = $mailService ?? new MailService();
+        $this->trustedDeviceService = $trustedDeviceService ?? new TrustedDeviceService();
+        $this->riskService          = $riskService ?? new AuthRiskService();
     }
 
     /**
@@ -267,6 +275,38 @@ class AuthController extends Controller
             return;
         }
 
+        // 10a. Smart OTP: Evaluate presented trusted-device credential AFTER password + account + portal checks
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+        $ipAddress = client_ip();
+        $trustedResult = $this->trustedDeviceService->evaluateAndRotateOnLogin(
+            $user,
+            $this->trustedDeviceService->readCookieFromRequest(),
+            $userAgent,
+            $ipAddress
+        );
+
+        if (!empty($trustedResult['trusted'])) {
+            $displayName = $this->establishAuthenticatedSession(
+                $user,
+                $role,
+                'trusted_device',
+                $trustedResult['device_id'] ?? null,
+                null
+            );
+
+            $this->userModel->logActivity(
+                (int)$user['id'],
+                'AUTH_LOGIN',
+                "User {$user['username']} signed in via password + trusted device ({$role})",
+                'USER',
+                (string)$user['id']
+            );
+
+            Session::flash('success', "Welcome back, {$displayName}! Signed in using your trusted browser.");
+            $this->redirect('/dashboard');
+            return;
+        }
+
         // 10b. Refuse to issue new codes while the account is locked out from repeated failed guesses
         $lockout = $this->otpModel->checkLockout((int)$user['id']);
         if ($lockout['locked']) {
@@ -339,6 +379,9 @@ class AuthController extends Controller
         Session::set('pending_otp_email', $recipientEmail);
         Session::set('pending_otp_name', $displayName);
         Session::set('pending_otp_time', time());
+        if (!empty($trustedResult['step_up_reason'])) {
+            Session::set('pending_otp_step_up_reason', (string)$trustedResult['step_up_reason']);
+        }
 
         $this->userModel->logActivity(
             (int)$user['id'],
@@ -386,12 +429,21 @@ class AuthController extends Controller
         $cooldown = $this->otpModel->checkResendCooldown($pendingUserId);
         $resendCooldownRemaining = $cooldown['allowed'] ? 0 : $cooldown['remaining_seconds'];
 
+        $pendingUser = $this->userModel->findById($pendingUserId);
+        $pendingRole = strtolower((string)($pendingUser['role'] ?? 'employee'));
+        $trustDays = $this->trustedDeviceService->trustDaysForRole($pendingRole);
+        $stepUpReason = Session::get('pending_otp_step_up_reason');
+        $stepUpNotice = AuthRiskService::describeStepUpReason(is_string($stepUpReason) ? $stepUpReason : null);
+
         $this->view('auth.verify_otp', [
             'pageTitle'               => 'Verify Sign-In OTP - Employee HRIS & Leave Management System',
             'error'                   => $error,
             'success'                 => $success,
             'maskedEmail'             => $maskedEmail,
             'resendCooldownRemaining' => $resendCooldownRemaining,
+            'trustDays'               => $trustDays,
+            'pendingRole'             => $pendingRole,
+            'stepUpNotice'            => $stepUpNotice,
             'csrfToken'               => csrf_token(),
         ], null);
     }
@@ -509,48 +561,53 @@ class AuthController extends Controller
             return;
         }
 
-        // 6b. Bind the session to the current security-relevant account state
-        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
-        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
+        // 6b-9. Clear required step-up flags, optionally trust browser ONLY after OTP success, and establish session
+        $rememberDevice = in_array(
+            strtolower(trim((string)($_POST['remember_device'] ?? ''))),
+            ['1', 'on', 'true', 'yes'],
+            true
+        );
 
-        // 7. Regenerate Session ID to Prevent Session Fixation
-        Session::regenerate(true);
+        $this->riskService->clearStepUpAfterVerifiedOtp((int)$user['id']);
 
-        // 8. Clear Pending Challenge Data
-        $this->clearPendingOtpSession();
+        $registeredDevice = null;
+        if ($rememberDevice) {
+            $registeredDevice = $this->trustedDeviceService->registerBrowserAfterOtp(
+                $user,
+                $this->trustedDeviceService->readCookieFromRequest(),
+                $_SERVER['HTTP_USER_AGENT'] ?? null,
+                client_ip()
+            );
+        }
 
-        // 9. Establish Authenticated Session Payload
-        $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-        $displayName = $fullName !== '' ? $fullName : $user['username'];
-
-        Session::set('user', [
-            'id'              => (int)$user['id'],
-            'username'        => $user['username'],
-            'role'            => $role,
-            'employee_id'     => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
-            'employee_no'     => $user['employee_no'] ?? null,
-            'name'            => $displayName,
-            'email'           => $user['email'] ?? null,
-            'profile_picture' => $user['profile_picture'] ?? null,
-            'department'      => $user['department_name'] ?? 'Unassigned',
-            'position'        => $user['position_name'] ?? 'Unassigned',
-            'login_time'      => time(),
-            'last_mfa_verified_at' => time(),
-            'auth_fingerprint'     => $authFingerprint,
-        ]);
-        Session::set('last_activity', time());
+        $displayName = $this->establishAuthenticatedSession(
+            $user,
+            $role,
+            'email_otp',
+            $registeredDevice['device_id'] ?? null,
+            time()
+        );
 
         // 10. Record Successful 2FA Login in Audit Log
         $this->userModel->logActivity(
             (int)$user['id'],
             'AUTH_LOGIN',
-            "User {$user['username']} completed Email OTP authentication successfully ({$role})",
+            "User {$user['username']} completed Email OTP authentication successfully ({$role})"
+                . ($registeredDevice !== null ? ' and trusted browser' : ''),
             'USER',
             (string)$user['id']
         );
 
         // 11. Role-Directed Dispatch
-        Session::flash('success', "Welcome back, {$displayName}!");
+        if ($registeredDevice !== null) {
+            $expFormatted = date('M j, Y', (int)$registeredDevice['expires_at_ts']);
+            Session::flash(
+                'success',
+                "Welcome back, {$displayName}! This browser is now trusted until {$expFormatted} ({$registeredDevice['trust_days']} days)."
+            );
+        } else {
+            Session::flash('success', "Welcome back, {$displayName}!");
+        }
         $this->redirect('/dashboard');
     }
 
@@ -673,6 +730,47 @@ class AuthController extends Controller
     }
 
     /**
+     * Establish authenticated session cleanly after password + (trusted device OR OTP) succeed.
+     */
+    private function establishAuthenticatedSession(
+        array $user,
+        string $role,
+        string $authMethod,
+        ?int $trustedDeviceId,
+        ?int $mfaVerifiedAt
+    ): string {
+        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
+        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
+
+        Session::regenerate(true);
+        $this->clearPendingOtpSession();
+
+        $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        $displayName = $fullName !== '' ? $fullName : $user['username'];
+
+        Session::set('user', [
+            'id'                   => (int)$user['id'],
+            'username'             => $user['username'],
+            'role'                 => $role,
+            'employee_id'          => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+            'employee_no'          => $user['employee_no'] ?? null,
+            'name'                 => $displayName,
+            'email'                => $user['email'] ?? null,
+            'profile_picture'      => $user['profile_picture'] ?? null,
+            'department'           => $user['department_name'] ?? 'Unassigned',
+            'position'             => $user['position_name'] ?? 'Unassigned',
+            'login_time'           => time(),
+            'last_mfa_verified_at' => $mfaVerifiedAt,
+            'login_auth_method'    => $authMethod,
+            'trusted_device_id'    => $trustedDeviceId,
+            'auth_fingerprint'     => $authFingerprint,
+        ]);
+        Session::set('last_activity', time());
+
+        return $displayName;
+    }
+
+    /**
      * Clear all pending OTP state variables from session.
      */
     private function clearPendingOtpSession(): void
@@ -681,6 +779,7 @@ class AuthController extends Controller
         Session::remove('pending_otp_email');
         Session::remove('pending_otp_name');
         Session::remove('pending_otp_time');
+        Session::remove('pending_otp_step_up_reason');
     }
 
     /**

@@ -178,6 +178,7 @@ if ($rawRole === 'admin') {
             $isAdmSupport   = ($currentPath === '/hr/support' || (str_starts_with($currentPath, '/hr/support/') && !str_starts_with($currentPath, '/hr/support/handlers')));
             $isAdmHandlers  = str_starts_with($currentPath, '/hr/support/handlers');
             $isAdmAccount   = ($currentPath === '/admin/account');
+            $isAdmDevSec    = str_starts_with($currentPath, '/account/security');
             ?>
 
             <!-- Dashboard -->
@@ -355,6 +356,10 @@ if ($rawRole === 'admin') {
                         <span class="icon" aria-hidden="true"><?= icon('user', 18) ?></span>
                         <span class="nav-item-label">My Account</span>
                     </a>
+                    <a href="<?= url('/account/security') ?>" class="nav-item <?= $isAdmDevSec ? 'active' : '' ?>"<?= $isAdmDevSec ? ' aria-current="page"' : '' ?> title="Security &amp; Devices" data-tooltip="Security &amp; Devices" data-keywords="trusted devices otp security recovery">
+                        <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+                        <span class="nav-item-label">Security &amp; Devices</span>
+                    </a>
                     <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                         <?= csrf_field() ?>
                         <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out" data-keywords="logout exit">
@@ -387,6 +392,7 @@ if ($rawRole === 'admin') {
             $isHrAuditLogs   = str_starts_with($currentPath, '/activity-logs');
             $isHrSupport     = ($currentPath === '/hr/support' || (str_starts_with($currentPath, '/hr/support/') && !str_starts_with($currentPath, '/hr/support/handlers')));
             $isHrNotifs      = str_starts_with($currentPath, '/notifications');
+            $isHrDevSec      = str_starts_with($currentPath, '/account/security');
             ?>
             <div class="nav-section-group" data-section-id="hr-overview">
                 <div class="nav-section-title">Overview</div>
@@ -495,6 +501,10 @@ if ($rawRole === 'admin') {
             <div class="nav-section-group" data-section-id="hr-session">
                 <div class="nav-section-title">Account Session</div>
                 <div class="nav-section-items" id="navGroupHrSession">
+                    <a href="<?= url('/account/security') ?>" class="nav-item <?= $isHrDevSec ? 'active' : '' ?>"<?= $isHrDevSec ? ' aria-current="page"' : '' ?> title="Security &amp; Devices" data-tooltip="Security &amp; Devices" data-keywords="trusted devices otp security recovery">
+                        <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+                        <span class="nav-item-label">Security &amp; Devices</span>
+                    </a>
                     <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                         <?= csrf_field() ?>
                         <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out" data-keywords="logout exit">
@@ -521,6 +531,7 @@ if ($rawRole === 'admin') {
             $isEmpApply     = str_starts_with($currentPath, '/leaves/apply');
             $isEmpSupport   = str_starts_with($currentPath, '/support');
             $isEmpNotifs    = str_starts_with($currentPath, '/notifications');
+            $isEmpDevSec    = str_starts_with($currentPath, '/account/security');
             ?>
             <div class="nav-section-title">Workspace</div>
             <a href="<?= url('/employee/dashboard') ?>" class="nav-item <?= $isEmpDashboard ? 'active' : '' ?>"<?= $isEmpDashboard ? ' aria-current="page"' : '' ?> title="Dashboard" data-tooltip="Dashboard">
@@ -562,6 +573,10 @@ if ($rawRole === 'admin') {
             </a>
 
             <div class="nav-section-title">Session</div>
+            <a href="<?= url('/account/security') ?>" class="nav-item <?= $isEmpDevSec ? 'active' : '' ?>"<?= $isEmpDevSec ? ' aria-current="page"' : '' ?> title="Security &amp; Devices" data-tooltip="Security &amp; Devices">
+                <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+                <span class="nav-item-label">Security &amp; Devices</span>
+            </a>
             <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                 <?= csrf_field() ?>
                 <button type="submit" class="nav-item nav-item-btn" title="Sign Out" data-tooltip="Sign Out">

@@ -367,6 +367,17 @@ class EmployeeController extends Controller
 
         // Find linked user account for this employee and dispatch real-time notification
         $linkedUser = $this->userModel->findByEmployeeId($id);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            $oldWorkEmail = strtolower(trim((string)($employee['email'] ?? '')));
+            $newWorkEmail = strtolower(trim((string)($data['email'] ?? '')));
+            if ($oldWorkEmail !== $newWorkEmail && $newWorkEmail !== '') {
+                try {
+                    (new \App\Services\AuthRiskService())->flagEmailChanged((int)$linkedUser['id']);
+                } catch (\Throwable $e) {
+                    error_log('[EmployeeController] Failed to flag email change step-up: ' . $e->getMessage());
+                }
+            }
+        }
         $notificationModel = new Notification($this->pdo);
         if ($linkedUser && !empty($linkedUser['id'])) {
             try {
