@@ -17,15 +17,18 @@ class DashboardController extends Controller
     private PDO $pdo;
     private ?\App\Models\Notification $notificationModel;
     private ?\App\Models\Leave $leaveModel;
+    private ?\App\Models\SupportTicket $supportModel;
 
     public function __construct(
         ?PDO $pdo = null,
         ?\App\Models\Notification $notificationModel = null,
-        ?\App\Models\Leave $leaveModel = null
+        ?\App\Models\Leave $leaveModel = null,
+        ?\App\Models\SupportTicket $supportModel = null
     ) {
         $this->pdo = $pdo ?? Database::getInstance()->getConnection();
         $this->notificationModel = $notificationModel;
         $this->leaveModel = $leaveModel;
+        $this->supportModel = $supportModel;
     }
 
     private function getNotificationModel(): \App\Models\Notification
@@ -42,6 +45,14 @@ class DashboardController extends Controller
             $this->leaveModel = new \App\Models\Leave($this->pdo);
         }
         return $this->leaveModel;
+    }
+
+    private function getSupportModel(): \App\Models\SupportTicket
+    {
+        if ($this->supportModel === null) {
+            $this->supportModel = new \App\Models\SupportTicket($this->pdo);
+        }
+        return $this->supportModel;
     }
 
     /**
@@ -91,6 +102,25 @@ class DashboardController extends Controller
             ];
         }
 
+        $supportEvents = [
+            \App\Realtime\EventAuthorizer::SUPPORT_SUBMITTED,
+            \App\Realtime\EventAuthorizer::SUPPORT_HR_RESPONDED,
+            \App\Realtime\EventAuthorizer::SUPPORT_INFO_REQUESTED,
+            \App\Realtime\EventAuthorizer::SUPPORT_EMPLOYEE_REPLIED,
+            \App\Realtime\EventAuthorizer::SUPPORT_STATUS_CHANGED,
+            \App\Realtime\EventAuthorizer::SUPPORT_ASSIGNED,
+            \App\Realtime\EventAuthorizer::SUPPORT_COMPLAINT_ALERT,
+        ];
+        if (in_array($eventType, $supportEvents, true)) {
+            $role = function_exists('currentUserRole') ? strtolower((string)(currentUserRole() ?? 'employee')) : 'employee';
+            $isStaff = in_array($role, ['hr', 'admin'], true);
+            $prefix = $isStaff ? '/hr/support' : '/support';
+            return [
+                'path'  => $entityId > 0 ? $prefix . '/' . $entityId : $prefix,
+                'label' => 'Open ticket',
+            ];
+        }
+
         return null;
     }
 
@@ -109,6 +139,24 @@ class DashboardController extends Controller
             'total_positions'  => (int)$this->pdo->query("SELECT COUNT(*) FROM positions")->fetchColumn(),
         ];
 
+        $supportOverview = [
+            'total_open'               => 0,
+            'show_confidential_metric' => false,
+            'confidential_attention'   => 0,
+        ];
+        try {
+            $hrUser = currentUser();
+            if ($hrUser) {
+                $supportModel = new \App\Models\SupportTicket($this->pdo);
+                $supportHandlers = new \App\Models\SupportTicketHandler($this->pdo);
+                $supportAccess = new \App\Services\SupportAccessService();
+                $viewerCtx = $supportAccess->buildViewerContext($hrUser, $supportHandlers, $this->pdo);
+                $supportOverview = $supportModel->getHrOverviewStats($viewerCtx);
+            }
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::support] ' . $e->getMessage());
+        }
+
         // Fetch recent active employees
         $recentEmployees = $this->pdo->query("
             SELECT e.employee_no, e.first_name, e.last_name, e.email, d.department_name, p.position_name, e.date_hired
@@ -124,6 +172,7 @@ class DashboardController extends Controller
             'pageTitle'       => 'HR Dashboard - Employee HRIS',
             'user'            => currentUser(),
             'metrics'         => $metrics,
+            'supportOverview' => $supportOverview,
             'recentEmployees' => $recentEmployees,
         ], 'hr');
     }
@@ -186,6 +235,7 @@ class DashboardController extends Controller
             'requests'      => null,
             'upcoming'      => null,
             'notifications' => null,
+            'support'       => null,
         ];
 
         if ($userId > 0) {
@@ -282,6 +332,29 @@ class DashboardController extends Controller
             }
         }
 
+        // 6. Fetch compact non-sensitive Help & Support summary for dashboard preview
+        $supportSummary = [
+            'open_count'     => 0,
+            'recent_tickets' => [],
+        ];
+        if ($employeeId !== null && $employeeId > 0) {
+            try {
+                $supportModel = $this->getSupportModel();
+                $supportAccess = new \App\Services\SupportAccessService();
+                $recentRaw = $supportModel->getRecentByEmployee($employeeId, 3);
+                $supportSummary = [
+                    'open_count'     => $supportModel->countOpenByEmployee($employeeId),
+                    'recent_tickets' => array_map(
+                        static fn (array $row): array => $supportAccess->maskForDashboard($row),
+                        $recentRaw
+                    ),
+                ];
+            } catch (\Throwable $e) {
+                error_log('[EmployeeDashboard::support] ' . $e->getMessage());
+                $sectionErrors['support'] = 'Unable to load support requests right now.';
+            }
+        }
+
         $this->view('dashboard.employee', [
             'pageTitle'                => 'Employee Dashboard',
             'user'                     => $user,
@@ -291,6 +364,7 @@ class DashboardController extends Controller
             'pendingLeaves'            => $recentRequests,
             'upcomingApprovedLeaves'   => $upcomingApprovedLeaves,
             'pendingRequestsCount'     => $pendingRequestsCount,
+            'supportSummary'           => $supportSummary,
             'recentNotifications'      => $recentNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
             'sectionErrors'            => $sectionErrors,

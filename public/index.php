@@ -310,6 +310,27 @@ try {
     $router->post('/api/v1/hr/leaves/{id}/request-info', [ApiLeaveController::class, 'requestInfo'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
     $router->get('/api/v1/hr/leave-qualifications', [ApiLeaveController::class, 'hrQualifications'], [AuthMiddleware::class, $hrOnly]);
 
+    // Group: Help & Support and Confidential Workplace Complaints
+    $router->get('/support', [\App\Controllers\SupportController::class, 'index'], [AuthMiddleware::class, new \Core\PermissionMiddleware('support.view_own')]);
+    $router->get('/support/request', [\App\Controllers\SupportController::class, 'createRequestForm'], [AuthMiddleware::class, new \Core\PermissionMiddleware('support.create')]);
+    $router->post('/support/request', [\App\Controllers\SupportController::class, 'storeRequest'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.create')]);
+    $router->get('/support/complaint', [\App\Controllers\SupportController::class, 'createComplaintForm'], [AuthMiddleware::class, new \Core\PermissionMiddleware('support.create')]);
+    $router->post('/support/complaint', [\App\Controllers\SupportController::class, 'storeComplaint'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.create')]);
+    $router->get('/support/attachments/{id}', [\App\Controllers\SupportController::class, 'downloadAttachment'], [AuthMiddleware::class]);
+    $router->get('/support/{id}', [\App\Controllers\SupportController::class, 'show'], [AuthMiddleware::class, new \Core\PermissionMiddleware('support.view_own')]);
+    $router->post('/support/{id}/reply', [\App\Controllers\SupportController::class, 'reply'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
+    $router->post('/support/{id}/reopen', [\App\Controllers\SupportController::class, 'reopen'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
+    $router->post('/support/{id}/close', [\App\Controllers\SupportController::class, 'confirmClose'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
+
+    // Group: HR Support Inbox & Confidential Handler Governance
+    $router->get('/hr/support', [\App\Controllers\HrSupportController::class, 'index'], [$hrOnly, new \Core\PermissionMiddleware('support.inbox_view')]);
+    $router->get('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'handlers'], [$hrOnly, new \Core\PermissionMiddleware('support.manage_handlers')]);
+    $router->post('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'updateHandler'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_handlers')]);
+    $router->get('/hr/support/{id}', [\App\Controllers\HrSupportController::class, 'show'], [$hrOnly, new \Core\PermissionMiddleware('support.inbox_view')]);
+    $router->post('/hr/support/{id}/respond', [\App\Controllers\HrSupportController::class, 'respond'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.respond')]);
+    $router->post('/hr/support/{id}/assign', [\App\Controllers\HrSupportController::class, 'assign'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.assign')]);
+    $router->post('/hr/support/{id}/status', [\App\Controllers\HrSupportController::class, 'updateStatus'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_status')]);
+
     // 4. Dispatch Request through the Router
     $router->dispatch();
 

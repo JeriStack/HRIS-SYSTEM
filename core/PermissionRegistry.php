@@ -324,6 +324,64 @@ final class PermissionRegistry
         ],
 
         // -------------------------------------------------------------
+        // Module: Help & Support
+        // -------------------------------------------------------------
+        'support.view_own' => [
+            'name'          => 'View Own Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'View personal support tickets, complaints, and non-internal replies',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.create' => [
+            'name'          => 'Submit Support & Complaints',
+            'module'        => 'Help & Support',
+            'description'   => 'Submit general support requests and confidential workplace complaints',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.reply_own' => [
+            'name'          => 'Reply to Own Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'Reply to own tickets, upload attachments, and reopen within policy',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.inbox_view' => [
+            'name'          => 'View HR Support Inbox',
+            'module'        => 'Help & Support',
+            'description'   => 'Access the HR Support Inbox for general employee support requests',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'support.respond' => [
+            'name'          => 'Respond to Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'Post employee-visible replies, information requests, and internal notes',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'support.manage_status' => [
+            'name'          => 'Manage Support Ticket Status',
+            'module'        => 'Help & Support',
+            'description'   => 'Transition ticket workflow statuses, priorities, and resolution remarks',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'support.assign' => [
+            'name'          => 'Assign Support Handlers',
+            'module'        => 'Help & Support',
+            'description'   => 'Assign or reassign support tickets and eligible complaints to HR handlers',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'support.confidential_handle' => [
+            'name'          => 'Handle Confidential Complaints',
+            'module'        => 'Help & Support',
+            'description'   => 'Eligible (when explicitly designated) to view and handle confidential workplace complaints',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'support.manage_handlers' => [
+            'name'          => 'Manage Confidential Handlers',
+            'module'        => 'Help & Support',
+            'description'   => 'Authorize or revoke designated HR handlers for confidential workplace complaints',
+            'default_roles' => [self::ROLE_ADMIN],
+        ],
+
+        // -------------------------------------------------------------
         // Module: Academic & Universal
         // -------------------------------------------------------------
         'dsa_laboratory' => [

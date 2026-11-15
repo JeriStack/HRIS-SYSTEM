@@ -48,6 +48,41 @@ final class NotificationPayload
             'message' => 'Your profile correction request %s was not approved. Open My Profile for details.',
             'level'   => 'warning',
         ],
+        EventAuthorizer::SUPPORT_SUBMITTED => [
+            'title'   => 'Support request received',
+            'message' => 'A support request update %s was recorded in the Support Inbox.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::SUPPORT_HR_RESPONDED => [
+            'title'   => 'Support response posted',
+            'message' => 'HR posted a response on support ticket %s.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::SUPPORT_INFO_REQUESTED => [
+            'title'   => 'Additional information requested',
+            'message' => 'HR requested additional information on support ticket %s.',
+            'level'   => 'warning',
+        ],
+        EventAuthorizer::SUPPORT_EMPLOYEE_REPLIED => [
+            'title'   => 'Employee reply posted',
+            'message' => 'An employee posted a reply on support ticket %s.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::SUPPORT_STATUS_CHANGED => [
+            'title'   => 'Support ticket status updated',
+            'message' => 'The status of your support ticket %s was updated. Open Help & Support for details.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::SUPPORT_ASSIGNED => [
+            'title'   => 'Support ticket assigned',
+            'message' => 'Support ticket %s has been assigned for handling.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::SUPPORT_COMPLAINT_ALERT => [
+            'title'   => 'Confidential complaint notice',
+            'message' => 'A confidential workplace complaint record %s requires authorized review in NEXORA HR.',
+            'level'   => 'warning',
+        ],
     ];
 
     /**
@@ -82,6 +117,8 @@ final class NotificationPayload
             || $event === EventAuthorizer::CORRECTION_REJECTED
         ) {
             $reference = $entityId > 0 ? 'PCR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
+        } elseif (str_starts_with($event, 'support_')) {
+            $reference = $entityId > 0 ? 'SUP-' . str_pad((string)$entityId, 5, '0', STR_PAD_LEFT) : null;
         } else {
             $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
         }
@@ -131,6 +168,12 @@ final class NotificationPayload
             return $event === EventAuthorizer::CORRECTION_REQUESTED
                 ? 'hr/correction-requests'
                 : 'employee/profile#correction-requests';
+        }
+
+        if (str_starts_with($event, 'support_')) {
+            $isStaff = in_array(strtolower($recipientRole), ['hr', 'admin'], true);
+            $base = $isStaff ? 'hr/support' : 'support';
+            return $entityId > 0 ? $base . '/' . $entityId : $base;
         }
 
         return $entityId > 0 ? 'leaves/' . $entityId : 'notifications';

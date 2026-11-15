@@ -19,6 +19,13 @@ final class EventAuthorizer
     public const CORRECTION_REQUESTED  = 'profile_correction.requested';
     public const CORRECTION_APPROVED   = 'profile_correction.approved';
     public const CORRECTION_REJECTED   = 'profile_correction.rejected';
+    public const SUPPORT_SUBMITTED     = 'support_ticket.submitted';
+    public const SUPPORT_HR_RESPONDED  = 'support_ticket.hr_responded';
+    public const SUPPORT_INFO_REQUESTED = 'support_ticket.info_requested';
+    public const SUPPORT_EMPLOYEE_REPLIED = 'support_ticket.employee_replied';
+    public const SUPPORT_STATUS_CHANGED = 'support_ticket.status_changed';
+    public const SUPPORT_ASSIGNED       = 'support_ticket.assigned';
+    public const SUPPORT_COMPLAINT_ALERT = 'support_complaint.confidential';
     public const UNREAD_COUNT          = 'notification.unread_count';
 
     public const LEAVE_EVENTS = [
@@ -59,6 +66,15 @@ final class EventAuthorizer
             // Profile correction queue events are for HR/Admin; decisions for recipient employee
             self::CORRECTION_REQUESTED => $recipient->isHr() || $recipient->isAdmin(),
             self::CORRECTION_APPROVED, self::CORRECTION_REJECTED => true,
+            self::SUPPORT_SUBMITTED, self::SUPPORT_EMPLOYEE_REPLIED => ($recipient->isHr() || $recipient->isAdmin() || $recipient->isEmployee())
+                && (int)($row['support_coi_blocked'] ?? 0) === 0,
+            self::SUPPORT_HR_RESPONDED, self::SUPPORT_INFO_REQUESTED, self::SUPPORT_STATUS_CHANGED => !array_key_exists('support_owner_matches', $row)
+                || (int)$row['support_owner_matches'] === 1,
+            self::SUPPORT_ASSIGNED => ($recipient->isHr() || $recipient->isAdmin())
+                && (int)($row['support_coi_blocked'] ?? 0) === 0,
+            self::SUPPORT_COMPLAINT_ALERT => ($recipient->isHr() || $recipient->isAdmin())
+                && (int)($row['support_coi_blocked'] ?? 0) === 0
+                && (!array_key_exists('support_confidential_authorized', $row) || (int)$row['support_confidential_authorized'] === 1),
             default => false,
         };
     }

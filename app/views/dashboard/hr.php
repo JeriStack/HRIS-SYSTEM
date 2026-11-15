@@ -118,6 +118,22 @@
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">📈 Workforce Reports</div>
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">Inspect leave summaries, rosters, and analytics.</div>
             </a>
+            <?php
+            $hrSupportOpen = (int)(($supportOverview['total_open'] ?? 0));
+            $hrSupportConfShow = !empty($supportOverview['show_confidential_metric']);
+            $hrSupportConfCount = (int)(($supportOverview['confidential_attention'] ?? 0));
+            ?>
+            <a href="<?= url('/hr/support') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
+                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem;"><?= icon('shield', 16) ?> Help &amp; Support Inbox</span>
+                    <?php if ($hrSupportOpen > 0): ?>
+                        <span class="badge badge-primary"><?= $hrSupportOpen ?> open</span>
+                    <?php endif; ?>
+                </div>
+                <div style="font-size: 0.775rem; color: var(--color-text-muted);">
+                    Triage employee requests and inquiries<?= ($hrSupportConfShow && $hrSupportConfCount > 0) ? " ({$hrSupportConfCount} confidential needing attention)" : '' ?>.
+                </div>
+            </a>
         </div>
     </div>
 </div>

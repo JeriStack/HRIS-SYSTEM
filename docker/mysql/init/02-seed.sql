@@ -241,4 +241,14 @@ WHERE NOT EXISTS (
     WHERE lbt.leave_balance_id = lb.id AND lbt.transaction_type = 'initial_allocation'
 );
 
+-- -----------------------------------------------------------------------------
+-- 11. Help & Support Designated Confidential Handlers Seed
+-- -----------------------------------------------------------------------------
+INSERT INTO `support_ticket_handlers` (`user_id`, `can_handle_confidential`, `is_active`, `designation_notes`, `created_at`)
+SELECT u.id, 1, 1, 'Primary designated HR confidential complaint officer', NOW()
+FROM `users` u
+WHERE u.username = 'hr01' AND u.role = 'hr'
+LIMIT 1
+ON DUPLICATE KEY UPDATE `is_active` = VALUES(`is_active`);
+
 SET FOREIGN_KEY_CHECKS = 1;

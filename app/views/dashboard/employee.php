@@ -617,6 +617,72 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
     </div>
 </section>
 
+<!-- Section 5B: Help & Support Compact Widget -->
+<section class="card support-dashboard-widget" aria-labelledby="helpSupportWidgetHeading">
+    <div class="card-header">
+        <div class="card-header-title">
+            <h2 id="helpSupportWidgetHeading" class="card-title">Help &amp; Support</h2>
+            <span class="card-subtitle">Submit HR inquiries, technical requests, or confidential workplace complaints</span>
+        </div>
+        <a href="<?= url('/support') ?>" class="btn btn-secondary btn-sm">
+            <span>View My Requests</span>
+            <?= icon('arrow-right', 14) ?>
+        </a>
+    </div>
+    <div class="card-body">
+        <?php
+        $supportSummary = $supportSummary ?? ['open_count' => 0, 'recent_tickets' => []];
+        $openSupportCount = (int)($supportSummary['open_count'] ?? 0);
+        $recentSupportTickets = is_array($supportSummary['recent_tickets'] ?? null) ? $supportSummary['recent_tickets'] : [];
+        ?>
+        <div class="support-widget-summary">
+            <div class="inline-flex items-center gap-2 flex-wrap">
+                <span class="support-widget-count-pill">
+                    <?= icon('shield', 14) ?>
+                    <span><?= $openSupportCount ?> Open Request<?= $openSupportCount === 1 ? '' : 's' ?></span>
+                </span>
+                <span class="text-xs text-muted">Need HR help, leave guidance, or confidential grievance support?</span>
+            </div>
+            <div class="support-widget-actions">
+                <a href="<?= url('/support/request') ?>" class="btn btn-primary btn-sm">
+                    <?= icon('plus-circle', 14) ?>
+                    <span>Submit Request</span>
+                </a>
+                <a href="<?= url('/support/complaint') ?>" class="btn btn-secondary btn-sm">
+                    <?= icon('lock', 14) ?>
+                    <span>Submit Complaint</span>
+                </a>
+            </div>
+        </div>
+
+        <?php if (!empty($sectionErrors['support'])): ?>
+            <p class="text-sm text-muted"><?= e((string)$sectionErrors['support']) ?></p>
+        <?php elseif (empty($recentSupportTickets)): ?>
+            <p class="text-sm text-muted" style="margin-bottom: 0;">You have no recent support requests or complaints.</p>
+        <?php else: ?>
+            <div class="support-recent-list" aria-label="Recent support requests">
+                <?php foreach (array_slice($recentSupportTickets, 0, 3) as $stRow):
+                    $stStatus = (string)($stRow['status'] ?? 'Submitted');
+                    $stBadge = match ($stStatus) {
+                        'Resolved', 'Closed'   => 'badge-success',
+                        'Waiting for Employee' => 'badge-warning',
+                        'Under Review'         => 'badge-info',
+                        default                => 'badge-primary',
+                    };
+                ?>
+                    <a href="<?= url('/support/' . (int)$stRow['id']) ?>" class="support-recent-row">
+                        <div class="support-recent-main">
+                            <div class="support-recent-ref"><?= e((string)$stRow['ticket_ref']) ?> &middot; <?= e((string)$stRow['category']) ?></div>
+                            <div class="support-recent-subject"><?= e((string)$stRow['display_subject']) ?></div>
+                        </div>
+                        <span class="badge <?= $stBadge ?>"><?= e($stStatus) ?></span>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
 <!-- Section 6: Recent Notifications -->
 <section class="card emp-notifications-card" aria-labelledby="recentNotificationsHeading">
     <div class="card-header">

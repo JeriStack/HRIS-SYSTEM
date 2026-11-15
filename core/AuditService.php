@@ -21,6 +21,7 @@ class AuditService
     public const CATEGORY_EMPLOYEE = 'employee';
     public const CATEGORY_ORGANIZATION = 'organization';
     public const CATEGORY_LEAVE = 'leave';
+    public const CATEGORY_SUPPORT = 'support';
     public const CATEGORY_REPORTS = 'reports';
     public const CATEGORY_SYSTEM = 'system';
     public const CATEGORY_GENERAL = 'general';
@@ -199,6 +200,10 @@ class AuditService
 
         if (str_starts_with($actionUpper, 'LEAVE_')) {
             return self::CATEGORY_LEAVE;
+        }
+
+        if (str_starts_with($actionUpper, 'SUPPORT_') || str_starts_with($actionUpper, 'COMPLAINT_')) {
+            return self::CATEGORY_SUPPORT;
         }
 
         if (str_starts_with($actionUpper, 'REPORT_') || str_starts_with($actionUpper, 'AUDIT_') || str_starts_with($actionUpper, 'EXPORT_')) {

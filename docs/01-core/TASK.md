@@ -100,6 +100,14 @@
 - [x] Author comprehensive test suite (`tests/Feature/AdminRoleRbacTest.php`) bringing PHPUnit suite to 600 passing tests.
 - [x] Document Architectural Decision Record ADR-012 in `docs/02-technical/decisions/DECISIONS.md`.
 
+### Phase 11B: Employee Help & Support and Complaint Management Module (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [HELP-AND-SUPPORT-MODULE-SPEC.md](HELP-AND-SUPPORT-MODULE-SPEC.md).*
+- [x] Create database migration (`2026_11_17_create_support_and_complaint_module.sql`) and synchronize canonical `database/schema.sql` and Docker init parity.
+- [x] Register granular `Help & Support` permissions within the 3-role RBAC model (`admin`, `hr`, `employee`) plus user-scoped confidential complaint handlers (`support_ticket_handlers`).
+- [x] Implement backend models, access/COI policy service, workflow service, encrypted/isolated attachment storage service, privacy-aware notification service, and controllers (`SupportController`, `HrSupportController`).
+- [x] Integrate `Help & Support` into Employee navigation & compact Employee Dashboard widget, and `Support Inbox` into HR/Admin workspaces with full Light & Dark Mode parity.
+- [x] Verify with PSR-12 baseline check, PHPStan, PHPUnit unit/feature/security suites, and Selenium E2E tests.
+
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
 - [ ] Configure production domain DNS and Let's Encrypt automated SSL renewal.

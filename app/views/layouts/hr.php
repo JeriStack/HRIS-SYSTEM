@@ -69,5 +69,6 @@
     <script src="<?= asset('js/realtime.js') ?>"></script>
     <script src="<?= asset('js/profile.js') ?>"></script>
     <script src="<?= asset('js/skeleton.js') ?>"></script>
+    <script src="<?= asset('js/support.js') ?>"></script>
 </body>
 </html>
