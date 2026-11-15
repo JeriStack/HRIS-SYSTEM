@@ -2477,6 +2477,201 @@ button:focus-visible {
   }
 }
 
+/* Dashboard Section Enhancements: Summary Strip, Section Errors & Upcoming Schedule */
+.emp-balances-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+}
+
+[data-theme="dark"] .emp-balances-summary {
+  background-color: rgba(15, 23, 42, 0.48);
+}
+
+.emp-balances-summary-total {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-main);
+}
+
+.emp-balances-summary-total strong {
+  font-weight: 700;
+}
+
+.emp-balances-summary-note {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.emp-category-balance-row.is-deficit .emp-category-balance-val {
+  color: var(--color-error);
+}
+
+.emp-category-unallocated {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-surface);
+}
+
+.emp-req-submitted {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+}
+
+.emp-section-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-error-border);
+  background-color: var(--color-error-bg);
+}
+
+.emp-section-error-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.emp-section-error-icon {
+  color: var(--color-error);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.emp-section-error-title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-error);
+  margin: 0 0 0.2rem;
+}
+
+.emp-section-error-desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+.emp-upcoming-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.emp-upcoming-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--transition-fast);
+}
+
+.emp-upcoming-item:last-child {
+  border-bottom: none;
+}
+
+.emp-upcoming-item:hover {
+  background-color: var(--color-bg-subtle);
+}
+
+[data-theme="dark"] .emp-upcoming-item:hover {
+  background-color: rgba(255, 255, 255, 0.025);
+}
+
+.emp-upcoming-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.emp-upcoming-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-success-border);
+  background-color: var(--color-success-bg);
+  color: var(--color-success);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.emp-upcoming-item-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.emp-upcoming-item-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: 0.25rem;
+}
+
+.emp-upcoming-item-type {
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.emp-upcoming-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  font-size: var(--font-size-base);
+  color: var(--color-text-body);
+}
+
+.emp-upcoming-item-timing {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.emp-upcoming-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.emp-notif-read-pill {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0.22rem 0.6rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+}
+
+.emp-notif-unread-badge {
+  margin-left: var(--space-2);
+}
+
 /* Policy / Guidance Grid */
 .emp-policy-grid {
   display: grid;

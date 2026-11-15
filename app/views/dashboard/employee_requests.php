@@ -219,7 +219,17 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('leaveRequestSearch');
     const table = document.getElementById('employeeRequestsTable');
     const emptyNotice = document.getElementById('requestsFilterEmpty');
-    let activeStatus = 'all';
+    const allowedStatuses = ['all', 'Pending', 'Approved', 'Rejected', 'Cancelled'];
+    const initialFromServer = <?= json_encode($initialStatus ?? 'all') ?>;
+    let activeStatus = allowedStatuses.includes(initialFromServer) ? initialFromServer : 'all';
+
+    function syncFilterPills() {
+        pills.forEach(function (p) {
+            const isActive = (p.getAttribute('data-status-filter') || 'all') === activeStatus;
+            p.classList.toggle('active', isActive);
+            p.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    }
 
     function filterRows() {
         if (!table) return;
@@ -247,16 +257,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     pills.forEach(function (pill) {
         pill.addEventListener('click', function () {
-            pills.forEach(function (p) {
-                p.classList.remove('active');
-                p.setAttribute('aria-selected', 'false');
-            });
-            pill.classList.add('active');
-            pill.setAttribute('aria-selected', 'true');
             activeStatus = pill.getAttribute('data-status-filter') || 'all';
+            syncFilterPills();
             filterRows();
         });
     });
+
+    if (activeStatus !== 'all') {
+        syncFilterPills();
+        filterRows();
+    }
 
     if (searchInput) {
         searchInput.addEventListener('input', filterRows);

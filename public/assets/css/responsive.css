@@ -74,6 +74,22 @@
    3. Mobile Breakpoint (< 768px)
    ========================================================================== */
 @media (max-width: 767px) {
+  .emp-balances-summary,
+  .emp-section-error,
+  .emp-upcoming-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .emp-upcoming-item {
+    padding: var(--space-4);
+  }
+
+  .emp-upcoming-item-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   /* Off-canvas Navigation Drawer */
   .app-sidebar,
   .app-shell.sidebar-collapsed .app-sidebar {

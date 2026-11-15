@@ -703,7 +703,12 @@ class LeaveController extends Controller
         }
 
         if ($userRole === 'employee') {
-            redirect('/employee/leave-requests');
+            $requestedRedirect = trim((string)($_POST['redirect_to'] ?? ''));
+            $allowedRedirects = ['/employee/leave-requests', '/employee/dashboard'];
+            $target = in_array($requestedRedirect, $allowedRedirects, true)
+                ? $requestedRedirect
+                : '/employee/leave-requests';
+            redirect($target);
         } else {
             redirect('/leaves');
         }

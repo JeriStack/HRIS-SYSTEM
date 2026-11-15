@@ -119,6 +119,70 @@ class Leave
     }
 
     /**
+     * Retrieve the most recent leave requests belonging to a single employee.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getRecentByEmployee(int $employeeId, int $limit = 3): array
+    {
+        if ($employeeId <= 0) {
+            return [];
+        }
+
+        $safeLimit = max(1, min(20, $limit));
+        $stmt = $this->pdo->prepare("
+            SELECT lr.id, lr.start_date, lr.end_date, lr.number_of_days, lr.status,
+                   lr.reason, lr.rejection_reason, lr.created_at, lr.approved_at, lt.leave_name
+            FROM leave_requests lr
+            INNER JOIN leave_types lt ON lr.leave_type_id = lt.id
+            WHERE lr.employee_id = :emp_id
+            ORDER BY lr.created_at DESC, lr.id DESC
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':emp_id', $employeeId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Retrieve upcoming Approved leave requests for a single employee sorted by nearest start date.
+     * Excludes Pending, Rejected, Cancelled, and past requests.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getUpcomingApprovedByEmployee(int $employeeId, ?string $fromDate = null, int $limit = 3): array
+    {
+        if ($employeeId <= 0) {
+            return [];
+        }
+
+        $safeDate = ($fromDate !== null && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) === 1)
+            ? $fromDate
+            : date('Y-m-d');
+        $safeLimit = max(1, min(20, $limit));
+
+        $stmt = $this->pdo->prepare("
+            SELECT lr.id, lr.start_date, lr.end_date, lr.number_of_days, lr.status,
+                   lr.approved_at, lr.created_at, lt.leave_name
+            FROM leave_requests lr
+            INNER JOIN leave_types lt ON lr.leave_type_id = lt.id
+            WHERE lr.employee_id = :emp_id
+              AND lr.status = 'Approved'
+              AND lr.start_date >= :from_date
+            ORDER BY lr.start_date ASC, lr.id ASC
+            LIMIT :limit
+        ");
+        $stmt->bindValue(':emp_id', $employeeId, PDO::PARAM_INT);
+        $stmt->bindValue(':from_date', $safeDate, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $safeLimit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Count all pending leave requests across the organization (for HR/Admin review queue).
      */
     public function countPendingAll(): int
