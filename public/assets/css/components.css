@@ -1242,28 +1242,24 @@ button:focus-visible {
    My Leave Balances (3 Balanced Category Cards)
    ========================================================================== */
 .emp-balances-card .card-header,
-.emp-requests-card .card-header,
-.emp-updates-card .card-header {
+.emp-requests-card .card-header {
   padding: var(--space-5) var(--space-6);
 }
 
 .emp-balances-card .card-title,
-.emp-requests-card .card-title,
-.emp-updates-card .card-title {
+.emp-requests-card .card-title {
   font-size: var(--font-size-xl);
   font-weight: 700;
 }
 
 .emp-balances-card .card-subtitle,
-.emp-requests-card .card-subtitle,
-.emp-updates-card .card-subtitle {
+.emp-requests-card .card-subtitle {
   font-size: var(--font-size-base);
   color: var(--color-text-body);
 }
 
 .emp-balances-card .emp-quiet-action,
-.emp-requests-card .card-header .emp-quiet-action,
-.emp-updates-card .card-header .emp-quiet-action {
+.emp-requests-card .card-header .emp-quiet-action {
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-primary);
@@ -1274,29 +1270,16 @@ button:focus-visible {
 }
 
 [data-theme="dark"] .emp-balances-card .emp-quiet-action,
-[data-theme="dark"] .emp-requests-card .card-header .emp-quiet-action,
-[data-theme="dark"] .emp-updates-card .card-header .emp-quiet-action {
+[data-theme="dark"] .emp-requests-card .card-header .emp-quiet-action {
   color: var(--color-primary-hover);
   background-color: rgba(15, 23, 42, 0.48);
 }
 
 .emp-balances-card .emp-quiet-action:hover,
-.emp-requests-card .card-header .emp-quiet-action:hover,
-.emp-updates-card .card-header .emp-quiet-action:hover {
+.emp-requests-card .card-header .emp-quiet-action:hover {
   background-color: var(--color-primary-light);
   border-color: var(--color-primary-border);
   color: var(--color-primary-hover);
-}
-
-.emp-updates-card .card-header .emp-quiet-action-secondary,
-[data-theme="dark"] .emp-updates-card .card-header .emp-quiet-action-secondary {
-  color: var(--color-text-body);
-}
-
-.emp-updates-card .card-header .emp-quiet-action-secondary:hover {
-  background-color: var(--color-bg-muted);
-  border-color: var(--color-border-dark);
-  color: var(--color-text-main);
 }
 
 .emp-category-grid {
@@ -2234,29 +2217,6 @@ button:focus-visible {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
-}
-
-.emp-updates-card .emp-notif-actions {
-  margin-top: var(--space-3);
-}
-
-.emp-updates-card .emp-notif-actions .emp-quiet-action {
-  min-height: 34px;
-  padding: 0.3rem 0.75rem;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-text-main);
-  border: 1px solid var(--color-border);
-  background-color: var(--color-bg-surface);
-}
-
-[data-theme="dark"] .emp-updates-card .emp-notif-actions .emp-quiet-action {
-  background-color: rgba(15, 23, 42, 0.48);
-}
-
-.emp-updates-card .emp-notif-actions .emp-quiet-action:hover {
-  background-color: var(--color-bg-muted);
-  border-color: var(--color-border-dark);
 }
 
 /* Quiet Inline Text Action for Table & List Rows */
