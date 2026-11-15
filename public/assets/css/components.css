@@ -1403,7 +1403,10 @@ button:focus-visible {
 .emp-category-balance-row {
   display: flex;
   align-items: baseline;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
   line-height: 1;
   margin: 0.15rem 0 0.05rem;
 }
