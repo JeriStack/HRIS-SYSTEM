@@ -1101,9 +1101,12 @@ button:focus-visible {
 .emp-kpi-value-row {
   display: flex;
   align-items: baseline;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
   flex-wrap: wrap;
   line-height: 1;
+  margin-block: auto;
 }
 
 .emp-kpi-value {
@@ -1125,7 +1128,6 @@ button:focus-visible {
 .emp-kpi-footer {
   display: flex;
   align-items: center;
-  margin-top: auto;
   min-height: 24px;
 }
 
