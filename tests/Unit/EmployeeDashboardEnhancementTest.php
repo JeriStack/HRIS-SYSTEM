@@ -394,6 +394,8 @@ class EmployeeDashboardEnhancementTest extends TestCase
         preg_match_all('/\sid="([^"]+)"/', $populatedHtml, $idMatches);
         $this->assertNotEmpty($idMatches[1]);
         $this->assertCount(count(array_unique($idMatches[1])), $idMatches[1], 'Duplicate DOM IDs detected');
+        // Summary KPI cards omit bottom footer strip for clean numeric focus
+        $this->assertStringNotContainsString('emp-kpi-footer', $populatedHtml);
 
         // Section error isolation & empty states
         $errorHtml = $renderView([

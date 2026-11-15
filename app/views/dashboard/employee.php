@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Employee Dashboard View — "The Executive Ledger" Self-Service Workbench
  * Sections (in hierarchy order):
@@ -73,9 +74,6 @@ foreach ($balances as $bal) {
     $totalUsed += (int)($bal['used_days'] ?? 0);
     $totalRemaining += (int)($bal['remaining_days'] ?? 0);
 }
-$annualUtilizationPct = $totalAllocated > 0
-    ? max(0, min(100, (int)round(($totalUsed / $totalAllocated) * 100)))
-    : 0;
 
 if (isset($pendingRequestsCount)) {
     $pendingCount = max(0, (int)$pendingRequestsCount);
@@ -165,16 +163,6 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                 <span class="emp-kpi-unit"><?= abs($totalRemaining) === 1 ? 'day' : 'days' ?></span>
             <?php endif; ?>
         </div>
-        <div class="emp-kpi-footer">
-            <?php if (!$balancesUnavailable && $balanceCount > 0) : ?>
-                <span class="emp-kpi-meta">
-                    <span class="tabular-nums"><strong><?= $totalAllocated ?></strong> allocated in <?= $leaveCycleYear ?></span>
-                </span>
-            <?php else : ?>
-                <span class="emp-kpi-meta">No current-cycle quota</span>
-            <?php endif; ?>
-            <span class="emp-kpi-action">Balances <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span></span>
-        </div>
     </a>
 
     <!-- 2. Days Used -->
@@ -191,20 +179,6 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                 <span class="emp-kpi-value"><?= $totalUsed ?></span>
                 <span class="emp-kpi-unit"><?= abs($totalUsed) === 1 ? 'day' : 'days' ?></span>
             <?php endif; ?>
-        </div>
-        <div class="emp-kpi-footer">
-            <div class="emp-kpi-meter-line">
-                <div class="emp-kpi-meter"
-                     role="progressbar"
-                     aria-valuenow="<?= $annualUtilizationPct ?>"
-                     aria-valuemin="0"
-                     aria-valuemax="100"
-                     aria-label="Annual leave utilization: <?= $annualUtilizationPct ?>% used">
-                    <div class="emp-kpi-meter-fill <?= $annualUtilizationPct >= 85 ? 'is-warning' : '' ?>"
-                         style="<?= e('width: ' . $annualUtilizationPct . '%;') ?>"></div>
-                </div>
-                <span class="emp-kpi-meter-pct"><?= $annualUtilizationPct ?>% used</span>
-            </div>
         </div>
     </a>
 
@@ -225,12 +199,6 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                 <span class="emp-kpi-unit"><?= $pendingCount === 1 ? 'request' : 'requests' ?></span>
             <?php endif; ?>
         </div>
-        <div class="emp-kpi-footer">
-            <span class="emp-kpi-action <?= $pendingCount > 0 ? 'is-pending-text' : '' ?>">
-                <?= $pendingCount > 0 ? 'Awaiting HR review' : 'View requests' ?>
-                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
-            </span>
-        </div>
     </a>
 
     <!-- 4. Unread Alerts -->
@@ -249,12 +217,6 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                 <span class="emp-kpi-value" id="dashKpiUnreadVal"><?= $unreadCount ?></span>
                 <span class="emp-kpi-unit" id="dashKpiUnreadUnit"><?= $unreadCount === 1 ? 'alert' : 'alerts' ?></span>
             <?php endif; ?>
-        </div>
-        <div class="emp-kpi-footer">
-            <span class="emp-kpi-action" id="dashKpiUnreadCue">
-                <?= $unreadCount > 0 ? 'Review unread' : 'All alerts read' ?>
-                <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>
-            </span>
         </div>
     </a>
 </section>
@@ -312,30 +274,30 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                     } elseif ($pctUsed >= 75 && $rawAllocated > 0) {
                         $barState = 'is-warning';
                     }
-                    ?>
+                ?>
                     <div class="emp-category-card balance-card <?= ($remaining <= 0 && $rawAllocated > 0) ? 'is-exhausted' : '' ?>">
                         <div class="emp-category-header">
                             <span class="emp-category-name balance-title"><strong><?= e($leaveName) ?></strong></span>
                             <?php if ($remaining > 0) : ?>
                                 <a href="<?= url('/leaves/apply' . ($leaveTypeId > 0 ? '?type=' . $leaveTypeId : '')) ?>"
-                                   class="emp-category-apply"
-                                   aria-label="Apply for <?= e($leaveName) ?>">
+                                    class="emp-category-apply"
+                                    aria-label="Apply for <?= e($leaveName) ?>">
                                     <span>Apply</span>
                                     <span class="emp-category-apply-arrow" aria-hidden="true">&rarr;</span>
                                 </a>
                             <?php elseif ($rawAllocated <= 0) : ?>
                                 <span class="emp-category-unallocated"
-                                      title="No annual quota assigned for <?= $leaveCycleYear ?>">
+                                    title="No annual quota assigned for <?= $leaveCycleYear ?>">
                                     Unallocated
                                 </span>
                             <?php elseif ($remaining < 0) : ?>
                                 <span class="emp-category-exhausted"
-                                      title="Used days exceed the <?= $leaveCycleYear ?> annual allocation">
+                                    title="Used days exceed the <?= $leaveCycleYear ?> annual allocation">
                                     Overdrawn
                                 </span>
                             <?php else : ?>
                                 <span class="emp-category-exhausted"
-                                      title="Annual quota exhausted for the <?= $leaveCycleYear ?> leave cycle">
+                                    title="Annual quota exhausted for the <?= $leaveCycleYear ?> leave cycle">
                                     Exhausted
                                 </span>
                             <?php endif; ?>
@@ -349,13 +311,13 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                         </div>
 
                         <div class="emp-category-meter"
-                             role="progressbar"
-                             aria-valuenow="<?= $pctUsed ?>"
-                             aria-valuemin="0"
-                             aria-valuemax="100"
-                             aria-label="<?= e($leaveName) ?> utilization: <?= $rawUsed ?> of <?= $rawAllocated ?> days used (<?= $pctUsed ?>%)">
+                            role="progressbar"
+                            aria-valuenow="<?= $pctUsed ?>"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                            aria-label="<?= e($leaveName) ?> utilization: <?= $rawUsed ?> of <?= $rawAllocated ?> days used (<?= $pctUsed ?>%)">
                             <div class="emp-category-meter-fill <?= $barState ?>"
-                                 style="<?= e('width: ' . $pctUsed . '%;') ?>"></div>
+                                style="<?= e('width: ' . $pctUsed . '%;') ?>"></div>
                         </div>
 
                         <div class="emp-category-ledger">
@@ -474,7 +436,7 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                             $days = (int)($req['number_of_days'] ?? $req['total_days'] ?? 1);
                             $reqTypeName = (string)($req['leave_name'] ?? $req['leave_type_name'] ?? 'Leave');
                             $dateRangeLabel = $startFormatted . ($startFormatted !== $endFormatted ? ' – ' . $endFormatted : '');
-                            ?>
+                        ?>
                             <tr data-dash-req-status="<?= e($status) ?>">
                                 <td data-label="Leave Type">
                                     <div class="emp-req-type-cell">
@@ -509,14 +471,13 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                                                 data-leave-id="<?= $reqId ?>"
                                                 data-leave-type="<?= e($reqTypeName) ?>"
                                                 data-leave-dates="<?= e($dateRangeLabel) ?>"
-                                                aria-label="Cancel <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)"
-                                            >
+                                                aria-label="Cancel <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
                                                 Cancel
                                             </button>
                                         <?php endif; ?>
                                         <a href="<?= url('/leaves/' . $reqId) ?>"
-                                           class="emp-quiet-action"
-                                           aria-label="View <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
+                                            class="emp-quiet-action"
+                                            aria-label="View <?= e($reqTypeName) ?> request (<?= e($dateRangeLabel) ?>)">
                                             View
                                         </a>
                                     </div>
@@ -592,7 +553,7 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                             $timingLabel = 'In ' . $daysUntil . ' days';
                         }
                     }
-                    ?>
+                ?>
                     <div class="emp-upcoming-item">
                         <div class="emp-upcoming-item-main">
                             <div class="emp-upcoming-item-icon" aria-hidden="true">
@@ -615,8 +576,8 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                         </div>
                         <div class="emp-upcoming-item-actions">
                             <a href="<?= url('/leaves/' . $upId) ?>"
-                               class="emp-quiet-action"
-                               aria-label="View approved <?= e($upType) ?> leave starting <?= e($upStart) ?>">
+                                class="emp-quiet-action"
+                                aria-label="View approved <?= e($upType) ?> leave starting <?= e($upStart) ?>">
                                 <span>Details</span>
                                 <?= icon('chevron-right', 14) ?>
                             </a>
@@ -644,7 +605,7 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
         <div class="card-title-group">
             <h2 class="card-title" id="recentNotificationsHeading">
                 <span>Recent Notifications</span>
-                <span class="badge badge-primary emp-notif-unread-badge" id="dashNotifHeaderBadge"<?= $unreadCount > 0 ? '' : ' hidden' ?>>
+                <span class="badge badge-primary emp-notif-unread-badge" id="dashNotifHeaderBadge" <?= $unreadCount > 0 ? '' : ' hidden' ?>>
                     <?= $unreadCount ?> unread
                 </span>
             </h2>
@@ -694,12 +655,11 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                     $notifMessage = mb_strimwidth((string)($notif['message'] ?? ''), 0, 180, '...');
                     $destPath = !empty($notif['destination_path']) ? (string)$notif['destination_path'] : null;
                     $destLabel = !empty($notif['destination_label']) ? (string)$notif['destination_label'] : 'Open';
-                    ?>
+                ?>
                     <div
                         class="emp-notif-item <?= $isUnread ? 'is-unread' : '' ?>"
                         data-notif-id="<?= $notifId ?>"
-                        data-read-state="<?= $isUnread ? 'unread' : 'read' ?>"
-                    >
+                        data-read-state="<?= $isUnread ? 'unread' : 'read' ?>">
                         <div class="emp-notif-icon <?= $iconTone ?>" aria-hidden="true">
                             <?= icon($iconName, 18) ?>
                         </div>
@@ -723,8 +683,8 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                         <div class="emp-notif-actions">
                             <?php if ($destPath !== null) : ?>
                                 <a href="<?= url($destPath) ?>"
-                                   class="emp-quiet-action"
-                                   aria-label="<?= e($destLabel . ' for ' . $notifTitle) ?>">
+                                    class="emp-quiet-action"
+                                    aria-label="<?= e($destLabel . ' for ' . $notifTitle) ?>">
                                     <span><?= e($destLabel) ?></span>
                                     <?= icon('chevron-right', 14) ?>
                                 </a>
@@ -732,15 +692,15 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
 
                             <?php if ($isUnread && $notifId > 0) : ?>
                                 <form method="POST"
-                                      action="<?= url('/notifications/' . $notifId . '/read') ?>"
-                                      class="js-dash-mark-read-form"
-                                      data-notif-id="<?= $notifId ?>">
+                                    action="<?= url('/notifications/' . $notifId . '/read') ?>"
+                                    class="js-dash-mark-read-form"
+                                    data-notif-id="<?= $notifId ?>">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="redirect_to" value="/employee/dashboard">
                                     <button type="submit"
-                                            class="btn btn-secondary btn-sm"
-                                            title="Mark notification as read"
-                                            aria-label="Mark <?= e($notifTitle) ?> as read">
+                                        class="btn btn-secondary btn-sm"
+                                        title="Mark notification as read"
+                                        aria-label="Mark <?= e($notifTitle) ?> as read">
                                         Mark Read
                                     </button>
                                 </form>
@@ -790,269 +750,267 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    // 1. Inline Status Filter for Recent Leave Requests (WAI-ARIA roving tabindex)
-    const filterPills = Array.from(document.querySelectorAll('[data-dash-req-filter]'));
-    const reqTable = document.getElementById('dashRecentRequestsTable');
-    const emptyState = document.getElementById('dashRequestsFilterEmpty');
-    const filterStatus = document.getElementById('dashRequestsFilterStatus');
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Inline Status Filter for Recent Leave Requests (WAI-ARIA roving tabindex)
+        const filterPills = Array.from(document.querySelectorAll('[data-dash-req-filter]'));
+        const reqTable = document.getElementById('dashRecentRequestsTable');
+        const emptyState = document.getElementById('dashRequestsFilterEmpty');
+        const filterStatus = document.getElementById('dashRequestsFilterStatus');
 
-    function activateFilterPill(pill, moveFocus) {
-        if (!pill) return;
-        const targetStatus = pill.getAttribute('data-dash-req-filter') || 'all';
+        function activateFilterPill(pill, moveFocus) {
+            if (!pill) return;
+            const targetStatus = pill.getAttribute('data-dash-req-filter') || 'all';
 
-        filterPills.forEach(function (p) {
-            const isTarget = p === pill;
-            p.classList.toggle('active', isTarget);
-            p.setAttribute('aria-selected', isTarget ? 'true' : 'false');
-            p.setAttribute('tabindex', isTarget ? '0' : '-1');
-        });
+            filterPills.forEach(function(p) {
+                const isTarget = p === pill;
+                p.classList.toggle('active', isTarget);
+                p.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+                p.setAttribute('tabindex', isTarget ? '0' : '-1');
+            });
 
-        if (moveFocus) {
-            pill.focus();
-        }
-        if (typeof pill.scrollIntoView === 'function') {
-            pill.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-        }
-
-        if (!reqTable) return;
-        const rows = reqTable.querySelectorAll('tbody tr');
-        let visibleRows = 0;
-
-        rows.forEach(function (row) {
-            const rowStatus = row.getAttribute('data-dash-req-status') || '';
-            if (targetStatus === 'all' || rowStatus === targetStatus) {
-                row.style.display = '';
-                visibleRows++;
-            } else {
-                row.style.display = 'none';
+            if (moveFocus) {
+                pill.focus();
             }
-        });
-
-        reqTable.hidden = visibleRows === 0;
-        if (emptyState) {
-            emptyState.style.display = visibleRows === 0 ? 'block' : 'none';
-        }
-        if (filterStatus) {
-            const label = targetStatus === 'all' ? 'all' : targetStatus.toLowerCase();
-            filterStatus.textContent = 'Showing ' + visibleRows + ' ' + label + (visibleRows === 1 ? ' request.' : ' requests.');
-        }
-    }
-
-    filterPills.forEach(function (pill, idx) {
-        pill.addEventListener('click', function () {
-            activateFilterPill(pill, false);
-        });
-
-        pill.addEventListener('keydown', function (e) {
-            if (filterPills.length === 0) return;
-            let nextIndex = null;
-            if (e.key === 'ArrowRight') {
-                nextIndex = (idx + 1) % filterPills.length;
-            } else if (e.key === 'ArrowLeft') {
-                nextIndex = (idx - 1 + filterPills.length) % filterPills.length;
-            } else if (e.key === 'Home') {
-                nextIndex = 0;
-            } else if (e.key === 'End') {
-                nextIndex = filterPills.length - 1;
+            if (typeof pill.scrollIntoView === 'function') {
+                pill.scrollIntoView({
+                    block: 'nearest',
+                    inline: 'nearest'
+                });
             }
-            if (nextIndex !== null) {
+
+            if (!reqTable) return;
+            const rows = reqTable.querySelectorAll('tbody tr');
+            let visibleRows = 0;
+
+            rows.forEach(function(row) {
+                const rowStatus = row.getAttribute('data-dash-req-status') || '';
+                if (targetStatus === 'all' || rowStatus === targetStatus) {
+                    row.style.display = '';
+                    visibleRows++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            reqTable.hidden = visibleRows === 0;
+            if (emptyState) {
+                emptyState.style.display = visibleRows === 0 ? 'block' : 'none';
+            }
+            if (filterStatus) {
+                const label = targetStatus === 'all' ? 'all' : targetStatus.toLowerCase();
+                filterStatus.textContent = 'Showing ' + visibleRows + ' ' + label + (visibleRows === 1 ? ' request.' : ' requests.');
+            }
+        }
+
+        filterPills.forEach(function(pill, idx) {
+            pill.addEventListener('click', function() {
+                activateFilterPill(pill, false);
+            });
+
+            pill.addEventListener('keydown', function(e) {
+                if (filterPills.length === 0) return;
+                let nextIndex = null;
+                if (e.key === 'ArrowRight') {
+                    nextIndex = (idx + 1) % filterPills.length;
+                } else if (e.key === 'ArrowLeft') {
+                    nextIndex = (idx - 1 + filterPills.length) % filterPills.length;
+                } else if (e.key === 'Home') {
+                    nextIndex = 0;
+                } else if (e.key === 'End') {
+                    nextIndex = filterPills.length - 1;
+                }
+                if (nextIndex !== null) {
+                    e.preventDefault();
+                    activateFilterPill(filterPills[nextIndex], true);
+                }
+            });
+        });
+
+        // 2. Accessible Pending Leave Cancellation Confirmation Dialog
+        const modal = document.getElementById('dashCancelLeaveModal');
+        const cancelForm = document.getElementById('dashCancelLeaveForm');
+        const typeLabel = document.getElementById('dashCancelLeaveType');
+        const datesLabel = document.getElementById('dashCancelLeaveDates');
+        const closeBtn = document.getElementById('closeDashCancelModalBtn');
+        const dismissBtn = document.getElementById('dismissDashCancelModalBtn');
+        const baseCancelUrl = <?= json_encode(url('/leaves/')) ?>;
+        let lastTriggerBtn = null;
+
+        function closeDashModal() {
+            if (!modal) return;
+            modal.classList.remove('show');
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            if (lastTriggerBtn && typeof lastTriggerBtn.focus === 'function') {
+                lastTriggerBtn.focus();
+                lastTriggerBtn = null;
+            }
+        }
+
+        document.querySelectorAll('.js-dash-cancel-leave').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                lastTriggerBtn = btn;
+                const leaveId = btn.getAttribute('data-leave-id');
+                const leaveType = btn.getAttribute('data-leave-type') || 'Leave';
+                const leaveDates = btn.getAttribute('data-leave-dates') || '';
+
+                if (cancelForm && leaveId) {
+                    cancelForm.action = baseCancelUrl.replace(/\/$/, '') + '/' + encodeURIComponent(leaveId) + '/cancel';
+                }
+                if (typeLabel) typeLabel.textContent = leaveType;
+                if (datesLabel) datesLabel.textContent = leaveDates;
+
+                if (modal) {
+                    modal.classList.add('show');
+                    modal.setAttribute('aria-hidden', 'false');
+                    document.body.style.overflow = 'hidden';
+                    if (dismissBtn) {
+                        dismissBtn.focus();
+                    }
+                }
+            });
+        });
+
+        if (cancelForm) {
+            cancelForm.addEventListener('submit', function() {
+                const submitBtn = cancelForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.classList.add('is-loading');
+                    submitBtn.textContent = 'Cancelling...';
+                }
+            });
+        }
+
+        if (closeBtn) closeBtn.addEventListener('click', closeDashModal);
+        if (dismissBtn) dismissBtn.addEventListener('click', closeDashModal);
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeDashModal();
+            });
+        }
+        document.addEventListener('keydown', function(e) {
+            if (!modal || !modal.classList.contains('show')) return;
+            if (e.key === 'Escape') {
                 e.preventDefault();
-                activateFilterPill(filterPills[nextIndex], true);
-            }
-        });
-    });
-
-    // 2. Accessible Pending Leave Cancellation Confirmation Dialog
-    const modal = document.getElementById('dashCancelLeaveModal');
-    const cancelForm = document.getElementById('dashCancelLeaveForm');
-    const typeLabel = document.getElementById('dashCancelLeaveType');
-    const datesLabel = document.getElementById('dashCancelLeaveDates');
-    const closeBtn = document.getElementById('closeDashCancelModalBtn');
-    const dismissBtn = document.getElementById('dismissDashCancelModalBtn');
-    const baseCancelUrl = <?= json_encode(url('/leaves/')) ?>;
-    let lastTriggerBtn = null;
-
-    function closeDashModal() {
-        if (!modal) return;
-        modal.classList.remove('show');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
-        if (lastTriggerBtn && typeof lastTriggerBtn.focus === 'function') {
-            lastTriggerBtn.focus();
-            lastTriggerBtn = null;
-        }
-    }
-
-    document.querySelectorAll('.js-dash-cancel-leave').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            lastTriggerBtn = btn;
-            const leaveId = btn.getAttribute('data-leave-id');
-            const leaveType = btn.getAttribute('data-leave-type') || 'Leave';
-            const leaveDates = btn.getAttribute('data-leave-dates') || '';
-
-            if (cancelForm && leaveId) {
-                cancelForm.action = baseCancelUrl.replace(/\/$/, '') + '/' + encodeURIComponent(leaveId) + '/cancel';
-            }
-            if (typeLabel) typeLabel.textContent = leaveType;
-            if (datesLabel) datesLabel.textContent = leaveDates;
-
-            if (modal) {
-                modal.classList.add('show');
-                modal.setAttribute('aria-hidden', 'false');
-                document.body.style.overflow = 'hidden';
-                if (dismissBtn) {
-                    dismissBtn.focus();
+                closeDashModal();
+            } else if (e.key === 'Tab') {
+                const focusable = modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled])');
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
                 }
             }
         });
-    });
 
-    if (cancelForm) {
-        cancelForm.addEventListener('submit', function () {
-            const submitBtn = cancelForm.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.classList.add('is-loading');
-                submitBtn.textContent = 'Cancelling...';
+        // 3. Progressive-Enhancement Inline Notification Mark-Read Sync
+        function syncUnreadCounts(nextUnread) {
+            const count = Math.max(0, Number(nextUnread) || 0);
+
+            const kpiVal = document.getElementById('dashKpiUnreadVal');
+            const kpiUnit = document.getElementById('dashKpiUnreadUnit');
+            const kpiIcon = document.getElementById('dashKpiUnreadIcon');
+            if (kpiVal) kpiVal.textContent = String(count);
+            if (kpiUnit) kpiUnit.textContent = count === 1 ? 'alert' : 'alerts';
+            if (kpiIcon) kpiIcon.classList.toggle('is-alert', count > 0);
+
+            const headerBadge = document.getElementById('dashNotifHeaderBadge');
+            if (headerBadge) {
+                headerBadge.textContent = count + ' unread';
+                headerBadge.hidden = count === 0;
             }
-        });
-    }
 
-    if (closeBtn) closeBtn.addEventListener('click', closeDashModal);
-    if (dismissBtn) dismissBtn.addEventListener('click', closeDashModal);
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target === modal) closeDashModal();
-        });
-    }
-    document.addEventListener('keydown', function (e) {
-        if (!modal || !modal.classList.contains('show')) return;
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            closeDashModal();
-        } else if (e.key === 'Tab') {
-            const focusable = modal.querySelectorAll('button:not([disabled]), [href], input:not([disabled])');
-            if (focusable.length === 0) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
+            const sidebarBadge = document.getElementById('sidebarUnreadBadge');
+            if (sidebarBadge) {
+                sidebarBadge.textContent = count > 99 ? '99+' : String(count);
+                sidebarBadge.hidden = count === 0;
+                sidebarBadge.setAttribute('aria-label', count + ' unread notifications');
+            }
+
+            const rtCount = document.getElementById('rtCount');
+            const rtNotify = document.getElementById('rtNotify');
+            const rtBell = document.getElementById('rtBell');
+            if (rtCount) {
+                rtCount.textContent = count > 99 ? '99+' : String(count);
+                rtCount.hidden = count === 0;
+            }
+            if (rtNotify) {
+                rtNotify.setAttribute('data-unread', String(count));
+            }
+            if (rtBell) {
+                rtBell.setAttribute('aria-label', count > 0 ? 'Notifications, ' + count + ' unread' : 'Notifications');
+            }
+        }
+
+        const notifLiveRegion = document.getElementById('dashNotifLiveRegion');
+        document.querySelectorAll('.js-dash-mark-read-form').forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                if (typeof window.fetch !== 'function' || typeof window.FormData !== 'function') {
+                    return;
+                }
                 e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        }
-    });
 
-    // 3. Progressive-Enhancement Inline Notification Mark-Read Sync
-    function syncUnreadCounts(nextUnread) {
-        const count = Math.max(0, Number(nextUnread) || 0);
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                }
 
-        const kpiVal = document.getElementById('dashKpiUnreadVal');
-        const kpiUnit = document.getElementById('dashKpiUnreadUnit');
-        const kpiIcon = document.getElementById('dashKpiUnreadIcon');
-        const kpiCue = document.getElementById('dashKpiUnreadCue');
-        if (kpiVal) kpiVal.textContent = String(count);
-        if (kpiUnit) kpiUnit.textContent = count === 1 ? 'alert' : 'alerts';
-        if (kpiIcon) kpiIcon.classList.toggle('is-alert', count > 0);
-        if (kpiCue) {
-            kpiCue.innerHTML = (count > 0 ? 'Review unread' : 'All alerts read')
-                + ' <span class="emp-kpi-arrow" aria-hidden="true">&rarr;</span>';
-        }
+                fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new FormData(form)
+                    })
+                    .then(function(res) {
+                        if (!res.ok) {
+                            throw new Error('Request failed');
+                        }
+                        return res.json();
+                    })
+                    .then(function(payload) {
+                        if (!payload || payload.status !== 'success') {
+                            throw new Error('Unexpected response');
+                        }
 
-        const headerBadge = document.getElementById('dashNotifHeaderBadge');
-        if (headerBadge) {
-            headerBadge.textContent = count + ' unread';
-            headerBadge.hidden = count === 0;
-        }
+                        const item = form.closest('.emp-notif-item');
+                        if (item) {
+                            item.classList.remove('is-unread');
+                            item.setAttribute('data-read-state', 'read');
+                            const dot = item.querySelector('.emp-unread-dot');
+                            if (dot) dot.remove();
+                            const srUnread = item.querySelector('.emp-notif-title .sr-only');
+                            if (srUnread) srUnread.remove();
 
-        const sidebarBadge = document.getElementById('sidebarUnreadBadge');
-        if (sidebarBadge) {
-            sidebarBadge.textContent = count > 99 ? '99+' : String(count);
-            sidebarBadge.hidden = count === 0;
-            sidebarBadge.setAttribute('aria-label', count + ' unread notifications');
-        }
+                            const readBadge = document.createElement('span');
+                            readBadge.className = 'emp-notif-read-pill';
+                            readBadge.textContent = 'Read';
+                            form.replaceWith(readBadge);
+                        }
 
-        const rtCount = document.getElementById('rtCount');
-        const rtNotify = document.getElementById('rtNotify');
-        const rtBell = document.getElementById('rtBell');
-        if (rtCount) {
-            rtCount.textContent = count > 99 ? '99+' : String(count);
-            rtCount.hidden = count === 0;
-        }
-        if (rtNotify) {
-            rtNotify.setAttribute('data-unread', String(count));
-        }
-        if (rtBell) {
-            rtBell.setAttribute('aria-label', count > 0 ? 'Notifications, ' + count + ' unread' : 'Notifications');
-        }
-    }
+                        const remainingUnread = payload.data && typeof payload.data.unread_count === 'number' ?
+                            payload.data.unread_count :
+                            0;
+                        syncUnreadCounts(remainingUnread);
 
-    const notifLiveRegion = document.getElementById('dashNotifLiveRegion');
-    document.querySelectorAll('.js-dash-mark-read-form').forEach(function (form) {
-        form.addEventListener('submit', function (e) {
-            if (typeof window.fetch !== 'function' || typeof window.FormData !== 'function') {
-                return;
-            }
-            e.preventDefault();
-
-            const submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-            }
-
-            fetch(form.action, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: new FormData(form)
-            })
-                .then(function (res) {
-                    if (!res.ok) {
-                        throw new Error('Request failed');
-                    }
-                    return res.json();
-                })
-                .then(function (payload) {
-                    if (!payload || payload.status !== 'success') {
-                        throw new Error('Unexpected response');
-                    }
-
-                    const item = form.closest('.emp-notif-item');
-                    if (item) {
-                        item.classList.remove('is-unread');
-                        item.setAttribute('data-read-state', 'read');
-                        const dot = item.querySelector('.emp-unread-dot');
-                        if (dot) dot.remove();
-                        const srUnread = item.querySelector('.emp-notif-title .sr-only');
-                        if (srUnread) srUnread.remove();
-
-                        const readBadge = document.createElement('span');
-                        readBadge.className = 'emp-notif-read-pill';
-                        readBadge.textContent = 'Read';
-                        form.replaceWith(readBadge);
-                    }
-
-                    const remainingUnread = payload.data && typeof payload.data.unread_count === 'number'
-                        ? payload.data.unread_count
-                        : 0;
-                    syncUnreadCounts(remainingUnread);
-
-                    if (notifLiveRegion) {
-                        notifLiveRegion.textContent = 'Notification marked as read. ' + remainingUnread + ' unread remaining.';
-                    }
-                })
-                .catch(function () {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                    }
-                    form.submit();
-                });
+                        if (notifLiveRegion) {
+                            notifLiveRegion.textContent = 'Notification marked as read. ' + remainingUnread + ' unread remaining.';
+                        }
+                    })
+                    .catch(function() {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                        }
+                        form.submit();
+                    });
+            });
         });
     });
-});
 </script>
