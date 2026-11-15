@@ -175,60 +175,50 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
         <section class="card profile-section-card" id="personal-info" aria-labelledby="personalInfoHeading">
             <div class="card-body">
                 <div class="profile-card-head">
-                    <div>
+                    <div class="profile-card-head-main">
                         <h2 class="profile-card-title" id="personalInfoHeading">
                             <?= icon('user', 18) ?>
                             <span>Personal Information</span>
                         </h2>
                         <p class="profile-card-desc">Official employee civil and identity records maintained with HR.</p>
                     </div>
-                    <div class="profile-card-actions">
-                        <span class="profile-governance-tag">HR Verified</span>
-                        <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="civil_status">
-                            Request Correction
-                        </button>
-                    </div>
+                    <span class="profile-governance-tag">HR Verified</span>
                 </div>
 
                 <dl class="profile-dl-grid">
                     <div class="profile-dl-item is-full">
-                        <dt class="profile-dl-label">
-                            <span>Full Legal Name</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Full Legal Name</dt>
                         <dd class="profile-dl-value"><?= e($fullName) ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Employee ID</span>
-                            <span class="profile-verified-pill">System</span>
-                        </dt>
-                        <dd class="profile-dl-value"><?= e($emp['employee_no'] ?? 'Not assigned') ?></dd>
+                        <dt class="profile-dl-label">Employee ID</dt>
+                        <dd class="profile-dl-value is-mono"><?= e($emp['employee_no'] ?? 'Not assigned') ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Date of Birth</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Date of Birth</dt>
                         <dd class="profile-dl-value"><?= e($birthDateFormatted) ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Gender</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Gender</dt>
                         <dd class="profile-dl-value"><?= e($emp['gender'] ?? 'Not specified') ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Civil Status</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Civil Status</dt>
                         <dd class="profile-dl-value <?= empty($emp['civil_status']) ? 'is-muted' : '' ?>">
                             <?= e(!empty($emp['civil_status']) ? (string)$emp['civil_status'] : 'Not specified') ?>
                         </dd>
                     </div>
                 </dl>
+
+                <div class="profile-card-footer">
+                    <span class="profile-footer-note">
+                        <?= icon('lock', 14, 'profile-footer-note-icon') ?>
+                        <span>Verified identity records require HR review to change.</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="civil_status">
+                        Request Correction
+                    </button>
+                </div>
             </div>
         </section>
 
@@ -236,12 +226,12 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
         <section class="card profile-section-card" id="contact-info" aria-labelledby="contactInfoHeading">
             <div class="card-body">
                 <div class="profile-card-head">
-                    <div>
+                    <div class="profile-card-head-main">
                         <h2 class="profile-card-title" id="contactInfoHeading">
                             <?= icon('mail', 18) ?>
                             <span>Contact Information</span>
                         </h2>
-                        <p class="profile-card-desc">Update your personal contact details without affecting your corporate login email.</p>
+                        <p class="profile-card-desc">Update your personal contact details.</p>
                     </div>
                     <span class="profile-governance-tag is-self">Self-Service</span>
                 </div>
@@ -250,33 +240,46 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                     <?= csrf_field() ?>
 
                     <div class="form-group mb-0">
-                        <span class="form-label">Work Email Address <span class="profile-verified-pill">HR Controlled</span></span>
+                        <span class="form-label profile-label-row">
+                            <span>Work Email Address</span>
+                            <span class="profile-verified-pill">HR Controlled</span>
+                        </span>
                         <div class="profile-readonly-box">
-                            <span><?= e($emp['email'] ?? 'Not assigned') ?></span>
-                            <button type="button" class="emp-quiet-action" data-open-dialog="correctionRequestModal" data-correction-field="email">
+                            <span class="profile-readonly-value">
+                                <?= icon('lock', 14, 'profile-readonly-icon') ?>
+                                <span><?= e($emp['email'] ?? 'Not assigned') ?></span>
+                            </span>
+                            <button type="button" class="profile-inline-action" data-open-dialog="correctionRequestModal" data-correction-field="email">
                                 Request change
                             </button>
                         </div>
-                        <span class="form-hint-text">Used for HR correspondence and system authentication. Changes require HR approval.</span>
                     </div>
 
                     <div class="profile-form-grid">
+                        <?php
+                        $hasPersonalEmailError = $activeForm === 'contact' && isset($formErrors['personal_email']);
+                        $hasPhoneError         = $activeForm === 'contact' && isset($formErrors['phone']);
+                        $hasAddressError       = $activeForm === 'contact' && isset($formErrors['address']);
+                        ?>
                         <div class="form-group mb-0">
                             <label for="personalEmailInput" class="form-label">Personal Email</label>
                             <input
                                 type="email"
                                 id="personalEmailInput"
                                 name="personal_email"
-                                class="form-control<?= ($activeForm === 'contact' && isset($formErrors['personal_email'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasPersonalEmailError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valContact('personal_email')) ?>"
                                 autocomplete="email"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                inputmode="email"
                                 maxlength="100"
                                 placeholder="name@example.com"
-                                aria-describedby="personalEmailHint"
+                                <?= $hasPersonalEmailError ? 'aria-invalid="true" aria-describedby="personalEmailError"' : '' ?>
                             >
-                            <span id="personalEmailHint" class="form-hint-text">Optional recovery and personal communication address.</span>
-                            <?php if ($activeForm === 'contact' && isset($formErrors['personal_email'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['personal_email']) ?></span>
+                            <?php if ($hasPersonalEmailError): ?>
+                                <span id="personalEmailError" class="field-error-text" role="alert"><?= e($formErrors['personal_email']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -286,16 +289,16 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 type="tel"
                                 id="contactPhoneInput"
                                 name="phone"
-                                class="form-control<?= ($activeForm === 'contact' && isset($formErrors['phone'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasPhoneError ? ' is-invalid' : '' ?>"
                                 value="<?= e($valContact('phone')) ?>"
                                 autocomplete="tel"
+                                inputmode="tel"
                                 maxlength="25"
                                 placeholder="+63 917 000 0000"
-                                aria-describedby="phoneFormatHint"
+                                <?= $hasPhoneError ? 'aria-invalid="true" aria-describedby="contactPhoneError"' : '' ?>
                             >
-                            <span id="phoneFormatHint" class="form-hint-text">7–25 characters (digits, +, spaces, parentheses, or hyphens).</span>
-                            <?php if ($activeForm === 'contact' && isset($formErrors['phone'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['phone']) ?></span>
+                            <?php if ($hasPhoneError): ?>
+                                <span id="contactPhoneError" class="field-error-text" role="alert"><?= e($formErrors['phone']) ?></span>
                             <?php endif; ?>
                         </div>
 
@@ -305,13 +308,14 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                                 id="contactAddressInput"
                                 name="address"
                                 rows="2"
-                                class="form-control<?= ($activeForm === 'contact' && isset($formErrors['address'])) ? ' is-invalid' : '' ?>"
+                                class="form-control<?= $hasAddressError ? ' is-invalid' : '' ?>"
                                 autocomplete="street-address"
                                 maxlength="500"
                                 placeholder="House/Unit, Street, Barangay, City/Province"
+                                <?= $hasAddressError ? 'aria-invalid="true" aria-describedby="contactAddressError"' : '' ?>
                             ><?= e($valContact('address')) ?></textarea>
-                            <?php if ($activeForm === 'contact' && isset($formErrors['address'])): ?>
-                                <span class="field-error-text" role="alert"><?= e($formErrors['address']) ?></span>
+                            <?php if ($hasAddressError): ?>
+                                <span id="contactAddressError" class="field-error-text" role="alert"><?= e($formErrors['address']) ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -488,50 +492,33 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
         <section class="card profile-section-card" id="employment-info" aria-labelledby="employmentInfoHeading">
             <div class="card-body">
                 <div class="profile-card-head">
-                    <div>
+                    <div class="profile-card-head-main">
                         <h2 class="profile-card-title" id="employmentInfoHeading">
                             <?= icon('briefcase', 18) ?>
                             <span>Employment &amp; Organization</span>
                         </h2>
                         <p class="profile-card-desc">Official department assignment, role classification, and calculated service tenure.</p>
                     </div>
-                    <div class="profile-card-actions">
-                        <span class="profile-governance-tag">HR Verified</span>
-                        <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="department_id">
-                            Request Correction
-                        </button>
-                    </div>
+                    <span class="profile-governance-tag">HR Verified</span>
                 </div>
 
                 <dl class="profile-dl-grid">
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Department</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Department</dt>
                         <dd class="profile-dl-value"><?= e($emp['department_name'] ?? 'Unassigned') ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Current Position</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Current Position</dt>
                         <dd class="profile-dl-value"><?= e($emp['position_name'] ?? 'Unassigned') ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Employment Type</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Employment Type</dt>
                         <dd class="profile-dl-value"><?= e($empType) ?></dd>
                     </div>
                     <div class="profile-dl-item">
-                        <dt class="profile-dl-label">
-                            <span>Employment Status</span>
-                            <span class="profile-verified-pill">HR Verified</span>
-                        </dt>
+                        <dt class="profile-dl-label">Employment Status</dt>
                         <dd class="profile-dl-value">
-                            <span class="badge <?= $empStatus === 'Active' ? 'badge-success' : 'badge-danger' ?>">
+                            <span class="badge badge-dot <?= $empStatus === 'Active' ? 'badge-success' : 'badge-danger' ?>">
                                 <?= e($empStatus) ?>
                             </span>
                         </dd>
@@ -563,6 +550,16 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
                         </dd>
                     </div>
                 </dl>
+
+                <div class="profile-card-footer">
+                    <span class="profile-footer-note">
+                        <?= icon('lock', 14, 'profile-footer-note-icon') ?>
+                        <span>Organizational assignments are managed by HR.</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="correctionRequestModal" data-correction-field="department_id">
+                        Request Correction
+                    </button>
+                </div>
             </div>
         </section>
     </div>
