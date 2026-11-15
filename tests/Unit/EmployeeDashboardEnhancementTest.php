@@ -321,6 +321,36 @@ class EmployeeDashboardEnhancementTest extends TestCase
         $this->assertSame(2, $decoded['data']['unread_count']);
     }
 
+    public function testNotificationDeleteOnlyRemovesOwnedItems(): void
+    {
+        Session::set('user', ['id' => 11, 'role' => 'employee']);
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+
+        $notifMock = $this->createMock(Notification::class);
+        $notifMock->expects($this->exactly(2))
+            ->method('deleteForUser')
+            ->willReturnMap([
+                [500, 11, false],
+                [77, 11, true],
+            ]);
+        $notifMock->expects($this->once())->method('getUnreadCount')->with(11)->willReturn(1);
+
+        $controller = new NotificationController($notifMock);
+
+        ob_start();
+        $controller->delete(500);
+        $notFound = json_decode((string)ob_get_clean(), true);
+        $this->assertSame('error', $notFound['status']);
+        $this->assertSame(404, $notFound['code']);
+
+        ob_start();
+        $controller->delete(77);
+        $deleted = json_decode((string)ob_get_clean(), true);
+        $this->assertSame('success', $deleted['status']);
+        $this->assertSame(77, $deleted['data']['notification_id']);
+        $this->assertSame(1, $deleted['data']['unread_count']);
+    }
+
     public function testEmployeeDashboardViewRendersAllSectionsZeroAllocationAndErrorStatesCleanly(): void
     {
         $renderView = static function (array $vars): string {
@@ -441,5 +471,67 @@ class EmployeeDashboardEnhancementTest extends TestCase
         $status3 = (string)$pdo->query('SELECT status FROM leave_requests WHERE id = 3')->fetchColumn();
         $this->assertSame('Cancelled', $status1);
         $this->assertSame('Pending', $status3);
+    }
+
+    public function testEmployeeBalancesOverviewStripRendersExecutiveLedgerStates(): void
+    {
+        $renderBalances = static function (array $overviewMetrics): string {
+            $year = 2026;
+            $annualBenefits = [];
+            $statutoryEvents = [];
+            $companyEvents = [];
+            $unpaidBenefits = [];
+            $eventEntitlements = [];
+            $qualifications = [];
+            $unpaidSummary = ['approved_days' => 0, 'pending_days' => 0];
+            $ledgerTransactions = [];
+            $pendingRequestsPreview = [];
+            $pendingRequestsTotal = 0;
+            $allTypePolicies = [];
+            ob_start();
+            require dirname(__DIR__, 2) . '/app/views/dashboard/employee_balances.php';
+            return (string)ob_get_clean();
+        };
+
+        $healthyHtml = $renderBalances([
+            'allocated_paid' => 30,
+            'used_paid'      => 2,
+            'pending_paid'   => 2,
+            'available_paid' => 28,
+            'converted_paid' => 1,
+        ]);
+
+        $this->assertStringContainsString('leave-overview-strip', $healthyHtml);
+        $this->assertStringContainsString('28', $healthyHtml);
+        $this->assertStringContainsString('days available', $healthyHtml);
+        $this->assertStringContainsString('10% used', $healthyHtml);
+        $this->assertStringContainsString('Ready for new requests', $healthyHtml);
+        $this->assertStringContainsString('leave-overview-cell is-pending', $healthyHtml);
+        $this->assertStringContainsString('leave-overview-icon is-info', $healthyHtml);
+        $this->assertStringNotContainsString('stat-card', $healthyHtml);
+
+        $exhaustedHtml = $renderBalances([
+            'allocated_paid' => 10,
+            'used_paid'      => 10,
+            'pending_paid'   => 0,
+            'available_paid' => 0,
+            'converted_paid' => 0,
+        ]);
+
+        $this->assertStringContainsString('No paid credits remaining', $exhaustedHtml);
+        $this->assertStringContainsString('100% used', $exhaustedHtml);
+        $this->assertStringContainsString('leave-overview-icon is-exhausted', $exhaustedHtml);
+        $this->assertStringNotContainsString('leave-overview-cell is-pending', $exhaustedHtml);
+
+        $singularZeroHtml = $renderBalances([
+            'allocated_paid' => 0,
+            'used_paid'      => 0,
+            'pending_paid'   => 0,
+            'available_paid' => 1,
+            'converted_paid' => 0,
+        ]);
+
+        $this->assertStringContainsString('day available', $singularZeroHtml);
+        $this->assertStringContainsString('No paid quota allocated', $singularZeroHtml);
     }
 }

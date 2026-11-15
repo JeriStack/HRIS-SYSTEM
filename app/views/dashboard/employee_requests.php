@@ -71,7 +71,7 @@ foreach ($requests as $r) {
                 type="search"
                 id="leaveRequestSearch"
                 class="form-control"
-                placeholder="Search type, dates, or reason..."
+                placeholder="Search type or dates..."
                 aria-label="Search leave requests"
             >
         </div>
@@ -87,7 +87,6 @@ foreach ($requests as $r) {
                             <th>Leave Type</th>
                             <th>Dates</th>
                             <th>Duration</th>
-                            <th>Reason &amp; Review Notes</th>
                             <th>Date Filed</th>
                             <th>Status</th>
                             <th class="text-right">Actions</th>
@@ -114,7 +113,7 @@ foreach ($requests as $r) {
                                 <td>
                                     <span class="font-semibold text-main"><?= e($leaveName) ?></span>
                                     <?php if (!empty($req['classification']) || !empty($req['is_confidential']) || (($req['entitlement_unit'] ?? 'working_days') === 'calendar_days')): ?>
-                                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                                        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem; margin-top: 0.25rem;">
                                             <?php if (!empty($req['classification'])): ?>
                                                 <span class="badge <?= $req['classification'] === 'Statutory' ? 'badge-statutory' : 'badge-company' ?>" style="font-size: 0.6875rem;">
                                                     <?= e((string)$req['classification']) ?>
@@ -141,20 +140,6 @@ foreach ($requests as $r) {
                                 <td class="tabular-nums">
                                     <span class="font-semibold"><?= $days ?></span>
                                     <span class="text-xs text-muted"><?= $days === 1 ? 'day' : 'days' ?></span>
-                                </td>
-                                <td style="max-width: 280px;">
-                                    <div class="text-sm text-main" style="word-break: break-word;">
-                                        <?= e(mb_strimwidth($req['reason'] ?? '—', 0, 85, '...')) ?>
-                                    </div>
-                                    <?php if (!empty($req['rejection_reason']) && $status === 'Rejected') : ?>
-                                        <div class="text-xs text-danger mt-1">
-                                            <strong>HR Note:</strong> <?= e($req['rejection_reason']) ?>
-                                        </div>
-                                    <?php elseif (!empty($req['approver_name']) && $status === 'Approved') : ?>
-                                        <div class="text-xs text-muted mt-1">
-                                            Approved by <?= e($req['approver_name']) ?>
-                                        </div>
-                                    <?php endif; ?>
                                 </td>
                                 <td class="text-xs text-muted tabular-nums"><?= e($filedStr) ?></td>
                                 <td>

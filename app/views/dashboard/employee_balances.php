@@ -10,11 +10,25 @@ $usedPaid = (int)($metrics['used_paid'] ?? 0);
 $pendingPaid = (int)($metrics['pending_paid'] ?? 0);
 $availPaid = (int)($metrics['available_paid'] ?? 0);
 $convPaid = (int)($metrics['converted_paid'] ?? 0);
+$consumedPaid = max(0, $usedPaid + $convPaid);
+$usedPct = $allocPaid > 0 ? min(100, (int)round(($consumedPaid / $allocPaid) * 100)) : 0;
+$isAvailExhausted = $allocPaid > 0 && $availPaid <= 0;
+$isLowPaidBalance = $allocPaid > 0 && !$isAvailExhausted && $usedPct >= 75;
+$availCaption = match (true) {
+    $allocPaid <= 0 => 'No paid quota allocated',
+    $availPaid <= 0 => 'No paid credits remaining',
+    default => 'Ready for new requests',
+};
+$meterClass = match (true) {
+    $isAvailExhausted => 'is-exhausted',
+    $isLowPaidBalance => 'is-warning',
+    default => '',
+};
 ?>
 <div class="page-header">
     <div class="page-title-group">
         <h1>My Leave Balances (<?= $year ?>)</h1>
-        <p>Philippine statutory leave benefits, company quotas, verification status, and audit ledger.</p>
+        <p>Statutory and company leave benefits, quotas, and verification status.</p>
     </div>
     <div class="page-actions">
         <a href="<?= url('/leaves/apply') ?>" class="btn btn-primary btn-sm">
@@ -32,48 +46,74 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
 <section class="leave-section" aria-labelledby="secOverviewHeading">
     <div class="leave-section-head">
         <h2 class="leave-section-title" id="secOverviewHeading">Paid Annual Leave Overview</h2>
-        <span class="leave-section-meta">Pending days are reserved separately from approved used credits</span>
+        <span class="leave-section-meta leave-overview-note">
+            <?= icon('info', 14) ?>
+            <span>Pending days are reserved separately from approved used credits</span>
+        </span>
     </div>
-    <div class="grid grid-cols-5" style="gap: var(--space-4);">
-        <div class="stat-card">
-            <div class="stat-info">
-                <span class="stat-label">Allocated Paid</span>
-                <span class="stat-value"><?= $allocPaid ?>d</span>
-                <span class="stat-subtext">Annual paid credits</span>
+    <div class="leave-overview-shell">
+        <div class="leave-overview-strip">
+            <div class="leave-overview-primary">
+                <div class="leave-overview-cell-head">
+                    <span class="leave-overview-label">Available Now</span>
+                    <span class="leave-overview-icon <?= $isAvailExhausted ? 'is-exhausted' : ($allocPaid > 0 ? 'is-available' : '') ?>" aria-hidden="true">
+                        <?= icon($isAvailExhausted ? 'alert-circle' : 'check-circle', 16) ?>
+                    </span>
+                </div>
+
+                <div class="leave-overview-hero-block">
+                    <div class="leave-overview-hero-row">
+                        <span class="leave-overview-hero-val"><?= $availPaid ?></span>
+                        <span class="leave-overview-hero-unit"><?= abs($availPaid) === 1 ? 'day' : 'days' ?> available</span>
+                    </div>
+                    <p class="leave-overview-hero-sub"><?= e($availCaption) ?></p>
+                </div>
+
+                <div class="leave-overview-meter-wrap">
+                    <div class="leave-overview-meter" role="progressbar" aria-label="Paid annual leave utilization" aria-valuenow="<?= $usedPct ?>" aria-valuemin="0" aria-valuemax="100">
+                        <div class="leave-overview-meter-fill <?= $meterClass ?>" style="width: <?= $usedPct ?>%;"></div>
+                    </div>
+                    <span class="leave-overview-meter-pct"><?= $usedPct ?>% used</span>
+                </div>
             </div>
-            <div class="stat-icon-wrapper icon-blue" aria-hidden="true"><?= icon('calendar', 20) ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <span class="stat-label">Available Now</span>
-                <span class="stat-value" style="color: var(--color-primary);"><?= $availPaid ?>d</span>
-                <span class="stat-subtext">Ready for new requests</span>
+
+            <div class="leave-overview-grid">
+                <div class="leave-overview-cell">
+                    <div class="leave-overview-cell-head">
+                        <span class="leave-overview-label">Allocated Paid</span>
+                        <span class="leave-overview-icon" aria-hidden="true"><?= icon('calendar', 15) ?></span>
+                    </div>
+                    <div class="leave-overview-val"><?= $allocPaid ?>d</div>
+                    <div class="leave-overview-sub">Annual paid credits</div>
+                </div>
+
+                <div class="leave-overview-cell">
+                    <div class="leave-overview-cell-head">
+                        <span class="leave-overview-label">Approved Used</span>
+                        <span class="leave-overview-icon" aria-hidden="true"><?= icon('calendar-check', 15) ?></span>
+                    </div>
+                    <div class="leave-overview-val"><?= $usedPaid ?>d</div>
+                    <div class="leave-overview-sub">Deducted after approval</div>
+                </div>
+
+                <div class="leave-overview-cell <?= $pendingPaid > 0 ? 'is-pending' : '' ?>">
+                    <div class="leave-overview-cell-head">
+                        <span class="leave-overview-label">Pending Approval</span>
+                        <span class="leave-overview-icon <?= $pendingPaid > 0 ? 'is-pending' : '' ?>" aria-hidden="true"><?= icon('clock', 15) ?></span>
+                    </div>
+                    <div class="leave-overview-val"><?= $pendingPaid ?>d</div>
+                    <div class="leave-overview-sub">Awaiting HR review</div>
+                </div>
+
+                <div class="leave-overview-cell">
+                    <div class="leave-overview-cell-head">
+                        <span class="leave-overview-label">Converted (SIL)</span>
+                        <span class="leave-overview-icon <?= $convPaid > 0 ? 'is-info' : '' ?>" aria-hidden="true"><?= icon('peso', 15) ?></span>
+                    </div>
+                    <div class="leave-overview-val"><?= $convPaid ?>d</div>
+                    <div class="leave-overview-sub">Recorded cash conversion</div>
+                </div>
             </div>
-            <div class="stat-icon-wrapper icon-green" aria-hidden="true"><?= icon('check-circle', 20) ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <span class="stat-label">Approved Used</span>
-                <span class="stat-value"><?= $usedPaid ?>d</span>
-                <span class="stat-subtext">Deducted after approval</span>
-            </div>
-            <div class="stat-icon-wrapper icon-teal" aria-hidden="true"><?= icon('calendar-check', 20) ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <span class="stat-label">Pending Approval</span>
-                <span class="stat-value" style="color: var(--color-warning);"><?= $pendingPaid ?>d</span>
-                <span class="stat-subtext">Awaiting HR review</span>
-            </div>
-            <div class="stat-icon-wrapper icon-amber" aria-hidden="true"><?= icon('clock', 20) ?></div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-info">
-                <span class="stat-label">Converted (SIL)</span>
-                <span class="stat-value"><?= $convPaid ?>d</span>
-                <span class="stat-subtext">Recorded cash conversion</span>
-            </div>
-            <div class="stat-icon-wrapper icon-purple" aria-hidden="true"><?= icon('balances', 20) ?></div>
         </div>
     </div>
 </section>
@@ -82,10 +122,9 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
 <section class="leave-section" aria-labelledby="secAnnualHeading">
     <div class="leave-section-head">
         <h2 class="leave-section-title" id="secAnnualHeading">Statutory &amp; Company Annual Leave Balances</h2>
-        <span class="leave-section-meta">SIL offset and Solo Parent SPIC verification rules apply</span>
     </div>
     <?php if (empty($annualBenefits)): ?>
-        <div class="card"><div class="card-body">No annual leave categories configured.</div></div>
+        <div class="card"><div class="card-body">No eligible annual leave categories available for your current profile.</div></div>
     <?php else: ?>
         <div class="leave-benefit-grid">
             <?php foreach ($annualBenefits as $entry):
@@ -109,19 +148,26 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
                 };
             ?>
                 <article class="leave-benefit-card" data-balance-type-id="<?= (int)$tp['id'] ?>">
+                    <?php
+                        $reason = trim((string)($elig['reason'] ?? ''));
+                        $showReason = $reason !== '' && $reason !== 'Active company leave policy.';
+                        $law = trim((string)($tp['legal_reference'] ?? ''));
+                        $usedPct = $alloc > 0 ? min(100, (int)round($used / $alloc * 100)) : 0;
+                        $pendPct = $alloc > 0 ? min(100 - $usedPct, (int)round($pend / $alloc * 100)) : 0;
+                        $usageParts = [$used . 'd used'];
+                        if ($pend > 0) { $usageParts[] = $pend . 'd pending'; }
+                        if ($conv > 0) { $usageParts[] = $conv . 'd converted'; }
+                    ?>
                     <div class="leave-benefit-top">
-                        <div>
+                        <div class="leave-benefit-heading">
                             <h3 class="leave-benefit-name"><?= e($tp['leave_name'] ?? 'Leave Benefit') ?></h3>
-                            <?php if (!empty($tp['legal_reference'])): ?>
-                                <div class="leave-benefit-law"><?= e($tp['legal_reference']) ?></div>
-                            <?php endif; ?>
+                            <div class="leave-benefit-law"><?= e($classif === 'Statutory' && $law !== '' ? $classif . ' · ' . $law : $classif) ?></div>
                         </div>
-                        <div class="leave-benefit-badges">
-                            <span class="badge <?= $classif === 'Statutory' ? 'badge-statutory' : 'badge-company' ?>">
-                                <?= e($classif) ?>
-                            </span>
-                            <span class="badge <?= $statusBadgeClass ?>"><?= e($statusLabel) ?></span>
-                        </div>
+                        <?php if ($statusLabel !== \App\Services\LeavePolicyEngine::STATUS_AVAILABLE): ?>
+                            <div class="leave-benefit-badges">
+                                <span class="badge <?= $statusBadgeClass ?>"><?= e($statusLabel) ?></span>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <?php if ($isCreditedViaVl): ?>
@@ -133,24 +179,23 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
                             <span><?= e((string)($elig['reason'] ?? 'Not currently eligible under active policy rules.')) ?></span>
                         </div>
                     <?php else: ?>
-                        <div class="leave-benefit-stats">
-                            <div>
-                                <span class="leave-benefit-figure"><?= $rem ?></span>
-                                <span class="leave-benefit-sub">of <?= $alloc ?> available</span>
-                            </div>
-                            <div class="leave-benefit-sub">
-                                Used: <?= $used ?>d &middot; Pending: <?= $pend ?>d<?= $conv > 0 ? ' &middot; Converted: ' . $conv . 'd' : '' ?>
-                            </div>
+                        <div class="leave-benefit-balance">
+                            <span class="leave-benefit-figure"><?= $rem ?></span>
+                            <span class="leave-benefit-sub">of <?= $alloc ?> days left</span>
                         </div>
-                        <p class="leave-benefit-sub" style="margin: 0;">
-                            <?= e((string)($elig['reason'] ?? '')) ?>
-                        </p>
-                        <div style="margin-top: auto;">
+                        <div class="leave-benefit-meter" role="progressbar" aria-label="<?= e($tp['leave_name'] ?? 'Leave') ?> used" aria-valuenow="<?= $usedPct ?>" aria-valuemin="0" aria-valuemax="100">
+                            <span class="leave-benefit-meter-used" style="width: <?= $usedPct ?>%;"></span>
+                            <span class="leave-benefit-meter-pending" style="width: <?= $pendPct ?>%;"></span>
+                        </div>
+                        <?php if ($showReason): ?>
+                            <p class="leave-benefit-note"><?= e($reason) ?></p>
+                        <?php endif; ?>
+                        <div class="leave-benefit-foot">
+                            <span class="leave-benefit-sub"><?= e(implode(' · ', $usageParts)) ?></span>
                             <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$tp['id']) ?>" class="btn btn-secondary btn-xs">Apply</a>
                         </div>
                     <?php endif; ?>
-                </article>
-            <?php endforeach; ?>
+                </article>            <?php endforeach; ?>
         </div>
     <?php endif; ?>
 </section>
@@ -159,56 +204,105 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
 <section class="leave-section" aria-labelledby="secStatEventsHeading">
     <div class="leave-section-head">
         <h2 class="leave-section-title" id="secStatEventsHeading">Philippine Statutory Event-Based Benefits</h2>
-        <span class="leave-section-meta">Granted per qualifying life/medical/protective event (not ordinary annual balances)</span>
     </div>
-    <div class="leave-benefit-grid">
-        <?php foreach ($statutoryEvents ?? [] as $ev):
+    <?php
+        $employeeGender = (string)($employee['gender'] ?? '');
+        $isGenericReason = static fn (string $r): bool => $r === '' || $r === 'Active company leave policy.';
+
+        // One-line description for company-provided benefits. Full rules live in the policy dialog.
+        $eventBlurb = static function (array $tp): string {
+            if (strtoupper(trim((string)($tp['leave_code'] ?? ''))) === 'BEREAVEMENT') {
+                return 'Death of an immediate family member.';
+            }
+            $desc = trim((string)($tp['description'] ?? ''));
+            return mb_strlen($desc) <= 100 ? $desc : '';
+        };
+
+        // Entitlement from the eligibility result (e.g. 7 transferred days for a male employee's Maternity row).
+        $eventEntitlement = static function (array $tp, array $elig): array {
+            $days = (int)($elig['entitled_days'] ?? 0);
+            if ($days <= 0) {
+                $days = (int)($tp['default_days'] ?? 0);
+            }
+            $unit = (string)($elig['entitlement_unit'] ?? ($tp['default_unit'] ?? 'working_days'));
+            return [$days, $unit === 'calendar_days' ? 'calendar days' : 'working days'];
+        };
+
+        // Same confidentiality rule as LeavePolicyEngine / ConfidentialLeaveService.
+        $isConfidentialType = static fn (array $tp): bool => !empty($tp['is_confidential'])
+            || in_array(strtoupper(trim((string)($tp['leave_code'] ?? ''))), ['VAWC', 'SLW'], true);
+
+        // Data attributes for the shared policy details dialog (see forms.js).
+        $policyAttrs = static function (array $tp, array $elig, string $quotaText) use ($isGenericReason): string {
+            $reason = trim((string)($elig['reason'] ?? ''));
+            $attrs = [
+                'data-policy-dialog-trigger' => '1',
+                'data-policy-name'     => (string)($tp['leave_name'] ?? ''),
+                'data-policy-code'     => (string)($tp['policy_code'] ?? ($tp['leave_code'] ?? 'STANDARD')),
+                'data-policy-category' => (string)($tp['classification'] ?? 'Company') . ' / Event-Based',
+                'data-policy-legal'    => (string)($tp['legal_reference'] ?? 'Internal Company Policy'),
+                'data-policy-quota'    => $quotaText,
+                'data-policy-service'  => (int)($tp['min_service_months'] ?? 0) . ' month(s) minimum service',
+                'data-policy-docs'     => !empty($tp['requires_documentation'])
+                    ? (string)($tp['document_requirements'] ?? 'Supporting documentation required')
+                    : 'Optional unless requested by HR',
+                'data-policy-notes'    => !$isGenericReason($reason) ? $reason : trim((string)($tp['description'] ?? '')),
+            ];
+            $out = [];
+            foreach ($attrs as $k => $v) {
+                $out[] = $k . '="' . e((string)$v) . '"';
+            }
+            return implode(' ', $out);
+        };
+    ?>
+    <?php if (empty($statutoryEvents)): ?>
+        <div class="card"><div class="card-body">No statutory event-based benefits apply to your profile.</div></div>
+    <?php else: ?>
+    <div class="card leave-list">
+        <?php foreach ($statutoryEvents as $ev):
             $tp = $ev['type'];
             $elig = $ev['eligibility'] ?? [];
-            $isElig = !empty($elig['eligible']);
-            $code = strtoupper((string)($tp['leave_code'] ?? ''));
-            $unitLabel = (($tp['default_unit'] ?? 'working_days') === 'calendar_days') ? 'calendar days' : 'working days';
-            $isConf = !empty($tp['is_confidential']);
+            $code = strtoupper(trim((string)($tp['leave_code'] ?? '')));
+            [$entDays, $entUnit] = $eventEntitlement($tp, $elig);
+            $isConf = $isConfidentialType($tp);
+            $isPendingVerification = ($elig['status'] ?? '') === \App\Services\LeavePolicyEngine::STATUS_PENDING_VERIFICATION;
+            $legalShort = trim((string)preg_replace('/\s*\(.*$/', '', (string)($tp['legal_reference'] ?? '')));
+            $legalParts = $legalShort !== '' ? [$legalShort] : [];
+            if ($code === 'MATERNITY' && $employeeGender === 'Male') {
+                $legalParts[] = 'Transferred by the mother';
+            }
+            $maxDeliveries = (int)($tp['max_events_lifetime'] ?? 4);
+            if ($code === 'PATERNITY' && isset($ev['paternity_deliveries_used']) && $maxDeliveries > 0) {
+                $legalParts[] = (int)$ev['paternity_deliveries_used'] . ' of ' . $maxDeliveries . ' deliveries used';
+            }
         ?>
-            <article class="leave-benefit-card">
-                <div class="leave-benefit-top">
-                    <div>
-                        <h3 class="leave-benefit-name"><?= e($tp['leave_name'] ?? '') ?></h3>
-                        <?php if (!empty($tp['legal_reference'])): ?>
-                            <div class="leave-benefit-law"><?= e($tp['legal_reference']) ?></div>
+            <div class="leave-list-row">
+                <div class="leave-list-main">
+                    <div class="leave-list-name">
+                        <?= e((string)($tp['leave_name'] ?? '')) ?>
+                        <?php if ($isPendingVerification): ?>
+                            <span class="badge badge-warning">Pending HR Verification</span>
                         <?php endif; ?>
                     </div>
-                    <div class="leave-benefit-badges">
-                        <span class="badge badge-statutory">Statutory Event</span>
+                    <div class="leave-list-sub">
+                        <?= e(implode(' · ', $legalParts)) ?>
                         <?php if ($isConf): ?>
-                            <span class="badge badge-confidential">Confidential</span>
+                            <span class="leave-list-lock" title="Details of this leave are kept confidential"><?= icon('lock', 12) ?> Confidential</span>
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="leave-benefit-stats">
-                    <div>
-                        <span class="leave-benefit-figure"><?= (int)($tp['default_days'] ?? 0) ?></span>
-                        <span class="leave-benefit-sub"><?= e($unitLabel) ?> / event</span>
-                    </div>
-                    <span class="badge <?= $isElig ? 'badge-success' : 'badge-neutral' ?>">
-                        <?= $isElig ? 'Potentially Eligible' : 'Restricted' ?>
-                    </span>
+                <div class="leave-list-value">
+                    <span class="leave-list-days"><?= $entDays ?></span>
+                    <span class="leave-list-sub"><?= e($entUnit) ?></span>
                 </div>
-                <?php if ($code === 'PATERNITY' && isset($ev['paternity_deliveries_used'])): ?>
-                    <div class="leave-benefit-sub">
-                        Lawful Spouse Deliveries Used: <strong><?= (int)$ev['paternity_deliveries_used'] ?> / 4</strong>
-                    </div>
-                <?php endif; ?>
-                <p class="leave-benefit-sub" style="margin: 0;"><?= e((string)($elig['reason'] ?? '')) ?></p>
-                <?php if ($isElig): ?>
-                    <div style="margin-top: auto;">
-                        <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$tp['id']) ?>" class="btn btn-secondary btn-xs">File Request</a>
-                    </div>
-                <?php endif; ?>
-            </article>
+                <div class="leave-list-actions">
+                    <button type="button" class="leave-link-btn" <?= $policyAttrs($tp, $elig, $entDays . ' ' . $entUnit) ?>>View Policy</button>
+                    <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$tp['id']) ?>" class="btn btn-secondary btn-xs"><?= $isConf ? 'Apply Confidentially' : 'Apply' ?></a>
+                </div>
+            </div>
         <?php endforeach; ?>
     </div>
-
+    <?php endif; ?>
     <?php if (!empty($qualifications) || !empty($eventEntitlements)): ?>
         <div class="grid grid-cols-2" style="gap: var(--space-4); margin-top: var(--space-4);">
             <div class="card">
@@ -264,53 +358,72 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
     <?php endif; ?>
 </section>
 
-<!-- 4. Company Event-Based Benefits & 5. Unpaid Leave Tracking -->
-<section class="leave-section grid grid-cols-2" style="gap: var(--space-4);" aria-labelledby="secCompEventHeading">
-    <div class="card">
-        <div class="card-header"><h2 class="card-title" id="secCompEventHeading">Company Event-Based Benefits</h2></div>
-        <div class="card-body">
-            <?php if (empty($companyEvents)): ?>
-                <p style="color: var(--color-text-muted); margin: 0;">No company event-based leave policies active.</p>
-            <?php else: foreach ($companyEvents as $ce):
-                $ctp = $ce['type'];
-            ?>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 0.5rem 0;">
-                    <div>
-                        <strong><?= e((string)($ctp['leave_name'] ?? '')) ?></strong>
-                        <div class="leave-benefit-sub"><?= e((string)($ce['eligibility']['reason'] ?? '')) ?></div>
-                    </div>
-                    <div style="text-align: right; white-space: nowrap;">
-                        <span class="badge badge-company"><?= (int)($ctp['default_days'] ?? 0) ?> working days / event</span>
-                        <div style="margin-top: 0.35rem;">
-                            <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$ctp['id']) ?>" class="btn btn-secondary btn-xs">Apply</a>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; endif; ?>
-        </div>
+<!-- 4. Company-Provided Event-Based Benefits -->
+<section class="leave-section" aria-labelledby="secCompEventHeading">
+    <div class="leave-section-head">
+        <h2 class="leave-section-title" id="secCompEventHeading">Company-Provided Event-Based Benefits</h2>
     </div>
+    <?php if (empty($companyEvents)): ?>
+        <div class="card"><div class="card-body">No company event-based leave policies are active.</div></div>
+    <?php else: ?>
+        <div class="card leave-list">
+            <?php foreach ($companyEvents as $ce):
+                $ctp = $ce['type'];
+                $celig = $ce['eligibility'] ?? [];
+                [$cDays, $cUnit] = $eventEntitlement($ctp, $celig);
+                $cBlurb = $eventBlurb($ctp);
+            ?>
+                <div class="leave-list-row">
+                    <div class="leave-list-main">
+                        <div class="leave-list-name"><?= e((string)($ctp['leave_name'] ?? '')) ?></div>
+                        <?php if ($cBlurb !== ''): ?>
+                            <div class="leave-list-sub"><?= e($cBlurb) ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="leave-list-value">
+                        <span class="leave-list-days"><?= $cDays ?></span>
+                        <span class="leave-list-sub"><?= e($cUnit) ?></span>
+                    </div>
+                    <div class="leave-list-actions">
+                        <button type="button" class="leave-link-btn" <?= $policyAttrs($ctp, $celig, $cDays . ' ' . $cUnit) ?>>View Policy</button>
+                        <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$ctp['id']) ?>" class="btn btn-secondary btn-xs">Apply</a>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
 
-    <div class="card">
-        <div class="card-header"><h2 class="card-title">Unpaid Leave (LWOP) Tracking — <?= $year ?></h2></div>
-        <div class="card-body">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                <div>
-                    <div class="leave-benefit-figure"><?= (int)($unpaidSummary['approved_days'] ?? 0) ?> days</div>
-                    <div class="leave-benefit-sub">Approved unpaid absences (zero paid credit deduction)</div>
-                </div>
-                <div style="text-align: right;">
-                    <span class="badge badge-unpaid">Pending: <?= (int)($unpaidSummary['pending_days'] ?? 0) ?>d</span>
-                    <?php if (!empty($unpaidBenefits[0]['type']['id'])): ?>
-                        <div style="margin-top: 0.45rem;">
-                            <a href="<?= url('/leaves/apply?leave_type_id=' . (int)$unpaidBenefits[0]['type']['id']) ?>" class="btn btn-secondary btn-xs">File LWOP</a>
-                        </div>
-                    <?php endif; ?>
-                </div>
+<!-- 5. Leave Without Pay -->
+<?php
+    $lwopApproved = (int)($unpaidSummary['approved_days'] ?? 0);
+    $lwopPending = (int)($unpaidSummary['pending_days'] ?? 0);
+    $lwopTypeId = (int)($unpaidBenefits[0]['type']['id'] ?? 0);
+?>
+<section class="leave-section" aria-labelledby="secLwopHeading">
+    <div class="leave-section-head">
+        <h2 class="leave-section-title" id="secLwopHeading">Leave Without Pay</h2>
+    </div>
+    <div class="card leave-list">
+        <div class="leave-list-row">
+            <div class="leave-list-main">
+                <div class="leave-list-name">Unpaid leave, <?= (int)$year ?></div>
+                <?php if ($lwopPending > 0): ?>
+                    <div class="leave-list-sub"><?= $lwopPending ?> day<?= $lwopPending === 1 ? '' : 's' ?> pending approval</div>
+                <?php endif; ?>
+            </div>
+            <div class="leave-list-value">
+                <span class="leave-list-days"><?= $lwopApproved ?></span>
+                <span class="leave-list-sub"><?= $lwopApproved === 1 ? 'day' : 'days' ?> approved</span>
+            </div>
+            <div class="leave-list-actions">
+                <?php if ($lwopTypeId > 0): ?>
+                    <a href="<?= url('/leaves/apply?leave_type_id=' . $lwopTypeId) ?>" class="btn btn-secondary btn-xs">Request LWOP</a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </section>
-
 <!-- 6. Pending Leave Requests Preview (Max 3) -->
 <section class="leave-section card" aria-labelledby="secPendingHeading">
     <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
@@ -320,7 +433,7 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
         </a>
     </div>
     <div class="table-wrapper">
-        <table class="table table-hover">
+        <table class="table table-hover table-centered">
             <thead>
                 <tr>
                     <th>Reference</th>
@@ -362,44 +475,71 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
     </div>
 </section>
 
-<!-- 7. Balance & Entitlement Transaction Ledger -->
-<section class="leave-section card" aria-labelledby="secLedgerHeading">
-    <div class="card-header">
-        <h2 class="card-title" id="secLedgerHeading">Balance &amp; Entitlement Transaction Ledger (<?= $year ?>)</h2>
+<!-- 7. Balance Activity (compact; full ledger is kept in the backend and available to HR) -->
+<?php
+    $ledgerLastUpdated = !empty($ledgerTransactions[0]['created_at']) ? strtotime((string)$ledgerTransactions[0]['created_at']) : false;
+?>
+<section class="leave-section card leave-activity" aria-labelledby="secLedgerHeading">
+    <div class="leave-activity-bar">
+        <div class="leave-activity-text">
+            <h2 class="leave-activity-title" id="secLedgerHeading">Balance Activity</h2>
+            <p class="leave-activity-desc">Your balances reflect allocations, approved deductions, and authorized adjustments. <span class="leave-activity-meta">
+                Last updated:
+                <?php if ($ledgerLastUpdated): ?>
+                    <time datetime="<?= e(date('c', $ledgerLastUpdated)) ?>"><?= e(date('M d, Y H:i', $ledgerLastUpdated)) ?></time>
+                <?php else: ?>
+                    No activity recorded for <?= (int)$year ?>
+                <?php endif; ?>
+            </span></p>
+        </div>
+        <?php if (!empty($ledgerTransactions)): ?>
+            <button type="button" class="btn btn-secondary btn-sm" id="btnToggleBalanceActivity" aria-expanded="false" aria-controls="balanceActivityPanel">View Balance Activity</button>
+        <?php endif; ?>
     </div>
-    <div class="table-wrapper">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Timestamp</th>
-                    <th>Leave Type</th>
-                    <th>Transaction</th>
-                    <th>Delta</th>
-                    <th>Before &rarr; After</th>
-                    <th>Reference</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($ledgerTransactions)): ?>
-                    <tr><td colspan="7" class="text-center" style="color: var(--color-text-muted);">No ledger entries recorded for <?= $year ?> yet.</td></tr>
-                <?php else: foreach ($ledgerTransactions as $tx):
-                    $delta = (float)($tx['days_delta'] ?? 0);
-                    $deltaStr = ($delta > 0 ? '+' : '') . rtrim(rtrim(number_format($delta, 2, '.', ''), '0'), '.');
-                ?>
+    <?php if (!empty($ledgerTransactions)): ?>
+    <div class="leave-activity-panel" id="balanceActivityPanel" hidden>
+        <div class="table-wrapper">
+            <table class="table table-hover table-centered">
+                <thead>
                     <tr>
-                        <td style="white-space: nowrap;"><?= !empty($tx['created_at']) ? e(date('M d, Y H:i', strtotime((string)$tx['created_at']))) : '—' ?></td>
-                        <td><?= e((string)($tx['leave_name'] ?? '')) ?></td>
-                        <td><span class="badge badge-neutral"><?= e((string)($tx['transaction_type'] ?? '')) ?></span></td>
-                        <td class="<?= $delta >= 0 ? 'ledger-delta-pos' : 'ledger-delta-neg' ?>"><?= e($deltaStr) ?>d</td>
-                        <td><?= (int)round((float)($tx['balance_before'] ?? 0)) ?>d &rarr; <?= (int)round((float)($tx['balance_after'] ?? 0)) ?>d</td>
-                        <td><?= e((string)($tx['conversion_reference'] ?? (!empty($tx['leave_request_id']) ? '#LR-' . $tx['leave_request_id'] : '—'))) ?></td>
-                        <td><?= e((string)($tx['remarks'] ?? '')) ?></td>
+                        <th>Date</th>
+                        <th>Leave Type</th>
+                        <th>Activity</th>
+                        <th>Change</th>
+                        <th>Balance</th>
                     </tr>
-                <?php endforeach; endif; ?>
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    <?php foreach ($ledgerTransactions as $tx):
+                        $delta = (float)($tx['days_delta'] ?? 0);
+                        $deltaStr = ($delta > 0 ? '+' : '') . rtrim(rtrim(number_format($delta, 2, '.', ''), '0'), '.');
+                    ?>
+                        <tr>
+                            <td style="white-space: nowrap;"><?= !empty($tx['created_at']) ? e(date('M d, Y H:i', strtotime((string)$tx['created_at']))) : '—' ?></td>
+                            <td><?= e((string)($tx['leave_name'] ?? '')) ?></td>
+                            <td><?= e(ucwords(str_replace('_', ' ', (string)($tx['transaction_type'] ?? '')))) ?></td>
+                            <td class="<?= $delta >= 0 ? 'ledger-delta-pos' : 'ledger-delta-neg' ?>"><?= e($deltaStr) ?>d</td>
+                            <td><?= (int)round((float)($tx['balance_before'] ?? 0)) ?>d &rarr; <?= (int)round((float)($tx['balance_after'] ?? 0)) ?>d</td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
+    <script>
+    (function () {
+        var btn = document.getElementById('btnToggleBalanceActivity');
+        var panel = document.getElementById('balanceActivityPanel');
+        if (!btn || !panel) return;
+        btn.addEventListener('click', function () {
+            var open = panel.hidden;
+            panel.hidden = !open;
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            btn.textContent = open ? 'Hide Balance Activity' : 'View Balance Activity';
+        });
+    })();
+    </script>
+    <?php endif; ?>
 </section>
 
 <!-- 8. Policy Reference & Eligibility Summary -->
@@ -408,7 +548,7 @@ $convPaid = (int)($metrics['converted_paid'] ?? 0);
         <h2 class="card-title" id="secPolicyRefHeading">Policy Reference &amp; Eligibility Rules</h2>
     </div>
     <div class="table-wrapper">
-        <table class="table table-hover">
+        <table class="table table-hover table-centered">
             <thead>
                 <tr>
                     <th>Leave Benefit</th>

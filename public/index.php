@@ -211,6 +211,7 @@ try {
     // In-System Notifications & Alerts (Authenticated - All Roles)
     $router->get('/notifications', [NotificationController::class, 'index'], [AuthMiddleware::class]);
     $router->post('/notifications/{id}/read', [NotificationController::class, 'markRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/notifications/{id}/delete', [NotificationController::class, 'delete'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Real-time WebSocket connection ticket (fully authenticated sessions only)

@@ -836,6 +836,9 @@ class LeaveController extends Controller
         foreach ($rawTypes as $lt) {
             $ltId = (int)$lt['id'];
             $elig = $policyEngine->evaluateEmployeeTypeEligibility($employee, $lt, $year, date('Y-m-d'));
+            if (empty($elig['eligible'])) {
+                continue;
+            }
             $lt['eligibility'] = $elig;
             $lt['balance_remaining'] = isset($balanceMap[$ltId]) ? (int)$balanceMap[$ltId]['remaining_days'] : null;
             $lt['balance_allocated'] = isset($balanceMap[$ltId]) ? (int)$balanceMap[$ltId]['allocated_days'] : null;

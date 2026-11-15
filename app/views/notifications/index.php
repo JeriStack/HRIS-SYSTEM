@@ -95,7 +95,8 @@ $readNotifications = count($notifications) - $unreadNotifications;
                             <?= icon($iconName, 18) ?>
                         </div>
 
-                        <div class="emp-notif-content">
+                        <?php $notifLink = !empty($n['link']) ? url('/' . $n['link']) : null; ?>
+                        <<?= $notifLink ? 'a href="' . e($notifLink) . '" data-notif-open="' . (int)$n['id'] . '" data-notif-unread="' . ($isUnread ? '1' : '0') . '"' : 'div' ?> class="emp-notif-content<?= $notifLink ? ' emp-notif-link' : '' ?>">
                             <div class="emp-notif-title-row">
                                 <span class="emp-notif-title">
                                     <?php if ($isUnread) : ?>
@@ -107,19 +108,24 @@ $readNotifications = count($notifications) - $unreadNotifications;
                                 <span class="emp-notif-time tabular-nums"><?= e($createdFormatted) ?></span>
                             </div>
                             <p class="emp-notif-msg"><?= e($n['message'] ?? '') ?></p>
-                        </div>
+                        </<?= $notifLink ? 'a' : 'div' ?>>
 
-                        <?php if ($isUnread) : ?>
-                            <div class="flex items-center">
+                        <div class="emp-notif-actions">
+                            <?php if ($isUnread) : ?>
                                 <form method="POST" action="<?= url('/notifications/' . (int)$n['id'] . '/read') ?>">
                                     <?= csrf_field() ?>
                                     <button type="submit" class="btn btn-secondary btn-sm" title="Mark notification as read">
                                         Mark Read
                                     </button>
                                 </form>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+                            <?php endif; ?>
+                            <form method="POST" action="<?= url('/notifications/' . (int)$n['id'] . '/delete') ?>" data-confirm="Delete this notification? This cannot be undone.">
+                                <?= csrf_field() ?>
+                                <button type="submit" class="btn btn-secondary btn-sm btn-icon" title="Delete notification" aria-label="Delete notification: <?= e($n['title'] ?? 'Notification') ?>">
+                                    <?= icon('trash', 15) ?>
+                                </button>
+                            </form>
+                        </div>                    </div>
                 <?php endforeach; ?>
             </div>
 
@@ -189,5 +195,29 @@ document.addEventListener('DOMContentLoaded', function () {
     if (searchInput) {
         searchInput.addEventListener('input', applyNotifFilter);
     }
+
+    // Opening a notification marks it read (keepalive lets the request finish during navigation).
+    const csrfToken = <?= json_encode(csrf_token()) ?>;
+    const readBaseUrl = <?= json_encode(url('/notifications')) ?>;
+    document.querySelectorAll('a[data-notif-open]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (link.getAttribute('data-notif-unread') !== '1' || typeof window.fetch !== 'function') {
+                return;
+            }
+            fetch(readBaseUrl + '/' + link.getAttribute('data-notif-open') + '/read', {
+                method: 'POST',
+                credentials: 'same-origin',
+                keepalive: true,
+                headers: { 'Accept': 'application/json', 'X-CSRF-Token': csrfToken }
+            });
+        });
+    });
+    document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+        form.addEventListener('submit', function (ev) {
+            if (!window.confirm(form.getAttribute('data-confirm'))) {
+                ev.preventDefault();
+            }
+        });
+    });
 });
 </script>

@@ -114,7 +114,7 @@
     }
 
     function safeLink(link) {
-        if (typeof link !== 'string' || !/^[a-z0-9][a-z0-9\/_-]{0,120}$/i.test(link)) {
+        if (typeof link !== 'string' || !/^[a-z0-9][a-z0-9\/_#-]{0,120}$/i.test(link)) {
             return cfg.inboxUrl;
         }
         return cfg.baseUrl + '/' + link;
@@ -126,6 +126,21 @@
 
         var a = document.createElement('a');
         a.href = item.href || cfg.inboxUrl;
+
+        // Opening an unread notification marks it read; keepalive lets the request finish during navigation.
+        if (item.unread && item.id) {
+            a.addEventListener('click', function () {
+                if (typeof window.fetch !== 'function') {
+                    return;
+                }
+                fetch(cfg.baseUrl + '/notifications/' + encodeURIComponent(item.id) + '/read', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    keepalive: true,
+                    headers: { 'Accept': 'application/json', 'X-CSRF-Token': cfg.csrf }
+                });
+            });
+        }
 
         var title = document.createElement('strong');
         title.className = 'rt-item-title';
@@ -361,12 +376,13 @@
             rows.forEach(function (row) { remember('notification:' + row.id); });
             renderList(rows.map(function (row) {
                 return {
+                    id: row.id,
                     title: row.title,
                     message: row.message,
                     level: row.type,
                     unread: String(row.is_read) === '0',
                     time: row.created_at ? String(row.created_at).slice(0, 16) : '',
-                    href: cfg.inboxUrl
+                    href: row.link ? safeLink(row.link) : cfg.inboxUrl
                 };
             }));
             setCount(body.data.unread_count);
@@ -497,6 +513,7 @@
             return; // duplicate (reconnect replay or multiple tabs)
         }
         var item = {
+            id: data.notification_id,
             title: String(data.title || 'Notification'),
             message: String(data.message || ''),
             level: /^(info|success|warning|error)$/.test(data.level) ? data.level : 'info',

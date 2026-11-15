@@ -207,11 +207,13 @@ class DashboardController extends Controller
             }
         }
 
+        $employeeRecord = ['id' => $employeeId];
+
         if ($employeeId > 0) {
             // 1. Synchronize latest employee identity fields
             try {
                 $stmtEmp = $this->pdo->prepare("
-                    SELECT e.first_name, e.last_name, e.employee_no, d.department_name, p.position_name
+                    SELECT e.*, d.department_name, p.position_name
                     FROM employees e
                     LEFT JOIN departments d ON e.department_id = d.id
                     LEFT JOIN positions p ON e.position_id = p.id
@@ -220,7 +222,8 @@ class DashboardController extends Controller
                 ");
                 $stmtEmp->execute(['emp_id' => $employeeId]);
                 $empInfo = $stmtEmp->fetch(PDO::FETCH_ASSOC);
-                if ($empInfo) {
+                if (is_array($empInfo)) {
+                    $employeeRecord = $empInfo;
                     $fullName = trim(($empInfo['first_name'] ?? '') . ' ' . ($empInfo['last_name'] ?? ''));
                     if ($fullName !== '') {
                         $user['name'] = $fullName;
@@ -245,6 +248,7 @@ class DashboardController extends Controller
             // 2. Fetch employee's current-cycle leave balances
             try {
                 $balances = $leaveModel->getBalancesByEmployee($employeeId, $leaveCycleYear);
+                $balances = $this->filterVisibleEmployeeBalances($employeeRecord, $balances, $leaveCycleYear, $todayDate);
             } catch (\Throwable $e) {
                 error_log('[EmployeeDashboard::balances] ' . $e->getMessage());
                 $balances = [];
@@ -502,6 +506,10 @@ class DashboardController extends Controller
                 $expired = $bal !== null ? (int)round((float)($bal['expired_days'] ?? 0)) : 0;
                 $remaining = $bal !== null ? (int)$bal['remaining_days'] : 0;
 
+                if (empty($elig['eligible']) && $used === 0 && $pendingDays === 0 && $converted === 0) {
+                    continue;
+                }
+
                 $statusLabel = (string)($elig['status'] ?? 'Available');
                 if ($elig['eligible']) {
                     if ($bal === null) {
@@ -537,6 +545,9 @@ class DashboardController extends Controller
                     $totalConvertedPaid += $converted;
                 }
             } elseif ($model === 'event_based') {
+                if (empty($elig['eligible'])) {
+                    continue;
+                }
                 $item = [
                     'type'         => $tp,
                     'pending_days' => $pendingDays,
@@ -601,11 +612,73 @@ class DashboardController extends Controller
             'status'             => 'success',
             'employee_no'        => $user['employee_no'] ?? null,
             'year'               => $year,
-            'balances'           => $balances,
+            'balances'           => $this->filterVisibleEmployeeBalances($employee, $balances, $year, date('Y-m-d')),
             'unpaid_summary'     => $unpaidSummary,
             'event_entitlements' => $eventEntitlements,
             'ledger'             => $ledgerTransactions,
         ]);
+    }
+
+    /**
+     * Filter an employee's balance rows to leave types currently applicable to them.
+     * Hides VL-offset SIL, unverified Solo Parent, and other ineligible zero-usage rows.
+     *
+     * @param array<string, mixed> $employee
+     * @param array<int, array<string, mixed>> $balances
+     * @return array<int, array<string, mixed>>
+     */
+    private function filterVisibleEmployeeBalances(
+        array $employee,
+        array $balances,
+        int $year,
+        string $asOfDate
+    ): array {
+        if ($balances === []) {
+            return [];
+        }
+
+        $policyMap = [];
+        try {
+            $policyEngine = new \App\Services\LeavePolicyEngine($this->pdo);
+            foreach ($policyEngine->getAllTypesWithActivePolicies(false, $asOfDate) as $tp) {
+                $policyMap[(int)$tp['id']] = $tp;
+            }
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::filterVisibleEmployeeBalances] ' . $e->getMessage());
+            $policyEngine = null;
+        }
+
+        $visible = [];
+        foreach ($balances as $bal) {
+            $used = (int)($bal['used_days'] ?? 0);
+            $converted = (int)round((float)($bal['converted_days'] ?? 0));
+            if ($used > 0 || $converted > 0) {
+                $visible[] = $bal;
+                continue;
+            }
+
+            $rowStatus = (string)($bal['eligibility_status'] ?? 'Available');
+            $silOffset = !empty($bal['sil_credited_from_vl']) || $rowStatus === 'CreditedViaVL';
+            if ($silOffset || in_array($rowStatus, ['PendingVerification', 'Ineligible'], true)) {
+                continue;
+            }
+
+            $ltId = (int)($bal['leave_type_id'] ?? 0);
+            if ($policyEngine !== null && isset($policyMap[$ltId])) {
+                $tp = $policyMap[$ltId];
+                if (($tp['status'] ?? 'Active') !== 'Active') {
+                    continue;
+                }
+                $elig = $policyEngine->evaluateEmployeeTypeEligibility($employee, $tp, $year, $asOfDate);
+                if (empty($elig['eligible'])) {
+                    continue;
+                }
+            }
+
+            $visible[] = $bal;
+        }
+
+        return $visible;
     }
 
     /**

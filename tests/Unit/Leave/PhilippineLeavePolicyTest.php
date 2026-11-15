@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Leave;
 
+use App\Controllers\DashboardController;
+use App\Controllers\LeaveController;
 use App\Models\Leave;
 use App\Services\ConfidentialLeaveService;
 use App\Services\LeaveLedgerService;
 use App\Services\LeavePolicyEngine;
 use Core\Database;
+use Core\Session;
 use DomainException;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -571,5 +574,159 @@ class PhilippineLeavePolicyTest extends TestCase
 
         $v1Status = $this->pdo->query("SELECT approval_status FROM leave_policy_versions WHERE id = {$v1Id}")->fetchColumn();
         $this->assertSame('Superseded', $v1Status);
+    }
+
+    public function test_employee_views_hide_inapplicable_benefits_while_preserving_policy_reference(): void
+    {
+        $vlTypeId = $this->createTypeWithPolicy('VL', 'Vacation Leave Test', [
+            'classification'           => 'Company',
+            'benefit_category'         => 'CompanyAnnual',
+            'default_days'             => 15,
+            'counts_as_sil_equivalent' => 1,
+        ]);
+        $silTypeId = $this->createTypeWithPolicy('SIL', 'Service Incentive Leave Test', [
+            'classification'        => 'Statutory',
+            'benefit_category'      => 'StatutoryAnnual',
+            'default_days'          => 5,
+            'min_service_months'    => 12,
+            'stack_with_equivalent' => 0,
+        ]);
+        $spTypeId = $this->createTypeWithPolicy('SOLO_PARENT', 'Solo Parent Leave Test', [
+            'classification'         => 'Statutory',
+            'benefit_category'       => 'StatutoryAnnual',
+            'default_days'           => 7,
+            'min_service_months'     => 6,
+            'requires_qualification' => 1,
+            'qualification_type'     => 'solo_parent_spic',
+        ]);
+        $slwTypeId = $this->createTypeWithPolicy('SLW', 'Special Leave for Women Test', [
+            'classification'         => 'Statutory',
+            'benefit_category'       => 'StatutoryEvent',
+            'entitlement_model'      => 'event_based',
+            'default_days'           => 60,
+            'default_unit'           => 'calendar_days',
+            'min_service_months'     => 6,
+            'service_window_months'  => 12,
+            'is_confidential'        => 1,
+        ]);
+
+        $year = (int)date('Y');
+        $maleId = $this->createEmployee('Male', '2020-01-01');
+        $femaleId = $this->createEmployee('Female', '2020-01-01');
+
+        // Seed VL (eligible) + a zero-usage CreditedViaVL SIL row for the male employee
+        $this->pdo->prepare("
+            INSERT INTO leave_balances (employee_id, leave_type_id, year, allocated_days, used_days, remaining_days, eligibility_status, sil_credited_from_vl)
+            VALUES (?, ?, ?, 15, 0, 15, 'Available', 0),
+                   (?, ?, ?, 0, 0, 0, 'CreditedViaVL', 1)
+        ")->execute([$maleId, $vlTypeId, $year, $maleId, $silTypeId, $year]);
+
+        // Seed a verified SPIC qualification for the female employee
+        $this->pdo->prepare("
+            INSERT INTO employee_leave_qualifications (employee_id, qualification_type, reference_no, verification_status, valid_from, valid_to)
+            VALUES (?, 'solo_parent_spic', 'SPIC-TEST-OK', 'Verified', '2020-01-01', '2099-12-31')
+        ")->execute([$femaleId]);
+        $this->pdo->prepare("
+            INSERT INTO leave_balances (employee_id, leave_type_id, year, allocated_days, used_days, remaining_days, eligibility_status)
+            VALUES (?, ?, ?, 15, 0, 15, 'Available'),
+                   (?, ?, ?, 7, 0, 7, 'Available')
+        ")->execute([$femaleId, $vlTypeId, $year, $femaleId, $spTypeId, $year]);
+
+        $prevUser = Session::get('user');
+        $prevServer = $_SERVER;
+        $prevGet = $_GET;
+
+        try {
+            $_SERVER['HTTP_ACCEPT'] = 'text/html';
+            $_GET = [];
+
+            $dashCapture = [];
+            $dashCtrl = new class ($this->pdo, $dashCapture) extends DashboardController {
+                /** @var array<string, mixed> */
+                private array $store;
+
+                /** @param array<string, mixed> $store */
+                public function __construct(PDO $pdo, array &$store)
+                {
+                    parent::__construct($pdo);
+                    $this->store = &$store;
+                }
+
+                protected function view(string $viewPath, array $data = [], ?string $layout = 'main'): void
+                {
+                    $this->store = ['view' => $viewPath, 'data' => $data];
+                }
+            };
+
+            $applyCapture = [];
+            $applyCtrl = new class ($this->leaveModel, $applyCapture) extends LeaveController {
+                /** @var array<string, mixed> */
+                private array $store;
+
+                /** @param array<string, mixed> $store */
+                public function __construct(Leave $model, array &$store)
+                {
+                    parent::__construct($model);
+                    $this->store = &$store;
+                }
+
+                protected function view(string $viewPath, array $data = [], ?string $layout = 'main'): void
+                {
+                    $this->store = ['view' => $viewPath, 'data' => $data];
+                }
+            };
+
+            // 1. Male employee with VL >= 5d and no SPIC
+            Session::set('user', ['id' => 999001, 'role' => 'employee', 'employee_id' => $maleId, 'employee_no' => 'EMP-M']);
+
+            $dashCtrl->employeeDashboard();
+            $dashBalIds = array_map(static fn(array $r): int => (int)$r['leave_type_id'], $dashCapture['data']['balances']);
+            $this->assertContains($vlTypeId, $dashBalIds);
+            $this->assertNotContains($silTypeId, $dashBalIds);
+
+            $dashCtrl->employeeLeaveBalances();
+            $maleAnnualIds = array_map(static fn(array $e): int => (int)$e['type']['id'], $dashCapture['data']['annualBenefits']);
+            $maleEventIds = array_map(static fn(array $e): int => (int)$e['type']['id'], $dashCapture['data']['statutoryEvents']);
+            $malePolicyRefIds = array_map(static fn(array $p): int => (int)$p['id'], $dashCapture['data']['allTypePolicies']);
+
+            $this->assertContains($vlTypeId, $maleAnnualIds);
+            $this->assertNotContains($silTypeId, $maleAnnualIds);
+            $this->assertNotContains($spTypeId, $maleAnnualIds);
+            $this->assertNotContains($slwTypeId, $maleEventIds);
+
+            // Bottom Policy Reference table retains all active rules
+            $this->assertContains($silTypeId, $malePolicyRefIds);
+            $this->assertContains($spTypeId, $malePolicyRefIds);
+            $this->assertContains($slwTypeId, $malePolicyRefIds);
+
+            $applyCtrl->apply();
+            $maleApplyIds = array_map(static fn(array $t): int => (int)$t['id'], $applyCapture['data']['leaveTypes']);
+            $this->assertContains($vlTypeId, $maleApplyIds);
+            $this->assertNotContains($silTypeId, $maleApplyIds);
+            $this->assertNotContains($spTypeId, $maleApplyIds);
+            $this->assertNotContains($slwTypeId, $maleApplyIds);
+
+            // 2. Female employee with >= 6m tenure and verified SPIC still sees Solo Parent & SLW
+            Session::set('user', ['id' => 999002, 'role' => 'employee', 'employee_id' => $femaleId, 'employee_no' => 'EMP-F']);
+
+            $dashCtrl->employeeLeaveBalances();
+            $femaleAnnualIds = array_map(static fn(array $e): int => (int)$e['type']['id'], $dashCapture['data']['annualBenefits']);
+            $femaleEventIds = array_map(static fn(array $e): int => (int)$e['type']['id'], $dashCapture['data']['statutoryEvents']);
+            $this->assertContains($spTypeId, $femaleAnnualIds);
+            $this->assertContains($slwTypeId, $femaleEventIds);
+
+            $applyCtrl->apply();
+            $femaleApplyIds = array_map(static fn(array $t): int => (int)$t['id'], $applyCapture['data']['leaveTypes']);
+            $this->assertContains($spTypeId, $femaleApplyIds);
+            $this->assertContains($slwTypeId, $femaleApplyIds);
+        } finally {
+            if ($prevUser === null) {
+                unset($_SESSION['user']);
+            } else {
+                Session::set('user', $prevUser);
+            }
+            $_SERVER = $prevServer;
+            $_GET = $prevGet;
+        }
     }
 }

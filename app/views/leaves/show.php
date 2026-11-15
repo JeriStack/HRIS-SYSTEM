@@ -62,7 +62,7 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
 
 <div class="leave-split-layout">
     <!-- Left / Main Details -->
-    <div style="display: grid; gap: var(--space-5);">
+    <div style="display: grid; gap: var(--space-4);">
         <div class="card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                 <div>
@@ -90,28 +90,30 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
             </div>
 
             <div class="card-body">
-                <div class="grid grid-cols-3" style="gap: var(--space-4); margin-bottom: var(--space-4); padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border-subtle);">
+                <?php
+                    $sameDay = $startFormatted === $endFormatted;
+                    $reviewerName = !empty($leave['approver_first_name'])
+                        ? trim($leave['approver_first_name'] . ' ' . ($leave['approver_last_name'] ?? ''))
+                        : (string)($leave['reviewer_username'] ?? '');
+                ?>
+                <dl class="leave-facts">
                     <div>
-                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Schedule Range</div>
-                        <div style="font-weight: 600;"><?= e($startFormatted) ?> &ndash; <?= e($endFormatted) ?></div>
+                        <dt>Schedule</dt>
+                        <dd><?= e($sameDay ? $startFormatted : $startFormatted . ' – ' . $endFormatted) ?></dd>
                     </div>
                     <div>
-                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Charged Duration</div>
-                        <div style="font-weight: 600;"><?= $days ?> <?= e($unitLabel) ?> day<?= $days === 1 ? '' : 's' ?></div>
+                        <dt>Duration</dt>
+                        <dd><?= $days ?> <?= e($unitLabel) ?> day<?= $days === 1 ? '' : 's' ?></dd>
                     </div>
                     <div>
-                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Reviewed By</div>
-                        <div style="font-weight: 600;">
-                            <?= e(!empty($leave['approver_first_name']) ? ($leave['approver_first_name'] . ' ' . ($leave['approver_last_name'] ?? '')) : ($leave['reviewer_username'] ?? 'Pending Review')) ?>
-                        </div>
+                        <dt>Reviewed by</dt>
+                        <dd<?= $reviewerName === '' ? ' class="is-muted"' : '' ?>><?= e($reviewerName !== '' ? $reviewerName : 'Awaiting review') ?></dd>
                     </div>
-                </div>
+                </dl>
 
-                <div style="margin-bottom: var(--space-4);">
-                    <div style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: 0.35rem;">Applicant Reason / Narrative</div>
-                    <div style="padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg-subtle); white-space: pre-wrap;">
-                        <?= e((string)($leave['reason'] ?? 'No reason provided.')) ?>
-                    </div>
+                <div class="leave-detail-section">
+                    <h3 class="leave-detail-label">Reason</h3>
+                    <p class="leave-narrative"><?= e((string)($leave['reason'] ?? 'No reason provided.')) ?></p>
                 </div>
 
                 <?php if (!$isRedacted && !empty($requestMetadata)): ?>
@@ -131,6 +133,35 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
                         </div>
                     </div>
                 <?php endif; ?>
+
+                <div class="leave-detail-section">
+                    <h3 class="leave-detail-label">Supporting documents</h3>
+                    <?php if ($isRedacted): ?>
+                        <p class="leave-detail-empty">Attachments are protected behind confidential clearance.</p>
+                    <?php elseif (empty($documents)): ?>
+                        <p class="leave-detail-empty">None uploaded.</p>
+                    <?php else: ?>
+                        <div class="doc-attachment-list">
+                            <?php foreach ($documents as $doc):
+                                $kb = max(1, (int)round(((int)($doc['file_size_bytes'] ?? 0)) / 1024));
+                            ?>
+                                <div class="doc-attachment-item">
+                                    <div>
+                                        <strong><?= e((string)($doc['original_filename'] ?? 'attachment')) ?></strong>
+                                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                                            <?= e(ucwords(str_replace('_', ' ', (string)($doc['document_category'] ?? 'supporting')))) ?>
+                                            &middot; <?= e((string)($doc['mime_type'] ?? '')) ?> &middot; <?= $kb ?> KB
+                                        </div>
+                                    </div>
+                                    <a href="<?= url('/leaves/documents/' . (int)$doc['id']) ?>" class="btn btn-secondary btn-xs" target="_blank" rel="noopener">
+                                        <?= icon('eye', 14) ?>
+                                        <span>Open Secure File</span>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
                 <?php if (!empty($leave['rejection_reason'])): ?>
                     <div class="leave-eligibility-banner is-blocked" style="margin-bottom: var(--space-4);">
@@ -221,39 +252,6 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
             </div>
         </div>
 
-        <!-- Protected Supporting Documents -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Supporting Documents</h2>
-            </div>
-            <div class="card-body">
-                <?php if ($isRedacted): ?>
-                    <p style="color: var(--color-text-muted); margin: 0;">Attachments are protected behind confidential clearance.</p>
-                <?php elseif (empty($documents)): ?>
-                    <p style="color: var(--color-text-muted); margin: 0;">No supporting documents uploaded for this application.</p>
-                <?php else: ?>
-                    <div class="doc-attachment-list">
-                        <?php foreach ($documents as $doc):
-                            $kb = max(1, (int)round(((int)($doc['file_size_bytes'] ?? 0)) / 1024));
-                        ?>
-                            <div class="doc-attachment-item">
-                                <div>
-                                    <strong><?= e((string)($doc['original_filename'] ?? 'attachment')) ?></strong>
-                                    <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
-                                        <?= e(ucwords(str_replace('_', ' ', (string)($doc['document_category'] ?? 'supporting')))) ?>
-                                        &middot; <?= e((string)($doc['mime_type'] ?? '')) ?> &middot; <?= $kb ?> KB
-                                    </div>
-                                </div>
-                                <a href="<?= url('/leaves/documents/' . (int)$doc['id']) ?>" class="btn btn-secondary btn-xs" target="_blank" rel="noopener">
-                                    <?= icon('eye', 14) ?>
-                                    <span>Open Secure File</span>
-                                </a>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
     </div>
 
     <!-- Right Sidebar: Frozen Policy Snapshot & Employee Balances -->
@@ -267,11 +265,12 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
                     <dl style="margin: 0;">
                         <div class="leave-dialog-kv">
                             <dt>Version</dt>
-                            <dd><?= e((string)($policySnapshot['policy_code'] ?? 'V1')) ?> (v<?= (int)($policySnapshot['version_number'] ?? 1) ?>)</dd>
+                            <?php $snapCode = (string)($policySnapshot['policy_code'] ?? 'V1'); $snapVer = (int)($policySnapshot['version_number'] ?? 1); ?>
+                            <dd><?= e(preg_match('/V' . $snapVer . '$/i', $snapCode) ? $snapCode : $snapCode . ' (v' . $snapVer . ')') ?></dd>
                         </div>
                         <div class="leave-dialog-kv">
                             <dt>Effective From</dt>
-                            <dd><?= e((string)($policySnapshot['effective_from'] ?? '—')) ?></dd>
+                            <dd><?= !empty($policySnapshot['effective_from']) ? e(date('M j, Y', strtotime((string)$policySnapshot['effective_from']))) : '—' ?></dd>
                         </div>
                         <div class="leave-dialog-kv">
                             <dt>Legal Basis</dt>
@@ -288,7 +287,7 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
 
         <div class="card">
             <div class="card-header">
-                <h2 class="card-title">Annual Balances Context</h2>
+                <h2 class="card-title">Annual Balances</h2>
             </div>
             <div class="card-body" style="padding: 0;">
                 <div class="table-wrapper">
@@ -307,7 +306,7 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
                                 <?php else: foreach ($balances as $bal): ?>
                                     <tr>
                                         <td><?= e((string)($bal['leave_name'] ?? '')) ?></td>
-                                        <td style="text-align: right;"><strong><?= (int)($bal['remaining_days'] ?? 0) ?>d</strong> / <?= (int)($bal['allocated_days'] ?? 0) ?>d</td>
+                                        <td style="text-align: right;"><strong><?= (int)($bal['remaining_days'] ?? 0) ?>d</strong> <span style="color: var(--color-text-muted);">/ <?= (int)($bal['allocated_days'] ?? 0) ?>d</span></td>
                                     </tr>
                             <?php endforeach;
                             endif; ?>

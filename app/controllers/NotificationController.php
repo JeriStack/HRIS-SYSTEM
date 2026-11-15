@@ -46,6 +46,16 @@ class NotificationController extends Controller
         $notifications = $this->notificationModel->getByUser((int)$user['id'], 50);
         $unreadCount = $this->notificationModel->getUnreadCount((int)$user['id']);
 
+        $role = strtolower((string)($user['role'] ?? ''));
+        foreach ($notifications as &$notification) {
+            $notification['link'] = \App\Realtime\NotificationPayload::linkFor(
+                $notification['event_type'] ?? null,
+                (int)($notification['entity_id'] ?? 0),
+                $role
+            );
+        }
+        unset($notification);
+
         $this->view('notifications.index', [
             'notifications' => $notifications,
             'unreadCount'   => $unreadCount,
@@ -123,6 +133,47 @@ class NotificationController extends Controller
         }
 
         Session::flash('success', 'All notifications marked as read.');
+        redirect($redirectTarget);
+    }
+
+    /**
+     * Delete a single notification
+     * Route: POST /notifications/{id}/delete
+     */
+    public function delete(int $id): void
+    {
+        $user = currentUser();
+        $userId = (int)($user['id'] ?? 0);
+        $redirectTarget = $this->resolveSafeRedirect($_POST['redirect_to'] ?? $_GET['redirect_to'] ?? null);
+
+        if ($userId <= 0 || !$this->notificationModel->deleteForUser($id, $userId)) {
+            if (request_wants_json()) {
+                json_response([
+                    'status'  => 'error',
+                    'code'    => 404,
+                    'message' => 'That notification could not be found.',
+                ], 404);
+                return;
+            }
+            Session::flash('error', 'That notification could not be found.');
+            redirect($redirectTarget);
+            return;
+        }
+
+        if (request_wants_json()) {
+            json_response([
+                'status'  => 'success',
+                'code'    => 200,
+                'message' => 'Notification deleted.',
+                'data'    => [
+                    'notification_id' => $id,
+                    'unread_count'    => $this->notificationModel->getUnreadCount($userId),
+                ],
+            ], 200);
+            return;
+        }
+
+        Session::flash('success', 'Notification deleted.');
         redirect($redirectTarget);
     }
 }

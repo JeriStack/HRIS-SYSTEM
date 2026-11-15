@@ -190,6 +190,16 @@ class ProfileController extends ApiController
         $notifications = $this->notificationModel->getByUser($userId, $limit);
         $unreadCount = $this->notificationModel->getUnreadCount($userId);
 
+        $role = strtolower((string)($sessionUser['role'] ?? ''));
+        foreach ($notifications as &$notification) {
+            $notification['link'] = \App\Realtime\NotificationPayload::linkFor(
+                $notification['event_type'] ?? null,
+                (int)($notification['entity_id'] ?? 0),
+                $role
+            );
+        }
+        unset($notification);
+
         $this->success([
             'unread_count'  => $unreadCount,
             'notifications' => $notifications,
