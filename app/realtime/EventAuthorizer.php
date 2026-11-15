@@ -12,11 +12,14 @@ namespace App\Realtime;
 
 final class EventAuthorizer
 {
-    public const LEAVE_CREATED      = 'leave_request.created';
-    public const LEAVE_APPROVED     = 'leave_request.approved';
-    public const LEAVE_REJECTED     = 'leave_request.rejected';
-    public const PROFILE_UPDATED    = 'employee.profile_updated';
-    public const UNREAD_COUNT       = 'notification.unread_count';
+    public const LEAVE_CREATED         = 'leave_request.created';
+    public const LEAVE_APPROVED        = 'leave_request.approved';
+    public const LEAVE_REJECTED        = 'leave_request.rejected';
+    public const PROFILE_UPDATED       = 'employee.profile_updated';
+    public const CORRECTION_REQUESTED  = 'profile_correction.requested';
+    public const CORRECTION_APPROVED   = 'profile_correction.approved';
+    public const CORRECTION_REJECTED   = 'profile_correction.rejected';
+    public const UNREAD_COUNT          = 'notification.unread_count';
 
     public const LEAVE_EVENTS = [
         self::LEAVE_CREATED,
@@ -53,6 +56,9 @@ final class EventAuthorizer
             self::LEAVE_APPROVED, self::LEAVE_REJECTED => (int)($row['owner_matches'] ?? 0) === 1,
             // Profile updates are delivered to the recipient employee
             self::PROFILE_UPDATED => true,
+            // Profile correction queue events are for HR/Admin; decisions for recipient employee
+            self::CORRECTION_REQUESTED => $recipient->isHr() || $recipient->isAdmin(),
+            self::CORRECTION_APPROVED, self::CORRECTION_REJECTED => true,
             default => false,
         };
     }

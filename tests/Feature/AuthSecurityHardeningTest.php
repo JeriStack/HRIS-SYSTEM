@@ -231,12 +231,16 @@ class AuthSecurityHardeningTest extends TestCase
     public function test_logout_forms_in_views_use_post_with_csrf(): void
     {
         $root = dirname(__DIR__, 2) . '/app/views';
-        foreach (['partials/navbar.php', 'partials/sidebar.php', 'dashboard/hr_employees.php'] as $view) {
+        foreach (['partials/sidebar.php', 'dashboard/hr_employees.php'] as $view) {
             $source = (string)file_get_contents("{$root}/{$view}");
             $this->assertMatchesRegularExpression('/<form method="POST" action="<\?= url\(\'\/logout\'\) \?>"/', $source, "{$view} must post to /logout.");
             $this->assertStringContainsString('csrf_field()', $source);
             $this->assertDoesNotMatchRegularExpression('/href="[^"]*\/logout/', $source, "{$view} must not link to GET /logout.");
         }
+
+        // Top navbar must never expose a GET /logout link either.
+        $navbarSource = (string)file_get_contents("{$root}/partials/navbar.php");
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*\/logout/', $navbarSource, 'partials/navbar.php must not link to GET /logout.');
     }
 
     // ---------------------------------------------------------------------

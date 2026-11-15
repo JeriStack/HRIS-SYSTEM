@@ -198,6 +198,24 @@ final class PermissionRegistry
             'description'   => 'Perform transaction-safe adjustments to leave quotas',
             'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
         ],
+        'leave_policies.manage' => [
+            'name'          => 'Manage Leave Policies',
+            'module'        => 'Leave Administration',
+            'description'   => 'Create, review, and activate versioned statutory and company leave policies',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'leave_qualifications.verify' => [
+            'name'          => 'Verify Leave Qualifications',
+            'module'        => 'Leave Administration',
+            'description'   => 'Verify Solo Parent ID Cards (SPIC), paternity marital records, and SIL exclusions',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
+        'leave_confidential.view' => [
+            'name'          => 'View Confidential Leave Records',
+            'module'        => 'Leave Administration',
+            'description'   => 'View unmasked VAWC (RA 9262) and Special Leave for Women (RA 9710) details and documents',
+            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+        ],
 
         // -------------------------------------------------------------
         // Module: Reports & Analytics

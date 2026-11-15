@@ -74,7 +74,7 @@ class LeaveControllerAdapter
         $dispatcher = $eventDispatcher ?? EventBootstrap::createConfiguredDispatcher();
 
         $filingGuard = new MySqlLeaveFilingGuard($connection);
-        $this->fileUseCase = $fileUseCase ?? new FileLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager, $filingGuard);
+        $this->fileUseCase = $fileUseCase ?? new FileLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager, $filingGuard, $connection);
         $approvalGuard = new MySqlLeaveApprovalGuard($connection);
         $this->approveUseCase = $approveUseCase ?? new ApproveLeaveRequestUseCase(
             $requestRepo,
@@ -82,15 +82,17 @@ class LeaveControllerAdapter
             $txManager,
             $dispatcher,
             $outboxRepo,
-            $approvalGuard
+            $approvalGuard,
+            $connection
         );
         $this->rejectUseCase = $rejectUseCase ?? new RejectLeaveRequestUseCase(
             $requestRepo,
             $txManager,
             $dispatcher,
-            $outboxRepo
+            $outboxRepo,
+            $connection
         );
-        $this->cancelUseCase = $cancelUseCase ?? new CancelLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager);
+        $this->cancelUseCase = $cancelUseCase ?? new CancelLeaveRequestUseCase($requestRepo, $balanceRepo, $txManager, $connection);
     }
 
     public function approve(
@@ -162,6 +164,7 @@ class LeaveControllerAdapter
      * @param (callable(int $requestId): void)|null $onFiled Optional callback run inside the
      *        filing transaction after the request is persisted (e.g. the HR notification),
      *        so it commits or rolls back atomically with the request.
+     * @param array<string, mixed>|null $metadata
      */
     public function file(
         int $employeeId,
@@ -169,10 +172,26 @@ class LeaveControllerAdapter
         string $startDate,
         string $endDate,
         string $reason,
-        ?callable $onFiled = null
+        ?callable $onFiled = null,
+        ?string $entitlementUnit = null,
+        ?array $metadata = null,
+        ?int $policyVersionId = null,
+        ?int $eventEntitlementId = null,
+        ?int $overrideDays = null
     ): LeaveOperationResult {
         try {
-            $command = new FileLeaveCommand($employeeId, $leaveTypeId, $startDate, $endDate, $reason);
+            $command = new FileLeaveCommand(
+                employeeId: $employeeId,
+                leaveTypeId: $leaveTypeId,
+                startDate: $startDate,
+                endDate: $endDate,
+                reason: $reason,
+                entitlementUnit: $entitlementUnit,
+                metadata: $metadata,
+                policyVersionId: $policyVersionId,
+                eventEntitlementId: $eventEntitlementId,
+                overrideDays: $overrideDays
+            );
             $newId = $this->fileUseCase->withinTransaction($onFiled)->execute($command);
 
             return LeaveOperationResult::ok(

@@ -33,6 +33,21 @@ final class NotificationPayload
             'message' => 'Your employee profile record was updated by Human Resources.',
             'level'   => 'info',
         ],
+        EventAuthorizer::CORRECTION_REQUESTED => [
+            'title'   => 'Profile correction request',
+            'message' => 'A profile correction request %s is awaiting HR review.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::CORRECTION_APPROVED => [
+            'title'   => 'Profile correction approved',
+            'message' => 'Your profile correction request %s was approved.',
+            'level'   => 'success',
+        ],
+        EventAuthorizer::CORRECTION_REJECTED => [
+            'title'   => 'Profile correction not approved',
+            'message' => 'Your profile correction request %s was not approved. Open My Profile for details.',
+            'level'   => 'warning',
+        ],
     ];
 
     /**
@@ -52,21 +67,24 @@ final class NotificationPayload
         $title = $template['title'];
         $message = $template['message'];
 
+        $role = strtolower((string)($row['recipient_role'] ?? ''));
+        $link = self::linkFor($event, $entityId, $role);
+
         if ($event === EventAuthorizer::PROFILE_UPDATED) {
             $reference = $entityId > 0 ? 'EMP-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
-            $isHrRecipient = strtolower((string)($row['recipient_role'] ?? '')) === 'hr';
-            if ($isHrRecipient) {
+            if ($role === 'hr') {
                 $title = 'Employee record updated';
                 $message = 'Employee record %s was updated.';
-                $link = $entityId > 0 ? 'hr/employees/' . $entityId : 'hr/employees';
-            } else {
-                $link = 'employee/profile';
             }
+        } elseif (
+            $event === EventAuthorizer::CORRECTION_REQUESTED
+            || $event === EventAuthorizer::CORRECTION_APPROVED
+            || $event === EventAuthorizer::CORRECTION_REJECTED
+        ) {
+            $reference = $entityId > 0 ? 'PCR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
         } else {
             $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
-            $link = $entityId > 0 ? 'leaves/' . $entityId : 'notifications';
         }
-
         if (str_contains($message, '%s')) {
             $message = sprintf($message, $reference !== null ? "#{$reference}" : '');
         }
@@ -85,6 +103,37 @@ final class NotificationPayload
                 'created_at'      => gmdate('Y-m-d\TH:i:s\Z', $createdTs),
             ],
         ];
+    }
+
+    /**
+     * App-relative path (no leading slash) that a notification should open, or null
+     * when the event has no dedicated page.
+     */
+    public static function linkFor(?string $event, int $entityId, string $recipientRole = ''): ?string
+    {
+        $event = (string)$event;
+        if (!isset(self::TEMPLATES[$event])) {
+            return null;
+        }
+
+        if ($event === EventAuthorizer::PROFILE_UPDATED) {
+            if (strtolower($recipientRole) === 'hr') {
+                return $entityId > 0 ? 'hr/employees/' . $entityId : 'hr/employees';
+            }
+            return 'employee/profile';
+        }
+
+        if (
+            $event === EventAuthorizer::CORRECTION_REQUESTED
+            || $event === EventAuthorizer::CORRECTION_APPROVED
+            || $event === EventAuthorizer::CORRECTION_REJECTED
+        ) {
+            return $event === EventAuthorizer::CORRECTION_REQUESTED
+                ? 'hr/correction-requests'
+                : 'employee/profile#correction-requests';
+        }
+
+        return $entityId > 0 ? 'leaves/' . $entityId : 'notifications';
     }
 
     public static function unreadCount(int $count): array

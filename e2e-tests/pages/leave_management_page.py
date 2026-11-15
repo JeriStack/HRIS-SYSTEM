@@ -16,13 +16,13 @@ class LeaveManagementPage(BasePage):
     MY_REQUESTS_PATH = "/employee/leave-requests"
 
     # Employee Filing Form Locators
-    LEAVE_TYPE_SELECT: Tuple[By, str] = (By.ID, "leaveTypeSelect")
-    START_DATE_INPUT: Tuple[By, str] = (By.ID, "leaveStartDate")
-    END_DATE_INPUT: Tuple[By, str] = (By.ID, "leaveEndDate")
-    REASON_TEXTAREA: Tuple[By, str] = (By.ID, "leaveReason")
+    LEAVE_TYPE_SELECT: Tuple[By, str] = (By.CSS_SELECTOR, "#leaveTypeSelect, #leave_type_id, select[name='leave_type_id']")
+    START_DATE_INPUT: Tuple[By, str] = (By.CSS_SELECTOR, "#leaveStartDate, #start_date, input[name='start_date']")
+    END_DATE_INPUT: Tuple[By, str] = (By.CSS_SELECTOR, "#leaveEndDate, #end_date, input[name='end_date']")
+    REASON_TEXTAREA: Tuple[By, str] = (By.CSS_SELECTOR, "#leaveReason, #reason, textarea[name='reason']")
     CALCULATED_DAYS_DISPLAY: Tuple[By, str] = (By.ID, "calculatedDaysDisplay")
-    APPLY_SUBMIT_BTN: Tuple[By, str] = (By.XPATH, "//form[@id='leaveApplicationForm']//button[@type='submit']")
-    APPLY_PAGE_TITLE: Tuple[By, str] = (By.CSS_SELECTOR, ".page-title-group h1")
+    APPLY_SUBMIT_BTN: Tuple[By, str] = (By.XPATH, "//form[@id='leaveApplicationForm' or @id='leaveApplyForm' or contains(@action, '/leaves/apply')]//button[@type='submit']")
+    APPLY_PAGE_TITLE: Tuple[By, str] = (By.CSS_SELECTOR, ".page-title-group h1, .page-header h1, h1.page-title")
 
     # HR Review Queue Locators
     QUEUE_HEADER_TITLE: Tuple[By, str] = (By.CSS_SELECTOR, ".page-title-group h1")

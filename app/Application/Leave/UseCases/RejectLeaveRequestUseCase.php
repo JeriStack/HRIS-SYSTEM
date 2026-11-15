@@ -15,6 +15,7 @@ use App\Domain\Common\EventDispatcherInterface;
 use App\Domain\Common\OutboxRepositoryInterface;
 use App\Domain\Leave\Repositories\LeaveRequestRepositoryInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
+use PDO;
 
 class RejectLeaveRequestUseCase
 {
@@ -22,7 +23,8 @@ class RejectLeaveRequestUseCase
         private readonly LeaveRequestRepositoryInterface $leaveRequestRepository,
         private readonly TransactionManagerInterface $transactionManager,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
-        private readonly ?OutboxRepositoryInterface $outboxRepository = null
+        private readonly ?OutboxRepositoryInterface $outboxRepository = null,
+        private readonly ?PDO $pdo = null
     ) {
     }
 
@@ -46,8 +48,19 @@ class RejectLeaveRequestUseCase
             );
             $events = $request->releaseEvents();
 
-            // 3. Persist state
+            // 3. Persist state and release pending reservation on event entitlement if linked
             $this->leaveRequestRepository->save($request);
+            if ($this->pdo !== null && $request->eventEntitlementId() !== null) {
+                $updPending = $this->pdo->prepare("
+                    UPDATE leave_event_entitlements
+                    SET pending_days = GREATEST(0, pending_days - :days)
+                    WHERE id = :eid
+                ");
+                $updPending->execute([
+                    'days' => $request->numberOfDays(),
+                    'eid'  => $request->eventEntitlementId(),
+                ]);
+            }
 
             // 3b. Persist Outbox events atomically within the active transaction
             if ($this->outboxRepository !== null) {

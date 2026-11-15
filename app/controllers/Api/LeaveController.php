@@ -11,10 +11,14 @@ use App\Models\Leave;
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\Notification;
+use App\Services\ConfidentialLeaveService;
 use App\Services\LeaveCalculator;
 use App\Services\LeaveNotificationService;
 use App\Application\Leave\Adapters\LeaveControllerAdapter;
+use Core\Database;
 use OpenApi\Attributes as OA;
+use PDO;
+use Throwable;
 
 class LeaveController extends ApiController
 {
@@ -79,10 +83,23 @@ class LeaveController extends ApiController
             new OA\Response(response: 401, description: "Unauthenticated")
         ]
     )]
+    private function resolvePdo(): ?PDO
+    {
+        try {
+            return Database::getInstance()->getConnection();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
     public function types(): void
     {
         $this->requireAuth();
         $types = $this->leaveModel->getLeaveTypes();
+        $withPolicies = $this->leaveModel->getTypesWithActivePolicies(true);
+        if (!empty($withPolicies)) {
+            $types = $withPolicies;
+        }
         $this->success($types, 'Active leave types retrieved successfully.');
     }
 
@@ -112,6 +129,20 @@ class LeaveController extends ApiController
     {
         $this->requireRole(['admin', 'hr']);
         $types = $this->leaveModel->getAllLeaveTypes();
+        $withPolicies = $this->leaveModel->getTypesWithActivePolicies(false);
+        if (!empty($withPolicies)) {
+            $policyMap = [];
+            foreach ($withPolicies as $wp) {
+                $policyMap[(int)($wp['id'] ?? 0)] = $wp;
+            }
+            foreach ($types as &$t) {
+                $tid = (int)($t['id'] ?? 0);
+                if (isset($policyMap[$tid])) {
+                    $t = array_merge($policyMap[$tid], $t);
+                }
+            }
+            unset($t);
+        }
         $this->success($types, 'All leave types retrieved successfully.');
     }
 
@@ -151,24 +182,43 @@ class LeaveController extends ApiController
 
         $name = trim((string)($input['leave_name'] ?? ''));
         $days = (int)($input['default_days'] ?? 0);
+        $rawModel = trim((string)($input['entitlement_model'] ?? 'annual'));
+        $model = in_array($rawModel, ['annual', 'event_based', 'unpaid'], true) ? $rawModel : 'annual';
 
         if ($name === '') {
             $this->error('Leave type name is required.', 400);
         }
 
-        if ($days <= 0 || $days > 365) {
-            $this->error('Default days quota must be between 1 and 365.', 400);
+        $minDays = $model === 'unpaid' ? 0 : 1;
+        if ($days < $minDays || $days > 365) {
+            $this->error(
+                $model === 'unpaid'
+                    ? 'Default days quota must be between 0 and 365.'
+                    : 'Default days quota must be between 1 and 365.',
+                400
+            );
         }
 
         if (!$this->leaveModel->isLeaveTypeNameUnique($name)) {
             $this->error("A leave classification named '{$name}' already exists.", 400);
         }
 
+        $statusVal = trim((string)($input['status'] ?? 'Active'));
         $id = $this->leaveModel->createLeaveType([
-            'leave_name'   => $name,
-            'description'  => !empty($input['description']) ? trim((string)$input['description']) : null,
-            'default_days' => $days,
-            'status'       => in_array($input['status'] ?? 'Active', ['Active', 'Inactive'], true) ? $input['status'] : 'Active',
+            'leave_name'          => $name,
+            'leave_code'          => !empty($input['leave_code']) ? trim((string)$input['leave_code']) : null,
+            'description'         => !empty($input['description']) ? trim((string)$input['description']) : null,
+            'default_days'        => $days,
+            'classification'      => !empty($input['classification']) ? trim((string)$input['classification']) : null,
+            'benefit_category'    => !empty($input['benefit_category']) ? trim((string)$input['benefit_category']) : null,
+            'entitlement_model'   => $model,
+            'legal_reference'     => !empty($input['legal_reference']) ? trim((string)$input['legal_reference']) : null,
+            'default_unit'        => !empty($input['default_unit']) ? trim((string)$input['default_unit']) : null,
+            'is_paid'             => $model === 'unpaid' ? 0 : (isset($input['is_paid']) ? (!empty($input['is_paid']) ? 1 : 0) : 1),
+            'is_confidential'     => !empty($input['is_confidential']) ? 1 : 0,
+            'statutory_protected' => !empty($input['statutory_protected']) ? 1 : 0,
+            'status'              => in_array($statusVal, ['Active', 'Inactive'], true) ? $statusVal : 'Active',
+            'actor_user_id'       => (int)$currentUser['id'],
         ]);
 
         $this->userModel->logActivity(
@@ -313,7 +363,7 @@ class LeaveController extends ApiController
             $this->error('Valid employee ID, leave type ID, year, non-negative allocated days, and reason are required.', 400);
         }
 
-        $ok = $this->leaveModel->adjustBalance($empId, $leaveTypeId, $year, $allocatedDays);
+        $ok = $this->leaveModel->adjustBalance($empId, $leaveTypeId, $year, $allocatedDays, (int)$currentUser['id'], $reason);
         if (!$ok) {
             // A rejected allocation (e.g. below days already used) is a client error, not a 500.
             $code = $this->leaveModel->getLastErrorCode() === 'allocation_below_used' ? 400 : 500;
@@ -443,6 +493,8 @@ class LeaveController extends ApiController
         $leaveType = $this->leaveModel->getLeaveTypeById($leaveTypeId);
         $leaveTypeName = $leaveType['leave_name'] ?? 'leave';
         $displayName = (string)($user['name'] ?? $user['username'] ?? 'An employee');
+        $isConf = ConfidentialLeaveService::isConfidentialType($leaveType ?: []);
+        $metadata = is_array($input['metadata'] ?? null) ? $input['metadata'] : null;
 
         // Single authoritative filing path (identical rules to the web controller): one
         // transaction, balance row locked FOR UPDATE, auto-initialized missing balances,
@@ -454,12 +506,16 @@ class LeaveController extends ApiController
             $startDate,
             $endDate,
             $reason,
-            function (int $newId) use ($displayName, $leaveTypeName): void {
+            function (int $newId) use ($displayName, $leaveTypeName, $isConf): void {
+                $defaultMsg = "{$displayName} submitted a {$leaveTypeName} application #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . ".";
                 $this->leaveNotifications->leaveSubmitted(
                     $newId,
-                    "{$displayName} submitted a {$leaveTypeName} application #LR-" . str_pad((string)$newId, 3, '0', STR_PAD_LEFT) . "."
+                    ConfidentialLeaveService::safeNotificationMessage($isConf, $newId, $defaultMsg),
+                    $isConf
                 );
-            }
+            },
+            null,
+            $metadata
         );
 
         if (!$result->success) {
@@ -475,7 +531,12 @@ class LeaveController extends ApiController
         $this->userModel->logActivity(
             (int)$user['id'],
             'LEAVE_REQUESTED',
-            "Submitted {$leaveTypeName} request for {$days} days ({$startDate} to {$endDate})",
+            ConfidentialLeaveService::safeActivityDescription(
+                $isConf,
+                $requestId,
+                'Submitted',
+                "Submitted {$leaveTypeName} request for {$days} days ({$startDate} to {$endDate})"
+            ),
             'LeaveRequest',
             (string)$requestId
         );
@@ -520,11 +581,36 @@ class LeaveController extends ApiController
         // Ownership enforcement: Employee can ONLY view own request
         $isOwner = (!empty($user['employee_id']) && (int)$request['employee_id'] === (int)$user['employee_id']);
         $isHr = in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true);
+        $pdo = $this->resolvePdo();
+        $isConf = ConfidentialLeaveService::isConfidentialRequest($request);
 
         if (!$isOwner && !$isHr) {
+            if ($isConf && $pdo !== null) {
+                ConfidentialLeaveService::logSensitiveAccess(
+                    $pdo,
+                    $id,
+                    null,
+                    (int)($user['id'] ?? 0),
+                    'view_request',
+                    false
+                );
+            }
             $this->error("Forbidden: You are not authorized to view another employee's leave request.", 403);
         }
 
+        if ($isConf && $pdo !== null) {
+            $canUnmask = ConfidentialLeaveService::canViewUnmasked($user, $request, $pdo);
+            ConfidentialLeaveService::logSensitiveAccess(
+                $pdo,
+                $id,
+                null,
+                (int)($user['id'] ?? 0),
+                $canUnmask ? 'view_confidential_reason' : 'view_request',
+                $canUnmask
+            );
+        }
+
+        $request = ConfidentialLeaveService::maskRequestForViewer($request, $user, $pdo);
         $this->success($request, 'Leave request retrieved successfully.');
     }
 
@@ -596,7 +682,7 @@ class LeaveController extends ApiController
     )]
     public function hrLeaves(): void
     {
-        $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['admin', 'hr']);
 
         $status    = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $empId     = !empty($_GET['employee_id']) ? (int)$_GET['employee_id'] : null;
@@ -606,6 +692,11 @@ class LeaveController extends ApiController
         $limit     = min(200, max(1, (int)($_GET['limit'] ?? 50)));
 
         $requests = $this->leaveModel->getAllRequests($status, $empId, $limit, $startDate, $endDate, $deptId);
+        $pdo = $this->resolvePdo();
+        $requests = array_map(
+            static fn(array $row): array => ConfidentialLeaveService::maskRequestForViewer($row, $currentUser, $pdo),
+            $requests
+        );
         $this->success($requests, 'Workforce leave requests retrieved successfully.');
     }
 
@@ -640,18 +731,21 @@ class LeaveController extends ApiController
         }
 
         $req = $this->leaveModel->getRequestById($id);
+        $isConf = $req ? ConfidentialLeaveService::isConfidentialRequest($req) : false;
         if ($req) {
+            $defaultNotif = "Your {$req['leave_name']} request for {$req['start_date']} to {$req['end_date']} has been approved.";
             $this->leaveNotifications->leaveDecided(
                 $req,
                 'Approved',
-                "Your {$req['leave_name']} request for {$req['start_date']} to {$req['end_date']} has been approved."
+                ConfidentialLeaveService::safeNotificationMessage($isConf, $id, $defaultNotif),
+                $isConf
             );
         }
 
         $this->userModel->logActivity(
             (int)$currentUser['id'],
             'LEAVE_APPROVED',
-            "Approved leave request #{$id}",
+            ConfidentialLeaveService::safeActivityDescription($isConf, $id, 'Approved', "Approved leave request #{$id}"),
             'LeaveRequest',
             (string)$id
         );
@@ -704,22 +798,174 @@ class LeaveController extends ApiController
         }
 
         $req = $this->leaveModel->getRequestById($id);
+        $isConf = $req ? ConfidentialLeaveService::isConfidentialRequest($req) : false;
         if ($req) {
+            $defaultNotif = "Your {$req['leave_name']} request was rejected." . ($reason ? " Reason: {$reason}" : "");
             $this->leaveNotifications->leaveDecided(
                 $req,
                 'Rejected',
-                "Your {$req['leave_name']} request was rejected." . ($reason ? " Reason: {$reason}" : "")
+                ConfidentialLeaveService::safeNotificationMessage($isConf, $id, $defaultNotif),
+                $isConf
             );
         }
 
         $this->userModel->logActivity(
             (int)$currentUser['id'],
             'LEAVE_REJECTED',
-            "Rejected leave request #{$id}. Reason: {$reason}",
+            ConfidentialLeaveService::safeActivityDescription(
+                $isConf,
+                $id,
+                'Rejected',
+                "Rejected leave request #{$id}. Reason: {$reason}"
+            ),
             'LeaveRequest',
             (string)$id
         );
 
         $this->success(null, "Leave request #{$id} rejected.");
+    }
+
+    #[OA\Post(
+        path: "/api/v1/hr/leaves/{id}/request-info",
+        summary: "Request additional clarification from filing employee",
+        description: "Places a pending leave request into HR clarification mode without rejecting it. Restricted to HR/Admin accounts.",
+        tags: ["HR Approvals"],
+        security: [
+            ["cookieAuth" => []],
+            ["csrfToken" => []]
+        ],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["note"],
+                properties: [
+                    new OA\Property(property: "note", type: "string", example: "Please upload a legible copy of your updated Solo Parent ID.")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Clarification requested"),
+            new OA\Response(response: 400, description: "Validation or status error"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
+    public function requestInfo(int $id): void
+    {
+        $currentUser = $this->requireRole(['admin', 'hr']);
+        $input = $this->getJsonInput();
+        $note = trim((string)($input['note'] ?? ($input['hr_info_request_note'] ?? '')));
+
+        $outcome = $this->leaveModel->requestAdditionalInfo($id, (int)$currentUser['id'], $note);
+        if (empty($outcome['ok'])) {
+            $this->error((string)($outcome['message'] ?? 'Unable to request additional information.'), 400);
+        }
+
+        $req = $this->leaveModel->getRequestById($id);
+        $isConf = $req ? ConfidentialLeaveService::isConfidentialRequest($req) : false;
+        $this->userModel->logActivity(
+            (int)$currentUser['id'],
+            'LEAVE_INFO_REQUESTED',
+            ConfidentialLeaveService::safeActivityDescription(
+                $isConf,
+                $id,
+                'Requested additional information on',
+                "Requested clarification on leave request #{$id}."
+            ),
+            'LeaveRequest',
+            (string)$id
+        );
+
+        $this->success(['id' => $id, 'info_request_status' => 'Requested'], (string)$outcome['message']);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/leaves/{id}/respond-info",
+        summary: "Submit clarification response on pending leave request",
+        description: "Allows the owning employee to respond to an HR clarification request on a pending application.",
+        tags: ["Leave Requests"],
+        security: [
+            ["cookieAuth" => []],
+            ["csrfToken" => []]
+        ],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["response"],
+                properties: [
+                    new OA\Property(property: "response", type: "string", example: "Uploaded scanned Solo Parent ID valid through Dec 2027.")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Clarification response recorded"),
+            new OA\Response(response: 400, description: "Validation or authorization error")
+        ]
+    )]
+    public function respondInfo(int $id): void
+    {
+        $user = $this->requireEmployeeUser();
+        $empId = (int)$user['employee_id'];
+        $input = $this->getJsonInput();
+        $response = trim((string)($input['response'] ?? ($input['employee_info_response'] ?? '')));
+
+        $outcome = $this->leaveModel->respondToInfoRequest($id, $empId, $response, (int)$user['id']);
+        if (empty($outcome['ok'])) {
+            $this->error((string)($outcome['message'] ?? 'Unable to record response.'), 400);
+        }
+
+        $req = $this->leaveModel->getRequestById($id);
+        $isConf = $req ? ConfidentialLeaveService::isConfidentialRequest($req) : false;
+        $displayName = (string)($user['name'] ?? $user['username'] ?? 'An employee');
+        $this->leaveNotifications->leaveSubmitted(
+            $id,
+            ConfidentialLeaveService::safeNotificationMessage(
+                $isConf,
+                $id,
+                "{$displayName} responded to clarification request on #LR-" . str_pad((string)$id, 3, '0', STR_PAD_LEFT) . "."
+            ),
+            $isConf
+        );
+
+        $this->userModel->logActivity(
+            (int)$user['id'],
+            'LEAVE_INFO_RESPONDED',
+            ConfidentialLeaveService::safeActivityDescription(
+                $isConf,
+                $id,
+                'Responded to clarification on',
+                "Submitted clarification response on leave request #{$id}."
+            ),
+            'LeaveRequest',
+            (string)$id
+        );
+
+        $this->success(['id' => $id, 'info_request_status' => 'Responded'], (string)$outcome['message']);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/hr/leave-qualifications",
+        summary: "List employee statutory leave qualifications",
+        description: "Retrieves verified, pending, expired, or revoked statutory leave qualifications (Solo Parent SPIC, Paternity Marriage Proof, SIL Exclusions). Restricted to HR/Admin.",
+        tags: ["HR Approvals"],
+        security: [["cookieAuth" => []]],
+        responses: [
+            new OA\Response(response: 200, description: "Qualification list retrieved"),
+            new OA\Response(response: 403, description: "Forbidden")
+        ]
+    )]
+    public function hrQualifications(): void
+    {
+        $this->requireRole(['admin', 'hr']);
+        $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
+        $qtype = !empty($_GET['qualification_type']) ? trim((string)$_GET['qualification_type']) : null;
+
+        $records = $this->leaveModel->getAllQualificationsForHr($status, $qtype);
+        $this->success($records, 'Employee statutory leave qualifications retrieved successfully.');
     }
 }

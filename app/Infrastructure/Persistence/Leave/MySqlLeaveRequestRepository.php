@@ -25,8 +25,9 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
     public function findById(int $id): ?LeaveRequest
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, employee_id, leave_type_id, start_date, end_date, number_of_days,
-                   reason, rejection_reason, status, approved_by, approved_at, created_at
+            SELECT id, employee_id, leave_type_id, policy_version_id, event_entitlement_id,
+                   start_date, end_date, number_of_days, entitlement_unit, is_paid, is_confidential,
+                   reason, application_metadata_json, rejection_reason, status, approved_by, approved_at, created_at
             FROM leave_requests
             WHERE id = :id
             LIMIT 1
@@ -45,8 +46,9 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
     public function findByIdForUpdate(int $id): ?LeaveRequest
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, employee_id, leave_type_id, start_date, end_date, number_of_days,
-                   reason, rejection_reason, status, approved_by, approved_at, created_at
+            SELECT id, employee_id, leave_type_id, policy_version_id, event_entitlement_id,
+                   start_date, end_date, number_of_days, entitlement_unit, is_paid, is_confidential,
+                   reason, application_metadata_json, rejection_reason, status, approved_by, approved_at, created_at
             FROM leave_requests
             WHERE id = :id
             LIMIT 1
@@ -68,21 +70,29 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
         if ($request->id() === null) {
             $stmt = $this->pdo->prepare("
                 INSERT INTO leave_requests (
-                    employee_id, leave_type_id, start_date, end_date, number_of_days,
-                    reason, rejection_reason, status, approved_by, approved_at, created_at
+                    employee_id, leave_type_id, policy_version_id, event_entitlement_id,
+                    start_date, end_date, number_of_days, entitlement_unit, is_paid, is_confidential,
+                    reason, application_metadata_json, rejection_reason, status, approved_by, approved_at, created_at
                 ) VALUES (
-                    :emp_id, :lt_id, :start_date, :end_date, :num_days,
-                    :reason, :rej_reason, :status, :approved_by, :approved_at, :created_at
+                    :emp_id, :lt_id, :pv_id, :ee_id,
+                    :start_date, :end_date, :num_days, :unit, :is_paid, :is_conf,
+                    :reason, :meta_json, :rej_reason, :status, :approved_by, :approved_at, :created_at
                 )
             ");
 
             $stmt->execute([
                 'emp_id'      => $request->employeeId(),
                 'lt_id'       => $request->leaveTypeId(),
+                'pv_id'       => $request->policyVersionId(),
+                'ee_id'       => $request->eventEntitlementId(),
                 'start_date'  => $request->dateRange()->startDateString(),
                 'end_date'    => $request->dateRange()->endDateString(),
                 'num_days'    => $request->numberOfDays(),
+                'unit'        => $request->entitlementUnit(),
+                'is_paid'     => $request->isPaid() ? 1 : 0,
+                'is_conf'     => $request->isConfidential() ? 1 : 0,
                 'reason'      => $request->reason(),
+                'meta_json'   => $request->applicationMetadataJson(),
                 'rej_reason'  => $request->rejectionReason(),
                 'status'      => $request->status()->value(),
                 'approved_by' => $request->approvedBy(),
@@ -116,8 +126,9 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
     public function findOverlapping(int $employeeId, LeaveDateRange $range, ?int $excludeRequestId = null): array
     {
         $sql = "
-            SELECT id, employee_id, leave_type_id, start_date, end_date, number_of_days,
-                   reason, rejection_reason, status, approved_by, approved_at, created_at
+            SELECT id, employee_id, leave_type_id, policy_version_id, event_entitlement_id,
+                   start_date, end_date, number_of_days, entitlement_unit, is_paid, is_confidential,
+                   reason, application_metadata_json, rejection_reason, status, approved_by, approved_at, created_at
             FROM leave_requests
             WHERE employee_id = :emp_id
               AND status IN ('Pending', 'Approved')
@@ -152,8 +163,9 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
     public function findByEmployee(int $employeeId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, employee_id, leave_type_id, start_date, end_date, number_of_days,
-                   reason, rejection_reason, status, approved_by, approved_at, created_at
+            SELECT id, employee_id, leave_type_id, policy_version_id, event_entitlement_id,
+                   start_date, end_date, number_of_days, entitlement_unit, is_paid, is_confidential,
+                   reason, application_metadata_json, rejection_reason, status, approved_by, approved_at, created_at
             FROM leave_requests
             WHERE employee_id = :emp_id
             ORDER BY id DESC
@@ -174,17 +186,25 @@ class MySqlLeaveRequestRepository implements LeaveRequestRepositoryInterface
      */
     private function mapRowToEntity(array $row): LeaveRequest
     {
+        $unit = (string)($row['entitlement_unit'] ?? 'working_days');
         return LeaveRequest::reconstitute(
             id: (int) $row['id'],
             employeeId: (int) $row['employee_id'],
             leaveTypeId: (int) $row['leave_type_id'],
-            dateRange: LeaveDateRange::fromStrings($row['start_date'], $row['end_date']),
+            dateRange: LeaveDateRange::fromStringsForUnit((string)$row['start_date'], (string)$row['end_date'], $unit),
             status: LeaveStatus::fromString($row['status']),
             reason: (string) $row['reason'],
             rejectionReason: $row['rejection_reason'] !== null ? (string) $row['rejection_reason'] : null,
             approvedBy: $row['approved_by'] !== null ? (int) $row['approved_by'] : null,
             approvedAt: $row['approved_at'] !== null ? new DateTimeImmutable($row['approved_at']) : null,
-            createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null
+            createdAt: $row['created_at'] !== null ? new DateTimeImmutable($row['created_at']) : null,
+            entitlementUnit: $unit,
+            isPaid: isset($row['is_paid']) ? ((int)$row['is_paid'] === 1) : true,
+            isConfidential: isset($row['is_confidential']) && ((int)$row['is_confidential'] === 1),
+            policyVersionId: isset($row['policy_version_id']) ? (int)$row['policy_version_id'] : null,
+            eventEntitlementId: isset($row['event_entitlement_id']) ? (int)$row['event_entitlement_id'] : null,
+            applicationMetadataJson: $row['application_metadata_json'] !== null ? (string)$row['application_metadata_json'] : null,
+            durationDaysOverride: isset($row['number_of_days']) && (int)$row['number_of_days'] > 0 ? (int)$row['number_of_days'] : null
         );
     }
 }

@@ -178,6 +178,9 @@ class Session
                 if (!empty($dbUser['position_name'])) {
                     $_SESSION['user']['position'] = $dbUser['position_name'];
                 }
+                $_SESSION['user']['profile_picture'] = !empty($dbUser['profile_picture'])
+                    ? (string)$dbUser['profile_picture']
+                    : null;
                 if (!empty($dbUser['email'])) {
                     $_SESSION['user']['email'] = $dbUser['email'];
                 }

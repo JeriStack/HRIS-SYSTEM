@@ -184,4 +184,20 @@ class Notification
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         return $stmt->execute();
     }
+
+    /**
+     * Permanently delete a single notification owned by the user.
+     * Returns false when the id does not exist or belongs to another user.
+     */
+    public function deleteForUser(int $id, int $userId): bool
+    {
+        $stmt = $this->db->prepare(
+            "DELETE FROM notifications WHERE id = :id AND user_id = :user_id"
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
 }

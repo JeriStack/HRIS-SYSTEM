@@ -14,14 +14,14 @@
 NEXORA HR utilizes **MySQL 8.0 Community Server** configured with the **InnoDB** storage engine as its single source of truth. The database is architected for strict ACID transactional compliance, row-level locking concurrency control, high referential integrity, and complete isolation between production and testing environments.
 
 ### Core Configuration Parameters
-* **Storage Engine:** `InnoDB` strictly enforced across all 17 tables.
+* **Storage Engine:** `InnoDB` strictly enforced across all 22 tables.
 * **Character Set & Collation:** `utf8mb4` with `utf8mb4_unicode_ci` collation supporting full Unicode text and international employee names.
 * **Transaction Isolation Level:** `READ COMMITTED` or `REPEATABLE READ` (default) with explicit pessimistic locks (`SELECT ... FOR UPDATE`) for critical balance transactions.
 * **Timezone Synchronization:** UTC normalized timestamps with application-level display timezone conversion.
 
 ---
 
-## 2. Authoritative 17-Table Schema Catalog
+## 2. Authoritative 22-Table Schema Catalog
 
 ### 2.1 Organizational & Workforce Tables
 
@@ -59,14 +59,18 @@ CREATE TABLE `employees` (
     `middle_name` VARCHAR(50) NULL,
     `last_name` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NOT NULL,
+    `personal_email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(25) NULL,
     `address` TEXT NULL,
     `birth_date` DATE NOT NULL,
     `gender` ENUM('Male', 'Female', 'Other') NOT NULL,
+    `civil_status` ENUM('Single', 'Married', 'Widowed', 'Separated', 'Divorced') NULL DEFAULT NULL,
     `department_id` INT UNSIGNED NOT NULL,
     `position_id` INT UNSIGNED NOT NULL,
     `date_hired` DATE NOT NULL,
+    `employment_type` VARCHAR(50) NOT NULL DEFAULT 'Regular',
     `employment_status` ENUM('Active', 'Inactive', 'Terminated') NOT NULL DEFAULT 'Active',
+    `profile_picture` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_employees_emp_no` UNIQUE (`employee_no`),
     CONSTRAINT `uq_employees_email` UNIQUE (`email`),
@@ -75,6 +79,7 @@ CREATE TABLE `employees` (
     CONSTRAINT `fk_employees_position` FOREIGN KEY (`position_id`) 
         REFERENCES `positions` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX `idx_employees_status` (`employment_status`),
+    INDEX `idx_employees_employment_type` (`employment_type`),
     INDEX `idx_employees_dept` (`department_id`),
     INDEX `idx_employees_pos` (`position_id`),
     INDEX `idx_employees_name` (`last_name`, `first_name`)
@@ -367,6 +372,173 @@ CREATE TABLE `permission_audit_logs` (
 
 ---
 
+### 2.5 Background Queue & Employee Profile Self-Service Tables `[IMPLEMENTED]`
+
+#### 18. `queue_jobs` & 19. `failed_jobs`
+Database-backed asynchronous queue storage introduced by `2026_11_08_create_queue_tables.sql` (see `database/schema.sql` for full columns and indexes).
+
+#### 20. `employee_emergency_contacts` `[IMPLEMENTED]`
+Normalized emergency contacts linked per employee (`ON DELETE CASCADE`, self-service managed by the authenticated owner or HR).
+```sql
+CREATE TABLE IF NOT EXISTS `employee_emergency_contacts` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `full_name` VARCHAR(120) NOT NULL,
+    `relationship` VARCHAR(60) NOT NULL,
+    `contact_number` VARCHAR(30) NOT NULL,
+    `alternative_contact_number` VARCHAR(30) NULL DEFAULT NULL,
+    `address` TEXT NULL,
+    `is_primary` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emergency_contacts_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_emergency_contacts_emp` (`employee_id`, `is_primary`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 21. `employment_history` `[IMPLEMENTED]`
+Chronological career milestone log (separate from `activity_logs` security audit events) recording hiring, promotions, department transfers, position changes, employment status changes, and employment type transitions.
+```sql
+CREATE TABLE IF NOT EXISTS `employment_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `event_type` VARCHAR(50) NOT NULL,
+    `effective_date` DATE NOT NULL,
+    `previous_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `previous_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `employment_type` VARCHAR(50) NULL DEFAULT NULL,
+    `description` TEXT NULL,
+    `recorded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emp_history_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_dept` FOREIGN KEY (`previous_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_dept` FOREIGN KEY (`new_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_pos` FOREIGN KEY (`previous_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_pos` FOREIGN KEY (`new_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_recorded_by` FOREIGN KEY (`recorded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_emp_history_timeline` (`employee_id`, `effective_date`, `id`),
+    INDEX `idx_emp_history_event_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 22. `profile_correction_requests` `[IMPLEMENTED]`
+Structured approval queue for HR-controlled employee profile attributes (`first_name`, `middle_name`, `last_name`, `birth_date`, `gender`, `civil_status`, `email`, `department_id`, `position_id`, `employment_type`, `date_hired`), with row-level `FOR UPDATE` transactional review.
+```sql
+CREATE TABLE IF NOT EXISTS `profile_correction_requests` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `requested_by_user_id` INT UNSIGNED NOT NULL,
+    `field_name` VARCHAR(50) NOT NULL,
+    `current_value` TEXT NULL,
+    `requested_value` TEXT NOT NULL,
+    `reason` TEXT NOT NULL,
+    `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
+    `reviewed_by` INT UNSIGNED NULL DEFAULT NULL,
+    `reviewed_at` DATETIME NULL DEFAULT NULL,
+    `decision_reason` TEXT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pcr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_requested_by` FOREIGN KEY (`requested_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_reviewed_by` FOREIGN KEY (`reviewed_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_pcr_emp_status` (`employee_id`, `status`, `created_at`),
+    INDEX `idx_pcr_status_created` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+### 2.6 Philippine Statutory & Company Leave Management Tables `[IMPLEMENTED]`
+
+Added by `database/migrations/2026_11_16_philippine_leave_management.sql` alongside extensions on existing tables:
+
+* **`leave_types` extensions:** `leave_code` (`VARCHAR(30) UNIQUE`), `classification` (`ENUM('Statutory','Company')`), `benefit_category` (`ENUM('StatutoryAnnual','StatutoryEvent','CompanyAnnual','CompanyEvent','Unpaid')`), `entitlement_model` (`ENUM('annual','event_based','unpaid')`), `legal_reference` (`VARCHAR(191)`), `default_unit` (`ENUM('working_days','calendar_days')`), `is_paid` (`TINYINT(1)`), `is_confidential` (`TINYINT(1)`), `statutory_protected` (`TINYINT(1)`), and `active_policy_version_id` (`INT UNSIGNED NULL`).
+* **`leave_balances` extensions:** `carried_over_days`, `converted_days`, `expired_days` (`DECIMAL(6,2)`), `policy_version_id` (`INT UNSIGNED NULL`), `sil_credited_from_vl` (`TINYINT(1)`), `eligibility_status` (`ENUM('Available','PendingVerification','CreditedViaVL','Ineligible','NotAllocated')`), and `notes` (`VARCHAR(255)`).
+* **`leave_requests` extensions:** `policy_version_id` (`INT UNSIGNED NULL`), `event_entitlement_id` (`INT UNSIGNED NULL`), `entitlement_unit` (`ENUM('working_days','calendar_days')`), `is_paid` (`TINYINT(1)`), `is_confidential` (`TINYINT(1)`), `application_metadata_json` (`JSON`), `info_request_status` (`ENUM('None','Requested','Responded')`), `hr_info_request_note` (`TEXT`), `employee_info_response` (`TEXT`), `info_requested_by` (`INT UNSIGNED NULL`), `info_requested_at` (`DATETIME`), and `info_responded_at` (`DATETIME`).
+
+#### 23. `leave_policy_versions` `[IMPLEMENTED]`
+Versioned, non-retroactive rule snapshots linked per `leave_type_id` (`policy_version_id` pinned onto requests, balances, and events at filing/allocation time).
+* Key columns: `id`, `leave_type_id`, `version_number`, `policy_code` (`VARCHAR(50)`), `effective_from`, `effective_to`, `approval_status` (`ENUM('Draft','PendingReview','Active','Superseded','Archived')`), `classification`, `entitlement_model`, `benefit_tier` (`ENUM('statutory_minimum','employer_enhanced','company_benefit','unpaid')`), `sector_scope` (`ENUM('all','private','public')`), `legal_reference`, `entitlement_days` (`DECIMAL(6,2)`), `entitlement_unit`, `is_paid`, `allocation_frequency` (`ENUM('annual','per_event','unlimited_unpaid')`), `carry_over_allowed`, `max_carry_over_days`, `cash_convertible`, `cash_conversion_max_days`, `min_service_months`, `service_window_months`, `counts_as_sil_equivalent`, `stack_with_equivalent`, `max_events_lifetime`, `max_extension_days`, `requires_documentation`, `document_requirements`, `requires_qualification`, `qualification_type`, `is_confidential`, `rules_json` (`JSON`), `change_notes`, `created_by`, `approved_by`, `approved_at`.
+
+#### 24. `employee_leave_qualifications` `[IMPLEMENTED]`
+HR-verified statutory eligibility records per employee.
+* Key columns: `id`, `employee_id`, `qualification_type` (`ENUM('solo_parent_spic','paternity_marriage','sil_exclusion','maternity_eligibility','slw_eligibility','vawc_protection')`), `verification_status` (`ENUM('PendingVerification','Verified','Expired','Revoked','Rejected')`), `reference_no` (`VARCHAR(100)`), `valid_from`, `valid_to`, `sil_exempt_override` (`TINYINT(1)`), `exclusion_reason` (`VARCHAR(150)`), `supporting_notes`, `verified_by`, `verified_at`.
+
+#### 25. `leave_event_entitlements` `[IMPLEMENTED]`
+Event-scoped entitlement tracking for Maternity (RA 11210), Paternity (RA 8187, up to 4 deliveries), SLW (RA 9710), VAWC (RA 9262 + extensions), and Bereavement.
+* Key columns: `id`, `employee_id`, `leave_type_id`, `policy_version_id`, `event_code` (`VARCHAR(40)`), `event_scenario` (`VARCHAR(60)`), `event_date`, `delivery_sequence` (`TINYINT UNSIGNED`), `spouse_name`, `relationship_type`, `entitled_days`, `transferred_out_days`, `unpaid_extension_days`, `used_days`, `pending_days`, `remaining_days` (`DECIMAL(6,2)`), `valid_from`, `valid_to`, `verification_status` (`ENUM('PendingVerification','Verified','Active','Completed','Expired','Cancelled')`), `is_confidential`, `metadata_json` (`JSON`), `created_by`, `verified_by`, `verified_at`.
+
+#### 26. `leave_balance_transactions` `[IMPLEMENTED]`
+Append-only ledger recording every balance and event mutation, including non-payroll SIL commutation references (`conversion_scope`, `conversion_reference`).
+* Key columns: `id`, `employee_id`, `leave_type_id`, `leave_balance_id`, `leave_request_id`, `event_entitlement_id`, `policy_version_id`, `balance_year` (`SMALLINT UNSIGNED`), `transaction_type` (`ENUM('initial_allocation','annual_allocation','approved_deduction','balance_restoration','adjustment','carry_over','expiration','sil_conversion','event_allocation','unpaid_recorded')`), `days_delta`, `balance_before`, `balance_after`, `conversion_scope` (`ENUM('none','annual_unused','separation')`), `conversion_reference` (`VARCHAR(80)`), `remarks` (`VARCHAR(255)`), `is_confidential`, `actor_user_id`, `created_at`.
+
+#### 27. `leave_request_documents` `[IMPLEMENTED]`
+Metadata for protected supporting documents stored outside the web root with SHA-256 checksums and MIME verification.
+```sql
+CREATE TABLE IF NOT EXISTS `leave_request_documents` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_category` VARCHAR(50) NOT NULL DEFAULT 'supporting_document',
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `review_status` ENUM('PendingReview', 'Accepted', 'NeedsClarification', 'Rejected') NOT NULL DEFAULT 'PendingReview',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lrd_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lrd_request` (`leave_request_id`),
+    INDEX `idx_lrd_employee` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 28. `leave_sensitive_access_logs` `[IMPLEMENTED]`
+Immutable access audit trail for VAWC (RA 9262), SLW (RA 9710), protected document downloads, and statutory qualification verifications.
+```sql
+CREATE TABLE IF NOT EXISTS `leave_sensitive_access_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_id` INT UNSIGNED NULL DEFAULT NULL,
+    `accessor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action_type` ENUM('view_request', 'view_confidential_reason', 'download_document', 'export_redacted', 'verify_qualification') NOT NULL,
+    `access_granted` TINYINT(1) NOT NULL DEFAULT 1,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lsal_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_document` FOREIGN KEY (`document_id`)
+        REFERENCES `leave_request_documents` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_accessor` FOREIGN KEY (`accessor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lsal_request` (`leave_request_id`, `created_at`),
+    INDEX `idx_lsal_accessor` (`accessor_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
 ## 3. Concurrency Control & Row-Level Locking
 
 Leave balance mutations execute inside atomic transactions using **pessimistic row-level locking**:
@@ -447,5 +619,7 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_11_08_create_rbac_tables.sql` — Creates `roles`, `permissions`, `role_permissions`, and `permission_audit_logs` tables; adds `role_id` foreign key to `users`; seeds 3 core system roles and 33 granular permissions.
 * `database/migrations/2026_11_08_enhance_audit_trail_schema.sql` — Extends `activity_logs` with `event_id`, `actor_role`, `category`, `old_values`, `new_values`, `status`, and `request_id`.
 * `database/migrations/2026_11_08_create_queue_tables.sql` — Creates `queue_jobs` and `failed_jobs` tables for concurrency-safe asynchronous background job processing.
+* `database/migrations/2026_11_15_enhance_employee_profiles.sql` — Adds `civil_status`, `personal_email`, `employment_type`, and `profile_picture` (plus `idx_employees_employment_type`) to `employees`, and creates `employee_emergency_contacts`, `employment_history`, and `profile_correction_requests`.
+* `database/migrations/2026_11_16_philippine_leave_management.sql` — Extends `leave_types`, `leave_balances`, and `leave_requests` for Philippine statutory and company leave rules; creates `leave_policy_versions`, `employee_leave_qualifications`, `leave_event_entitlements`, `leave_balance_transactions`, `leave_request_documents`, and `leave_sensitive_access_logs`; seeds canonical leave types/v1 policies, backfills ledger entries, and seeds `leave_policies.manage`, `leave_qualifications.verify`, and `leave_confidential.view`.
 
 

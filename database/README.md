@@ -84,7 +84,8 @@ $env:DB_DATABASE = "hris_test"; php bin/migrate.php; Remove-Item Env:DB_DATABASE
 
 ## 4a. Schema Sources and Migrations
 
-- **Canonical schema:** `database/schema.sql` (the full current structure) plus `database/migrations/*.sql`.
+- **Canonical schema:** `database/schema.sql` (the full 22-table structure) plus `database/migrations/*.sql`.
+  Includes `employee_emergency_contacts`, `employment_history`, and `profile_correction_requests` added by `2026_11_15_enhance_employee_profiles.sql`.
 - **Docker first boot:** `docker/mysql/init/01-schema.sql` and `02-seed.sql` are generated copies of
   `database/schema.sql` and `database/seed.sql` with a `USE hris_db;` header. They run only when the
   MySQL volume is empty. Edit the canonical files, then regenerate the copies so the content below the
