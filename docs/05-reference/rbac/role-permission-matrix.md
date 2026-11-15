@@ -51,6 +51,9 @@ All application permissions are registered in `Core\PermissionRegistry` across 7
 | **Leave** | `leave.balances.view` | Inspect employee leave quotas | **ALLOW (Immutable)** | **ALLOW** | DENY |
 | **Leave** | `leave.balances.manage` | Adjust and initialize leave balances | **ALLOW (Immutable)** | **ALLOW** | DENY |
 | **Leave** | `leave.policies.manage` | Configure leave rules and entitlements | **ALLOW (Immutable)** | **ALLOW** | DENY |
+| **Leave** | `leave_policies.manage` | Create, review, and activate versioned statutory and company leave policies | **ALLOW (Immutable)** | **ALLOW** | DENY |
+| **Leave** | `leave_qualifications.verify` | Verify Solo Parent ID Cards (SPIC), paternity marital records, and SIL exclusions | **ALLOW (Immutable)** | **ALLOW** | DENY |
+| **Leave** | `leave_confidential.view` | View unmasked VAWC (RA 9262) and Special Leave for Women (RA 9710) details and documents | **ALLOW (Immutable)** | **ALLOW** | DENY |
 | **Reports** | `reports.view` | Access workforce analytics & reports | **ALLOW (Immutable)** | **ALLOW** | DENY |
 | **Reports** | `reports.export` | Export reports to CSV or print formats | **ALLOW (Immutable)** | **ALLOW** | DENY |
 | **Security** | `audit.view` | View system activity & security logs | **ALLOW (Immutable)** | **ALLOW** | DENY |

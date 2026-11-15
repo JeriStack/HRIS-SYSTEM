@@ -33,6 +33,8 @@ use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
 use App\Domain\Leave\Exceptions\InsufficientLeaveBalanceException;
 use App\Domain\Leave\Exceptions\CrossYearLeaveException;
 use App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException;
+use App\Services\LeavePolicyEngine;
+use PDO;
 
 class FileLeaveRequestUseCase
 {
@@ -43,7 +45,8 @@ class FileLeaveRequestUseCase
         private readonly LeaveRequestRepositoryInterface $leaveRequestRepository,
         private readonly LeaveBalanceRepositoryInterface $leaveBalanceRepository,
         private readonly TransactionManagerInterface $transactionManager,
-        private readonly ?LeaveFilingGuardInterface $filingGuard = null
+        private readonly ?LeaveFilingGuardInterface $filingGuard = null,
+        private readonly ?PDO $pdo = null
     ) {
     }
 
@@ -66,13 +69,30 @@ class FileLeaveRequestUseCase
         $this->onFiled = null;
 
         return $this->transactionManager->transactional(function () use ($command, $callback): int {
-            // 1. Validate date range (weekend/ordering/zero-day invariants live in the VO).
-            $dateRange = LeaveDateRange::fromStrings($command->startDate, $command->endDate);
+            $policyEngine = $this->pdo !== null ? new LeavePolicyEngine($this->pdo) : null;
+            $typePolicy = $policyEngine !== null
+                ? $policyEngine->resolveLeaveTypeWithPolicy($command->leaveTypeId, $command->startDate)
+                : null;
 
-            // 2. A leave request must resolve to a single quota year.
+            $unit = $command->entitlementUnit
+                ?? ($typePolicy['entitlement_unit'] ?? 'working_days');
+            $unit = $unit === 'calendar_days' ? 'calendar_days' : 'working_days';
+
+            // 1. Validate date range using the policy's day unit (Mon-Fri working or calendar).
+            $dateRange = LeaveDateRange::fromStringsForUnit($command->startDate, $command->endDate, $unit);
+
+            // 2. Reject cross-year ranges unless explicitly permitted (e.g. RA 11210 Maternity).
             $startYear = (int) $dateRange->startDate()->format('Y');
             $endYear = (int) $dateRange->endDate()->format('Y');
-            if ($startYear !== $endYear) {
+            $code = strtoupper((string)($typePolicy['leave_code'] ?? ''));
+            $model = (string)($typePolicy['entitlement_model'] ?? 'annual');
+            $rules = is_array($typePolicy['rules_decoded'] ?? null) ? $typePolicy['rules_decoded'] : [];
+            $allowsCrossYear = ($code === LeavePolicyEngine::CODE_MATERNITY)
+                || ($model === 'event_based' && $unit === 'calendar_days')
+                || !empty($rules['allow_cross_year'])
+                || $command->entitlementUnit === 'calendar_days';
+
+            if ($startYear !== $endYear && !$allowsCrossYear) {
                 throw CrossYearLeaveException::forYears($startYear, $endYear);
             }
             $year = $startYear;
@@ -96,46 +116,98 @@ class FileLeaveRequestUseCase
                 throw OverlappingLeaveException::forDates($command->startDate, $command->endDate);
             }
 
-            // 5. Auto-initialize missing balances, then lock the balance row for this filing.
-            if ($this->filingGuard !== null) {
-                $this->filingGuard->ensureBalancesInitialized($command->employeeId, $year);
+            // 5. Evaluate statutory/company rules via LeavePolicyEngine when database is present.
+            $resolvedFiling = null;
+            if ($policyEngine !== null) {
+                $meta = $command->metadata ?? [];
+                $resolvedFiling = $policyEngine->validateFiling(
+                    $command->employeeId,
+                    $command->leaveTypeId,
+                    $command->startDate,
+                    $command->endDate,
+                    $meta,
+                    !empty($meta['_has_doc']),
+                    !empty($meta['_strict_form'])
+                );
             }
 
-            $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
-                $command->employeeId,
-                $command->leaveTypeId,
-                $year
-            );
+            $isPaid = $resolvedFiling !== null ? !empty($resolvedFiling['is_paid']) : true;
+            $isConfidential = $resolvedFiling !== null ? !empty($resolvedFiling['is_confidential']) : false;
+            $policyVersionId = $command->policyVersionId
+                ?? ($resolvedFiling['policy_version_id'] ?? ($typePolicy['policy_version_id'] ?? null));
+            $eventEntitlementId = $command->eventEntitlementId
+                ?? ($resolvedFiling['event_entitlement_id'] ?? null);
+            $cleanMeta = $command->metadata ?? [];
+            unset($cleanMeta['_has_doc'], $cleanMeta['_strict_form']);
+            $metaJson = !empty($cleanMeta) ? json_encode($cleanMeta, JSON_UNESCAPED_UNICODE) : null;
+            $requestedDays = $command->overrideDays
+                ?? ($resolvedFiling['number_of_days'] ?? $dateRange->effectiveDays($unit));
 
-            if ($balance === null) {
-                throw LeaveBalanceNotFoundException::forEmployee(
+            // 6. Enforce quota by entitlement model (annual vs event_based vs unpaid).
+            if ($model === 'unpaid') {
+                // Unpaid leave (LWOP) tracks days separately without checking/deducting paid balances.
+            } elseif ($model === 'event_based' && $policyEngine !== null && $this->pdo !== null) {
+                $eventEntitlementId = $policyEngine->ensureEventEntitlementForRequest(
+                    $command->employeeId,
+                    $command->leaveTypeId,
+                    $command->startDate,
+                    $command->endDate,
+                    $resolvedFiling ?? [
+                        'entitlement_model'  => 'event_based',
+                        'leave_code'         => $code,
+                        'number_of_days'     => $requestedDays,
+                        'policy_version_id'  => $policyVersionId,
+                        'is_confidential'    => $isConfidential ? 1 : 0,
+                        'metadata'           => $cleanMeta,
+                        'type_policy'        => $typePolicy ?? [],
+                    ]
+                );
+            } else {
+                // Annual quota path: initialize, lock row FOR UPDATE, reserve pending days.
+                if ($this->filingGuard !== null) {
+                    $this->filingGuard->ensureBalancesInitialized($command->employeeId, $year);
+                }
+
+                $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
                     $command->employeeId,
                     $command->leaveTypeId,
                     $year
                 );
-            }
 
-            // 6. Reserve days already committed to other Pending requests so two concurrent
-            //    filings cannot both pass the balance check.
-            $requestedDays = $dateRange->workingDays();
-            $reserved = $this->filingGuard !== null
-                ? $this->filingGuard->pendingReservedDays($command->employeeId, $command->leaveTypeId, $year)
-                : 0;
-            $effectiveRemaining = $balance->remainingDays() - $reserved;
+                if ($balance === null) {
+                    throw LeaveBalanceNotFoundException::forEmployee(
+                        $command->employeeId,
+                        $command->leaveTypeId,
+                        $year
+                    );
+                }
 
-            if ($requestedDays > $effectiveRemaining) {
-                throw InsufficientLeaveBalanceException::forDays(
-                    max(0, $effectiveRemaining),
-                    $requestedDays
-                );
+                $reserved = $this->filingGuard !== null
+                    ? $this->filingGuard->pendingReservedDays($command->employeeId, $command->leaveTypeId, $year)
+                    : 0;
+                $effectiveRemaining = $balance->remainingDays() - $reserved;
+
+                if ($requestedDays > $effectiveRemaining) {
+                    throw InsufficientLeaveBalanceException::forDays(
+                        max(0, $effectiveRemaining),
+                        $requestedDays
+                    );
+                }
             }
 
             // 7. Persist the Pending request, then run the in-transaction callback.
             $request = LeaveRequest::create(
-                $command->employeeId,
-                $command->leaveTypeId,
-                $dateRange,
-                $command->reason
+                employeeId: $command->employeeId,
+                leaveTypeId: $command->leaveTypeId,
+                dateRange: $dateRange,
+                reason: $command->reason,
+                entitlementUnit: $unit,
+                isPaid: $isPaid,
+                isConfidential: $isConfidential,
+                policyVersionId: $policyVersionId !== null ? (int)$policyVersionId : null,
+                eventEntitlementId: $eventEntitlementId !== null ? (int)$eventEntitlementId : null,
+                applicationMetadataJson: $metaJson ?: null,
+                durationDaysOverride: $command->overrideDays
             );
 
             $newId = $this->leaveRequestRepository->save($request);

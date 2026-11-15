@@ -93,6 +93,20 @@
 .grid-cols-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
+.grid-cols-5 {
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+}
+.leave-split-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(290px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+@media (max-width: 960px) {
+  .leave-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* ==========================================================================
    2. Professional Stat Cards & Metric Displays
@@ -4204,4 +4218,320 @@ dialog.profile-dialog::backdrop {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
+
+/* ==========================================================================
+   Leave Management v3.1 (Statutory & Company Governance + Accessibility)
+   ========================================================================== */
+.table-wrapper,
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.form-control:user-invalid,
+.form-input:user-invalid,
+.form-select:user-invalid,
+.form-textarea:user-invalid,
+.user-invalid-fallback {
+  border-color: var(--color-error) !important;
+}
+
+.form-control:user-invalid:focus,
+.form-input:user-invalid:focus,
+.form-select:user-invalid:focus,
+.form-textarea:user-invalid:focus,
+.user-invalid-fallback:focus {
+  outline: 2px solid var(--color-error);
+  outline-offset: 1px;
+}
+
+.badge-statutory {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-hover);
+  border: 1px solid var(--color-primary-border);
+}
+
+.badge-company {
+  background-color: var(--color-accent-light);
+  color: var(--color-accent-hover);
+  border: 1px solid #99f6e4;
+}
+
+.badge-confidential {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid var(--color-error-border);
+}
+
+.badge-unpaid {
+  background-color: var(--color-badge-neutral-bg);
+  color: var(--color-badge-neutral-text);
+  border: 1px dashed var(--color-border-dark);
+}
+
+[data-theme="dark"] .badge-company {
+  background-color: var(--color-info-bg);
+  color: var(--color-info);
+  border-color: var(--color-info-border);
+}
+
+.leave-section {
+  margin-bottom: var(--space-6);
+}
+
+.leave-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.leave-section-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  color: var(--color-text-main);
+  letter-spacing: -0.01em;
+}
+
+.leave-section-meta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.leave-benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  container-type: inline-size;
+}
+
+.leave-benefit-card {
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-xs);
+}
+
+.leave-benefit-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.leave-benefit-name {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.leave-benefit-law {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.leave-benefit-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.leave-benefit-stats {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.leave-benefit-figure {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--color-text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.leave-benefit-sub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.leave-eligibility-banner {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-body);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.leave-eligibility-banner.is-eligible {
+  background-color: var(--color-success-bg);
+  border-color: var(--color-success-border);
+  color: var(--color-success);
+}
+
+.leave-eligibility-banner.is-blocked {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error);
+}
+
+.leave-eligibility-banner.is-caution {
+  background-color: var(--color-warning-bg);
+  border-color: var(--color-warning-border);
+  color: var(--color-warning);
+}
+
+.leave-confidential-banner {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-error-border);
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.leave-conditional-panel {
+  margin-top: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.leave-conditional-panel[hidden] {
+  display: none;
+}
+
+.ledger-delta-pos {
+  color: var(--color-success);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-delta-neg {
+  color: var(--color-error);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-attachment-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.doc-attachment-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-subtle);
+  flex-wrap: wrap;
+}
+
+dialog.leave-dialog {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-main);
+  padding: 0;
+  width: min(94vw, 600px);
+  max-height: 90dvh;
+  margin: auto;
+  box-shadow: var(--shadow-xl);
+}
+
+dialog.leave-dialog::backdrop {
+  background-color: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.leave-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.leave-dialog-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.leave-dialog-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+  max-height: calc(90dvh - 130px);
+  font-size: var(--font-size-base);
+  color: var(--color-text-body);
+}
+
+.leave-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-bg-subtle);
+}
+
+.leave-dialog-kv {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 0.5rem 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.leave-dialog-kv dt {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+@container (max-width: 560px) {
+  .leave-benefit-card {
+    padding: var(--space-3) var(--space-4);
+  }
+  .leave-benefit-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.leave-dialog-kv dd {
+  margin: 0;
+  color: var(--color-text-main);
+  font-weight: 500;
+  word-break: break-word;
+}
+
 

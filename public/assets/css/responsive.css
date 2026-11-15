@@ -494,6 +494,20 @@
     grid-template-columns: 1fr;
   }
 
+  .emp-requests-table,
+  .leave-responsive-table {
+    font-size: var(--font-size-xs);
+  }
+
+  .leave-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .leave-dialog-kv {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
   .top-bar-right .badge,
   .header-right .role-badge {
     display: none;

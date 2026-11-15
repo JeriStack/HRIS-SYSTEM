@@ -169,19 +169,27 @@ try {
     $router->get('/leaves/balances', [LeaveController::class, 'balances'], [AuthMiddleware::class, $workforceRoles]);
     $router->post('/hr/leaves/balances/adjust', [LeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/hr/leaves/balances/initialize', [LeaveController::class, 'initializeBalances'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/leaves/sil-conversion', [LeaveController::class, 'recordSilConversion'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->get('/hr/leave-qualifications', [LeaveController::class, 'qualifications'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/leave-qualifications/verify', [LeaveController::class, 'verifyQualification'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->get('/hr/leave-types', [LeaveController::class, 'types'], [AuthMiddleware::class, $workforceRoles]);
     $router->get('/hr/leave-types/create', [LeaveController::class, 'createType'], [AuthMiddleware::class, $workforceRoles]);
     $router->post('/hr/leave-types', [LeaveController::class, 'storeType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->get('/hr/leave-types/{id}/edit', [LeaveController::class, 'editType'], [AuthMiddleware::class, $workforceRoles]);
     $router->post('/hr/leave-types/{id}/edit', [LeaveController::class, 'updateType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/hr/leave-types/{id}/toggle-status', [LeaveController::class, 'toggleTypeStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/leave-types/{id}/policies', [LeaveController::class, 'storePolicyVersion'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/leave-policies/{id}/activate', [LeaveController::class, 'activatePolicy'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/approve', [LeaveController::class, 'approve'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/{id}/reject', [LeaveController::class, 'reject'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/leaves/{id}/request-info', [LeaveController::class, 'requestInfo'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
     $router->post('/leaves/queue/next', [LeaveController::class, 'processNextQueue'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
 
-    // Leave Application, Show & Self-Service (Authenticated)
+    // Leave Application, Protected Documents, Clarification & Self-Service (Authenticated)
     $router->get('/leaves/apply', [LeaveController::class, 'apply'], [AuthMiddleware::class]);
     $router->post('/leaves/apply', [LeaveController::class, 'store'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->get('/leaves/documents/{id}', [LeaveController::class, 'downloadDocument'], [AuthMiddleware::class]);
+    $router->post('/leaves/{id}/respond-info', [LeaveController::class, 'respondInfo'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->get('/leaves/{id}', [LeaveController::class, 'show'], [AuthMiddleware::class]);
     $router->post('/leaves/{id}/cancel', [LeaveController::class, 'cancel'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
@@ -292,11 +300,14 @@ try {
     $router->post('/api/v1/leaves', [ApiLeaveController::class, 'apply'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->get('/api/v1/leaves/{id}', [ApiLeaveController::class, 'show'], [AuthMiddleware::class]);
     $router->post('/api/v1/leaves/{id}/cancel', [ApiLeaveController::class, 'cancel'], [AuthMiddleware::class, CsrfMiddleware::class]);
+    $router->post('/api/v1/leaves/{id}/respond-info', [ApiLeaveController::class, 'respondInfo'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Group: HR Approvals
     $router->get('/api/v1/hr/leaves', [ApiLeaveController::class, 'hrLeaves'], [AuthMiddleware::class, $hrOnly]);
     $router->post('/api/v1/hr/leaves/{id}/approve', [ApiLeaveController::class, 'approve'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
     $router->post('/api/v1/hr/leaves/{id}/reject', [ApiLeaveController::class, 'reject'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/hr/leaves/{id}/request-info', [ApiLeaveController::class, 'requestInfo'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->get('/api/v1/hr/leave-qualifications', [ApiLeaveController::class, 'hrQualifications'], [AuthMiddleware::class, $hrOnly]);
 
     // 4. Dispatch Request through the Router
     $router->dispatch();

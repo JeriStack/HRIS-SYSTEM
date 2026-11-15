@@ -38,7 +38,8 @@ class LeaveReminderHandler implements JobInterface
         // Query approved leaves starting on targetDate
         $stmt = $this->db->prepare("
             SELECT lr.id, lr.employee_id, lr.start_date, lr.end_date, lr.number_of_days,
-                   lt.leave_name, e.first_name, e.last_name
+                   lr.is_confidential, lt.leave_name, lt.leave_code, lt.is_confidential AS type_is_confidential,
+                   e.first_name, e.last_name
             FROM leave_requests lr
             JOIN leave_types lt ON lt.id = lr.leave_type_id
             JOIN employees e ON e.id = lr.employee_id
@@ -66,9 +67,11 @@ class LeaveReminderHandler implements JobInterface
                 continue;
             }
 
+            $isConfidential = \App\Services\ConfidentialLeaveService::isConfidentialRequest($leave);
+            $label = $isConfidential ? 'Confidential Statutory Leave' : (string)$leave['leave_name'];
             $msg = sprintf(
                 "Reminder: Your scheduled leave '%s' starts tomorrow (%s) for %s day(s).",
-                $leave['leave_name'],
+                $label,
                 $leave['start_date'],
                 $leave['number_of_days']
             );

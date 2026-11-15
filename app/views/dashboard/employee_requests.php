@@ -113,6 +113,24 @@ foreach ($requests as $r) {
                                 <td class="text-muted text-xs font-semibold tabular-nums">#<?= $id ?></td>
                                 <td>
                                     <span class="font-semibold text-main"><?= e($leaveName) ?></span>
+                                    <?php if (!empty($req['classification']) || !empty($req['is_confidential']) || (($req['entitlement_unit'] ?? 'working_days') === 'calendar_days')): ?>
+                                        <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                                            <?php if (!empty($req['classification'])): ?>
+                                                <span class="badge <?= $req['classification'] === 'Statutory' ? 'badge-statutory' : 'badge-company' ?>" style="font-size: 0.6875rem;">
+                                                    <?= e((string)$req['classification']) ?>
+                                                </span>
+                                            <?php endif; ?>
+                                            <?php if (($req['entitlement_unit'] ?? 'working_days') === 'calendar_days'): ?>
+                                                <span class="badge badge-info" style="font-size: 0.6875rem;">Calendar Days</span>
+                                            <?php endif; ?>
+                                            <?php if (isset($req['is_paid']) && (int)$req['is_paid'] === 0): ?>
+                                                <span class="badge badge-unpaid" style="font-size: 0.6875rem;">Unpaid</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($req['is_confidential'])): ?>
+                                                <span class="badge badge-confidential" style="font-size: 0.6875rem;">Confidential</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-sm tabular-nums">
                                     <div><?= e($startStr) ?></div>
@@ -141,6 +159,11 @@ foreach ($requests as $r) {
                                 <td class="text-xs text-muted tabular-nums"><?= e($filedStr) ?></td>
                                 <td>
                                     <span class="badge <?= $badgeClass ?> badge-dot"><?= e($status) ?></span>
+                                    <?php if (($req['info_request_status'] ?? 'None') === 'Requested'): ?>
+                                        <div style="margin-top: 0.25rem;"><span class="badge badge-danger" style="font-size: 0.6875rem;">Clarification Needed</span></div>
+                                    <?php elseif (($req['info_request_status'] ?? 'None') === 'Responded'): ?>
+                                        <div style="margin-top: 0.25rem;"><span class="badge badge-info" style="font-size: 0.6875rem;">Clarification Sent</span></div>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-right">
                                     <div class="inline-flex gap-2">

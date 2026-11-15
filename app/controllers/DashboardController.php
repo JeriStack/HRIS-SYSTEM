@@ -427,7 +427,7 @@ class DashboardController extends Controller
     public function employeeLeaveBalances(): void
     {
         $user = currentUser();
-        $myEmpId = $user['employee_id'] ?? null;
+        $myEmpId = (int)($user['employee_id'] ?? 0);
 
         // Ownership enforcement against parameter spoofing
         if (isset($_GET['emp_id']) && (int)$_GET['emp_id'] !== $myEmpId) {
@@ -439,31 +439,172 @@ class DashboardController extends Controller
             return;
         }
 
-        $stmt = $this->pdo->prepare("
-            SELECT lb.*, lt.leave_name, lt.description
-            FROM leave_balances lb
-            INNER JOIN leave_types lt ON lb.leave_type_id = lt.id
-            WHERE lb.employee_id = :emp_id AND lb.year = YEAR(CURDATE())
+        $year = !empty($_GET['year']) ? max(2000, min(2100, (int)$_GET['year'])) : (int)date('Y');
+        $leaveModel = $this->getLeaveModel();
+        $balances = $leaveModel->getBalancesByEmployee($myEmpId, $year);
+
+        $balanceByTypeId = [];
+        foreach ($balances as $bal) {
+            $balanceByTypeId[(int)$bal['leave_type_id']] = $bal;
+        }
+
+        // Load employee profile for tenure/gender/SIL/SPIC eligibility rules
+        $empStmt = $this->pdo->prepare("SELECT * FROM employees WHERE id = :id LIMIT 1");
+        $empStmt->execute(['id' => $myEmpId]);
+        $employee = $empStmt->fetch(PDO::FETCH_ASSOC) ?: ['id' => $myEmpId];
+
+        // Pending days grouped per leave type for accurate Available vs Pending vs Used separation
+        $pendingByType = [];
+        $yearStart = sprintf('%04d-01-01', $year);
+        $yearEnd = sprintf('%04d-12-31', $year);
+        $pStmt = $this->pdo->prepare("
+            SELECT leave_type_id, COALESCE(SUM(number_of_days), 0) AS pending_days
+            FROM leave_requests
+            WHERE employee_id = :emp_id
+              AND status = 'Pending'
+              AND start_date BETWEEN :ystart AND :yend
+            GROUP BY leave_type_id
         ");
-        $stmt->execute(['emp_id' => $myEmpId]);
-        $balances = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $pStmt->execute([
+            'emp_id' => $myEmpId,
+            'ystart' => $yearStart,
+            'yend'   => $yearEnd,
+        ]);
+        foreach ($pStmt->fetchAll(PDO::FETCH_ASSOC) as $pRow) {
+            $pendingByType[(int)$pRow['leave_type_id']] = (int)round((float)$pRow['pending_days']);
+        }
+
+        $policyEngine = new \App\Services\LeavePolicyEngine($this->pdo);
+        $allTypePolicies = $policyEngine->getAllTypesWithActivePolicies(true, date('Y-m-d'));
+
+        $annualBenefits = [];
+        $statutoryEvents = [];
+        $companyEvents = [];
+        $unpaidBenefits = [];
+        $totalAllocatedPaid = 0;
+        $totalUsedPaid = 0;
+        $totalPendingPaid = 0;
+        $totalAvailablePaid = 0;
+        $totalConvertedPaid = 0;
+
+        foreach ($allTypePolicies as $tp) {
+            $ltId = (int)$tp['id'];
+            $model = (string)($tp['entitlement_model'] ?? 'annual');
+            $code = strtoupper(trim((string)($tp['leave_code'] ?? '')));
+            $bal = $balanceByTypeId[$ltId] ?? null;
+            $pendingDays = $pendingByType[$ltId] ?? 0;
+            $elig = $policyEngine->evaluateEmployeeTypeEligibility($employee, $tp, $year, date('Y-m-d'));
+
+            if ($model === 'annual') {
+                $alloc = $bal !== null ? (int)$bal['allocated_days'] : 0;
+                $used = $bal !== null ? (int)$bal['used_days'] : 0;
+                $converted = $bal !== null ? (int)round((float)($bal['converted_days'] ?? 0)) : 0;
+                $expired = $bal !== null ? (int)round((float)($bal['expired_days'] ?? 0)) : 0;
+                $remaining = $bal !== null ? (int)$bal['remaining_days'] : 0;
+
+                $statusLabel = (string)($elig['status'] ?? 'Available');
+                if ($elig['eligible']) {
+                    if ($bal === null) {
+                        $statusLabel = \App\Services\LeavePolicyEngine::STATUS_NOT_ALLOCATED;
+                    } elseif ($remaining <= 0) {
+                        $statusLabel = \App\Services\LeavePolicyEngine::STATUS_FULLY_USED;
+                    } elseif ($alloc > 0 && $remaining <= max(1, (int)floor($alloc * 0.25))) {
+                        $statusLabel = \App\Services\LeavePolicyEngine::STATUS_LOW_BALANCE;
+                    } else {
+                        $statusLabel = \App\Services\LeavePolicyEngine::STATUS_AVAILABLE;
+                    }
+                }
+
+                $entry = [
+                    'type'           => $tp,
+                    'balance'        => $bal,
+                    'allocated_days' => $alloc,
+                    'used_days'      => $used,
+                    'pending_days'   => $pendingDays,
+                    'converted_days' => $converted,
+                    'expired_days'   => $expired,
+                    'remaining_days' => $remaining,
+                    'eligibility'    => $elig,
+                    'status_label'   => $statusLabel,
+                ];
+                $annualBenefits[] = $entry;
+
+                if (!empty($tp['is_paid'])) {
+                    $totalAllocatedPaid += $alloc;
+                    $totalUsedPaid += $used;
+                    $totalPendingPaid += $pendingDays;
+                    $totalAvailablePaid += $remaining;
+                    $totalConvertedPaid += $converted;
+                }
+            } elseif ($model === 'event_based') {
+                $item = [
+                    'type'         => $tp,
+                    'pending_days' => $pendingDays,
+                    'eligibility'  => $elig,
+                    'paternity_deliveries_used' => $code === 'PATERNITY' ? $policyEngine->countPaternityDeliveries($myEmpId, $ltId) : null,
+                ];
+                if (($tp['classification'] ?? 'Company') === 'Statutory') {
+                    $statutoryEvents[] = $item;
+                } else {
+                    $companyEvents[] = $item;
+                }
+            } elseif ($model === 'unpaid') {
+                $unpaidBenefits[] = [
+                    'type'         => $tp,
+                    'pending_days' => $pendingDays,
+                    'eligibility'  => $elig,
+                ];
+            }
+        }
+
+        $eventEntitlements = $leaveModel->getEventEntitlementsByEmployee($myEmpId);
+        $qualifications = $leaveModel->getQualificationsByEmployee($myEmpId);
+        $unpaidSummary = $leaveModel->getUnpaidLeaveSummaryByEmployee($myEmpId, $year);
+
+        $ledgerService = new \App\Services\LeaveLedgerService($this->pdo);
+        $ledgerTransactions = $ledgerService->getHistoryByEmployee($myEmpId, $year, true, 50);
+
+        $pendingRequestsAll = $leaveModel->getAllRequests('Pending', $myEmpId, 50);
+        $pendingRequestsPreview = array_slice($pendingRequestsAll, 0, 3);
 
         // Render full HTML view when requested by browser
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'text/html') && !isset($_GET['format'])) {
             $this->view('dashboard.employee_balances', [
-                'pageTitle' => 'My Leave Balances',
-                'user'      => $user,
-                'balances'  => $balances,
-                'year'      => (int)date('Y'),
+                'pageTitle'              => 'My Leave Balances',
+                'user'                   => $user,
+                'employee'               => $employee,
+                'balances'               => $balances,
+                'year'                   => $year,
+                'annualBenefits'         => $annualBenefits,
+                'statutoryEvents'        => $statutoryEvents,
+                'companyEvents'          => $companyEvents,
+                'unpaidBenefits'         => $unpaidBenefits,
+                'eventEntitlements'      => $eventEntitlements,
+                'qualifications'         => $qualifications,
+                'unpaidSummary'          => $unpaidSummary,
+                'ledgerTransactions'     => $ledgerTransactions,
+                'pendingRequestsPreview' => $pendingRequestsPreview,
+                'pendingRequestsTotal'   => count($pendingRequestsAll),
+                'allTypePolicies'        => $allTypePolicies,
+                'overviewMetrics'        => [
+                    'allocated_paid' => $totalAllocatedPaid,
+                    'used_paid'      => $totalUsedPaid,
+                    'pending_paid'   => $totalPendingPaid,
+                    'available_paid' => $totalAvailablePaid,
+                    'converted_paid' => $totalConvertedPaid,
+                ],
             ], 'hr');
             return;
         }
 
         $this->json([
-            'status'      => 'success',
-            'employee_no' => $user['employee_no'],
-            'year'        => (int)date('Y'),
-            'balances'    => $balances,
+            'status'             => 'success',
+            'employee_no'        => $user['employee_no'] ?? null,
+            'year'               => $year,
+            'balances'           => $balances,
+            'unpaid_summary'     => $unpaidSummary,
+            'event_entitlements' => $eventEntitlements,
+            'ledger'             => $ledgerTransactions,
         ]);
     }
 
@@ -475,7 +616,7 @@ class DashboardController extends Controller
     public function employeeLeaveRequests(): void
     {
         $user = currentUser();
-        $myEmpId = $user['employee_id'] ?? null;
+        $myEmpId = (int)($user['employee_id'] ?? 0);
 
         // Ownership enforcement against parameter spoofing
         if (isset($_GET['emp_id']) && (int)$_GET['emp_id'] !== $myEmpId) {
@@ -487,19 +628,12 @@ class DashboardController extends Controller
             return;
         }
 
-        $stmt = $this->pdo->prepare("
-            SELECT lr.*, lt.leave_name
-            FROM leave_requests lr
-            INNER JOIN leave_types lt ON lr.leave_type_id = lt.id
-            WHERE lr.employee_id = :emp_id
-            ORDER BY lr.id DESC
-        ");
-        $stmt->execute(['emp_id' => $myEmpId]);
-        $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $leaveModel = $this->getLeaveModel();
+        $requests = $leaveModel->getAllRequests(null, $myEmpId, 200);
 
         // Build chronological leave sequence using custom Linked List (Phase 11/13)
         $historyService = new \App\Services\LeaveHistorySequenceService();
-        $historyChain = $myEmpId ? $historyService->buildEmployeeLeaveHistoryChain((int)$myEmpId, 25) : new \App\Dsa\Structures\LinkedList();
+        $historyChain = $myEmpId ? $historyService->buildEmployeeLeaveHistoryChain($myEmpId, 25) : new \App\Dsa\Structures\LinkedList();
         $historyArray = $historyService->getHistoryArray($historyChain);
 
         // Allowlisted initial client filter (e.g. ?status=Pending from dashboard KPI link)
@@ -521,7 +655,7 @@ class DashboardController extends Controller
 
         $this->json([
             'status'      => 'success',
-            'employee_no' => $user['employee_no'],
+            'employee_no' => $user['employee_no'] ?? null,
             'requests'    => $requests,
         ]);
     }

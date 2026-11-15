@@ -251,6 +251,37 @@ All API responses follow a structured JSON response envelope:
   }
   ```
 
+#### Request Additional Info (HR Clarification)
+* **`POST /api/v1/hr/leaves/{id}/request-info`**
+* **Access:** Admin & HR (`admin`, `hr`)
+* **Payload:**
+  ```json
+  {
+    "note": "Please upload a legible copy of your updated Solo Parent ID."
+  }
+  ```
+
+#### Respond to Clarification Request
+* **`POST /api/v1/leaves/{id}/respond-info`**
+* **Access:** Authenticated Employee (Owner only)
+* **Payload:**
+  ```json
+  {
+    "response": "Uploaded scanned Solo Parent ID valid through Dec 2027."
+  }
+  ```
+
+#### List Statutory Leave Qualifications
+* **`GET /api/v1/hr/leave-qualifications`**
+* **Access:** Admin & HR (`admin`, `hr`)
+* **Query Params (Optional):** `status`, `qualification_type`
+
+#### List / Create Leave Policies (`hr/leave-types`)
+* **`GET /api/v1/hr/leave-types`** — Returns active and inactive leave types merged with active `leave_policy_versions` metadata. Access: `admin`, `hr`.
+* **`POST /api/v1/hr/leave-types`** — Creates a leave type and initializes policy version 1 (`leave_name`, `default_days`, optional `leave_code`, `classification`, `benefit_category`, `entitlement_model`, `legal_reference`, `default_unit`, `is_paid`, `is_confidential`, `statutory_protected`, `status`). Access: `admin`, `hr`.
+
+> **Confidentiality Masking:** Requests flagged `is_confidential = 1` (e.g., RA 9262 VAWC Leave and RA 9710 Special Leave for Women) redact sensitive reason text and metadata unless the viewer is the owner or holds `leave_confidential.view`.
+
 ---
 
 ### 4.5 Real-Time WebSocket Handshake

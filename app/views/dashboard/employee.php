@@ -285,10 +285,26 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                                     <span>Apply</span>
                                     <span class="emp-category-apply-arrow" aria-hidden="true">&rarr;</span>
                                 </a>
-                            <?php elseif ($rawAllocated <= 0) : ?>
+                            <?php elseif ($rawAllocated <= 0) :
+                                $eligStatus = (string)($bal['eligibility_status'] ?? 'Available');
+                                $zeroBadgeText = match (true) {
+                                    $eligStatus === 'CreditedViaVL' || !empty($bal['sil_credited_from_vl']) => 'Via VL',
+                                    $eligStatus === 'PendingVerification' => 'Pending SPIC',
+                                    $eligStatus === 'Ineligible' => 'Ineligible',
+                                    ($bal['entitlement_model'] ?? '') === 'unpaid' => 'Unpaid',
+                                    default => 'Unallocated',
+                                };
+                                $zeroBadgeTitle = match ($zeroBadgeText) {
+                                    'Via VL' => 'Article 95 SIL satisfied via equivalent paid Vacation Leave',
+                                    'Pending SPIC' => 'Awaiting HR qualification verification before allocation',
+                                    'Ineligible' => 'Employee does not meet eligibility criteria for this benefit',
+                                    'Unpaid' => 'Unpaid absence category tracked without paid leave credits',
+                                    default => 'No annual quota assigned for ' . $leaveCycleYear,
+                                };
+                            ?>
                                 <span class="emp-category-unallocated"
-                                    title="No annual quota assigned for <?= $leaveCycleYear ?>">
-                                    Unallocated
+                                    title="<?= e($zeroBadgeTitle) ?>">
+                                    <?= e($zeroBadgeText) ?>
                                 </span>
                             <?php elseif ($remaining < 0) : ?>
                                 <span class="emp-category-exhausted"
@@ -453,8 +469,9 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                                     <?php endif; ?>
                                 </td>
                                 <td data-label="Duration" class="emp-req-duration tabular-nums whitespace-nowrap">
+                                    <?php $reqIsCalendar = ($req['entitlement_unit'] ?? 'working_days') === 'calendar_days'; ?>
                                     <span class="emp-req-days-val"><?= $days ?></span>
-                                    <span class="emp-req-days-unit"><?= $days === 1 ? 'day' : 'days' ?></span>
+                                    <span class="emp-req-days-unit"><?= $reqIsCalendar ? ($days === 1 ? 'calendar day' : 'calendar days') : ($days === 1 ? 'day' : 'days') ?></span>
                                 </td>
                                 <td data-label="Submitted" class="emp-req-submitted tabular-nums whitespace-nowrap">
                                     <?= e($submittedFormatted) ?>
@@ -568,9 +585,10 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                                     <?php endif; ?>
                                 </div>
                                 <div class="emp-upcoming-item-meta tabular-nums">
+                                    <?php $upUnitText = ($up['entitlement_unit'] ?? 'working_days') === 'calendar_days' ? 'calendar' : 'working'; ?>
                                     <span><?= e($upStart) ?><?= $upStart !== $upEnd ? ' &ndash; ' . e($upEnd) : '' ?></span>
                                     <span aria-hidden="true">&middot;</span>
-                                    <span><?= $upDays ?> working <?= $upDays === 1 ? 'day' : 'days' ?></span>
+                                    <span><?= $upDays ?> <?= $upUnitText ?> <?= $upDays === 1 ? 'day' : 'days' ?></span>
                                 </div>
                             </div>
                         </div>

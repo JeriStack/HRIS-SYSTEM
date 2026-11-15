@@ -148,6 +148,7 @@ if ($rawRole === 'admin') {
             $isAdmLeaves    = ($currentPath === '/leaves' || $currentPath === '/admin/leaves' || str_starts_with($currentPath, '/hr/leave-requests') || preg_match('#^/leaves/\d+$#', $currentPath) === 1);
             $isAdmTypes     = (str_starts_with($currentPath, '/hr/leave-types') || $currentPath === '/admin/leave-types');
             $isAdmBalances  = (str_starts_with($currentPath, '/leaves/balances') || $currentPath === '/admin/leave-balances');
+            $isAdmQuals     = str_starts_with($currentPath, '/hr/leave-qualifications');
             $isAdmReports   = (($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab !== 'analytics');
             $isAdmAnalytics = ((($currentPath === '/reports' || $currentPath === '/admin/reports') && $currentTab === 'analytics') || $currentPath === '/admin/analytics');
             $isAdmAudit     = ($currentPath === '/activity-logs' || $currentPath === '/admin/audit-logs');
@@ -242,6 +243,10 @@ if ($rawRole === 'admin') {
                     <a href="<?= url('/leaves/balances') ?>" class="nav-item <?= $isAdmBalances ? 'active' : '' ?>"<?= $isAdmBalances ? ' aria-current="page"' : '' ?> title="Leave Balances" data-tooltip="Leave Balances" data-keywords="credits quota allocation">
                         <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
                         <span class="nav-item-label">Leave Balances</span>
+                    </a>
+                    <a href="<?= url('/hr/leave-qualifications') ?>" class="nav-item <?= $isAdmQuals ? 'active' : '' ?>"<?= $isAdmQuals ? ' aria-current="page"' : '' ?> title="Leave Qualifications" data-tooltip="Leave Qualifications" data-keywords="spic solo parent paternity sil exclusion">
+                        <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
+                        <span class="nav-item-label">Leave Qualifications</span>
                     </a>
                 </div>
             </div>
@@ -346,6 +351,7 @@ if ($rawRole === 'admin') {
             );
             $isHrBalances    = str_starts_with($currentPath, '/leaves/balances');
             $isHrLeaveTypes  = str_starts_with($currentPath, '/hr/leave-types');
+            $isHrQuals       = str_starts_with($currentPath, '/hr/leave-qualifications');
             $isHrReports     = str_starts_with($currentPath, '/reports');
             $isHrAuditLogs   = str_starts_with($currentPath, '/activity-logs');
             $isHrNotifs      = str_starts_with($currentPath, '/notifications');
@@ -408,6 +414,10 @@ if ($rawRole === 'admin') {
                     <a href="<?= url('/hr/leave-types') ?>" class="nav-item <?= $isHrLeaveTypes ? 'active' : '' ?>"<?= $isHrLeaveTypes ? ' aria-current="page"' : '' ?> title="Leave Classifications" data-tooltip="Leave Classifications" data-keywords="types policies vacation sick">
                         <span class="icon" aria-hidden="true"><?= icon('layers', 18) ?></span>
                         <span class="nav-item-label">Leave Classifications</span>
+                    </a>
+                    <a href="<?= url('/hr/leave-qualifications') ?>" class="nav-item <?= $isHrQuals ? 'active' : '' ?>"<?= $isHrQuals ? ' aria-current="page"' : '' ?> title="Leave Qualifications" data-tooltip="Leave Qualifications" data-keywords="spic solo parent paternity sil exclusion">
+                        <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
+                        <span class="nav-item-label">Leave Qualifications</span>
                     </a>
                 </div>
             </div>

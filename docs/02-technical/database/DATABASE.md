@@ -460,6 +460,85 @@ CREATE TABLE IF NOT EXISTS `profile_correction_requests` (
 
 ---
 
+### 2.6 Philippine Statutory & Company Leave Management Tables `[IMPLEMENTED]`
+
+Added by `database/migrations/2026_11_16_philippine_leave_management.sql` alongside extensions on existing tables:
+
+* **`leave_types` extensions:** `leave_code` (`VARCHAR(30) UNIQUE`), `classification` (`ENUM('Statutory','Company')`), `benefit_category` (`ENUM('StatutoryAnnual','StatutoryEvent','CompanyAnnual','CompanyEvent','Unpaid')`), `entitlement_model` (`ENUM('annual','event_based','unpaid')`), `legal_reference` (`VARCHAR(191)`), `default_unit` (`ENUM('working_days','calendar_days')`), `is_paid` (`TINYINT(1)`), `is_confidential` (`TINYINT(1)`), `statutory_protected` (`TINYINT(1)`), and `active_policy_version_id` (`INT UNSIGNED NULL`).
+* **`leave_balances` extensions:** `carried_over_days`, `converted_days`, `expired_days` (`DECIMAL(6,2)`), `policy_version_id` (`INT UNSIGNED NULL`), `sil_credited_from_vl` (`TINYINT(1)`), `eligibility_status` (`ENUM('Available','PendingVerification','CreditedViaVL','Ineligible','NotAllocated')`), and `notes` (`VARCHAR(255)`).
+* **`leave_requests` extensions:** `policy_version_id` (`INT UNSIGNED NULL`), `event_entitlement_id` (`INT UNSIGNED NULL`), `entitlement_unit` (`ENUM('working_days','calendar_days')`), `is_paid` (`TINYINT(1)`), `is_confidential` (`TINYINT(1)`), `application_metadata_json` (`JSON`), `info_request_status` (`ENUM('None','Requested','Responded')`), `hr_info_request_note` (`TEXT`), `employee_info_response` (`TEXT`), `info_requested_by` (`INT UNSIGNED NULL`), `info_requested_at` (`DATETIME`), and `info_responded_at` (`DATETIME`).
+
+#### 23. `leave_policy_versions` `[IMPLEMENTED]`
+Versioned, non-retroactive rule snapshots linked per `leave_type_id` (`policy_version_id` pinned onto requests, balances, and events at filing/allocation time).
+* Key columns: `id`, `leave_type_id`, `version_number`, `policy_code` (`VARCHAR(50)`), `effective_from`, `effective_to`, `approval_status` (`ENUM('Draft','PendingReview','Active','Superseded','Archived')`), `classification`, `entitlement_model`, `benefit_tier` (`ENUM('statutory_minimum','employer_enhanced','company_benefit','unpaid')`), `sector_scope` (`ENUM('all','private','public')`), `legal_reference`, `entitlement_days` (`DECIMAL(6,2)`), `entitlement_unit`, `is_paid`, `allocation_frequency` (`ENUM('annual','per_event','unlimited_unpaid')`), `carry_over_allowed`, `max_carry_over_days`, `cash_convertible`, `cash_conversion_max_days`, `min_service_months`, `service_window_months`, `counts_as_sil_equivalent`, `stack_with_equivalent`, `max_events_lifetime`, `max_extension_days`, `requires_documentation`, `document_requirements`, `requires_qualification`, `qualification_type`, `is_confidential`, `rules_json` (`JSON`), `change_notes`, `created_by`, `approved_by`, `approved_at`.
+
+#### 24. `employee_leave_qualifications` `[IMPLEMENTED]`
+HR-verified statutory eligibility records per employee.
+* Key columns: `id`, `employee_id`, `qualification_type` (`ENUM('solo_parent_spic','paternity_marriage','sil_exclusion','maternity_eligibility','slw_eligibility','vawc_protection')`), `verification_status` (`ENUM('PendingVerification','Verified','Expired','Revoked','Rejected')`), `reference_no` (`VARCHAR(100)`), `valid_from`, `valid_to`, `sil_exempt_override` (`TINYINT(1)`), `exclusion_reason` (`VARCHAR(150)`), `supporting_notes`, `verified_by`, `verified_at`.
+
+#### 25. `leave_event_entitlements` `[IMPLEMENTED]`
+Event-scoped entitlement tracking for Maternity (RA 11210), Paternity (RA 8187, up to 4 deliveries), SLW (RA 9710), VAWC (RA 9262 + extensions), and Bereavement.
+* Key columns: `id`, `employee_id`, `leave_type_id`, `policy_version_id`, `event_code` (`VARCHAR(40)`), `event_scenario` (`VARCHAR(60)`), `event_date`, `delivery_sequence` (`TINYINT UNSIGNED`), `spouse_name`, `relationship_type`, `entitled_days`, `transferred_out_days`, `unpaid_extension_days`, `used_days`, `pending_days`, `remaining_days` (`DECIMAL(6,2)`), `valid_from`, `valid_to`, `verification_status` (`ENUM('PendingVerification','Verified','Active','Completed','Expired','Cancelled')`), `is_confidential`, `metadata_json` (`JSON`), `created_by`, `verified_by`, `verified_at`.
+
+#### 26. `leave_balance_transactions` `[IMPLEMENTED]`
+Append-only ledger recording every balance and event mutation, including non-payroll SIL commutation references (`conversion_scope`, `conversion_reference`).
+* Key columns: `id`, `employee_id`, `leave_type_id`, `leave_balance_id`, `leave_request_id`, `event_entitlement_id`, `policy_version_id`, `balance_year` (`SMALLINT UNSIGNED`), `transaction_type` (`ENUM('initial_allocation','annual_allocation','approved_deduction','balance_restoration','adjustment','carry_over','expiration','sil_conversion','event_allocation','unpaid_recorded')`), `days_delta`, `balance_before`, `balance_after`, `conversion_scope` (`ENUM('none','annual_unused','separation')`), `conversion_reference` (`VARCHAR(80)`), `remarks` (`VARCHAR(255)`), `is_confidential`, `actor_user_id`, `created_at`.
+
+#### 27. `leave_request_documents` `[IMPLEMENTED]`
+Metadata for protected supporting documents stored outside the web root with SHA-256 checksums and MIME verification.
+```sql
+CREATE TABLE IF NOT EXISTS `leave_request_documents` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_category` VARCHAR(50) NOT NULL DEFAULT 'supporting_document',
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `review_status` ENUM('PendingReview', 'Accepted', 'NeedsClarification', 'Rejected') NOT NULL DEFAULT 'PendingReview',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lrd_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lrd_request` (`leave_request_id`),
+    INDEX `idx_lrd_employee` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 28. `leave_sensitive_access_logs` `[IMPLEMENTED]`
+Immutable access audit trail for VAWC (RA 9262), SLW (RA 9710), protected document downloads, and statutory qualification verifications.
+```sql
+CREATE TABLE IF NOT EXISTS `leave_sensitive_access_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_id` INT UNSIGNED NULL DEFAULT NULL,
+    `accessor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action_type` ENUM('view_request', 'view_confidential_reason', 'download_document', 'export_redacted', 'verify_qualification') NOT NULL,
+    `access_granted` TINYINT(1) NOT NULL DEFAULT 1,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lsal_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_document` FOREIGN KEY (`document_id`)
+        REFERENCES `leave_request_documents` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_accessor` FOREIGN KEY (`accessor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lsal_request` (`leave_request_id`, `created_at`),
+    INDEX `idx_lsal_accessor` (`accessor_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
 ## 3. Concurrency Control & Row-Level Locking
 
 Leave balance mutations execute inside atomic transactions using **pessimistic row-level locking**:
@@ -541,5 +620,6 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_11_08_enhance_audit_trail_schema.sql` — Extends `activity_logs` with `event_id`, `actor_role`, `category`, `old_values`, `new_values`, `status`, and `request_id`.
 * `database/migrations/2026_11_08_create_queue_tables.sql` — Creates `queue_jobs` and `failed_jobs` tables for concurrency-safe asynchronous background job processing.
 * `database/migrations/2026_11_15_enhance_employee_profiles.sql` — Adds `civil_status`, `personal_email`, `employment_type`, and `profile_picture` (plus `idx_employees_employment_type`) to `employees`, and creates `employee_emergency_contacts`, `employment_history`, and `profile_correction_requests`.
+* `database/migrations/2026_11_16_philippine_leave_management.sql` — Extends `leave_types`, `leave_balances`, and `leave_requests` for Philippine statutory and company leave rules; creates `leave_policy_versions`, `employee_leave_qualifications`, `leave_event_entitlements`, `leave_balance_transactions`, `leave_request_documents`, and `leave_sensitive_access_logs`; seeds canonical leave types/v1 policies, backfills ledger entries, and seeds `leave_policies.manage`, `leave_qualifications.verify`, and `leave_confidential.view`.
 
 
