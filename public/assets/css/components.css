@@ -157,6 +157,12 @@
 .icon-teal   { background: var(--color-accent-light); color: var(--color-accent-hover); border: 1px solid #99F6E4; }
 .icon-rose   { background: var(--color-error-bg); color: var(--color-error); border: 1px solid var(--color-error-border); }
 
+[data-theme="dark"] .icon-teal {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    color: color-mix(in srgb, var(--color-accent) 55%, #ffffff);
+    border-color: color-mix(in srgb, var(--color-accent) 42%, transparent);
+}
+
 /* ==========================================================================
    3. Buttons & Interactive Controls
    ========================================================================== */
@@ -2196,6 +2202,491 @@ button:focus-visible {
     color: var(--color-text-muted);
     margin: 0;
     line-height: 1.45;
+}
+
+/* ==========================================================================
+   12B. Admin Dashboard Components ("System Overview")
+   ========================================================================== */
+.admin-page-header {
+    margin-bottom: var(--space-6);
+}
+
+.admin-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-bottom: var(--space-1);
+}
+
+.admin-page-header h1 {
+    margin: 0;
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--color-text-main);
+}
+
+.admin-subtitle {
+    margin: 0;
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    color: var(--color-text-body);
+    max-width: 68ch;
+}
+
+.admin-subtitle strong {
+    color: var(--color-text-main);
+    font-weight: 600;
+}
+
+.admin-header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+}
+
+.admin-date-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 36px;
+    padding: 0.4rem 0.8rem;
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-body);
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Conditional Attention Strip */
+.admin-attention-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-5);
+    margin-bottom: var(--space-6);
+    background-color: var(--color-warning-bg);
+    border: 1px solid var(--color-warning-border);
+    border-radius: var(--radius-lg);
+    color: var(--color-text-main);
+}
+
+.admin-attention-strip.is-danger {
+    background-color: var(--color-error-bg);
+    border-color: var(--color-error-border);
+}
+
+.admin-attention-body {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--font-size-base);
+    line-height: 1.45;
+}
+
+.admin-attention-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-warning-border);
+    color: var(--color-warning);
+    flex-shrink: 0;
+}
+
+.admin-attention-strip.is-danger .admin-attention-icon {
+    border-color: var(--color-error-border);
+    color: var(--color-error);
+}
+
+/* Primary KPI Cards Grid */
+.admin-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.admin-kpi-card {
+    text-decoration: none;
+    color: inherit;
+    min-height: 132px;
+    gap: var(--space-3);
+    transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast),
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+a.admin-kpi-card:hover {
+    border-color: var(--color-primary-border);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+a.admin-kpi-card:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.admin-kpi-card .stat-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.admin-kpi-card .stat-subtext {
+    font-size: var(--font-size-xs);
+    line-height: 1.4;
+    flex-wrap: wrap;
+}
+
+.admin-kpi-card .stat-subtext strong {
+    color: var(--color-text-main);
+    font-weight: 600;
+}
+
+.admin-kpi-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.admin-kpi-status.is-warning {
+    color: var(--color-warning);
+}
+
+.admin-kpi-status.is-success {
+    color: var(--color-success);
+}
+
+/* Mid-Tier Analytics & Live Infrastructure Panels */
+.admin-mid-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    margin-bottom: var(--space-6);
+}
+
+.admin-panel-card {
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-panel-body {
+    padding: var(--space-5) var(--space-6);
+    flex: 1;
+}
+
+.admin-empty-panel {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+}
+
+/* Workforce Distribution Bars */
+.admin-dept-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.admin-dept-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-bottom: 0.4rem;
+}
+
+.admin-dept-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text-main);
+    line-height: 1.35;
+}
+
+.admin-dept-stats {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-dept-stats strong {
+    color: var(--color-text-main);
+    font-weight: 600;
+}
+
+.admin-dept-track {
+    height: 8px;
+    width: 100%;
+    background-color: var(--color-bg-muted);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.admin-dept-fill {
+    height: 100%;
+    background-color: var(--color-primary);
+    border-radius: var(--radius-full);
+    transition: width 0.35s ease;
+}
+
+.admin-dept-foot {
+    margin-top: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-border-subtle);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+/* Live Infrastructure Health Rows */
+.admin-health-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-health-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.admin-health-item:first-child {
+    padding-top: 0;
+}
+
+.admin-health-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.admin-health-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.admin-health-name {
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text-main);
+    line-height: 1.35;
+    margin-bottom: 0.15rem;
+}
+
+.admin-health-detail {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+.admin-inline-link {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.admin-inline-link:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}
+
+/* Recent Activity Feed Table */
+.admin-activity-card {
+    margin-bottom: var(--space-6);
+}
+
+.admin-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    container-type: inline-size;
+}
+
+.admin-table-wrap:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+}
+
+.admin-col-actor { width: 190px; }
+.admin-col-ip    { width: 150px; }
+.admin-col-time  { width: 170px; }
+
+.admin-actor-name {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: var(--color-text-main);
+    line-height: 1.35;
+}
+
+.admin-actor-role {
+    display: inline-block;
+    margin-top: 0.2rem;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+}
+
+.admin-action-code {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+}
+
+.admin-action-desc {
+    font-size: var(--font-size-base);
+    color: var(--color-text-body);
+    margin-top: var(--space-1);
+    line-height: 1.45;
+}
+
+.admin-ip-cell {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    background: transparent;
+    padding: 0;
+}
+
+.admin-time-cell {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-activity-empty {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-base);
+}
+
+@media (max-width: 1023px) {
+    .admin-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-mid-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 639px) {
+    .admin-kpi-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-header-actions {
+        width: 100%;
+    }
+
+    .admin-date-chip {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .admin-health-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+}
+
+@container (width < 640px) {
+    .admin-activity-table thead {
+        border: 0;
+        clip: rect(0 0 0 0);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        padding: 0;
+        position: absolute;
+        width: 1px;
+    }
+
+    .admin-activity-table tbody tr {
+        display: block;
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .admin-activity-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .admin-activity-table td {
+        display: grid;
+        grid-template-columns: 7.25rem minmax(0, 1fr);
+        align-items: start;
+        gap: var(--space-3);
+        padding: 0.35rem 0;
+        border-bottom: none;
+    }
+
+    .admin-activity-table td::before {
+        content: attr(data-label);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-text-muted);
+        padding-top: 0.1rem;
+    }
+
+    .admin-activity-table td[colspan] {
+        display: block;
+        text-align: center;
+    }
+
+    .admin-activity-table td[colspan]::before {
+        content: none;
+    }
+
+    .admin-col-actor,
+    .admin-col-ip,
+    .admin-col-time {
+        width: auto;
+    }
+}
+
+@media (pointer: coarse) {
+    .admin-header-actions .btn,
+    .admin-attention-strip .btn,
+    .admin-panel-card .card-header .btn,
+    .admin-activity-card .card-header .btn {
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    a.admin-kpi-card:hover {
+        transform: none;
+    }
+
+    .admin-dept-fill {
+        transition: none;
+    }
 }
 
 /* ==========================================================================
