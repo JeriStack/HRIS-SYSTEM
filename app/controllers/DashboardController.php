@@ -9,6 +9,7 @@ namespace App\Controllers;
 
 use Core\Controller;
 use Core\Database;
+use Core\Session;
 use PDO;
 
 class DashboardController extends Controller
