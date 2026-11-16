@@ -174,6 +174,11 @@
   gap: 0.85rem;
 }
 
+.ps-option-head > div:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .ps-option-icon {
   flex: 0 0 40px;
   width: 40px;
@@ -207,12 +212,18 @@
   color: var(--text-muted);
 }
 
+.ps-options-grid .ps-option-desc,
+.ps-two-col--hub :where(.ps-option-desc, .ps-hint) {
+  text-align: justify;
+  hyphens: auto;
+}
+
 .ps-option-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  align-self: flex-start;
+  align-self: center;
   padding: 0.6rem 1rem;
   border-radius: 8px;
   background: var(--brand-blue);
@@ -596,6 +607,22 @@ textarea.ps-control {
   gap: 0.75rem;
   flex-wrap: wrap;
   margin-top: 0.75rem;
+}
+
+.ps-two-col--hub .ps-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.ps-two-col--hub form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.ps-actions-row--center {
+  justify-content: center;
+  margin-top: auto;
 }
 
 .ps-btn-primary {
