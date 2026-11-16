@@ -13,10 +13,14 @@ use Tests\Support\WsTestClient;
 
 /**
  * Live end-to-end test against the running WebSocket service.
- * Skipped unless WS_E2E_URL is set, e.g. inside the app container:
+ * Skipped unless WS_E2E_URL is set. Run it with:
  *
- *   docker compose exec -e WS_E2E_URL=ws://nginx/ws -e WS_E2E_ORIGIN=http://localhost:8080 \
- *       app php vendor/bin/phpunit --group realtime-e2e
+ *   make test-realtime
+ *
+ * phpunit.xml forces DB_DATABASE=hris_test, but the always-on ealtime service
+ * reads hris_db and cannot see the tickets these tests create. The make target
+ * (scripts/test-realtime-e2e.sh) starts a throwaway realtime server on the test
+ * database and points WS_E2E_URL at it.
  */
 #[Group('realtime-e2e')]
 class RealtimeEndToEndTest extends TestCase

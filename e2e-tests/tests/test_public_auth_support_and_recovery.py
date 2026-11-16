@@ -192,6 +192,24 @@ def _wait_body_contains(driver, text: str, timeout: int = 10, case_insensitive: 
     ).until(_check)
 
 
+def _submit_hr_response(driver, mode: str, body: str) -> None:
+    """Post an HR response and wait for the redirected detail page to render it.
+
+    Waiting for the old textarea to go stale proves the POST/redirect finished,
+    so a slow server response is not mistaken for a missing message.
+    """
+    radio = driver.find_element(By.CSS_SELECTOR, f'input[name="response_mode"][value="{mode}"]')
+    driver.execute_script("arguments[0].click();", radio)
+    textarea = driver.find_element(By.ID, "hrResponseBody")
+    textarea.clear()
+    textarea.send_keys(body)
+    _scroll_click(driver, driver.find_element(By.ID, "hrResponseSubmitBtn"))
+    WebDriverWait(driver, 30).until(EC.staleness_of(textarea))
+    errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
+    assert not errors, f"HR {mode} submission was rejected: {errors[0].text}"
+    _wait_body_contains(driver, body, timeout=30)
+
+
 def _get_activity_highwater() -> int:
     conn = AuthHelper.get_db_connection()
     try:
@@ -596,18 +614,10 @@ class TestPublicSupportRequestAndTrackerEndToEnd:
             assert "Public Login Assistance" in driver.find_element(By.TAG_NAME, "body").text
 
             # Internal HR note (must NEVER leak to public tracker)
-            internal_radio = driver.find_element(By.CSS_SELECTOR, 'input[name="response_mode"][value="internal_note"]')
-            driver.execute_script("arguments[0].click();", internal_radio)
-            driver.find_element(By.ID, "hrResponseBody").send_keys(internal_secret)
-            _scroll_click(driver, driver.find_element(By.ID, "hrResponseSubmitBtn"))
-            _wait_body_contains(driver, internal_secret)
+            _submit_hr_response(driver, "internal_note", internal_secret)
 
             # Public visible HR reply requesting requester confirmation
-            req_info_radio = driver.find_element(By.CSS_SELECTOR, 'input[name="response_mode"][value="request_info"]')
-            driver.execute_script("arguments[0].click();", req_info_radio)
-            driver.find_element(By.ID, "hrResponseBody").send_keys(hr_public_reply)
-            _scroll_click(driver, driver.find_element(By.ID, "hrResponseSubmitBtn"))
-            _wait_body_contains(driver, hr_public_reply)
+            _submit_hr_response(driver, "request_info", hr_public_reply)
 
             # Confirm Mailpit notification sent to public requester for HR response
             update_mail, update_mail_id = _wait_for_mail_matching(req_email, ticket_ref, seen_mail_ids)

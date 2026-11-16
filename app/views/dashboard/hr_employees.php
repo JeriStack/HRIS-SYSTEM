@@ -4,20 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($pageTitle ?? 'Employee Directory (HR Access)') ?></title>
+    <meta name="color-scheme" content="light dark">
+    <script src="<?= asset('js/theme-init.js') ?>"></script>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/responsive.css') ?>">
     <style>
         body {
-            background-color: #F8FAFC;
+            background-color: var(--color-bg-subtle, #F8FAFC);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 0;
-            color: #0F172A;
+            color: var(--color-text-main, #0F172A);
         }
         .app-header {
-            background: #FFFFFF;
-            border-bottom: 1px solid #E2E8F0;
+            background: var(--color-bg-surface, #FFFFFF);
+            border-bottom: 1px solid var(--color-border, #E2E8F0);
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
@@ -29,8 +31,8 @@
             padding: 0 1.5rem;
         }
         .content-card {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
+            background: var(--color-bg-surface, #FFFFFF);
+            border: 1px solid var(--color-border, #E2E8F0);
             border-radius: 0.75rem;
             padding: 1.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -43,24 +45,24 @@
         th, td {
             padding: 0.75rem 1rem;
             text-align: left;
-            border-bottom: 1px solid #F1F5F9;
+            border-bottom: 1px solid var(--color-border-subtle, #F1F5F9);
         }
         th {
-            background: #F8FAFC;
-            color: #475569;
+            background: var(--color-bg-subtle, #F8FAFC);
+            color: var(--color-text-body, #475569);
             font-weight: 600;
         }
         .badge-active {
-            background: #ECFDF5;
-            color: #065F46;
+            background: var(--color-success-bg, #ECFDF5);
+            color: var(--color-success, #065F46);
             padding: 0.2rem 0.5rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
             font-weight: 600;
         }
         .badge-inactive {
-            background: #FEF2F2;
-            color: #991B1B;
+            background: var(--color-error-bg, #FEF2F2);
+            color: var(--color-error, #991B1B);
             padding: 0.2rem 0.5rem;
             border-radius: 0.25rem;
             font-size: 0.75rem;
@@ -72,12 +74,12 @@
     <header class="app-header">
         <div>
             <a href="<?= url('/hr/dashboard') ?>" style="text-decoration: none; color: #4F46E5; font-weight: 600; font-size: 0.875rem;">← Back to HR Dashboard</a>
-            <h1 style="font-size: 1.25rem; margin: 0.25rem 0 0 0; color: #1E293B;">HR Employee Directory</h1>
+            <h1 style="font-size: 1.25rem; margin: 0.25rem 0 0 0; color: var(--color-text-main, #1E293B);">HR Employee Directory</h1>
         </div>
         <div>
             <form method="POST" action="<?= url('/logout') ?>" style="margin: 0;">
                 <?= csrf_field() ?>
-                <button type="submit" style="background: #F1F5F9; border: 1px solid #CBD5E1; padding: 0.4rem 0.85rem; border-radius: 0.375rem; cursor: pointer;">Sign Out</button>
+                <button type="submit" style="background: var(--color-bg-muted, #F1F5F9); border: 1px solid var(--color-border-dark, #CBD5E1); padding: 0.4rem 0.85rem; border-radius: 0.375rem; cursor: pointer;">Sign Out</button>
             </form>
         </div>
     </header>

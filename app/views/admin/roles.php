@@ -78,7 +78,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
     width: 18px;
     left: 3px;
     bottom: 3px;
-    background-color: #ffffff;
+    background-color: var(--color-bg-surface, #ffffff);
     border-radius: 50%;
     transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
@@ -113,8 +113,8 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
     position: sticky;
     top: 1rem;
     z-index: 40;
-    background: #fffbeb;
-    border: 1px solid #fef3c7;
+    background: var(--color-warning-bg, #fffbeb);
+    border: 1px solid var(--color-warning-border, #fef3c7);
     border-left: 4px solid var(--color-warning, #f59e0b);
     border-radius: var(--radius-md, 8px);
     padding: 0.875rem 1.25rem;
@@ -448,8 +448,8 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
         <div style="display: flex; align-items: center; gap: 0.75rem;">
             <span style="font-size: 1.25rem;" aria-hidden="true">⚠️</span>
             <div>
-                <strong style="color: #92400e;">Unsaved Modifications:</strong>
-                <span style="color: #78350f; font-size: 0.875rem;">
+                <strong style="color: var(--color-warning, #92400e);">Unsaved Modifications:</strong>
+                <span style="color: var(--color-warning, #78350f); font-size: 0.875rem;">
                     You have made changes to the <?= e($targetRoleName) ?> permissions (<span id="unsavedCount">0</span> modified).
                 </span>
             </div>
@@ -616,20 +616,20 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
 
             <!-- Change Statistics Badges -->
             <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem;">
-                <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 1.25rem; font-weight: 700; color: #047857;" id="modalGrantCount">0</div>
-                    <div style="font-size: 0.75rem; font-weight: 600; color: #065f46; text-transform: uppercase;">Permissions to Grant</div>
+                <div style="flex: 1; background: var(--color-success-bg, #ecfdf5); border: 1px solid var(--color-success-border, #a7f3d0); border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-success, #047857);" id="modalGrantCount">0</div>
+                    <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-success, #065f46); text-transform: uppercase;">Permissions to Grant</div>
                 </div>
-                <div style="flex: 1; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
-                    <div style="font-size: 1.25rem; font-weight: 700; color: #b91c1c;" id="modalRevokeCount">0</div>
-                    <div style="font-size: 0.75rem; font-weight: 600; color: #991b1b; text-transform: uppercase;">Permissions to Revoke</div>
+                <div style="flex: 1; background: var(--color-error-bg, #fef2f2); border: 1px solid var(--color-error-border, #fecaca); border-radius: var(--radius-md); padding: 0.75rem; text-align: center;">
+                    <div style="font-size: 1.25rem; font-weight: 700; color: var(--color-error, #b91c1c);" id="modalRevokeCount">0</div>
+                    <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-error, #991b1b); text-transform: uppercase;">Permissions to Revoke</div>
                 </div>
             </div>
 
             <!-- Sensitive Permission Alert (populated dynamically) -->
-            <div id="modalSensitiveAlert" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-left: 4px solid var(--color-warning); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
-                <strong style="color: #92400e; font-size: 0.8125rem;">⚠️ Sensitive Capability Warning:</strong>
-                <p id="modalSensitiveText" style="margin: 0.25rem 0 0 0; font-size: 0.8125rem; color: #78350f;"></p>
+            <div id="modalSensitiveAlert" style="display: none; background: var(--color-warning-bg, #fffbeb); border: 1px solid var(--color-warning-border, #fef3c7); border-left: 4px solid var(--color-warning); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+                <strong style="color: var(--color-warning, #92400e); font-size: 0.8125rem;">⚠️ Sensitive Capability Warning:</strong>
+                <p id="modalSensitiveText" style="margin: 0.25rem 0 0 0; font-size: 0.8125rem; color: var(--color-warning, #78350f);"></p>
             </div>
 
             <!-- List of Affected Permissions -->
@@ -854,9 +854,9 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
             </div>
 
             <!-- Ownership Boundary Notice -->
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid var(--color-primary); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
-                <strong style="color: #1e40af; font-size: 0.8125rem;">ℹ️ Record Ownership Enforcement:</strong>
-                <p style="margin: 0.25rem 0 0 0; font-size: 0.8125rem; color: #1e3a8a; line-height: 1.4;">
+            <div style="background: var(--color-primary-light, #eff6ff); border: 1px solid var(--color-primary-border, #bfdbfe); border-left: 4px solid var(--color-primary); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
+                <strong style="color: var(--color-primary, #1e40af); font-size: 0.8125rem;">ℹ️ Record Ownership Enforcement:</strong>
+                <p style="margin: 0.25rem 0 0 0; font-size: 0.8125rem; color: var(--color-primary, #1e3a8a); line-height: 1.4;">
                     Role permissions authorize operational capabilities; record ownership restrictions (such as employee profile access and self-service leave requests) still enforce employee ID boundary checks server-side.
                 </p>
             </div>
@@ -1301,10 +1301,10 @@ function openSaveModal() {
     const listContainer = document.getElementById('modalChangesList');
     let html = '<ul style="margin: 0; padding-left: 1.25rem;">';
     toGrant.forEach(item => {
-        html += `<li style="margin-bottom: 0.25rem;"><span style="color:#047857; font-weight:700;">+ GRANT:</span> <strong>${escapeHtml(item.name)}</strong> (<code>${escapeHtml(item.slug)}</code>)</li>`;
+        html += `<li style="margin-bottom: 0.25rem;"><span style="color:var(--color-success, #047857); font-weight:700;">+ GRANT:</span> <strong>${escapeHtml(item.name)}</strong> (<code>${escapeHtml(item.slug)}</code>)</li>`;
     });
     toRevoke.forEach(item => {
-        html += `<li style="margin-bottom: 0.25rem;"><span style="color:#b91c1c; font-weight:700;">&minus; REVOKE:</span> <strong>${escapeHtml(item.name)}</strong> (<code>${escapeHtml(item.slug)}</code>)</li>`;
+        html += `<li style="margin-bottom: 0.25rem;"><span style="color:var(--color-error, #b91c1c); font-weight:700;">&minus; REVOKE:</span> <strong>${escapeHtml(item.name)}</strong> (<code>${escapeHtml(item.slug)}</code>)</li>`;
     });
     html += '</ul>';
     listContainer.innerHTML = html;
@@ -1385,11 +1385,11 @@ function openUserAccessModal(user) {
     let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.5rem;">';
     for (const [slug, isGranted] of Object.entries(rolePerms)) {
         if (isGranted) {
-            html += `<div style="display: flex; align-items: center; gap: 0.375rem; color: #047857;">
+            html += `<div style="display: flex; align-items: center; gap: 0.375rem; color: var(--color-success, #047857);">
                         <span>✓</span> <code>${escapeHtml(slug)}</code>
                      </div>`;
         } else {
-            html += `<div style="display: flex; align-items: center; gap: 0.375rem; color: #94a3b8; text-decoration: line-through;">
+            html += `<div style="display: flex; align-items: center; gap: 0.375rem; color: var(--color-text-muted, #94a3b8); text-decoration: line-through;">
                         <span>✕</span> <code>${escapeHtml(slug)}</code>
                      </div>`;
         }
