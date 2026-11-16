@@ -1063,6 +1063,8 @@ html[data-theme="dark"] .remember-device-input {
   font-size: 0.74rem;
   line-height: 1.4;
   color: var(--text-muted);
+  text-align: justify;
+  hyphens: auto;
 }
 
 /* Primary Verify Button */
