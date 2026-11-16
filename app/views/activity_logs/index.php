@@ -61,12 +61,12 @@ $exportUrl = url('/activity-logs/export' . ($exportQueryParams !== '' ? '?' . $e
     font-weight: 600;
 }
 .diff-old {
-    background-color: #fef2f2;
-    color: #991b1b;
+    background-color: var(--color-error-bg, #fef2f2);
+    color: var(--color-error, #991b1b);
 }
 .diff-new {
-    background-color: #ecfdf5;
-    color: #065f46;
+    background-color: var(--color-success-bg, #ecfdf5);
+    color: var(--color-success, #065f46);
 }
 .user-avatar-initials {
     width: 32px;

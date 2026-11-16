@@ -117,7 +117,13 @@ jobs:
       - name: Start PHP Built-in Application Server
         shell: bash
         run: |
-          php -S 127.0.0.1:8080 -t public/ > /tmp/php_server.log 2>&1 &
+          # The built-in server runs one request at a time by default, so a single slow
+          # request (or the browser's background realtime/notification calls) blocks the
+          # form POST a test is waiting on. Workers let requests run in parallel, and the
+          # router logs each request's duration for the uploaded artifacts.
+          export PHP_CLI_SERVER_WORKERS=4
+          export PHP_REQUEST_TIMING_LOG=/tmp/php_request_timing.log
+          php -S 127.0.0.1:8080 -t public/ scripts/ci/php-server-router.php > /tmp/php_server.log 2>&1 &
           echo "Waiting for PHP application server to be reachable..."
           php_ready=0
           for attempt in $(seq 1 20); do
@@ -175,5 +181,7 @@ jobs:
           path: |
             e2e-tests/reports/
             e2e-tests/screenshots/
+            /tmp/php_server.log
+            /tmp/php_request_timing.log
           if-no-files-found: ignore
 

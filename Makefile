@@ -22,7 +22,7 @@ else
     EXEC_APP :=
 endif
 
-.PHONY: help up down restart ps logs build install migrate test lint e2e clean
+.PHONY: help up down restart ps logs build install migrate test test-realtime lint e2e clean
 
 help: ## Display available commands and targets
 	@echo "======================================================================"
@@ -75,6 +75,9 @@ migrate: ## Run database migrations inside app container
 
 test: ## Run PHPUnit tests inside app container
 	$(EXEC_APP) vendor/bin/phpunit
+
+test-realtime: ## Run live WebSocket E2E tests (throwaway realtime server on the test DB)
+	$(EXEC_APP) sh scripts/test-realtime-e2e.sh
 
 lint: ## Run PHP linting & static analysis inside app container
 	$(EXEC_APP) composer lint

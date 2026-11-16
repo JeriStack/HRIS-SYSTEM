@@ -16,30 +16,56 @@ document.addEventListener('DOMContentLoaded', () => {
  * Enterprise Theme Manager (Light & Dark Mode)
  */
 function initThemeManager() {
-    const savedTheme = localStorage.getItem('nexora_theme') || localStorage.getItem('hris_theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+    const mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    const isValid = (value) => value === 'dark' || value === 'light';
+    const readSaved = () => {
+        try {
+            const value = localStorage.getItem('nexora_theme') || localStorage.getItem('hris_theme');
+            return isValid(value) ? value : null;
+        } catch (err) {
+            return null;
+        }
+    };
+    const apply = (theme) => {
+        document.documentElement.setAttribute('data-theme', theme);
+        updateThemeButtons(theme);
+    };
 
-    document.documentElement.setAttribute('data-theme', initialTheme);
-    updateThemeButtons(initialTheme);
+    apply(readSaved() || (mql && mql.matches ? 'dark' : 'light'));
 
-    const themeButtons = document.querySelectorAll('.theme-toggle-btn');
-    themeButtons.forEach(btn => {
+    document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('nexora_theme', newTheme);
+            apply(newTheme);
             try {
+                localStorage.setItem('nexora_theme', newTheme);
                 localStorage.removeItem('hris_theme');
             } catch (err) {}
-            updateThemeButtons(newTheme);
         });
     });
-}
 
-function updateThemeButtons(theme) {
+    // Keep other open tabs in sync when the theme is changed elsewhere.
+    window.addEventListener('storage', (event) => {
+        if (event.key === 'nexora_theme' && isValid(event.newValue)) {
+            apply(event.newValue);
+        }
+    });
+
+    // Follow the OS setting live, but only while the user has no saved choice.
+    if (mql) {
+        const onOsChange = (event) => {
+            if (!readSaved()) {
+                apply(event.matches ? 'dark' : 'light');
+            }
+        };
+        if (mql.addEventListener) {
+            mql.addEventListener('change', onOsChange);
+        } else if (mql.addListener) {
+            mql.addListener(onOsChange);
+        }
+    }
+}function updateThemeButtons(theme) {
     const sunSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
     const moonSvg = '<svg class="svg-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
     const themeButtons = document.querySelectorAll('.theme-toggle-btn');
