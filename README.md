@@ -105,29 +105,111 @@
 </table>
 
 ### Priority Technical, QA & Defense Guides
-* 🏛️ **[System Architecture & Components (docs/02-technical/system-architecture.md)](docs/02-technical/system-architecture.md):** Verified container topology, Clean Architecture layers, and request/data flow.
-* 📐 **[UML Diagrams Catalog (docs/02-technical/uml-diagrams.md)](docs/02-technical/uml-diagrams.md):** Context, Use Case, Class, Sequence, Activity, State Machine, Component, and Deployment diagrams.
-* 🔄 **[System Workflows & Flowcharts (docs/02-technical/system-workflows.md)](docs/02-technical/system-workflows.md):** Reconciled flowcharts for Authentication, Admin, HR, Employee, Leave, Announcements, Outbox/Queue, and Audit Trail.
-* 🧮 **[DSA Documentation & Flowcharts (docs/02-technical/dsa-documentation.md)](docs/02-technical/dsa-documentation.md):** Custom Data Structures and Algorithms specifications, pseudocode, complexity matrices, and flowcharts.
-* 🔒 **[Security Architecture (docs/02-technical/security/security-architecture.md)](docs/02-technical/security/security-architecture.md):** Authentication lifecycle, Email OTP / TOTP MFA, session security fingerprinting, CSRF, and PII masking.
-* 🗄️ **[Database Architecture & ERD (docs/02-technical/database/database-schema.md)](docs/02-technical/database/database-schema.md):** 49-table InnoDB schema catalog, [Mermaid ERD (`erd.mmd`)](docs/02-technical/database/erd.mmd), foreign key constraints, and pessimistic row locking (`SELECT ... FOR UPDATE`).
-* 🧪 **[QA Test Plan & Verified Results (docs/04-quality-assurance/test-plan-and-results.md)](docs/04-quality-assurance/test-plan-and-results.md):** PHPUnit (764 tests, 4,078 assertions), [Testing Strategy](docs/04-quality-assurance/testing-strategy.md), and [Full-System Functional Audit](docs/04-quality-assurance/functional-audit-report.md).
-* ⚡ **[Performance Test Plan & Results (docs/04-quality-assurance/performance-test-plan-and-results.md)](docs/04-quality-assurance/performance-test-plan-and-results.md):** Empirical latency percentiles (`avg`, `p50`, `p95`, `ops/sec`) and index analysis.
-* 🚀 **[Installation, Deployment & Readiness (docs/03-operations/deployment/installation-and-configuration-guide.md)](docs/03-operations/deployment/installation-and-configuration-guide.md):** Complete setup guide, [Deployment Runbook](docs/03-operations/deployment/deployment-guide.md), and [18-Point Production Readiness Checklist](docs/03-operations/deployment/production-readiness-checklist.md).
-* 🎓 **[Defense & Presentation Package (docs/06-defense/project-defense-guide.md)](docs/06-defense/project-defense-guide.md):** [Defense Guide](docs/06-defense/project-defense-guide.md), [Anticipated Q&A Bank](docs/06-defense/anticipated-questions.md), [15-Step Live Demo Script](docs/06-defense/demonstration-script.md), and [22-Slide Presentation Outline](docs/06-defense/presentation-outline.md).
+
+<ul>
+  <li>
+    <p align="justify">
+      🏛️ <strong><a href="docs/02-technical/system-architecture.md">System Architecture &amp; Components</a></strong> (<code>docs/02-technical/system-architecture.md</code>): Details the verified multi-container Docker topology, 4-tier MVC and Clean/DDD bounded contexts (<code>Leave</code>, <code>Announcement</code>), Anti-Corruption Layer (ACL) controller adapters, and end-to-end HTTP and WebSocket request/data flows.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      📐 <strong><a href="docs/02-technical/uml-diagrams.md">UML Diagrams Catalog</a></strong> (<code>docs/02-technical/uml-diagrams.md</code>): Provides reconciled System Context, UML Use Case, Domain Class, Sequence, Activity, Lifecycle State Machine (Leave, Support, and Announcements), Component, and Container Deployment diagrams.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🔄 <strong><a href="docs/02-technical/system-workflows.md">System Workflows &amp; Flowcharts</a></strong> (<code>docs/02-technical/system-workflows.md</code>): Traces step-by-step execution flowcharts for Smart OTP Authentication, Dynamic RBAC Governance, HR Workforce Operations, Statutory Leave Adjudication, DDD Announcements Distribution, Transactional Outbox &amp; Queue Worker, and the SHA-256 Tamper-Evident Audit Trail.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🧮 <strong><a href="docs/02-technical/dsa-documentation.md">DSA Documentation &amp; Flowcharts</a></strong> (<code>docs/02-technical/dsa-documentation.md</code>): Documents the custom PHP Data Structures &amp; Algorithms implementations (Singly Linked List, FIFO Queue, LIFO Stack, Hash Table, Binary Search Tree, Merge/Quick/Insertion/Selection/Bubble Sort, and Binary/Linear Search) with pseudocode, Big-O time/space complexity matrices, and empirical benchmark charts.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🔒 <strong><a href="docs/02-technical/security/security-architecture.md">Security &amp; Authentication Architecture</a></strong> (<code>docs/02-technical/security/</code>): Covers primary Bcrypt authentication, <a href="docs/02-technical/security/authentication-and-mfa-security.md">Email OTP &amp; RFC 6238 TOTP MFA</a>, HMAC-SHA256 rotating trusted-device cookies, anti-enumeration password recovery, session security fingerprinting, CSRF synchronization, and statutory confidentiality masking (RA 9262 VAWC &amp; RA 9710 SLW).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🗄️ <strong><a href="docs/02-technical/database/database-schema.md">Database Architecture &amp; ERD</a></strong> (<code>docs/02-technical/database/database-schema.md</code>): Catalogs all 49 MySQL 8.0 InnoDB tables, the editable <a href="docs/02-technical/database/erd.mmd">Mermaid Entity-Relationship Diagram (<code>erd.mmd</code>)</a>, foreign key referential integrity, composite indexes, idempotent SQL migrations, and pessimistic row-level locking (<code>SELECT ... FOR UPDATE</code>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🔌 <strong><a href="docs/02-technical/api-reference.md">REST API v1 &amp; OpenAPI 3.0 Reference</a></strong> (<code>docs/02-technical/api-reference.md</code>): Documents the programmatic REST API v1 endpoints, standardized JSON envelopes, role/permission guards, and machine-readable OpenAPI 3.0 specifications (<a href="docs/api/openapi.yaml"><code>openapi.yaml</code></a> and <a href="docs/api/openapi.json"><code>openapi.json</code></a>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🧪 <strong><a href="docs/04-quality-assurance/test-plan-and-results.md">Quality Assurance, Testing Strategy &amp; Audit Reports</a></strong> (<code>docs/04-quality-assurance/</code>): Presents verified execution results across <code>764</code> PHPUnit tests (<code>4,078</code> assertions), <code>45</code> Selenium E2E browser tests, PHPStan static analysis, PSR-12 coding standard enforcement, the <a href="docs/04-quality-assurance/testing-strategy.md">Testing Strategy Guide</a>, and the <a href="docs/04-quality-assurance/functional-audit-report.md">Full-System Functional Audit Report</a>.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      ⚡ <strong><a href="docs/04-quality-assurance/performance-test-plan-and-results.md">Performance Test Plan &amp; Empirical Benchmarks</a></strong> (<code>docs/04-quality-assurance/performance-test-plan-and-results.md</code>): Reports reproducible latency percentiles (<code>avg</code>, <code>p50</code>, <code>p95</code>, <code>ops/sec</code>), algorithmic scaling comparisons across dataset sizes, and InnoDB query execution plan analysis.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🚀 <strong><a href="docs/03-operations/deployment/installation-and-configuration-guide.md">Installation, Deployment, DevOps &amp; Monitoring</a></strong> (<code>docs/03-operations/</code>): Combines the complete setup guide, <a href="docs/03-operations/deployment/deployment-guide.md">Production Deployment Runbook</a>, <a href="docs/03-operations/deployment/production-readiness-checklist.md">18-Point Production Readiness Checklist</a>, <a href="docs/03-operations/devops/cron-scheduler-and-queue-worker.md">Cron Scheduler &amp; Queue Worker Guide</a>, and <a href="docs/03-operations/monitoring/README.md">Prometheus &amp; Grafana Observability Stack</a>.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🎓 <strong><a href="docs/06-defense/project-defense-guide.md">Academic &amp; Technical Defense Package</a></strong> (<code>docs/06-defense/</code>): Equips presenters with the <a href="docs/06-defense/project-defense-guide.md">Project Defense Guide</a>, <a href="docs/06-defense/anticipated-questions.md">Anticipated Panel Q&amp;A Bank</a>, <a href="docs/06-defense/demonstration-script.md">15-Step Live Demonstration Script</a>, and <a href="docs/06-defense/presentation-outline.md">22-Slide Master Presentation Deck</a>.
+    </p>
+  </li>
+</ul>
 
 ---
 
 ## ⚡ Core System Capabilities
 
-* **Dynamic 3-Role RBAC & Least-Privilege Governance (`ADR-012` / `ADR-013`):** Strict server-side separation across Administrators (`/admin/dashboard`, `/admin/users*`, `/admin/roles`, `/admin/support*`), HR Officers (`/hr/dashboard`, `/hr/employees*`, `/hr/announcements*`, `/hr/support*`, `/hr/help*`), and Employees (`/employee/dashboard`, `/employee/profile`, `/employee/announcements*`, `/support*`) across 44 dynamic permissions.
-* **Smart OTP, TOTP MFA & Trusted Device Security:** Mandatory 6-digit Email OTP and RFC 6238 TOTP verification paired with HMAC-SHA256 single-use rotating trusted-browser cookies, risk-based step-up challenges, anti-enumeration password recovery, and self-service device revocation (`/account/security`).
-* **Philippine Statutory & Company Leave Engine:** Supports Vacation, Sick, Service Incentive Leave (SIL), Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), and Special Leave for Women (RA 9710) with confidentiality masking, qualification verification, and Monday–Friday business-day calculation.
-* **Pessimistic Concurrency Locking (`SELECT ... FOR UPDATE`):** FIFO leave approval queue executing inside atomic InnoDB transactions with row-level locks on `leave_requests` and `leave_balances` to prevent race conditions and balance overdrafts.
-* **Multi-Tier Help, Support & Confidential Complaints:** Dedicated Employee-to-HR Support & Confidential Complaint handling (`SUP-YYYY-NNNNN`) with COI exclusions, pre-login authentication assistance (`AUTH-YYYY-NNNNN`), and isolated HR-to-Admin technical support (`HR-SUP-YYYY-XXXXXXXX`) with private Admin internal notes.
-* **DDD Company Announcements Management:** Full announcement lifecycle (`Draft`, `Scheduled`, `Published`, `Expired`, `Archived`) with department/company-wide audience targeting, automated CRON publication/expiration (`process-announcements`), attachment validation, and idempotent employee read/acknowledgment receipts.
-* **Real-Time WebSockets, Outbox & Queue Worker:** Sub-100ms push notifications via a Ratchet WebSocket server (`:8090`), Transactional Outbox (`outbox_events`), and `FOR UPDATE SKIP LOCKED` MySQL Queue Worker (`bin/queue-worker.php`).
-* **Custom Data Structures & Algorithms (DSA) Laboratory:** Native PHP implementations of Singly Linked Lists, FIFO Queues, LIFO Stacks, Hash Tables, Binary Search Trees, and Merge/Quick/Insertion/Selection/Bubble Sort & Binary/Linear Search with empirical benchmarking.
+<ul>
+  <li>
+    <p align="justify">
+      <strong>Dynamic 3-Role RBAC &amp; Least-Privilege Governance (<code>ADR-012</code> / <code>ADR-013</code>):</strong> Enforces strict server-side separation across Administrators (<code>/admin/dashboard</code>, <code>/admin/users*</code>, <code>/admin/roles</code>, <code>/admin/support*</code>), HR Officers (<code>/hr/dashboard</code>, <code>/hr/employees*</code>, <code>/hr/announcements*</code>, <code>/hr/support*</code>, <code>/hr/help*</code>), and Employees (<code>/employee/dashboard</code>, <code>/employee/profile</code>, <code>/employee/announcements*</code>, <code>/support*</code>) governed by 44 dynamic permissions.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Smart OTP, TOTP MFA &amp; Trusted Device Security:</strong> Combines mandatory 6-digit Email OTP and RFC 6238 TOTP verification with HMAC-SHA256 single-use rotating trusted-browser cookies, risk-based step-up challenges, anti-enumeration password recovery, and self-service device revocation (<code>/account/security</code>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Philippine Statutory &amp; Company Leave Engine:</strong> Supports Vacation, Sick, Service Incentive Leave (SIL), Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), and Special Leave for Women (RA 9710) with statutory confidentiality masking, qualification verification, and Monday–Friday business-day calculation.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Pessimistic Concurrency Locking (<code>SELECT ... FOR UPDATE</code>):</strong> Processes leave approvals through a FIFO queue inside atomic InnoDB transactions with row-level locks on <code>leave_requests</code> and <code>leave_balances</code>, preventing concurrent race conditions and balance overdrafts.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Multi-Tier Help, Support &amp; Confidential Complaints:</strong> Provides Employee-to-HR Support and Confidential Workplace Complaint handling (<code>SUP-YYYY-NNNNN</code>) with conflict-of-interest exclusions, pre-login authentication assistance (<code>AUTH-YYYY-NNNNN</code>), and isolated HR-to-Admin technical support (<code>HR-SUP-YYYY-XXXXXXXX</code>) with private Admin internal notes.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>DDD Company Announcements Management:</strong> Manages the full announcement lifecycle (<code>Draft</code>, <code>Scheduled</code>, <code>Published</code>, <code>Expired</code>, <code>Archived</code>) with company-wide or department-scoped audience targeting, automated CRON publication and expiration (<code>process-announcements</code>), attachment validation, and idempotent employee read/acknowledgment receipts.
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Real-Time WebSockets, Outbox &amp; Queue Worker:</strong> Delivers sub-100ms push notifications via a Ratchet WebSocket server (<code>:8090</code>), Transactional Outbox (<code>outbox_events</code>), and concurrency-safe <code>FOR UPDATE SKIP LOCKED</code> MySQL Queue Worker (<code>bin/queue-worker.php</code>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      <strong>Custom Data Structures &amp; Algorithms (DSA) Laboratory:</strong> Features native PHP implementations of Singly Linked Lists, FIFO Queues, LIFO Stacks, Hash Tables, Binary Search Trees, and Merge, Quick, Insertion, Selection, Bubble, Binary, and Linear Search algorithms with live HRIS data visualizations and empirical benchmarks.
+    </p>
+  </li>
+</ul>
 
 ---
 
