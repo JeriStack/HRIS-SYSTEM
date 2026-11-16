@@ -111,6 +111,29 @@ class LeaveCalculator
     }
 
     /**
+     * Calculate inclusive calendar days (all Mon-Sun days, used for Maternity RA 11210 & SLW RA 9710).
+     */
+    public static function calculateCalendarDays(string $startDateStr, string $endDateStr): int
+    {
+        $start = self::parseDate($startDateStr);
+        $end = self::parseDate($endDateStr);
+        if ($end < $start) {
+            throw new InvalidArgumentException("End date ({$endDateStr}) cannot precede start date ({$startDateStr}).");
+        }
+        return (int)$start->diff($end)->days + 1;
+    }
+
+    /**
+     * Calculate leave duration in the requested entitlement unit ('working_days' | 'calendar_days').
+     */
+    public static function calculateDaysForUnit(string $startDateStr, string $endDateStr, string $unit = 'working_days'): int
+    {
+        return $unit === 'calendar_days'
+            ? self::calculateCalendarDays($startDateStr, $endDateStr)
+            : self::calculateWorkingDays($startDateStr, $endDateStr);
+    }
+
+    /**
      * Safely parse a date string into a DateTimeImmutable object at midnight UTC.
      *
      * @param string $dateStr

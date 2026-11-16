@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Top Navigation Bar Partial
  * Employee HRIS & Leave Management System
@@ -30,6 +31,14 @@ if (str_contains($currentPath, '/users') || str_contains($currentPath, '/roles')
     $sectionTitle = 'Leave Administration';
 } elseif (str_contains($currentPath, '/reports')) {
     $sectionTitle = 'Reports & Analytics';
+} elseif (str_contains($currentPath, '/admin/support')) {
+    $sectionTitle = 'Support Management';
+} elseif (str_contains($currentPath, '/hr/help')) {
+    $sectionTitle = 'Help & Support (Admin)';
+} elseif (str_contains($currentPath, '/hr/support')) {
+    $sectionTitle = 'Employee Support Inbox';
+} elseif (str_contains($currentPath, '/support')) {
+    $sectionTitle = 'Help & Support';
 } elseif (str_contains($currentPath, '/security') || str_contains($currentPath, '/activity-logs')) {
     $sectionTitle = 'Security & Compliance';
 } elseif (str_contains($currentPath, '/settings') || str_contains($currentPath, '/system-health')) {
@@ -53,16 +62,18 @@ if (isAuthenticated()) {
 ?>
 <header class="app-header top-bar" role="banner">
     <div class="header-left top-bar-left">
-        <button type="button" class="sidebar-toggle header-toggle" id="sidebarToggle" aria-label="Toggle navigation drawer" aria-expanded="false" aria-controls="appSidebar">
-            ☰
+        <button type="button" class="sidebar-toggle header-toggle mobile-toggle-only" id="mobileSidebarToggle" aria-label="Open navigation menu" title="Open navigation menu" aria-expanded="false" aria-controls="appSidebar">
+            <?= icon('menu', 18) ?>
         </button>
         <nav class="header-breadcrumb" aria-label="Breadcrumb">
             <a href="<?= $portalHome ?>"><?= e($portalLabel) ?></a>
-            <span class="crumb-separator" aria-hidden="true">/</span>
-            <span><?= e($sectionTitle) ?></span>
+            <?php if ($role !== 'employee'): ?>
+                <span class="crumb-separator" aria-hidden="true">/</span>
+                <span><?= e($sectionTitle) ?></span>
+            <?php endif; ?>
             <?php if (!empty($pageTitle)): ?>
                 <span class="crumb-separator" aria-hidden="true">/</span>
-                <span class="crumb-current" aria-current="page"><?= e($pageTitle) ?></span>
+                <span class="crumb-current" aria-current="page"><?= e($pageTitle === 'Employee Dashboard' ? 'Overview' : $pageTitle) ?></span>
             <?php endif; ?>
         </nav>
     </div>
@@ -70,58 +81,73 @@ if (isAuthenticated()) {
     <div class="header-right top-bar-right">
         <!-- Theme Toggle Button (Light/Dark Mode) -->
         <button type="button" class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme mode" title="Toggle theme mode">
-            🌙
+            <?= icon('moon', 18) ?>
         </button>
 
         <?php if (isAuthenticated()): ?>
-        <div class="rt-notify" id="rtNotify"
-             data-enabled="<?= $rtEnabled ? '1' : '0' ?>"
-             data-ws-url="<?= e($rtWsUrl) ?>"
-             data-ticket-url="<?= e(url('/realtime/ticket')) ?>"
-             data-history-url="<?= e(url('/api/v1/notifications?limit=8')) ?>"
-             data-inbox-url="<?= e(url('/notifications')) ?>"
-             data-base-url="<?= e(url('/')) ?>"
-             data-csrf="<?= e(csrf_token()) ?>"
-             data-unread="<?= (int)$rtUnread ?>">
-            <button type="button" class="rt-bell" id="rtBell"
+            <div class="rt-notify" id="rtNotify"
+                data-enabled="<?= $rtEnabled ? '1' : '0' ?>"
+                data-ws-url="<?= e($rtWsUrl) ?>"
+                data-ticket-url="<?= e(url('/realtime/ticket')) ?>"
+                data-history-url="<?= e(url('/api/v1/notifications?limit=8')) ?>"
+                data-inbox-url="<?= e(url('/notifications')) ?>"
+                data-base-url="<?= e(url('/')) ?>"
+                data-csrf="<?= e(csrf_token()) ?>"
+                data-unread="<?= (int)$rtUnread ?>">
+                <button type="button" class="rt-bell" id="rtBell"
                     aria-haspopup="true" aria-expanded="false" aria-controls="rtPanel"
                     aria-label="Notifications<?= $rtUnread > 0 ? ', ' . (int)$rtUnread . ' unread' : '' ?>">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                </svg>
-                <strong class="rt-count" id="rtCount" <?= $rtUnread > 0 ? '' : 'hidden' ?>><?= $rtUnread > 99 ? '99+' : (int)$rtUnread ?></strong>
-                <i class="rt-dot" id="rtDot" data-state="<?= $rtEnabled ? 'connecting' : 'disabled' ?>" aria-hidden="true"></i>
-            </button>
-            <div class="rt-panel" id="rtPanel" role="region" aria-label="Recent notifications" hidden>
-                <div class="rt-panel-header">
-                    <strong>Notifications</strong>
-                    <small class="rt-conn" id="rtConn" role="status" aria-live="polite"><?= $rtEnabled ? 'Connecting…' : 'Live updates off' ?></small>
-                </div>
-                <ul class="rt-list" id="rtList">
-                    <li class="rt-empty">Loading recent notifications…</li>
-                </ul>
-                <div class="rt-panel-footer">
-                    <a href="<?= e(url('/notifications')) ?>">View all notifications</a>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <strong class="rt-count" id="rtCount" <?= $rtUnread > 0 ? '' : 'hidden' ?>><?= $rtUnread > 99 ? '99+' : (int)$rtUnread ?></strong>
+                    <i class="rt-dot" id="rtDot" data-state="<?= $rtEnabled ? 'connecting' : 'disabled' ?>" aria-hidden="true"></i>
+                </button>
+                <div class="rt-panel" id="rtPanel" role="region" aria-label="Recent notifications" hidden>
+                    <div class="rt-panel-header">
+                        <strong>Notifications</strong>
+                        <small class="rt-conn" id="rtConn" role="status" aria-live="polite"><?= $rtEnabled ? 'Connecting…' : 'Live updates off' ?></small>
+                    </div>
+                    <ul class="rt-list" id="rtList">
+                        <li class="rt-empty">Loading recent notifications…</li>
+                    </ul>
+                    <div class="rt-panel-footer">
+                        <a href="<?= e(url('/notifications')) ?>">View all notifications</a>
+                    </div>
                 </div>
             </div>
-        </div>
         <?php endif; ?>
 
-        <span class="role-badge <?= e($role) ?>">
-            <?= e(strtoupper($user['role'] ?? 'HR')) ?> ACCESS
-        </span>
-        <div class="header-user-meta" style="margin-right: 0.5rem;">
-            <a href="<?= ($role === 'admin') ? url('/admin/account') : url('/employee/profile') ?>" style="text-decoration: none; color: inherit;">
-                <div class="header-user-name"><?= e($userName) ?></div>
-                <div class="header-user-role"><?= e($user['employee_no'] ?? strtoupper($role)) ?></div>
-            </a>
-        </div>
-        <form method="POST" action="<?= url('/logout') ?>" style="margin: 0; display: inline;">
-            <?= csrf_field() ?>
-            <button type="submit" class="btn btn-secondary btn-sm" aria-label="Sign out of current account">
-                Sign Out
-            </button>
-        </form>
+        <?php
+        $headerProfileUrl = url('/employee/profile');
+        $headerProfileTitle = 'View My Profile';
+        if ($role === 'admin') {
+            $headerProfileUrl = url('/admin/account');
+            $headerProfileTitle = 'Account & Security Settings';
+        } elseif ($role === 'hr') {
+            $headerProfileUrl = !empty($user['employee_id'])
+                ? url('/hr/employees/' . (int)$user['employee_id'])
+                : url('/hr/dashboard');
+            $headerProfileTitle = !empty($user['employee_id']) ? 'View My Profile' : 'HR Dashboard';
+        }
+        $avatarInitials = strtoupper(substr(trim($userName), 0, 2)) ?: 'U';
+        $headerAvatarUrl = \App\Services\ProfilePictureService::avatarUrl(
+            !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+            is_string($user['profile_picture'] ?? null) ? $user['profile_picture'] : null
+        );
+        ?>
+        <a href="<?= $headerProfileUrl ?>"
+           class="header-account-chip"
+           title="<?= e($userName . ' — ' . $headerProfileTitle) ?>"
+           aria-label="<?= e($userName . ' — ' . $headerProfileTitle) ?>">
+            <span class="header-account-avatar role-<?= e($role) ?><?= $headerAvatarUrl ? ' has-photo' : '' ?>" aria-hidden="true">
+                <?php if ($headerAvatarUrl): ?>
+                    <img src="<?= e($headerAvatarUrl) ?>" alt="" class="avatar-img-cover" width="30" height="30" decoding="async">
+                <?php else: ?>
+                    <?= e($avatarInitials) ?>
+                <?php endif; ?>
+            </span>
+        </a>
     </div>
 </header>

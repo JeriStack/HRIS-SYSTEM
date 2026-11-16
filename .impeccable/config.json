@@ -1,4 +1,73 @@
 {
-  "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [
+      "app/controllers/**",
+      "app/models/**",
+      "app/services/**",
+      "app/middlewares/**",
+      "app/dto/**",
+      "app/repositories/**",
+      "app/adapters/**",
+      "core/**",
+      "config/**",
+      "bin/**",
+      "tests/**",
+      "database/**",
+      "scripts/**",
+      "vendor/**",
+      "e2e-tests/**"
+    ],
+    "ignoreValues": [
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          "public/assets/css/auth.css",
+          "public/assets/css/landing.css",
+          "public/assets/css/otp.css"
+        ],
+        "createdAt": "2026-11-14T14:51:03.793Z",
+        "reason": "Agent: Marketing landing page and standalone auth/OTP modals use dedicated Persuade/Auth palettes"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "public/assets/css/auth.css",
+          "public/assets/css/landing.css",
+          "public/assets/css/otp.css"
+        ],
+        "createdAt": "2026-11-14T14:51:17.846Z",
+        "reason": "Agent: Marketing landing page and standalone auth/OTP screens use fluid hero clamp() typography"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          "public/assets/css/auth.css",
+          "public/assets/css/landing.css",
+          "public/assets/css/otp.css"
+        ],
+        "createdAt": "2026-11-14T14:51:23.142Z",
+        "reason": "Agent: Marketing landing page and auth modals use larger hero card radii"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgb(0, 0, 0)",
+        "files": [
+          "app/views/**/*.php"
+        ],
+        "createdAt": "2026-11-14T14:52:49.384Z",
+        "reason": "Agent: PHP view partials inherit layout CSS dynamically at runtime; standalone HTML static pass evaluates browser default rgb(0, 0, 0)"
+      }
+    ],
+    "extensions": [
+      {
+        "ext": ".php",
+        "engine": "html"
+      }
+    ]
+  }
 }
-

@@ -44,7 +44,7 @@ The framework employs a four-tier defense model:
 The central component of the RBAC system is `Core\AuthorizationService`. It provides:
 1. **Dynamic Database Resolution:** Sourced from `roles`, `permissions`, and `role_permissions` join queries.
 2. **Fallback to Authoritative Registry:** If database tables are not yet initialized or during test runs, safely falls back to default policies in `Core\PermissionRegistry`.
-3. **Immutable Administrator Access:** Users with the `admin` role possess all 33 registered permissions unconditionally. Ordinary permission editing operations cannot strip the `admin` role of permissions.
+3. **Least-Privilege System-Protected Administrator Access:** Users with the `admin` role hold only the explicit administrative governance, HR support management (`hr_support.admin_*`, `hr_support.internal_notes`), security monitoring, and restricted read-oversight capabilities defined for `admin` in `Core\PermissionRegistry` and `role_permissions` — never a blanket wildcard across HR mutations, confidential HR leave records, or Employee self-service. Ordinary permission editing operations cannot modify the system-protected `admin` role.
 4. **Deny-by-Default:** Any unassigned permission, unknown role, or unregistered capability evaluates to `false` (fail-closed).
 5. **In-Memory Caching & Instant Invalidation:** Permission sets for roles are cached in memory for the duration of the request. Any administrative modification via `updateRolePermissions()` instantly clears all cached entries across all roles.
 6. **Transaction Safety & Audit Logging:** Updates execute inside atomic database transactions (`START TRANSACTION` ... `COMMIT`). Every granted and revoked permission is logged to `permission_audit_logs`.

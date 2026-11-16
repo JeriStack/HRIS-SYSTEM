@@ -73,25 +73,64 @@ class DynamicRbacTest extends TestCase
         $this->assertSame('leave.approve', PermissionRegistry::normalize('leave.approve'));
     }
 
-    public function test_admin_has_full_authority_across_all_registered_permissions(): void
+    public function test_admin_enforces_least_privilege_governance_and_hr_support_permissions(): void
     {
         $auth = AuthorizationService::getInstance();
 
-        foreach (array_keys(PermissionRegistry::PERMISSIONS) as $slug) {
-            // Role-specific dashboard views maintain mutual exclusion
-            if (in_array($slug, ['hr_dashboard', 'employee_dashboard'], true)) {
-                continue;
-            }
+        $expectedAdminSlugs = PermissionRegistry::getDefaultPermissionsForRole('admin');
+        $this->assertNotEmpty($expectedAdminSlugs);
+
+        foreach (array_keys($expectedAdminSlugs) as $slug) {
             $this->assertTrue(
                 $auth->can('admin', $slug),
-                "Admin must possess registered capability: {$slug}"
+                "Admin must possess approved least-privilege capability: {$slug}"
             );
         }
 
-        // Admin cannot access employee self-service dashboard or HR operational dashboard
-        $this->assertFalse($auth->can('admin', 'hr_dashboard'));
-        $this->assertFalse($auth->can('admin', 'employee_dashboard'));
+        // Explicitly withheld under A1 least-privilege Admin hardening
+        $deniedAdminSlugs = [
+            'employees.create',
+            'employees.update',
+            'employees.deactivate',
+            'departments.manage',
+            'positions.manage',
+            'leave.approve',
+            'leave.reject',
+            'leave.create',
+            'leave.cancel',
+            'leave_types.manage',
+            'leave_balances.manage',
+            'leave_policies.manage',
+            'leave_qualifications.verify',
+            'leave_confidential.view',
+            'support.view_own',
+            'support.create',
+            'support.reply_own',
+            'support.inbox_view',
+            'support.respond',
+            'support.manage_status',
+            'support.assign',
+            'support.confidential_handle',
+            'hr_support.submit',
+            'hr_support.view_own',
+            'hr_support.reply_own',
+            'hr_dashboard',
+            'employee_dashboard',
+        ];
+        foreach ($deniedAdminSlugs as $deniedSlug) {
+            $this->assertFalse(
+                $auth->can('admin', $deniedSlug),
+                "Admin must NOT receive over-broad HR/Employee capability: {$deniedSlug}"
+            );
+        }
+
+        // Admin retains system governance & HR support management capabilities
         $this->assertTrue($auth->can('admin', 'admin_dashboard'));
+        $this->assertTrue($auth->can('admin', 'users.view'));
+        $this->assertTrue($auth->can('admin', 'roles.manage'));
+        $this->assertTrue($auth->can('admin', 'hr_support.admin_inbox'));
+        $this->assertTrue($auth->can('admin', 'hr_support.admin_manage'));
+        $this->assertTrue($auth->can('admin', 'hr_support.internal_notes'));
     }
 
     public function test_hr_possesses_workforce_operations_and_is_denied_admin_governance(): void
@@ -226,12 +265,16 @@ class DynamicRbacTest extends TestCase
         $this->assertFalse(has_role('employee'));
 
         $this->assertTrue(can('users.view'));
-        $this->assertTrue(can('leave.approve'));
+        $this->assertTrue(can('hr_support.admin_manage'));
+        $this->assertFalse(can('leave.approve'));
+        $this->assertFalse(can('hr_support.submit'));
 
         Session::set('user', ['id' => 2, 'role' => 'hr', 'status' => 'Active']);
         $this->assertTrue(has_role('hr'));
         $this->assertFalse(has_role('admin'));
         $this->assertTrue(can('employees.view'));
+        $this->assertTrue(can('hr_support.submit'));
+        $this->assertFalse(can('hr_support.internal_notes'));
         $this->assertFalse(can('users.create'));
     }
 

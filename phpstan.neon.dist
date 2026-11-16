@@ -9,6 +9,5 @@ parameters:
         - public/index.php
     excludePaths:
         - app/views/*
-        - scratch/*
         - tests/*
     treatPhpDocTypesAsCertain: false

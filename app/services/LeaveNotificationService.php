@@ -31,12 +31,15 @@ class LeaveNotificationService
      *
      * @return int Number of HR recipients
      */
-    public function leaveSubmitted(int $requestId, string $message): int
+    public function leaveSubmitted(int $requestId, string $message, bool $isConfidential = false): int
     {
+        $title = ConfidentialLeaveService::safeNotificationTitle($isConfidential, 'New Leave Application');
+        $safeMessage = ConfidentialLeaveService::safeNotificationMessage($isConfidential, $requestId, $message);
+
         return $this->notifications()->notifyRole(
             'hr',
-            'New Leave Application',
-            $message,
+            $title,
+            $safeMessage,
             'info',
             EventAuthorizer::LEAVE_CREATED,
             $requestId
@@ -50,7 +53,7 @@ class LeaveNotificationService
      * @param string $status 'Approved' or 'Rejected'
      * @return bool True when a notification row was written
      */
-    public function leaveDecided(array $request, string $status, string $message): bool
+    public function leaveDecided(array $request, string $status, string $message, bool $isConfidential = false): bool
     {
         $employeeId = (int)($request['employee_id'] ?? 0);
         if ($employeeId <= 0) {
@@ -65,6 +68,7 @@ class LeaveNotificationService
         $approved = $status === 'Approved';
         $eventType = $approved ? EventAuthorizer::LEAVE_APPROVED : EventAuthorizer::LEAVE_REJECTED;
         $requestId = (int)($request['id'] ?? 0);
+        $isConfidential = $isConfidential || ConfidentialLeaveService::isConfidentialRequest($request);
 
         // Idempotency: the controller writes this notification immediately, and the
         // transactional outbox worker may later deliver the same domain event. Writing
@@ -73,10 +77,16 @@ class LeaveNotificationService
             return false;
         }
 
+        $title = $approved ? 'Leave Request Approved' : 'Leave Request Rejected';
+        $safeTitle = ConfidentialLeaveService::safeNotificationTitle($isConfidential, $title);
+        $safeMessage = $isConfidential
+            ? sprintf('Your confidential leave request #LR-%d status is now %s. Log in to NEXORA HR to review.', $requestId, $status)
+            : $message;
+
         $notificationId = $this->notifications()->create(
             (int)$owner['id'],
-            $approved ? 'Leave Request Approved' : 'Leave Request Rejected',
-            $message,
+            $safeTitle,
+            $safeMessage,
             $approved ? 'success' : 'warning',
             $approved ? EventAuthorizer::LEAVE_APPROVED : EventAuthorizer::LEAVE_REJECTED,
             (int)$request['id']
@@ -89,8 +99,10 @@ class LeaveNotificationService
                     \App\Queue\JobRegistry::TYPE_SEND_EMAIL,
                     [
                         'to'      => $owner['email'],
-                        'subject' => $approved ? 'Leave Request Approved' : 'Leave Request Decision Update',
-                        'body'    => '<p>Hello ' . htmlspecialchars((string)($owner['name'] ?? $owner['username']), ENT_QUOTES, 'UTF-8') . ',</p><p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>',
+                        'subject' => $isConfidential
+                            ? 'Leave Request Status Update (Protected)'
+                            : ($approved ? 'Leave Request Approved' : 'Leave Request Decision Update'),
+                        'body'    => '<p>Hello ' . htmlspecialchars((string)($owner['name'] ?? $owner['username']), ENT_QUOTES, 'UTF-8') . ',</p><p>' . htmlspecialchars($safeMessage, ENT_QUOTES, 'UTF-8') . '</p>',
                         'name'    => (string)($owner['name'] ?? $owner['username'] ?? ''),
                     ]
                 );

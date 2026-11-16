@@ -72,6 +72,27 @@
                     <td><?= e($policy['session_fingerprint']) ?></td>
                     <td><span class="badge badge-primary">Strict Guard</span></td>
                 </tr>
+                <?php if (!empty($policy['trusted_device_policy'])): ?>
+                <tr>
+                    <td><strong>Smart OTP Trusted Devices</strong></td>
+                    <td><?= e($policy['trusted_device_policy']) ?> (cookie <code><?= e($policy['trusted_cookie_name'] ?? 'nexora_td') ?></code>, host-only, HttpOnly)</td>
+                    <td><span class="badge badge-success">Single-Use Rotation</span></td>
+                </tr>
+                <?php endif; ?>
+                <?php if (!empty($policy['logout_behavior'])): ?>
+                <tr>
+                    <td><strong>Sign-Out vs. Device Trust</strong></td>
+                    <td><?= e($policy['logout_behavior']) ?></td>
+                    <td><span class="badge badge-neutral">Separated</span></td>
+                </tr>
+                <?php endif; ?>
+                <?php if (!empty($policy['step_up_triggers'])): ?>
+                <tr>
+                    <td><strong>Risk-Based Step-Up Verification</strong></td>
+                    <td><?= e($policy['step_up_triggers']) ?> (harmless IP changes alone do not force OTP)</td>
+                    <td><span class="badge badge-warning">Risk Enforced</span></td>
+                </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>

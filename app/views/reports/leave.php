@@ -71,21 +71,35 @@
 
 <!-- Utilization by Classification Progress Cards -->
 <div class="card" style="margin-bottom: var(--space-6); padding: 1.25rem;">
-    <h3 style="font-size: 0.95rem; font-weight: 700; color: var(--color-text-primary); margin: 0 0 1rem 0;">
-        Leave Quota Utilization by Classification
-    </h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--color-text-main); margin: 0;">
+            Leave Quota Utilization by Classification
+        </h3>
+        <?php if (!empty($categoryBreakdown)): ?>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-statutory">Statutory: <?= (int)($categoryBreakdown['statutory_days'] ?? 0) ?>d</span>
+                <span class="badge badge-company">Company Paid: <?= (int)($categoryBreakdown['company_days'] ?? 0) ?>d</span>
+                <span class="badge badge-unpaid">Unpaid (LWOP): <?= (int)($categoryBreakdown['unpaid_days'] ?? 0) ?>d</span>
+            </div>
+        <?php endif; ?>
+    </div>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
         <?php foreach ($typeUtilization ?? [] as $t): 
             $days = (int)$t['approved_days'];
             $reqCount = (int)$t['request_count'];
+            $isRedactedTu = !empty($t['is_redacted']);
         ?>
             <div style="background: var(--color-bg-muted); border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: 0.85rem 1rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                    <strong style="font-size: 0.85rem; color: var(--color-text-primary);"><?= e($t['leave_name']) ?></strong>
-                    <span class="badge badge-primary" style="font-size: 0.7rem;"><?= $days ?> Days Taken</span>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.4rem;">
+                    <strong style="font-size: 0.85rem; color: var(--color-text-main);"><?= e($t['leave_name']) ?></strong>
+                    <span class="badge <?= $isRedactedTu ? 'badge-confidential' : 'badge-primary' ?>" style="font-size: 0.7rem;"><?= $days ?> Days Taken</span>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--color-text-muted);">
-                    Default Quota: <?= (int)$t['default_days'] ?> days/yr &bull; <?= $reqCount ?> applications
+                    <?php if ($isRedactedTu): ?>
+                        Protected aggregate &bull; <?= $reqCount ?> applications
+                    <?php else: ?>
+                        Default Quota: <?= (int)$t['default_days'] ?> days &bull; <?= $reqCount ?> applications
+                    <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -203,12 +217,17 @@
                             </td>
                             <td>
                                 <?= e($lr['leave_name']) ?>
+                                <?php if (!empty($lr['is_redacted'])): ?>
+                                    <div style="margin-top: 2px;"><span class="badge badge-confidential" style="font-size: 0.6875rem;">Redacted</span></div>
+                                <?php elseif (!empty($lr['classification'])): ?>
+                                    <div style="font-size: 0.7rem; color: var(--color-text-muted);"><?= e((string)$lr['classification']) ?></div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?= date('M d, Y', strtotime($lr['start_date'])) ?> &rarr; <?= date('M d, Y', strtotime($lr['end_date'])) ?>
                             </td>
                             <td>
-                                <strong><?= (int)$lr['number_of_days'] ?></strong> working day<?= (int)$lr['number_of_days'] === 1 ? '' : 's' ?>
+                                <strong><?= (int)$lr['number_of_days'] ?></strong> <?= (($lr['entitlement_unit'] ?? 'working_days') === 'calendar_days') ? 'cal.' : 'working' ?> day<?= (int)$lr['number_of_days'] === 1 ? '' : 's' ?>
                             </td>
                             <td>
                                 <span class="badge <?= $statusClass ?>">

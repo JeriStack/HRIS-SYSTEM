@@ -158,7 +158,7 @@ class EmployeeAndReportIntegrityTest extends TestCase
         $this->seedPosition('G3 Pos B', $dept);
         $empId = $this->seedEmployee($dept, $pos1, 'Active');
 
-        $leaveTypeId = (int)$this->pdo->query("SELECT id FROM leave_types LIMIT 1")->fetchColumn();
+        $leaveTypeId = (int)$this->pdo->query("SELECT id FROM leave_types WHERE status = 'Active' ORDER BY id ASC LIMIT 1")->fetchColumn();
         for ($i = 0; $i < 3; $i++) {
             $this->pdo->prepare(
                 "INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, number_of_days, reason, status)

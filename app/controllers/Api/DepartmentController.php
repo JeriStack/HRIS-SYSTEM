@@ -153,7 +153,7 @@ class DepartmentController extends ApiController
     )]
     public function store(): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
         $name = trim((string)($input['department_name'] ?? ''));
 
@@ -242,7 +242,7 @@ class DepartmentController extends ApiController
     )]
     public function update(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $dept = $this->departmentModel->findById($id);
         if (!$dept) {
             $this->error('Department not found.', 404);

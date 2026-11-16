@@ -22,7 +22,9 @@ class MySqlLeaveBalanceRepository implements LeaveBalanceRepositoryInterface
     public function findByEmployeeAndType(int $employeeId, int $leaveTypeId, int $year): ?LeaveBalance
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, employee_id, leave_type_id, year, allocated_days, used_days, remaining_days
+            SELECT id, employee_id, leave_type_id, year, allocated_days, used_days, remaining_days,
+                   COALESCE(converted_days, 0) AS converted_days,
+                   COALESCE(expired_days, 0) AS expired_days
             FROM leave_balances
             WHERE employee_id = :emp_id AND leave_type_id = :lt_id AND year = :year
             LIMIT 1
@@ -45,7 +47,9 @@ class MySqlLeaveBalanceRepository implements LeaveBalanceRepositoryInterface
     public function findByEmployeeAndTypeForUpdate(int $employeeId, int $leaveTypeId, int $year): ?LeaveBalance
     {
         $stmt = $this->pdo->prepare("
-            SELECT id, employee_id, leave_type_id, year, allocated_days, used_days, remaining_days
+            SELECT id, employee_id, leave_type_id, year, allocated_days, used_days, remaining_days,
+                   COALESCE(converted_days, 0) AS converted_days,
+                   COALESCE(expired_days, 0) AS expired_days
             FROM leave_balances
             WHERE employee_id = :emp_id AND leave_type_id = :lt_id AND year = :year
             LIMIT 1
@@ -119,7 +123,9 @@ class MySqlLeaveBalanceRepository implements LeaveBalanceRepositoryInterface
             year: (int) $row['year'],
             allocatedDays: (int) $row['allocated_days'],
             usedDays: (int) $row['used_days'],
-            remainingDays: (int) $row['remaining_days']
+            remainingDays: (int) $row['remaining_days'],
+            convertedDays: (int) round((float) ($row['converted_days'] ?? 0)),
+            expiredDays: (int) round((float) ($row['expired_days'] ?? 0))
         );
     }
 }

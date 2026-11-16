@@ -107,44 +107,58 @@
 
                 <!-- Phone -->
                 <div class="form-group">
-                    <label for="empPhone" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="empPhone" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
                         Contact Phone (Optional)
                     </label>
                     <input type="text" 
                            id="empPhone" 
                            name="phone" 
-                           class="form-input" 
-                           style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #CBD5E1; border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
+                           class="form-control" 
                            placeholder="+63 9XX XXX XXXX" 
                            value="<?= e($old['phone'] ?? '') ?>">
                 </div>
 
+                <!-- Personal Email -->
+                <div class="form-group">
+                    <label for="empPersonalEmail" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
+                        Personal Email (Optional)
+                    </label>
+                    <input type="email"
+                           id="empPersonalEmail"
+                           name="personal_email"
+                           class="form-control<?= !empty($errors['personal_email']) ? ' is-invalid' : '' ?>"
+                           placeholder="personal@example.com"
+                           maxlength="100"
+                           value="<?= e($old['personal_email'] ?? '') ?>">
+                    <?php if (!empty($errors['personal_email'])): ?>
+                        <span class="field-error-text"><?= e($errors['personal_email']) ?></span>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Birth Date -->
                 <div class="form-group">
-                    <label for="birthDate" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="birthDate" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
                         Birth Date
                     </label>
                     <input type="date" 
                            id="birthDate" 
                            name="birth_date" 
-                           class="form-input" 
-                           style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['birth_date']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
+                           class="form-control<?= !empty($errors['birth_date']) ? ' is-invalid' : '' ?>" 
                            value="<?= e($old['birth_date'] ?? '') ?>" 
                            required>
                     <?php if (!empty($errors['birth_date'])): ?>
-                        <div style="color: #EF4444; font-size: 0.8125rem; margin-top: 0.25rem;"><?= e($errors['birth_date']) ?></div>
+                        <span class="field-error-text"><?= e($errors['birth_date']) ?></span>
                     <?php endif; ?>
                 </div>
 
                 <!-- Gender -->
                 <div class="form-group">
-                    <label for="empGender" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="empGender" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
                         Gender
                     </label>
                     <select id="empGender" 
                             name="gender" 
-                            class="form-input" 
-                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['gender']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;"
+                            class="form-select<?= !empty($errors['gender']) ? ' is-invalid' : '' ?>" 
                             required>
                         <option value="">-- Select Gender --</option>
                         <option value="Male" <?= (!empty($old['gender']) && $old['gender'] === 'Male') ? 'selected' : '' ?>>Male</option>
@@ -152,7 +166,24 @@
                         <option value="Other" <?= (!empty($old['gender']) && $old['gender'] === 'Other') ? 'selected' : '' ?>>Other</option>
                     </select>
                     <?php if (!empty($errors['gender'])): ?>
-                        <div style="color: #EF4444; font-size: 0.8125rem; margin-top: 0.25rem;"><?= e($errors['gender']) ?></div>
+                        <span class="field-error-text"><?= e($errors['gender']) ?></span>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Civil Status -->
+                <div class="form-group">
+                    <label for="empCivilStatus" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
+                        Civil Status (Optional)
+                    </label>
+                    <?php $oldCivil = (string)($old['civil_status'] ?? ''); ?>
+                    <select id="empCivilStatus" name="civil_status" class="form-select<?= !empty($errors['civil_status']) ? ' is-invalid' : '' ?>">
+                        <option value="">-- Select Civil Status --</option>
+                        <?php foreach (($civilStatuses ?? ['Single', 'Married', 'Widowed', 'Separated', 'Divorced']) as $cs): ?>
+                            <option value="<?= e($cs) ?>" <?= $oldCivil === $cs ? 'selected' : '' ?>><?= e($cs) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (!empty($errors['civil_status'])): ?>
+                        <span class="field-error-text"><?= e($errors['civil_status']) ?></span>
                     <?php endif; ?>
                 </div>
             </div>
@@ -242,15 +273,30 @@
                     <?php endif; ?>
                 </div>
 
+                <!-- Employment Type -->
+                <div class="form-group">
+                    <label for="empType" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
+                        Employment Type
+                    </label>
+                    <?php $oldEmpType = (string)($old['employment_type'] ?? 'Regular'); ?>
+                    <select id="empType" name="employment_type" class="form-select<?= !empty($errors['employment_type']) ? ' is-invalid' : '' ?>" required>
+                        <?php foreach (($employmentTypes ?? ['Regular', 'Probationary', 'Contractual', 'Project-Based', 'Part-Time']) as $et): ?>
+                            <option value="<?= e($et) ?>" <?= $oldEmpType === $et ? 'selected' : '' ?>><?= e($et) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (!empty($errors['employment_type'])): ?>
+                        <span class="field-error-text"><?= e($errors['employment_type']) ?></span>
+                    <?php endif; ?>
+                </div>
+
                 <!-- Employment Status -->
                 <div class="form-group">
-                    <label for="empStatus" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="empStatus" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main);">
                         Employment Status
                     </label>
                     <select id="empStatus" 
                             name="employment_status" 
-                            class="form-input" 
-                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #CBD5E1; border-radius: 0.5rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;"
+                            class="form-select" 
                             required>
                         <option value="Active" <?= (empty($old['employment_status']) || $old['employment_status'] === 'Active') ? 'selected' : '' ?>>Active</option>
                         <option value="Inactive" <?= (!empty($old['employment_status']) && $old['employment_status'] === 'Inactive') ? 'selected' : '' ?>>Inactive</option>

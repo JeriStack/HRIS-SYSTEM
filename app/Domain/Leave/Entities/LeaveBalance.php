@@ -22,6 +22,8 @@ class LeaveBalance
     private int $allocatedDays;
     private int $usedDays;
     private int $remainingDays;
+    private int $convertedDays;
+    private int $expiredDays;
 
     private function __construct(
         ?int $id,
@@ -30,7 +32,9 @@ class LeaveBalance
         int $year,
         int $allocatedDays,
         int $usedDays,
-        int $remainingDays
+        int $remainingDays,
+        int $convertedDays = 0,
+        int $expiredDays = 0
     ) {
         if ($employeeId <= 0) {
             throw new InvalidArgumentException('Employee ID must be a positive integer.');
@@ -56,14 +60,16 @@ class LeaveBalance
             throw new InvalidArgumentException('Remaining days cannot be negative.');
         }
 
-        if ($remainingDays !== ($allocatedDays - $usedDays)) {
+        if ($remainingDays !== ($allocatedDays - $usedDays - $convertedDays - $expiredDays)) {
             throw new DomainException(
                 sprintf(
                     "Balance invariant violation: Remaining days (%d) must equal " .
-                    "allocated days (%d) minus used days (%d).",
+                    "allocated days (%d) minus used (%d), converted (%d), and expired (%d).",
                     $remainingDays,
                     $allocatedDays,
-                    $usedDays
+                    $usedDays,
+                    $convertedDays,
+                    $expiredDays
                 )
             );
         }
@@ -75,6 +81,8 @@ class LeaveBalance
         $this->allocatedDays = $allocatedDays;
         $this->usedDays = $usedDays;
         $this->remainingDays = $remainingDays;
+        $this->convertedDays = $convertedDays;
+        $this->expiredDays = $expiredDays;
     }
 
     /**
@@ -107,7 +115,9 @@ class LeaveBalance
         int $year,
         int $allocatedDays,
         int $usedDays,
-        int $remainingDays
+        int $remainingDays,
+        int $convertedDays = 0,
+        int $expiredDays = 0
     ): self {
         return new self(
             id: $id,
@@ -116,7 +126,9 @@ class LeaveBalance
             year: $year,
             allocatedDays: $allocatedDays,
             usedDays: $usedDays,
-            remainingDays: $remainingDays
+            remainingDays: $remainingDays,
+            convertedDays: $convertedDays,
+            expiredDays: $expiredDays
         );
     }
 
@@ -212,5 +224,18 @@ class LeaveBalance
     public function remainingDays(): int
     {
         return $this->remainingDays;
+    }
+
+    /**
+     * Adjust remaining days directly (e.g., cash conversion or expiration) while
+     * keeping entity invariant synchronized when deducted days came out of remaining.
+     */
+    public function deductWithoutUsedIncrement(int $days): void
+    {
+        if ($days <= 0 || !$this->hasSufficientBalance($days)) {
+            throw InsufficientLeaveBalanceException::forDays($this->remainingDays, $days);
+        }
+        $this->allocatedDays = max(0, $this->allocatedDays - $days);
+        $this->remainingDays -= $days;
     }
 }

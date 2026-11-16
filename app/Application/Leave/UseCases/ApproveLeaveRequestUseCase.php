@@ -19,6 +19,10 @@ use App\Domain\Leave\Repositories\LeaveApprovalGuardInterface;
 use App\Domain\Leave\Exceptions\LeaveRequestNotFoundException;
 use App\Domain\Leave\Exceptions\LeaveBalanceNotFoundException;
 use App\Domain\Leave\Exceptions\LeaveApprovalNotPermittedException;
+use App\Domain\Leave\Exceptions\InsufficientLeaveBalanceException;
+use App\Services\LeaveLedgerService;
+use App\Services\LeavePolicyEngine;
+use PDO;
 
 class ApproveLeaveRequestUseCase
 {
@@ -28,7 +32,8 @@ class ApproveLeaveRequestUseCase
         private readonly TransactionManagerInterface $transactionManager,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
         private readonly ?OutboxRepositoryInterface $outboxRepository = null,
-        private readonly ?LeaveApprovalGuardInterface $approvalGuard = null
+        private readonly ?LeaveApprovalGuardInterface $approvalGuard = null,
+        private readonly ?PDO $pdo = null
     ) {
     }
 
@@ -63,11 +68,23 @@ class ApproveLeaveRequestUseCase
                 }
             }
 
-            // 3. Leave year must be unambiguous: a request may not span two years
-            //    because the balance quota is tracked per year.
+            $policyEngine = $this->pdo !== null ? new LeavePolicyEngine($this->pdo) : null;
+            $typePolicy = $policyEngine !== null
+                ? $policyEngine->resolveLeaveTypeWithPolicy($request->leaveTypeId(), $request->dateRange()->startDateString())
+                : null;
+            $code = strtoupper((string)($typePolicy['leave_code'] ?? ''));
+            $model = (string)($typePolicy['entitlement_model'] ?? 'annual');
+            $unit = (string)($typePolicy['entitlement_unit'] ?? $request->entitlementUnit());
+            $rules = is_array($typePolicy['rules_decoded'] ?? null) ? $typePolicy['rules_decoded'] : [];
+            $allowsCrossYear = ($code === LeavePolicyEngine::CODE_MATERNITY)
+                || ($model === 'event_based' && $unit === 'calendar_days')
+                || !empty($rules['allow_cross_year'])
+                || $request->entitlementUnit() === 'calendar_days';
+
+            // 3. Reject cross-year unless allowed by statutory policy (e.g. RA 11210 Maternity).
             $startYear = (int) $request->dateRange()->startDate()->format('Y');
             $endYear = (int) $request->dateRange()->endDate()->format('Y');
-            if ($startYear !== $endYear) {
+            if ($startYear !== $endYear && !$allowsCrossYear) {
                 throw LeaveApprovalNotPermittedException::spansMultipleYears($startYear, $endYear);
             }
             $year = $startYear;
@@ -85,31 +102,151 @@ class ApproveLeaveRequestUseCase
                 }
             }
 
-            // 5. Lock and retrieve leave balance
-            $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
-                $request->employeeId(),
-                $request->leaveTypeId(),
-                $year
-            );
+            $ledger = $this->pdo !== null ? new LeaveLedgerService($this->pdo) : null;
+            $isConf = $request->isConfidential() || !empty($typePolicy['is_confidential']);
+            $days = $request->numberOfDays();
 
-            if ($balance === null) {
-                throw LeaveBalanceNotFoundException::forEmployee(
+            // 5. Enforce model-specific deduction/verification and transition request state
+            if ($model === 'unpaid') {
+                $request->approve($command->approverUserId, $command->approvedAt);
+                $events = $request->releaseEvents();
+                $this->leaveRequestRepository->save($request);
+
+                if ($ledger !== null) {
+                    $ledger->record([
+                        'employee_id'       => $request->employeeId(),
+                        'leave_type_id'     => $request->leaveTypeId(),
+                        'leave_request_id'  => $request->id(),
+                        'policy_version_id' => $request->policyVersionId(),
+                        'balance_year'      => $year,
+                        'transaction_type'  => 'unpaid_recorded',
+                        'days_delta'        => 0,
+                        'balance_before'    => 0,
+                        'balance_after'     => 0,
+                        'remarks'           => sprintf('Approved %d unpaid leave day(s) [%s to %s]', $days, $request->dateRange()->startDateString(), $request->dateRange()->endDateString()),
+                        'is_confidential'   => $isConf ? 1 : 0,
+                        'actor_user_id'     => $command->approverUserId,
+                    ]);
+                }
+            } elseif ($model === 'event_based' && $this->pdo !== null) {
+                if ($code === LeavePolicyEngine::CODE_PATERNITY && $policyEngine !== null) {
+                    $patQual = $policyEngine->findLatestQualification($request->employeeId(), 'paternity_marriage');
+                    if ($patQual !== null && ($patQual['verification_status'] ?? '') !== 'Verified') {
+                        throw new LeaveApprovalNotPermittedException(
+                            'Paternity Leave approval requires HR verification of marital status / spouse delivery proof first.'
+                        );
+                    }
+                }
+
+                $eventId = $request->eventEntitlementId();
+                $beforeRem = 0.0;
+                $afterRem = 0.0;
+                if ($eventId !== null) {
+                    $evStmt = $this->pdo->prepare("
+                        SELECT id, entitled_days, used_days, pending_days, remaining_days
+                        FROM leave_event_entitlements
+                        WHERE id = :eid
+                        LIMIT 1
+                        FOR UPDATE
+                    ");
+                    $evStmt->execute(['eid' => $eventId]);
+                    $ev = $evStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($ev) {
+                        $beforeRem = (float)$ev['remaining_days'];
+                        if ($days > $beforeRem) {
+                            throw InsufficientLeaveBalanceException::forDays((int)floor($beforeRem), $days);
+                        }
+                        $afterRem = max(0.0, $beforeRem - $days);
+                        $newStatus = $afterRem <= 0.0 ? 'Completed' : 'Active';
+                        $updEv = $this->pdo->prepare("
+                            UPDATE leave_event_entitlements
+                            SET used_days = used_days + :days,
+                                pending_days = GREATEST(0, pending_days - :pdays),
+                                remaining_days = :rem,
+                                verification_status = :vstatus,
+                                verified_by = COALESCE(verified_by, :vby),
+                                verified_at = COALESCE(verified_at, NOW())
+                            WHERE id = :eid
+                        ");
+                        $updEv->execute([
+                            'days'    => $days,
+                            'pdays'   => $days,
+                            'rem'     => $afterRem,
+                            'vstatus' => $newStatus,
+                            'vby'     => $command->approverUserId,
+                            'eid'     => $eventId,
+                        ]);
+                    }
+                }
+
+                $request->approve($command->approverUserId, $command->approvedAt);
+                $events = $request->releaseEvents();
+                $this->leaveRequestRepository->save($request);
+
+                if ($ledger !== null) {
+                    $ledger->record([
+                        'employee_id'          => $request->employeeId(),
+                        'leave_type_id'        => $request->leaveTypeId(),
+                        'leave_request_id'     => $request->id(),
+                        'event_entitlement_id' => $eventId,
+                        'policy_version_id'    => $request->policyVersionId(),
+                        'balance_year'         => $year,
+                        'transaction_type'     => 'approved_deduction',
+                        'days_delta'           => -$days,
+                        'balance_before'       => $beforeRem,
+                        'balance_after'        => $afterRem,
+                        'remarks'              => $isConf
+                            ? sprintf('Approved confidential leave request #%d (%d day(s))', (int)$request->id(), $days)
+                            : sprintf('Approved %d event-based day(s) for %s', $days, (string)($typePolicy['leave_name'] ?? 'Event Leave')),
+                        'is_confidential'      => $isConf ? 1 : 0,
+                        'actor_user_id'        => $command->approverUserId,
+                    ]);
+                }
+            } else {
+                // Standard annual balance deduction
+                $balance = $this->leaveBalanceRepository->findByEmployeeAndTypeForUpdate(
                     $request->employeeId(),
                     $request->leaveTypeId(),
                     $year
                 );
+
+                if ($balance === null) {
+                    throw LeaveBalanceNotFoundException::forEmployee(
+                        $request->employeeId(),
+                        $request->leaveTypeId(),
+                        $year
+                    );
+                }
+
+                $beforeRem = $balance->remainingDays();
+                $request->approve($command->approverUserId, $command->approvedAt);
+                $events = $request->releaseEvents();
+
+                $balance->deduct($days);
+
+                $this->leaveRequestRepository->save($request);
+                $this->leaveBalanceRepository->save($balance);
+
+                if ($ledger !== null) {
+                    $ledger->record([
+                        'employee_id'       => $request->employeeId(),
+                        'leave_type_id'     => $request->leaveTypeId(),
+                        'leave_balance_id'  => $balance->id(),
+                        'leave_request_id'  => $request->id(),
+                        'policy_version_id' => $request->policyVersionId(),
+                        'balance_year'      => $year,
+                        'transaction_type'  => 'approved_deduction',
+                        'days_delta'        => -$days,
+                        'balance_before'    => $beforeRem,
+                        'balance_after'     => $balance->remainingDays(),
+                        'remarks'           => $isConf
+                            ? sprintf('Approved confidential leave request #%d (%d day(s))', (int)$request->id(), $days)
+                            : sprintf('Approved %d day(s) [%s to %s]', $days, $request->dateRange()->startDateString(), $request->dateRange()->endDateString()),
+                        'is_confidential'   => $isConf ? 1 : 0,
+                        'actor_user_id'     => $command->approverUserId,
+                    ]);
+                }
             }
-
-            // 6. Transition request state (throws if already finalized)
-            $request->approve($command->approverUserId, $command->approvedAt);
-            $events = $request->releaseEvents();
-
-            // 5. Deduct from leave balance (throws if insufficient remaining days)
-            $balance->deduct($request->numberOfDays());
-
-            // 6. Persist state within transaction boundary
-            $this->leaveRequestRepository->save($request);
-            $this->leaveBalanceRepository->save($balance);
 
             // 6b. Persist Outbox events atomically within the active transaction
             if ($this->outboxRepository !== null) {

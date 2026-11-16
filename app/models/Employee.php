@@ -12,6 +12,15 @@ use PDO;
 
 class Employee extends Model
 {
+    public function __construct(?PDO $db = null)
+    {
+        if ($db !== null) {
+            $this->db = $db;
+        } else {
+            parent::__construct();
+        }
+    }
+
     /**
      * Retrieve all employees with optional search query, status filter, and department filter.
      *
@@ -61,14 +70,18 @@ class Employee extends Model
                 e.middle_name,
                 e.last_name,
                 e.email,
+                e.personal_email,
                 e.phone,
                 e.address,
                 e.birth_date,
                 e.gender,
+                e.civil_status,
                 e.department_id,
                 e.position_id,
                 e.date_hired,
+                e.employment_type,
                 e.employment_status,
+                e.profile_picture,
                 e.created_at,
                 d.department_name,
                 p.position_name,
@@ -207,13 +220,13 @@ class Employee extends Model
     {
         $sql = "
             INSERT INTO employees (
-                employee_no, first_name, middle_name, last_name, email, phone, 
-                address, birth_date, gender, department_id, position_id, 
-                date_hired, employment_status, created_at
+                employee_no, first_name, middle_name, last_name, email, personal_email, phone, 
+                address, birth_date, gender, civil_status, department_id, position_id, 
+                date_hired, employment_type, employment_status, profile_picture, created_at
             ) VALUES (
-                :employee_no, :first_name, :middle_name, :last_name, :email, :phone, 
-                :address, :birth_date, :gender, :department_id, :position_id, 
-                :date_hired, :employment_status, NOW()
+                :employee_no, :first_name, :middle_name, :last_name, :email, :personal_email, :phone, 
+                :address, :birth_date, :gender, :civil_status, :department_id, :position_id, 
+                :date_hired, :employment_type, :employment_status, :profile_picture, :created_at
             )
         ";
 
@@ -223,14 +236,19 @@ class Employee extends Model
             'middle_name'       => !empty($data['middle_name']) ? trim($data['middle_name']) : null,
             'last_name'         => trim($data['last_name']),
             'email'             => trim($data['email']),
+            'personal_email'    => !empty($data['personal_email']) ? trim($data['personal_email']) : null,
             'phone'             => !empty($data['phone']) ? trim($data['phone']) : null,
             'address'           => !empty($data['address']) ? trim($data['address']) : null,
             'birth_date'        => $data['birth_date'],
             'gender'            => $data['gender'],
+            'civil_status'      => !empty($data['civil_status']) ? trim($data['civil_status']) : null,
             'department_id'     => (int)$data['department_id'],
             'position_id'       => (int)$data['position_id'],
             'date_hired'        => $data['date_hired'],
+            'employment_type'   => !empty($data['employment_type']) ? trim($data['employment_type']) : 'Regular',
             'employment_status' => $data['employment_status'] ?? 'Active',
+            'profile_picture'   => !empty($data['profile_picture']) ? trim((string)$data['profile_picture']) : null,
+            'created_at'        => date('Y-m-d H:i:s'),
         ]);
 
         return (int)$this->lastInsertId();
@@ -288,6 +306,17 @@ class Employee extends Model
      */
     private function updateEmployeeRow(int $id, array $data): bool
     {
+        $existing = $this->findById($id);
+        $employmentType = array_key_exists('employment_type', $data) && trim((string)$data['employment_type']) !== ''
+            ? trim((string)$data['employment_type'])
+            : ($existing['employment_type'] ?? 'Regular');
+        $civilStatus = array_key_exists('civil_status', $data)
+            ? (!empty($data['civil_status']) ? trim((string)$data['civil_status']) : null)
+            : ($existing['civil_status'] ?? null);
+        $personalEmail = array_key_exists('personal_email', $data)
+            ? (!empty($data['personal_email']) ? trim((string)$data['personal_email']) : null)
+            : ($existing['personal_email'] ?? null);
+
         $sql = "
             UPDATE employees
             SET 
@@ -296,13 +325,16 @@ class Employee extends Model
                 middle_name       = :middle_name,
                 last_name         = :last_name,
                 email             = :email,
+                personal_email    = :personal_email,
                 phone             = :phone,
                 address           = :address,
                 birth_date        = :birth_date,
                 gender            = :gender,
+                civil_status      = :civil_status,
                 department_id     = :department_id,
                 position_id       = :position_id,
                 date_hired        = :date_hired,
+                employment_type   = :employment_type,
                 employment_status = :employment_status
             WHERE id = :id
         ";
@@ -314,13 +346,16 @@ class Employee extends Model
             'middle_name'       => !empty($data['middle_name']) ? trim($data['middle_name']) : null,
             'last_name'         => trim($data['last_name']),
             'email'             => trim($data['email']),
+            'personal_email'    => $personalEmail,
             'phone'             => !empty($data['phone']) ? trim($data['phone']) : null,
             'address'           => !empty($data['address']) ? trim($data['address']) : null,
             'birth_date'        => $data['birth_date'],
             'gender'            => $data['gender'],
+            'civil_status'      => $civilStatus,
             'department_id'     => (int)$data['department_id'],
             'position_id'       => (int)$data['position_id'],
             'date_hired'        => $data['date_hired'],
+            'employment_type'   => $employmentType,
             'employment_status' => $data['employment_status'] ?? 'Active',
         ]);
     }
@@ -434,5 +469,74 @@ class Employee extends Model
         ";
 
         return $this->fetchAll($sql);
+    }
+
+    /**
+     * Self-service contact update scoped strictly to personal_email, phone, and address.
+     * Deliberately leaves work email (`employees.email`) and login identity (`users.email`) untouched.
+     *
+     * @param array{personal_email?: ?string, phone?: ?string, address?: ?string} $data
+     */
+    public function updateSelfContact(int $employeeId, array $data): bool
+    {
+        $sql = "
+            UPDATE employees
+            SET personal_email = :personal_email,
+                phone = :phone,
+                address = :address
+            WHERE id = :id
+        ";
+
+        return $this->execute($sql, [
+            'id'             => $employeeId,
+            'personal_email' => !empty($data['personal_email']) ? trim((string)$data['personal_email']) : null,
+            'phone'          => !empty($data['phone']) ? trim((string)$data['phone']) : null,
+            'address'        => !empty($data['address']) ? trim((string)$data['address']) : null,
+        ]);
+    }
+
+    /**
+     * Update only the randomized profile picture filename token for an employee.
+     */
+    public function updateProfilePicture(int $employeeId, ?string $filename): bool
+    {
+        return $this->execute(
+            "UPDATE employees SET profile_picture = :pic WHERE id = :id",
+            [
+                'id'  => $employeeId,
+                'pic' => $filename !== null && trim($filename) !== '' ? trim($filename) : null,
+            ]
+        );
+    }
+
+    /**
+     * Apply one HR-approved correction field using a strict static SQL column whitelist.
+     */
+    public function applyCorrectionField(int $employeeId, string $fieldName, mixed $value): bool
+    {
+        $columnSqlMap = [
+            'first_name'        => 'first_name',
+            'middle_name'       => 'middle_name',
+            'last_name'         => 'last_name',
+            'birth_date'        => 'birth_date',
+            'gender'            => 'gender',
+            'civil_status'      => 'civil_status',
+            'email'             => 'email',
+            'department_id'     => 'department_id',
+            'position_id'       => 'position_id',
+            'date_hired'        => 'date_hired',
+            'employment_type'   => 'employment_type',
+            'employment_status' => 'employment_status',
+        ];
+
+        if (!isset($columnSqlMap[$fieldName])) {
+            return false;
+        }
+
+        $column = $columnSqlMap[$fieldName];
+        return $this->execute(
+            "UPDATE employees SET {$column} = :val WHERE id = :id",
+            ['id' => $employeeId, 'val' => $value]
+        );
     }
 }

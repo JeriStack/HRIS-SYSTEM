@@ -108,19 +108,19 @@ final class PermissionRegistry
             'name'          => 'Create Employee Records',
             'module'        => 'Organization Management',
             'description'   => 'Onboard new personnel and create employee master records',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'employees.update' => [
             'name'          => 'Update Employee Records',
             'module'        => 'Organization Management',
             'description'   => 'Edit employee details, job titles, and departmental assignments',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'employees.deactivate' => [
             'name'          => 'Deactivate Employee Records',
             'module'        => 'Organization Management',
             'description'   => 'Soft-deactivate employee profiles upon resignation or termination',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'departments.view' => [
             'name'          => 'View Departments',
@@ -132,7 +132,7 @@ final class PermissionRegistry
             'name'          => 'Manage Departments',
             'module'        => 'Organization Management',
             'description'   => 'Create, rename, and manage organizational departments',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'positions.view' => [
             'name'          => 'View Job Positions',
@@ -144,7 +144,7 @@ final class PermissionRegistry
             'name'          => 'Manage Job Positions',
             'module'        => 'Organization Management',
             'description'   => 'Create, edit, and configure job position titles and requirements',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
 
         // -------------------------------------------------------------
@@ -160,31 +160,31 @@ final class PermissionRegistry
             'name'          => 'File Leave Requests',
             'module'        => 'Leave Administration',
             'description'   => 'Submit leave requests into the review pipeline',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_EMPLOYEE],
+            'default_roles' => [self::ROLE_HR, self::ROLE_EMPLOYEE],
         ],
         'leave.approve' => [
             'name'          => 'Approve Leave Requests',
             'module'        => 'Leave Administration',
             'description'   => 'Review and approve pending employee leave applications',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'leave.reject' => [
             'name'          => 'Reject Leave Requests',
             'module'        => 'Leave Administration',
             'description'   => 'Reject leave applications with mandatory auditable reasons',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'leave.cancel' => [
             'name'          => 'Cancel Leave Requests',
             'module'        => 'Leave Administration',
             'description'   => 'Cancel pending leave requests before processing',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR, self::ROLE_EMPLOYEE],
+            'default_roles' => [self::ROLE_HR, self::ROLE_EMPLOYEE],
         ],
         'leave_types.manage' => [
             'name'          => 'Manage Leave Types',
             'module'        => 'Leave Administration',
             'description'   => 'Configure statutory leave classifications and default quotas',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
         ],
         'leave_balances.view' => [
             'name'          => 'View Leave Balances',
@@ -196,7 +196,25 @@ final class PermissionRegistry
             'name'          => 'Manage Leave Balances',
             'module'        => 'Leave Administration',
             'description'   => 'Perform transaction-safe adjustments to leave quotas',
-            'default_roles' => [self::ROLE_ADMIN, self::ROLE_HR],
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'leave_policies.manage' => [
+            'name'          => 'Manage Leave Policies',
+            'module'        => 'Leave Administration',
+            'description'   => 'Create, review, and activate versioned statutory and company leave policies',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'leave_qualifications.verify' => [
+            'name'          => 'Verify Leave Qualifications',
+            'module'        => 'Leave Administration',
+            'description'   => 'Verify Solo Parent ID Cards (SPIC), paternity marital records, and SIL exclusions',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'leave_confidential.view' => [
+            'name'          => 'View Confidential Leave Records',
+            'module'        => 'Leave Administration',
+            'description'   => 'View unmasked VAWC (RA 9262) and Special Leave for Women (RA 9710) details and documents',
+            'default_roles' => [self::ROLE_HR],
         ],
 
         // -------------------------------------------------------------
@@ -306,6 +324,174 @@ final class PermissionRegistry
         ],
 
         // -------------------------------------------------------------
+        // Module: Help & Support
+        // -------------------------------------------------------------
+        'support.view_own' => [
+            'name'          => 'View Own Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'View personal support tickets, complaints, and non-internal replies',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.create' => [
+            'name'          => 'Submit Support & Complaints',
+            'module'        => 'Help & Support',
+            'description'   => 'Submit general support requests and confidential workplace complaints',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.reply_own' => [
+            'name'          => 'Reply to Own Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'Reply to own tickets, upload attachments, and reopen within policy',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+        'support.inbox_view' => [
+            'name'          => 'View HR Support Inbox',
+            'module'        => 'Help & Support',
+            'description'   => 'Access the HR Support Inbox for general employee support requests',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'support.respond' => [
+            'name'          => 'Respond to Support Requests',
+            'module'        => 'Help & Support',
+            'description'   => 'Post employee-visible replies, information requests, and internal notes',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'support.manage_status' => [
+            'name'          => 'Manage Support Ticket Status',
+            'module'        => 'Help & Support',
+            'description'   => 'Transition ticket workflow statuses, priorities, and resolution remarks',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'support.assign' => [
+            'name'          => 'Assign Support Handlers',
+            'module'        => 'Help & Support',
+            'description'   => 'Assign or reassign support tickets and eligible complaints to HR handlers',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'support.confidential_handle' => [
+            'name'          => 'Handle Confidential Complaints',
+            'module'        => 'Help & Support',
+            'description'   => 'Eligible (when explicitly designated) to view and handle confidential workplace complaints',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'support.manage_handlers' => [
+            'name'          => 'Manage Confidential Handlers',
+            'module'        => 'Help & Support',
+            'description'   => 'Authorize or revoke designated HR handlers for confidential workplace complaints',
+            'default_roles' => [self::ROLE_ADMIN],
+        ],
+
+        // -------------------------------------------------------------
+        // Module: HR Help & Support (HR -> Admin Channel)
+        // -------------------------------------------------------------
+        'hr_support.submit' => [
+            'name'          => 'Submit HR Support Tickets',
+            'module'        => 'HR Help & Support',
+            'description'   => 'Submit technical and operational support tickets directly to Administrators',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'hr_support.view_own' => [
+            'name'          => 'View Own HR Support Tickets',
+            'module'        => 'HR Help & Support',
+            'description'   => 'View own HR-to-Admin support tickets, public status history, and Admin replies',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'hr_support.reply_own' => [
+            'name'          => 'Reply & Reopen Own HR Support Tickets',
+            'module'        => 'HR Help & Support',
+            'description'   => 'Send follow-up replies, attach files, confirm resolution, or request reopen on own HR tickets',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'hr_support.admin_inbox' => [
+            'name'          => 'View Admin Support Inbox',
+            'module'        => 'HR Help & Support',
+            'description'   => 'Inspect all HR-submitted support tickets and support KPI summary metrics',
+            'default_roles' => [self::ROLE_ADMIN],
+        ],
+        'hr_support.admin_manage' => [
+            'name'          => 'Manage HR Support Tickets',
+            'module'        => 'HR Help & Support',
+            'description'   => 'Assign administrators, update priorities/statuses, reply to HR, resolve, close, and reopen tickets',
+            'default_roles' => [self::ROLE_ADMIN],
+        ],
+        'hr_support.internal_notes' => [
+            'name'          => 'Manage Admin Internal Notes',
+            'module'        => 'HR Help & Support',
+            'description'   => 'Create and read private Admin-only internal investigation notes and attachments',
+            'default_roles' => [self::ROLE_ADMIN],
+        ],
+
+        // -------------------------------------------------------------
+        // Module: Announcements Management
+        // -------------------------------------------------------------
+        'announcements.view' => [
+            'name'          => 'View Announcements Management',
+            'module'        => 'Announcements Management',
+            'description'   => 'Access the HR Announcements Management dashboard and inspect organizational announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.create' => [
+            'name'          => 'Create Announcements & Drafts',
+            'module'        => 'Announcements Management',
+            'description'   => 'Create announcements and save draft announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.edit_own' => [
+            'name'          => 'Edit Own Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Edit own draft, scheduled, or published announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.publish' => [
+            'name'          => 'Publish Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Publish announcements immediately to targeted employees',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.schedule' => [
+            'name'          => 'Schedule Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Schedule or cancel scheduled publication for announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.archive' => [
+            'name'          => 'Archive Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Archive announcements to remove them from active feeds while preserving audit history',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.delete_draft' => [
+            'name'          => 'Delete Draft Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Delete unpublished draft announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.stats_own' => [
+            'name'          => 'View Own Announcement Statistics',
+            'module'        => 'Announcements Management',
+            'description'   => 'View read statistics and targeted read receipts for own authored announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.manage_all' => [
+            'name'          => 'Manage All HR Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Modify, publish, schedule, or archive announcements created by other HR personnel',
+            'default_roles' => [],
+        ],
+        'announcements.stats_all' => [
+            'name'          => 'View All Announcement Statistics',
+            'module'        => 'Announcements Management',
+            'description'   => 'View read statistics and read receipts for announcements created by any HR author',
+            'default_roles' => [],
+        ],
+        'announcements.feed' => [
+            'name'          => 'View Employee Announcement Feed',
+            'module'        => 'Employee Self-Service',
+            'description'   => 'View targeted published announcements, record read receipts, and download attachments',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+
+        // -------------------------------------------------------------
         // Module: Academic & Universal
         // -------------------------------------------------------------
         'dsa_laboratory' => [
@@ -406,5 +592,80 @@ final class PermissionRegistry
         $mapping['employee_dashboard'] = [self::ROLE_EMPLOYEE];
 
         return $mapping;
+    }
+
+    /**
+     * Check whether a role holds a permission or alias by authoritative defaults.
+     */
+    public static function defaultRoleHas(string $role, string $token): bool
+    {
+        $normalizedRole = strtolower(trim($role));
+        if (!array_key_exists($normalizedRole, self::ROLES)) {
+            return false;
+        }
+
+        if ($token === 'admin_dashboard') {
+            return $normalizedRole === self::ROLE_ADMIN;
+        }
+        if ($token === 'hr_dashboard') {
+            return $normalizedRole === self::ROLE_HR;
+        }
+        if ($token === 'employee_dashboard') {
+            return $normalizedRole === self::ROLE_EMPLOYEE;
+        }
+
+        $canonical = self::normalize($token);
+        if (!isset(self::PERMISSIONS[$canonical])) {
+            return false;
+        }
+
+        return in_array($normalizedRole, self::PERMISSIONS[$canonical]['default_roles'], true);
+    }
+
+    /**
+     * Build the full default boolean map (slugs + capability aliases) for a role.
+     *
+     * @return array<string, bool>
+     */
+    public static function getDefaultPermissionsForRole(string $role): array
+    {
+        $normalizedRole = strtolower(trim($role));
+        $result = [];
+
+        foreach (self::PERMISSIONS as $slug => $meta) {
+            if (in_array($normalizedRole, $meta['default_roles'], true)) {
+                $result[$slug] = true;
+            }
+        }
+
+        foreach (self::CAPABILITY_ALIASES as $alias => $targetSlug) {
+            if (!empty($result[$targetSlug])) {
+                $result[$alias] = true;
+            }
+        }
+
+        if ($normalizedRole !== self::ROLE_ADMIN) {
+            unset($result['admin_dashboard']);
+        }
+        if ($normalizedRole !== self::ROLE_HR) {
+            unset($result['hr_dashboard']);
+        }
+        if ($normalizedRole !== self::ROLE_EMPLOYEE) {
+            unset($result['employee_dashboard']);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Count distinct canonical permissions granted to a role by default.
+     */
+    public static function getDefaultPermissionCount(string $role): int
+    {
+        $normalizedRole = strtolower(trim($role));
+        return count(array_filter(
+            self::PERMISSIONS,
+            static fn (array $meta): bool => in_array($normalizedRole, $meta['default_roles'], true)
+        ));
     }
 }

@@ -30,7 +30,7 @@ class ProfileController extends ApiController
     #[OA\Get(
         path: "/api/v1/profile",
         summary: "Retrieve authenticated user's profile",
-        description: "Returns the currently authenticated user's account details, role ('hr' or 'employee'), and linked workforce employee record if applicable.",
+        description: "Returns the currently authenticated user's account details, role ('admin', 'hr', or 'employee'), and linked workforce employee record if applicable.",
         tags: ["Account and Profile"],
         security: [["cookieAuth" => []]],
         responses: [
@@ -103,13 +103,18 @@ class ProfileController extends ApiController
                     'middle_name'       => $employee['middle_name'],
                     'last_name'         => $employee['last_name'],
                     'email'             => $employee['email'],
+                    'personal_email'    => $employee['personal_email'] ?? null,
                     'phone'             => $employee['phone'],
+                    'civil_status'      => $employee['civil_status'] ?? null,
                     'department_id'     => !empty($employee['department_id']) ? (int)$employee['department_id'] : null,
                     'department_name'   => $employee['department_name'] ?? null,
                     'position_id'       => !empty($employee['position_id']) ? (int)$employee['position_id'] : null,
                     'position_name'     => $employee['position_name'] ?? null,
+                    'employment_type'   => $employee['employment_type'] ?? 'Regular',
                     'employment_status' => $employee['employment_status'],
                     'date_hired'        => $employee['date_hired'],
+                    'years_of_service'  => \App\Services\EmployeeTenureCalculator::calculate($employee['date_hired'] ?? null)['formatted'],
+                    'avatar_url'        => \App\Services\ProfilePictureService::avatarUrl((int)$employee['id'], $employee['profile_picture'] ?? null),
                 ];
             }
         }
@@ -184,6 +189,16 @@ class ProfileController extends ApiController
         $limit = min(100, max(1, (int)($_GET['limit'] ?? 20)));
         $notifications = $this->notificationModel->getByUser($userId, $limit);
         $unreadCount = $this->notificationModel->getUnreadCount($userId);
+
+        $role = strtolower((string)($sessionUser['role'] ?? ''));
+        foreach ($notifications as &$notification) {
+            $notification['link'] = \App\Realtime\NotificationPayload::linkFor(
+                $notification['event_type'] ?? null,
+                (int)($notification['entity_id'] ?? 0),
+                $role
+            );
+        }
+        unset($notification);
 
         $this->success([
             'unread_count'  => $unreadCount,

@@ -29,6 +29,7 @@ $emailPlaceholder = match ($activeVisualRole) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
     <title><?= e($pageTitle ?? 'Sign In - NEXORA HR') ?></title>
     <link rel="icon" type="image/png" href="<?= asset('img/nexora-logo-icon.png') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -210,6 +211,15 @@ $emailPlaceholder = match ($activeVisualRole) {
                 </svg>
                 <span>Protected by Two-Factor Email OTP Verification &bull; Strict Role-Based Access</span>
             </div>
+            <nav class="auth-help-links" aria-label="Sign-In Help and Password Recovery">
+                <a class="auth-help-link" href="<?= e(url('/auth/help')) ?>">Help &amp; Support</a>
+                <span class="auth-help-sep" aria-hidden="true">&bull;</span>
+                <a class="auth-help-link" href="<?= e(url('/forgot-password')) ?>">Forgot Password</a>
+                <span class="auth-help-sep" aria-hidden="true">&bull;</span>
+                <a class="auth-help-link" href="<?= e(url('/auth/help/otp')) ?>">OTP Help</a>
+                <span class="auth-help-sep" aria-hidden="true">&bull;</span>
+                <a class="auth-help-link" href="<?= e(url('/auth/support/track')) ?>">Track Request</a>
+            </nav>
         </footer>
     </main>
 
@@ -298,7 +308,10 @@ $emailPlaceholder = match ($activeVisualRole) {
                 </div>
 
                 <div class="form-group">
-                    <label for="loginPassword" class="form-label">Password</label>
+                    <div class="form-label-row">
+                        <label for="loginPassword" class="form-label">Password</label>
+                        <a class="form-inline-help-link" href="<?= e(url('/forgot-password')) ?>">Forgot Password?</a>
+                    </div>
                     <div class="input-wrapper">
                         <svg class="input-leading-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
@@ -338,6 +351,15 @@ $emailPlaceholder = match ($activeVisualRole) {
                     <span id="loginSubmitBtnText"><?= e($modalSubmitLabel) ?></span>
                 </button>
             </form>
+
+            <div class="modal-help-strip">
+                Need login help?
+                <a href="<?= e(url('/auth/help')) ?>">Help &amp; Support</a>
+                &middot;
+                <a href="<?= e(url('/auth/help/otp')) ?>">OTP Issues</a>
+                &middot;
+                <a href="<?= e(url('/auth/support/report')) ?>">Report Login Issue</a>
+            </div>
 
             <!-- Modal Footer -->
             <div class="modal-footer">

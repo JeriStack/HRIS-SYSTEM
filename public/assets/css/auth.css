@@ -746,6 +746,10 @@ html[data-theme="dark"] .role-card-admin .role-card-badge {
   color: #ffffff;
 }
 
+:root {
+  color-scheme: light dark;
+}
+
 .role-card-btn-hr {
   background-color: #153d70;
   color: #ffffff;
@@ -758,18 +762,114 @@ html[data-theme="dark"] .role-card-btn-admin {
   box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
 }
 
-.role-card-btn-admin:hover {
-  background-color: #4338ca;
-  color: #ffffff;
-}
-
-.role-card-btn-hr {
-  background-color: #2563eb;
-}
-
 .role-card-btn-hr:hover {
   background-color: #1d4ed8;
   color: #ffffff;
+}
+
+/* ==========================================================================
+   Public Help & Support Entry Points (Login Gateway & Modal)
+   ========================================================================== */
+
+.auth-help-links {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted, #4b627e);
+}
+
+.auth-help-link {
+  color: var(--brand-navy, #153d70);
+  font-weight: 600;
+  text-decoration: none;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.auth-help-link:hover,
+.auth-help-link:focus-visible {
+  color: var(--brand-blue, #2563eb);
+  text-decoration: underline;
+  outline: none;
+}
+
+.auth-help-link:focus-visible {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.24);
+}
+
+.auth-help-sep {
+  opacity: 0.55;
+  user-select: none;
+}
+
+.form-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.42rem;
+}
+
+.form-label-row .form-label {
+  margin-bottom: 0;
+}
+
+.form-inline-help-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--brand-blue, #2563eb);
+  text-decoration: none;
+}
+
+.form-inline-help-link:hover,
+.form-inline-help-link:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.modal-help-strip {
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-subtle, #f8fafc);
+  font-size: 0.785rem;
+  line-height: 1.5;
+  color: var(--text-muted, #4b627e);
+  text-align: center;
+}
+
+.modal-help-strip a {
+  color: var(--brand-navy, #153d70);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.modal-help-strip a:hover,
+.modal-help-strip a:focus-visible {
+  color: var(--brand-blue, #2563eb);
+  text-decoration: underline;
+}
+
+html[data-theme="dark"] .auth-help-links {
+  color: #9eb1c9;
+}
+
+html[data-theme="dark"] .auth-help-link,
+html[data-theme="dark"] .form-inline-help-link,
+html[data-theme="dark"] .modal-help-strip a {
+  color: #60a5fa;
+}
+
+html[data-theme="dark"] .modal-help-strip {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #9eb1c9;
 }
 
 .role-card-btn-employee {

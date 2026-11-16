@@ -88,16 +88,23 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border);">
                     <span style="color: var(--color-text-muted); font-size: 0.875rem;">Two-Factor Authentication</span>
-                    <span class="badge badge-success">Enabled (Email OTP)</span>
+                    <span class="badge badge-success">Enabled (Smart Email OTP)</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border);">
                     <span style="color: var(--color-text-muted); font-size: 0.875rem;">Account Created</span>
                     <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-text-main);"><?= date('M j, Y H:i', strtotime($user['created_at'] ?? 'now')) ?></span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border);">
                     <span style="color: var(--color-text-muted); font-size: 0.875rem;">Session Rotation</span>
                     <span class="badge badge-neutral">Auto (Every Auth Change)</span>
                 </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <span style="color: var(--color-text-muted); font-size: 0.875rem;">Remembered Browsers</span>
+                    <a href="<?= url('/account/security') ?>" class="btn btn-secondary btn-sm">Manage Trusted Devices</a>
+                </div>
+                <p style="margin: 0; font-size: 0.75rem; color: var(--color-text-muted); line-height: 1.45;">
+                    Updating your password or email automatically requires fresh Email OTP verification on your next sign-in and revokes all trusted browsers on password change.
+                </p>
             </div>
         </div>
     </div>

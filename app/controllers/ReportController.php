@@ -9,6 +9,7 @@ namespace App\Controllers;
 
 use Core\Controller;
 use Core\Database;
+use App\Services\ConfidentialLeaveService;
 use PDO;
 
 class ReportController extends Controller
@@ -192,6 +193,18 @@ class ReportController extends Controller
         $limit  = 25;
         $offset = ($page - 1) * $limit;
 
+        $viewer = currentUser();
+        $canViewConfidential = $viewer ? ConfidentialLeaveService::userHasConfidentialPermission($viewer, $this->pdo) : false;
+
+        if (!empty($leaveTypeId) && !$canViewConfidential) {
+            $ltStmt = $this->pdo->prepare("SELECT id, leave_code, is_confidential FROM leave_types WHERE id = :id LIMIT 1");
+            $ltStmt->execute(['id' => $leaveTypeId]);
+            $selectedLt = $ltStmt->fetch(PDO::FETCH_ASSOC);
+            if ($selectedLt && ConfidentialLeaveService::isConfidentialType($selectedLt)) {
+                $leaveTypeId = null;
+            }
+        }
+
         $where = ["1=1"];
         $params = [];
 
@@ -240,7 +253,9 @@ class ReportController extends Controller
 
         // Fetch records
         $querySql = "
-            SELECT lr.*, lt.leave_name, e.employee_no, e.first_name, e.last_name, d.department_name,
+            SELECT lr.*, lt.leave_name, lt.leave_code, lt.classification, lt.benefit_category,
+                   lt.entitlement_model, lt.is_paid, lt.is_confidential AS type_confidential,
+                   e.employee_no, e.first_name, e.last_name, d.department_name,
                    u.username as reviewer_username
             FROM leave_requests lr
             INNER JOIN employees e ON lr.employee_id = e.id
@@ -258,7 +273,12 @@ class ReportController extends Controller
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        $leaveRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rawLeaveRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $leaveRecords = array_map(
+            fn(array $row): array => ConfidentialLeaveService::maskRequestForViewer($row, $viewer, $this->pdo),
+            $rawLeaveRecords
+        );
 
         // Overall Utilization Aggregates
         $aggregates = $this->pdo->query("
@@ -275,30 +295,64 @@ class ReportController extends Controller
 
         // Utilization breakdown by leave classification
         $typeUtilization = $this->pdo->query("
-            SELECT lt.id, lt.leave_name, lt.default_days,
+            SELECT lt.id, lt.leave_name, lt.leave_code, lt.classification, lt.benefit_category,
+                   lt.entitlement_model, lt.is_paid, lt.is_confidential, lt.default_days,
                    COUNT(lr.id) as request_count,
                    COALESCE(SUM(CASE WHEN lr.status = 'Approved' THEN lr.number_of_days ELSE 0 END), 0) as approved_days
             FROM leave_types lt
             LEFT JOIN leave_requests lr ON lt.id = lr.leave_type_id
-            GROUP BY lt.id, lt.leave_name, lt.default_days
+            GROUP BY lt.id, lt.leave_name, lt.leave_code, lt.classification, lt.benefit_category,
+                     lt.entitlement_model, lt.is_paid, lt.is_confidential, lt.default_days
             ORDER BY lt.id ASC
         ")->fetchAll(PDO::FETCH_ASSOC);
 
-        $leaveTypes  = $this->pdo->query("SELECT id, leave_name FROM leave_types ORDER BY leave_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $categoryBreakdown = [
+            'statutory_days' => 0,
+            'company_days'   => 0,
+            'unpaid_days'    => 0,
+        ];
+        foreach ($typeUtilization as &$tu) {
+            $daysTaken = (int)($tu['approved_days'] ?? 0);
+            if (($tu['entitlement_model'] ?? '') === 'unpaid' || (int)($tu['is_paid'] ?? 1) === 0) {
+                $categoryBreakdown['unpaid_days'] += $daysTaken;
+            } elseif (($tu['classification'] ?? '') === 'Statutory') {
+                $categoryBreakdown['statutory_days'] += $daysTaken;
+            } else {
+                $categoryBreakdown['company_days'] += $daysTaken;
+            }
+            if (!$canViewConfidential && ConfidentialLeaveService::isConfidentialType($tu)) {
+                $tu['leave_name'] = 'Confidential Statutory Leave';
+                $tu['leave_code'] = 'CONFIDENTIAL';
+                $tu['is_redacted'] = true;
+            } else {
+                $tu['is_redacted'] = false;
+            }
+        }
+        unset($tu);
+
+        $leaveTypes = $this->pdo->query("SELECT id, leave_name, leave_code, is_confidential FROM leave_types ORDER BY leave_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        if (!$canViewConfidential) {
+            $leaveTypes = array_values(array_filter(
+                $leaveTypes,
+                static fn(array $lt): bool => !ConfidentialLeaveService::isConfidentialType($lt)
+            ));
+        }
         $departments = $this->pdo->query("SELECT id, department_name FROM departments ORDER BY department_name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('reports.leave', [
-            'pageTitle'       => 'Leave Utilization Report',
-            'activeReportTab' => 'leaves',
-            'leaveRecords'    => $leaveRecords,
-            'aggregates'      => $aggregates,
-            'typeUtilization' => $typeUtilization,
-            'leaveTypes'      => $leaveTypes,
-            'departments'     => $departments,
-            'totalRows'       => $totalRows,
-            'currentPage'     => $page,
-            'totalPages'      => $totalPages,
-            'filters'         => [
+            'pageTitle'           => 'Leave Utilization Report',
+            'activeReportTab'     => 'leaves',
+            'leaveRecords'        => $leaveRecords,
+            'aggregates'          => $aggregates,
+            'typeUtilization'     => $typeUtilization,
+            'categoryBreakdown'   => $categoryBreakdown,
+            'canViewConfidential' => $canViewConfidential,
+            'leaveTypes'          => $leaveTypes,
+            'departments'         => $departments,
+            'totalRows'           => $totalRows,
+            'currentPage'         => $page,
+            'totalPages'          => $totalPages,
+            'filters'             => [
                 'status'        => $status,
                 'leave_type_id' => $leaveTypeId,
                 'dept_id'       => $deptId,
@@ -306,7 +360,7 @@ class ReportController extends Controller
                 'start_date'    => $startDate,
                 'end_date'      => $endDate,
             ],
-            'user'            => currentUser(),
+            'user'                => $viewer,
         ], 'hr');
     }
 
