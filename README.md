@@ -168,45 +168,59 @@
 
 ## ⚡ Core System Capabilities
 
+<p align="justify">
+  <strong>NEXORA HR</strong> unifies ten production-hardened engineering capabilities spanning identity security, organizational workforce management, statutory leave accounting, multi-tier support workflows, real-time event streaming, and algorithmic computation:
+</p>
+
 <ul>
   <li>
     <p align="justify">
-      <strong>Dynamic 3-Role RBAC &amp; Least-Privilege Governance (<code>ADR-012</code> / <code>ADR-013</code>):</strong> Enforces strict server-side separation across Administrators (<code>/admin/dashboard</code>, <code>/admin/users*</code>, <code>/admin/roles</code>, <code>/admin/support*</code>), HR Officers (<code>/hr/dashboard</code>, <code>/hr/employees*</code>, <code>/hr/announcements*</code>, <code>/hr/support*</code>, <code>/hr/help*</code>), and Employees (<code>/employee/dashboard</code>, <code>/employee/profile</code>, <code>/employee/announcements*</code>, <code>/support*</code>) governed by 44 dynamic permissions.
+      🛡️ <strong>Dynamic 3-Role RBAC &amp; Least-Privilege Governance (<code>ADR-012</code> / <code>ADR-013</code>):</strong> Enforces fail-closed, database-driven access control across three mutually exclusive roles—<strong>Administrator</strong> (<code>/admin/dashboard</code>, <code>/admin/users*</code>, <code>/admin/roles</code>, <code>/admin/support*</code>), <strong>HR Officer</strong> (<code>/hr/dashboard</code>, <code>/hr/employees*</code>, <code>/hr/announcements*</code>, <code>/hr/support*</code>, <code>/hr/help*</code>), and <strong>Employee</strong> (<code>/employee/dashboard</code>, <code>/employee/profile</code>, <code>/employee/announcements*</code>, <code>/support*</code>)—backed by 44 granular permissions in <code>Core\PermissionRegistry</code> and atomic role-permission auditing (<code>permission_audit_logs</code>).
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Smart OTP, TOTP MFA &amp; Trusted Device Security:</strong> Combines mandatory 6-digit Email OTP and RFC 6238 TOTP verification with HMAC-SHA256 single-use rotating trusted-browser cookies, risk-based step-up challenges, anti-enumeration password recovery, and self-service device revocation (<code>/account/security</code>).
+      🔑 <strong>Controlled CLI Admin Bootstrapping &amp; Lockout Protection:</strong> Prohibits public Administrator registration; initial Admin accounts are provisioned exclusively via the hardened CLI utility (<code>bin/create_admin_user.php</code>) with Bcrypt cost-12 hashing, password complexity enforcement, and server-side guards that prevent self-demotion, self-deactivation, or deactivating the last active Administrator.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Philippine Statutory &amp; Company Leave Engine:</strong> Supports Vacation, Sick, Service Incentive Leave (SIL), Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), and Special Leave for Women (RA 9710) with statutory confidentiality masking, qualification verification, and Monday–Friday business-day calculation.
+      🔐 <strong>Smart Email OTP, RFC 6238 TOTP MFA &amp; Trusted Devices:</strong> Combines 6-digit cryptographic Email OTP challenges and RFC 6238 TOTP authenticator support with single-use rotating HMAC-SHA256 trusted-browser cookies (<code>trusted_devices</code>), risk-based step-up verification (<code>AuthRiskService</code>), timing-equalized anti-enumeration password recovery, and self-service device revocation at <code>/account/security</code>.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Pessimistic Concurrency Locking (<code>SELECT ... FOR UPDATE</code>):</strong> Processes leave approvals through a FIFO queue inside atomic InnoDB transactions with row-level locks on <code>leave_requests</code> and <code>leave_balances</code>, preventing concurrent race conditions and balance overdrafts.
+      🔄 <strong>Continuous Live Session &amp; Account-State Verification:</strong> Executes <code>Session::verifyAuthenticatedAccountState()</code> on every authenticated HTTP request to verify that the user and linked employee record remain <code>Active</code>, validate cryptographic session fingerprints, synchronize department/position metadata in real time, and immediately terminate revoked or deactivated sessions.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Multi-Tier Help, Support &amp; Confidential Complaints:</strong> Provides Employee-to-HR Support and Confidential Workplace Complaint handling (<code>SUP-YYYY-NNNNN</code>) with conflict-of-interest exclusions, pre-login authentication assistance (<code>AUTH-YYYY-NNNNN</code>), and isolated HR-to-Admin technical support (<code>HR-SUP-YYYY-XXXXXXXX</code>) with private Admin internal notes.
+      📅 <strong>Philippine Statutory &amp; Company Leave Engine:</strong> Supports Vacation Leave, Sick Leave, Emergency Leave, Service Incentive Leave (SIL), Expanded Maternity Leave (RA 11210), Paternity Leave (RA 8187), Solo Parent Leave (RA 8972), VAWC Leave (RA 9262), and Special Leave for Women (RA 9710) with versioned policy rules (<code>leave_policy_versions</code>), statutory qualification verification, confidential reason/document redaction, and automatic Monday–Friday business-day calculation.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>DDD Company Announcements Management:</strong> Manages the full announcement lifecycle (<code>Draft</code>, <code>Scheduled</code>, <code>Published</code>, <code>Expired</code>, <code>Archived</code>) with company-wide or department-scoped audience targeting, automated CRON publication and expiration (<code>process-announcements</code>), attachment validation, and idempotent employee read/acknowledgment receipts.
+      🔒 <strong>Pessimistic Concurrency Locking (<code>SELECT ... FOR UPDATE</code>):</strong> Processes leave adjudications through a FIFO approval queue inside atomic InnoDB transactions that acquire row-level locks on <code>leave_requests</code> and <code>leave_balances</code>, guaranteeing zero race conditions, double-deductions, or negative balance overdrafts under concurrent HR reviews.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Real-Time WebSockets, Outbox &amp; Queue Worker:</strong> Delivers sub-100ms push notifications via a Ratchet WebSocket server (<code>:8090</code>), Transactional Outbox (<code>outbox_events</code>), and concurrency-safe <code>FOR UPDATE SKIP LOCKED</code> MySQL Queue Worker (<code>bin/queue-worker.php</code>).
+      🎫 <strong>Multi-Tier Help, Support &amp; Confidential Complaints:</strong> Provides three isolated support channels—tokenized pre-login authentication assistance (<code>AUTH-YYYY-NNNNN</code>), Employee-to-HR Help &amp; Support and Confidential Workplace Complaints (<code>SUP-YYYY-NNNNN</code>) with automatic conflict-of-interest (COI) handler exclusions, and HR-to-Admin technical escalation ticketing (<code>HR-SUP-YYYY-XXXXXXXX</code>) with strict separation of private Admin internal notes.
     </p>
   </li>
   <li>
     <p align="justify">
-      <strong>Custom Data Structures &amp; Algorithms (DSA) Laboratory:</strong> Features native PHP implementations of Singly Linked Lists, FIFO Queues, LIFO Stacks, Hash Tables, Binary Search Trees, and Merge, Quick, Insertion, Selection, Bubble, Binary, and Linear Search algorithms with live HRIS data visualizations and empirical benchmarks.
+      📢 <strong>DDD Company Announcements Management:</strong> Implements a dedicated Domain-Driven Design bounded context (<code>App\Domain\Announcement</code>) managing the complete announcement lifecycle (<code>Draft</code>, <code>Scheduled</code>, <code>Published</code>, <code>Expired</code>, <code>Archived</code>) with company-wide or department-targeted audiences, pinned notices, automated CRON publication and expiration (<code>process-announcements</code>), outside-web-root attachments, and idempotent employee read/acknowledgment receipts (<code>announcement_reads</code>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      ⚡ <strong>Real-Time WebSockets, Outbox, Cron Scheduler &amp; Queue Worker:</strong> Delivers sub-100ms browser notifications over a Ratchet WebSocket server (<code>:8090</code>) authorized via single-use handshake tickets (<code>POST /realtime/ticket</code>), backed by a Transactional Outbox (<code>outbox_events</code>), a dedicated Docker Cron Scheduler (<code>hris_scheduler</code>), and a concurrency-safe <code>FOR UPDATE SKIP LOCKED</code> MySQL Queue Worker (<code>hris_worker</code>).
+    </p>
+  </li>
+  <li>
+    <p align="justify">
+      🧮 <strong>Custom DSA Laboratory, SHA-256 Audit Chain &amp; OpenAPI Portal:</strong> Features native PHP implementations of Singly Linked Lists, FIFO Queues, LIFO Stacks, Hash Tables, Binary Search Trees, and Merge, Quick, Insertion, Selection, Bubble, Binary, and Linear Search algorithms alongside a SHA-256 hash-chained tamper-evident audit trail (<code>Core\AuditService</code>), Prometheus metrics (<code>/metrics</code>), and an interactive Swagger UI portal (<code>/docs</code>).
     </p>
   </li>
 </ul>
