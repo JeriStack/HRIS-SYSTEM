@@ -5,6 +5,10 @@ use App\Models\ProfileCorrectionRequest;
 use App\Services\EmployeeTenureCalculator;
 use App\Services\ProfilePictureService;
 
+$canManageHrRecords = !empty($canManageHrRecords);
+$canProvisionPortalUser = can('users.create');
+$canDeactivateRecord = $canManageHrRecords && can('employees.deactivate');
+
 $fullName = trim("{$employee['first_name']} " . ($employee['middle_name'] ? "{$employee['middle_name']} " : "") . "{$employee['last_name']}");
 $initials = strtoupper(substr((string)$employee['first_name'], 0, 1) . substr((string)$employee['last_name'], 0, 1)) ?: 'E';
 
@@ -46,15 +50,15 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
         <p class="page-subtitle">Comprehensive workforce record, identity verification, and chronological employment history.</p>
     </div>
     <div class="page-actions">
-        <?php if (!empty($canManageHrRecords)): ?>
+        <?php if ($canManageHrRecords): ?>
             <a href="<?= url('/hr/employees/' . (int)$employee['id'] . '/edit') ?>" class="btn btn-primary">
                 <span>Edit Employee</span>
             </a>
-            <?php if ($empStatus === 'Active'): ?>
+            <?php if ($empStatus === 'Active' && $canDeactivateRecord): ?>
                 <button type="button" class="btn btn-danger" onclick="openModal('deactivateModal')">
                     <span>Deactivate</span>
                 </button>
-            <?php else: ?>
+            <?php elseif ($empStatus !== 'Active'): ?>
                 <button type="button" class="btn btn-primary" onclick="openModal('reactivateModal')">
                     <span>Reactivate</span>
                 </button>
@@ -101,7 +105,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                 </div>
             </div>
 
-            <?php if (!empty($canManageHrRecords)): ?>
+            <?php if ($canManageHrRecords): ?>
                 <div class="profile-photo-actions">
                     <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="addMilestoneDialog">
                         <?= icon('plus', 15) ?>
@@ -155,14 +159,14 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                     </div>
                     <div class="profile-dl-item">
                         <dt class="profile-dl-label">Personal Email</dt>
-                        <dd class="profile-dl-value <?= empty($employee['personal_email']) ? 'is-muted' : '' ?>">
-                            <?= e(!empty($employee['personal_email']) ? $employee['personal_email'] : 'Not specified') ?>
+                        <dd class="profile-dl-value <?= (!$canManageHrRecords || empty($employee['personal_email'])) ? 'is-muted' : '' ?>">
+                            <?= $canManageHrRecords ? e(!empty($employee['personal_email']) ? $employee['personal_email'] : 'Not specified') : 'Restricted (HR Only)' ?>
                         </dd>
                     </div>
                     <div class="profile-dl-item">
                         <dt class="profile-dl-label">Mobile / Phone</dt>
-                        <dd class="profile-dl-value <?= empty($employee['phone']) ? 'is-muted' : '' ?>">
-                            <?= e($employee['phone'] ?: 'Not specified') ?>
+                        <dd class="profile-dl-value <?= (!$canManageHrRecords || empty($employee['phone'])) ? 'is-muted' : '' ?>">
+                            <?= $canManageHrRecords ? e($employee['phone'] ?: 'Not specified') : 'Restricted (HR Only)' ?>
                         </dd>
                     </div>
                     <div class="profile-dl-item">
@@ -171,18 +175,20 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                     </div>
                     <div class="profile-dl-item">
                         <dt class="profile-dl-label">Civil Status</dt>
-                        <dd class="profile-dl-value <?= empty($employee['civil_status']) ? 'is-muted' : '' ?>">
-                            <?= e(!empty($employee['civil_status']) ? $employee['civil_status'] : 'Not specified') ?>
+                        <dd class="profile-dl-value <?= (!$canManageHrRecords || empty($employee['civil_status'])) ? 'is-muted' : '' ?>">
+                            <?= $canManageHrRecords ? e(!empty($employee['civil_status']) ? $employee['civil_status'] : 'Not specified') : 'Restricted (HR Only)' ?>
                         </dd>
                     </div>
                     <div class="profile-dl-item">
                         <dt class="profile-dl-label">Date of Birth</dt>
-                        <dd class="profile-dl-value"><?= e($birthDateFormatted . $ageStr) ?></dd>
+                        <dd class="profile-dl-value <?= !$canManageHrRecords ? 'is-muted' : '' ?>">
+                            <?= $canManageHrRecords ? e($birthDateFormatted . $ageStr) : 'Restricted (HR Only)' ?>
+                        </dd>
                     </div>
                     <div class="profile-dl-item is-full">
                         <dt class="profile-dl-label">Residential Address</dt>
-                        <dd class="profile-dl-value <?= empty($employee['address']) ? 'is-muted' : '' ?>">
-                            <?= nl2br(e($employee['address'] ?: 'No address specified on record.')) ?>
+                        <dd class="profile-dl-value <?= (!$canManageHrRecords || empty($employee['address'])) ? 'is-muted' : '' ?>">
+                            <?= $canManageHrRecords ? nl2br(e($employee['address'] ?: 'No address specified on record.')) : 'Restricted (HR Only)' ?>
                         </dd>
                     </div>
                 </dl>
@@ -239,10 +245,12 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                                 <span class="profile-governance-tag">
                                     <?= e($employee['email']) ?> (<?= e(strtoupper($employee['user_role'] ?? 'EMPLOYEE')) ?>)
                                 </span>
-                            <?php else: ?>
-                                <a href="<?= url('/hr/users/create?employee_id=' . (int)$employee['id']) ?>" class="btn btn-primary btn-sm">
+                            <?php elseif ($canProvisionPortalUser): ?>
+                                <a href="<?= url('/admin/users/create?employee_id=' . (int)$employee['id']) ?>" class="btn btn-primary btn-sm">
                                     + Provision Portal Account
                                 </a>
+                            <?php else: ?>
+                                <span class="is-muted">No portal account provisioned (Managed by Admin)</span>
                             <?php endif; ?>
                         </dd>
                     </div>
@@ -255,7 +263,8 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
         </section>
     </div>
 
-    <!-- Emergency Contact & Recent Correction Requests -->
+    <?php if ($canManageHrRecords): ?>
+    <!-- Emergency Contact & Recent Correction Requests (HR Operational Scope Only) -->
     <div class="profile-two-col">
         <section class="card profile-section-card">
             <div class="card-body">
@@ -363,6 +372,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
             </div>
         </section>
     </div>
+    <?php endif; ?>
 
     <!-- Chronological Employment History -->
     <section class="card" id="employment-history" aria-labelledby="hrHistoryHeading">
@@ -375,17 +385,21 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                     </h2>
                     <p class="profile-card-desc">Immutable career events including hiring, promotions, transfers, and type changes.</p>
                 </div>
-                <button type="button" class="btn btn-primary btn-sm" data-open-dialog="addMilestoneDialog">
-                    <?= icon('plus', 15) ?>
-                    <span>Add Employment Milestone</span>
-                </button>
+                <?php if ($canManageHrRecords): ?>
+                    <button type="button" class="btn btn-primary btn-sm" data-open-dialog="addMilestoneDialog">
+                        <?= icon('plus', 15) ?>
+                        <span>Add Employment Milestone</span>
+                    </button>
+                <?php endif; ?>
             </div>
 
             <?php if (empty($employmentHistory)): ?>
                 <div class="profile-empty-state">
                     <strong>No employment history milestones recorded</strong>
                     <p>Record an initial hiring entry, promotion, department transfer, or contract change to start building the chronological timeline.</p>
-                    <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="addMilestoneDialog">Record First Milestone</button>
+                    <?php if ($canManageHrRecords): ?>
+                        <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="addMilestoneDialog">Record First Milestone</button>
+                    <?php endif; ?>
                 </div>
             <?php else: ?>
                 <ol class="profile-timeline">
@@ -406,7 +420,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                         $prevDept = $milestone['previous_department_name'] ?? null;
                         $newDept  = $milestone['new_department_name'] ?? null;
                         $prevPos  = $milestone['previous_position_name'] ?? null;
-                        $newPos   = $milestone['new_position_name'] ?? null;
+                        $newPos  = $milestone['new_position_name'] ?? null;
                         $recorderName = trim(
                             (string)($milestone['recorded_by_first_name'] ?? '')
                             . ' '
@@ -454,6 +468,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
     </section>
 </div>
 
+<?php if ($canManageHrRecords): ?>
 <!-- Native Dialog: Record HR Employment Milestone -->
 <dialog
     id="addMilestoneDialog"
@@ -557,7 +572,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
 </dialog>
 
 <!-- Deactivation Confirmation Modal -->
-<?php if ($employee['employment_status'] === 'Active'): ?>
+<?php if ($employee['employment_status'] === 'Active' && $canDeactivateRecord): ?>
 <div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="deactivateTitle">
     <div class="modal-card">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
@@ -591,7 +606,7 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
         </form>
     </div>
 </div>
-<?php else: ?>
+<?php elseif ($employee['employment_status'] !== 'Active'): ?>
 <!-- Reactivation Confirmation Modal -->
 <div id="reactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="reactivateTitle">
     <div class="modal-card">
@@ -626,4 +641,5 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
         </form>
     </div>
 </div>
+<?php endif; ?>
 <?php endif; ?>

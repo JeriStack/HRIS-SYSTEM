@@ -113,9 +113,22 @@ class EmployeeController extends Controller
             }
         }
 
+        $canManageHrRecords = can('employees.update');
+        if (!$canManageHrRecords) {
+            foreach ($employees as &$empRow) {
+                $empRow['phone'] = null;
+                $empRow['personal_email'] = null;
+                $empRow['address'] = null;
+                $empRow['birth_date'] = null;
+                $empRow['civil_status'] = null;
+            }
+            unset($empRow);
+        }
+
         $this->view('employees.index', [
-            'pageTitle'        => 'Employees Directory',
-            'employees'        => $employees,
+            'pageTitle'          => 'Employees Directory',
+            'employees'          => $employees,
+            'canManageHrRecords' => $canManageHrRecords,
             'departments'      => $departments,
             'counts'           => $counts,
             'searchQuery'      => $search,
