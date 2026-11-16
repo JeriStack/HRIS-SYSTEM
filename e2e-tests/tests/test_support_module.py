@@ -143,6 +143,20 @@ class TestSupportModuleEndToEnd:
         )
 
     @staticmethod
+    def _submit_hr_response(driver, base, mode: str, body: str) -> None:
+        """Post an HR response and wait for the redirected detail page to render it."""
+        radio = base.find((By.CSS_SELECTOR, f'input[name="response_mode"][value="{mode}"]'))
+        driver.execute_script("arguments[0].click();", radio)
+        textarea = base.find((By.ID, "hrResponseBody"))
+        textarea.clear()
+        textarea.send_keys(body)
+        submit_btn = base.find((By.ID, "hrResponseSubmitBtn"))
+        TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
+        # Wait for the POST -> redirect cycle to replace the old page before reading text.
+        WebDriverWait(driver, 30).until(EC.staleness_of(textarea))
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=30)
+
+    @staticmethod
     def _sign_out(driver) -> None:
         logout_btns = driver.find_elements(By.XPATH, "//form[contains(@action, '/logout')]//button")
         assert logout_btns, "Expected logout button in layout"
@@ -284,17 +298,8 @@ class TestSupportModuleEndToEnd:
             self._set_viewport(driver, 1440, 900)
             base.open(f"/hr/support/{req_ticket_id}")
 
-            internal_radio = base.find((By.CSS_SELECTOR, 'input[name="response_mode"][value="internal_note"]'))
-            driver.execute_script("arguments[0].click();", internal_radio)
-            base.find((By.ID, "hrResponseBody")).send_keys(internal_secret)
-            self._scroll_click(driver, base.find((By.ID, "hrResponseSubmitBtn")))
-            self._wait_text_contains(driver, (By.TAG_NAME, "body"), internal_secret)
-
-            public_radio = base.find((By.CSS_SELECTOR, 'input[name="response_mode"][value="public_reply"]'))
-            driver.execute_script("arguments[0].click();", public_radio)
-            base.find((By.ID, "hrResponseBody")).send_keys(public_reply)
-            self._scroll_click(driver, base.find((By.ID, "hrResponseSubmitBtn")))
-            self._wait_text_contains(driver, (By.TAG_NAME, "body"), public_reply)
+            self._submit_hr_response(driver, base, "internal_note", internal_secret)
+            self._submit_hr_response(driver, base, "public_reply", public_reply)
 
             Select(base.find((By.ID, "hrStatusSelect"))).select_by_value("Resolved")
             remarks_box = base.find((By.ID, "hrResolutionRemarks"))
