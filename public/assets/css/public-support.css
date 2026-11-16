@@ -764,6 +764,21 @@ textarea.ps-control {
   cursor: not-allowed;
 }
 
+.ps-btn-full {
+  inline-size: 100%;
+  min-block-size: 44px;
+}
+
+.ps-text-justify {
+  text-align: justify;
+  hyphens: auto;
+}
+
+.alert-banner > div.ps-text-justify {
+  flex: 1;
+  min-width: 0;
+}
+
 .ps-btn-secondary {
   display: inline-flex;
   align-items: center;

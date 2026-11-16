@@ -498,20 +498,20 @@ class PasswordRecoveryService
 <body style="margin:0;padding:24px;background:#F1F5F9;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;overflow:hidden;">
     <tr>
-      <td style="background:#0F2C59;padding:20px 24px;color:#FFFFFF;">
-        <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#93C5FD;font-weight:700;">{$appName} Account Recovery</div>
-        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#FFFFFF;">Reset Your Password</h1>
+      <td align="center" style="background:#0F2C59;padding:20px 24px;color:#FFFFFF;text-align:center;">
+        <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#93C5FD;font-weight:700;text-align:center;">{$appName} Account Recovery</div>
+        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#FFFFFF;text-align:center;">Reset Your Password</h1>
       </td>
     </tr>
     <tr>
       <td style="padding:24px;font-size:14px;line-height:1.6;">
         <p style="margin:0 0 12px;">Hello {$safeName},</p>
-        <p style="margin:0 0 16px;">We received a request to reset your {$appName} account password. Use the button below to choose a new password. This link is valid for <strong>{$ttlMinutes} minutes</strong> and can only be used once.</p>
+        <p style="margin:0 0 16px;text-align:justify;hyphens:auto;">We received a request to reset your {$appName} account password. Use the button below to choose a new password. This link is valid for <strong>{$ttlMinutes} minutes</strong> and can only be used once.</p>
         <p style="margin:20px 0;">
           <a href="{$safeUrl}" style="display:inline-block;padding:12px 20px;background:#1D4ED8;color:#FFFFFF;text-decoration:none;font-weight:700;border-radius:6px;">Reset Password</a>
         </p>
         <p style="margin:0 0 12px;font-size:12px;color:#475569;">If the button does not work, copy and paste this link into your browser:<br><span style="word-break:break-all;color:#1D4ED8;">{$safeUrl}</span></p>
-        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:12px 14px;font-size:13px;color:#334155;">
+        <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:12px 14px;font-size:13px;color:#334155;text-align:justify;hyphens:auto;">
           If you did not request a password reset, you can safely ignore this message. Your existing password, active sessions, and trusted devices remain unchanged until you complete a reset.
         </div>
       </td>

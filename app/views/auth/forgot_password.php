@@ -33,11 +33,11 @@ require __DIR__ . '/_public_support_header.php';
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                         <path d="m9 11 3 3L22 4" />
                     </svg>
-                    <div><?= e((string)$success) ?></div>
+                    <div class="ps-text-justify"><?= e((string)$success) ?></div>
                 </div>
             <?php endif; ?>
 
-            <p class="ps-option-desc" style="margin-bottom: 1rem;">
+            <p class="ps-option-desc ps-text-justify" style="margin-bottom: 1rem;">
                 Enter the email address registered to your active Admin, HR, or Employee account. Recovery links expire after 15 minutes and can only be used once.
             </p>
 
@@ -46,7 +46,7 @@ require __DIR__ . '/_public_support_header.php';
 
                 <div class="ps-field">
                     <label for="forgotEmail" class="ps-label">Registered Email Address <span aria-hidden="true">*</span></label>
-                    <p id="forgotEmailHint" class="ps-hint">
+                    <p id="forgotEmailHint" class="ps-hint ps-text-justify">
                         Use your company or registered login email address (for example, name@company.com).
                     </p>
                     <input
@@ -68,18 +68,12 @@ require __DIR__ . '/_public_support_header.php';
                     <div id="forgotEmailError" class="ps-field-error" data-empty="true"></div>
                 </div>
 
-                <div class="ps-actions-row" style="margin-top: 0.5rem;">
-                    <a href="<?= url('/login') ?>" class="ps-btn-secondary">Back to Sign In</a>
-                    <button type="submit" id="forgotSubmitBtn" class="ps-btn-primary" data-submit-lock>
+                <div class="ps-actions-row" style="margin-top: 1rem;">
+                    <button type="submit" id="forgotSubmitBtn" class="ps-btn-primary ps-btn-full" data-submit-lock>
                         Send Recovery Instructions
                     </button>
                 </div>
             </form>
-
-            <div class="auth-help-links" style="margin-top: 1.25rem; justify-content: flex-start;">
-                <a href="<?= url('/auth/help') ?>">All Assistance Options</a>
-                <a href="<?= url('/auth/support/report?category=' . rawurlencode('Password Recovery Problem')) ?>">Not receiving recovery emails?</a>
-            </div>
         </section>
     </main>
 <?php require __DIR__ . '/_public_support_footer.php'; ?>
