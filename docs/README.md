@@ -1,8 +1,14 @@
+<div align="center">
+
+<img src="../public/assets/img/nexora-logo-icon.png" alt="NEXORA HR Logo" width="110" />
+
 # NEXORA HR Documentation Hub
 
 **People. Processes. Progress.**
 
 An enterprise-grade Human Resource Information System (HRIS) and Leave Management Platform engineered with native PHP 8.5, MySQL 8.0 (InnoDB), Ratchet WebSockets (:8090), and Docker Compose.
+
+</div>
 
 ---
 

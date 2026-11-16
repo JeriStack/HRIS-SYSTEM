@@ -1,13 +1,28 @@
+<div align="center">
+
+<img src="public/assets/img/nexora-logo-icon.png" alt="NEXORA HR Logo" width="130" />
+
 # NEXORA HR — People. Processes. Progress.
 
-[![PHP Version](https://img.shields.io/badge/PHP-8.2%20--%208.5-blue.svg)](https://www.php.net/)
-[![Database](https://img.shields.io/badge/Database-MySQL%208.0%20InnoDB-orange.svg)](https://www.mysql.com/)
-[![Architecture](https://img.shields.io/badge/Architecture-Custom%204--Tier%20MVC%20%7C%203--Role%20RBAC-green.svg)]()
-[![Backend Tests](https://img.shields.io/badge/PHPUnit-669%20Tests%20(0%20Failures)-brightgreen.svg)]()
-[![Code Style](https://img.shields.io/badge/PSR--12-Baseline%20Enforced%20(0%20new)-success.svg)]()
-[![UI Tests](https://img.shields.io/badge/Selenium%20E2E-Passed%20(Brave%20%7C%20Chromium)-success.svg)]()
+**Enterprise Human Resource Information System (HRIS), Statutory Leave Engine &amp; DSA Workbench**
 
-> **NEXORA HR** (*People. Processes. Progress.*) is an enterprise-grade Human Resource Information System (HRIS) and Leave Management Platform built on native PHP 8.5 and MySQL 8.0 (InnoDB). The system features strict 3-role RBAC (`admin`, `hr`, `employee`), controlled CLI Administrator bootstrapping, mandatory dual-factor authentication (Email OTP & TOTP), working-day leave accounting with pessimistic row locking, real-time WebSocket notifications via a Transactional Outbox, and automated testing suites.
+[![PHP Version](https://img.shields.io/badge/PHP-8.2%20--%208.5-2563EB.svg?style=flat-square&logo=php&logoColor=white)](https://www.php.net/)
+[![Database](https://img.shields.io/badge/Database-MySQL%208.0%20InnoDB%20(49%20Tables)-F59E0B.svg?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Architecture](https://img.shields.io/badge/Architecture-4--Tier%20MVC%20%2B%20DDD%20%7C%203--Role%20RBAC-10B981.svg?style=flat-square)](docs/01-core/ARCHITECTURE.md)
+[![Backend Tests](https://img.shields.io/badge/PHPUnit-764%20Tests%20(0%20Failures)-16A34A.svg?style=flat-square)](docs/04-quality-assurance/testing-strategy.md)
+[![Code Style](https://img.shields.io/badge/PSR--12%20%26%20PHPStan-0%20Errors-22C55E.svg?style=flat-square)](docs/04-quality-assurance/testing-strategy.md)
+[![UI Tests](https://img.shields.io/badge/Selenium%20E2E-45%20Tests%20Passed%20(Chrome%20%7C%20Brave)-16A34A.svg?style=flat-square)](e2e-tests/README.md)
+
+[**Documentation Hub**](docs/README.md) &middot;
+[**System Architecture**](docs/01-core/ARCHITECTURE.md) &middot;
+[**User Manual**](docs/01-core/USER-MANUAL.md) &middot;
+[**Quick-Start**](#-quick-start-guide-docker-compose) &middot;
+[**Automated Tests**](#-running-automated-tests) &middot;
+[**Defense Guide**](docs/06-defense/project-defense-guide.md)
+
+</div>
+
+> **NEXORA HR** (*People. Processes. Progress.*) is a production-grade Human Resource Information System (HRIS) and Leave Management Platform engineered with native PHP 8.5, MySQL 8.0 (InnoDB), and custom Data Structures & Algorithms (DSA). The platform enforces strict least-privilege 3-role RBAC (`admin`, `hr`, `employee`), controlled CLI Administrator bootstrapping, Smart OTP & TOTP Multi-Factor Authentication, Philippine statutory & company leave accounting with pessimistic row locking (`SELECT ... FOR UPDATE`), Employee & HR-to-Admin Support Centers, DDD Announcements Management, and real-time WebSocket notifications via a Transactional Outbox.
 
 ---
 
@@ -98,20 +113,21 @@ docker compose exec app php database/seeds/DatabaseSeeder.php
 
 ## 🧪 Running Automated Tests
 
-### 1. PHPUnit Automated Test Suite (669 Tests)
+### 1. PHPUnit Automated Test Suite (764 Tests)
 Run the entire backend test suite:
 ```bash
 ./vendor/bin/phpunit
 ```
-*Current Live Result:* **669 tests, 2,528 assertions, 0 errors, 0 failures, 94 skipped in sandboxed CLI (100% passing)**.
+*Current Live Result:* **764 tests, 4,078 assertions, 0 errors, 0 failures (100% passing)**.
 
-### 2. Code Style & Baseline Check
+### 2. Code Style & Static Analysis Gates
 ```bash
 php bin/check-phpcs-baseline.php
+php vendor/bin/phpstan analyse --memory-limit=512M
 ```
-*Requirement:* Must introduce **0 new violations** against the project baseline.
+*Requirement:* Must introduce **0 new PSR-12 violations** against the project baseline and **0 PHPStan errors**.
 
-### 3. Selenium E2E Browser Automation
+### 3. Selenium E2E Browser Automation (45 Tests)
 ```powershell
 cd e2e-tests
 python -m venv .venv
