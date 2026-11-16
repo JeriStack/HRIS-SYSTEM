@@ -29,7 +29,7 @@ class TestEmployeeDashboard:
         driver.set_window_size(width, height)
         if hasattr(driver, "execute_cdp_cmd"):
             actual_w = driver.execute_script("return window.innerWidth;")
-            if actual_w > width + 20:
+            if abs(actual_w - width) > 2:
                 driver.execute_cdp_cmd(
                     "Emulation.setDeviceMetricsOverride",
                     {
@@ -86,14 +86,22 @@ class TestEmployeeDashboard:
         balance_types = page.get_leave_balance_types()
         assert len(balance_types) >= 1, "Expected employee leave balance cards to be rendered"
 
-        # Verify Executive Ledger overview strip on /employee/leave-balances
-        balances_page = BasePage(authenticated_employee)
-        balances_page.open("/employee/leave-balances")
-        strip = balances_page.find_visible((By.CSS_SELECTOR, ".leave-overview-strip"), timeout=5)
-        cells = authenticated_employee.find_elements(By.CSS_SELECTOR, ".leave-overview-cell")
-        assert len(cells) == 4, "Expected 4 accounting cells in Paid Annual Leave Overview"
-
+        # Verify Employee Dashboard itself does not overflow horizontally at mobile viewport
         try:
+            self._set_viewport(authenticated_employee, 390, 844)
+            dash_overflow = authenticated_employee.execute_script(
+                "return document.documentElement.scrollWidth - document.documentElement.clientWidth;"
+            )
+            assert dash_overflow <= 0, f"Dashboard horizontal overflow at 390x844: {dash_overflow}"
+            self._set_viewport(authenticated_employee, 1440, 900)
+
+            # Verify Executive Ledger overview strip on /employee/leave-balances
+            balances_page = BasePage(authenticated_employee)
+            balances_page.open("/employee/leave-balances")
+            strip = balances_page.find_visible((By.CSS_SELECTOR, ".leave-overview-strip"), timeout=5)
+            cells = authenticated_employee.find_elements(By.CSS_SELECTOR, ".leave-overview-cell")
+            assert len(cells) == 4, "Expected 4 accounting cells in Paid Annual Leave Overview"
+
             for width, height in [(1440, 900), (1280, 800), (820, 900), (390, 844)]:
                 self._set_viewport(authenticated_employee, width, height)
                 metrics = authenticated_employee.execute_script(

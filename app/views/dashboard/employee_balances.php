@@ -306,8 +306,8 @@ $meterClass = match (true) {
     <?php if (!empty($qualifications) || !empty($eventEntitlements)): ?>
         <div class="grid grid-cols-2" style="gap: var(--space-4); margin-top: var(--space-4);">
             <div class="card">
-                <div class="card-header"><h3 class="card-title">My Statutory Qualifications</h3></div>
-                <div class="table-wrapper">
+                <div class="card-header"><h3 class="card-title" id="secQualificationsHeading">My Statutory Qualifications</h3></div>
+                <div class="table-wrapper" tabindex="0" role="region" aria-labelledby="secQualificationsHeading">
                     <table class="table table-hover">
                         <thead><tr><th>Qualification</th><th>Reference</th><th>Status</th><th>Validity</th></tr></thead>
                         <tbody>
@@ -334,8 +334,8 @@ $meterClass = match (true) {
             </div>
 
             <div class="card">
-                <div class="card-header"><h3 class="card-title">Active Event Entitlement Records</h3></div>
-                <div class="table-wrapper">
+                <div class="card-header"><h3 class="card-title" id="secEventEntitlementsHeading">Active Event Entitlement Records</h3></div>
+                <div class="table-wrapper" tabindex="0" role="region" aria-labelledby="secEventEntitlementsHeading">
                     <table class="table table-hover">
                         <thead><tr><th>Benefit</th><th>Event Date</th><th>Granted</th><th>Used / Pending</th><th>Status</th></tr></thead>
                         <tbody>
@@ -432,7 +432,7 @@ $meterClass = match (true) {
             View All Requests (<?= (int)($pendingRequestsTotal ?? 0) ?>)
         </a>
     </div>
-    <div class="table-wrapper">
+    <div class="table-wrapper" tabindex="0" role="region" aria-labelledby="secPendingHeading">
         <table class="table table-hover table-centered">
             <thead>
                 <tr>
@@ -498,7 +498,7 @@ $meterClass = match (true) {
     </div>
     <?php if (!empty($ledgerTransactions)): ?>
     <div class="leave-activity-panel" id="balanceActivityPanel" hidden>
-        <div class="table-wrapper">
+        <div class="table-wrapper" tabindex="0" role="region" aria-labelledby="secLedgerHeading">
             <table class="table table-hover table-centered">
                 <thead>
                     <tr>
@@ -547,7 +547,7 @@ $meterClass = match (true) {
     <div class="card-header">
         <h2 class="card-title" id="secPolicyRefHeading">Policy Reference &amp; Eligibility Rules</h2>
     </div>
-    <div class="table-wrapper">
+    <div class="table-wrapper" tabindex="0" role="region" aria-labelledby="secPolicyRefHeading">
         <table class="table table-hover table-centered">
             <thead>
                 <tr>

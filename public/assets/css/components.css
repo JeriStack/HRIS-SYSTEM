@@ -12,6 +12,8 @@
   border-radius: var(--radius-lg);
   box-shadow: none;
   overflow: hidden;
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: var(--space-6);
 }
 
@@ -4231,6 +4233,8 @@ dialog.profile-dialog::backdrop {
 .table-wrapper,
 .table-responsive {
   width: 100%;
+  min-width: 0;
+  max-inline-size: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -4283,6 +4287,8 @@ dialog.profile-dialog::backdrop {
 }
 
 .leave-section {
+  min-width: 0;
+  max-width: 100%;
   margin-bottom: var(--space-6);
 }
 
@@ -4531,7 +4537,7 @@ dialog.profile-dialog::backdrop {
 
 @container leave-overview (max-width: 780px) {
   .leave-overview-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .leave-overview-primary {
@@ -4547,7 +4553,7 @@ dialog.profile-dialog::backdrop {
   }
 
   .leave-overview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .leave-overview-cell:nth-child(odd) {
@@ -4561,7 +4567,7 @@ dialog.profile-dialog::backdrop {
 
 .leave-benefit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: var(--space-4);
   container-type: inline-size;
 }
@@ -4574,6 +4580,7 @@ dialog.profile-dialog::backdrop {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  min-width: 0;
   box-shadow: var(--shadow-xs);
 }
 
@@ -4943,6 +4950,7 @@ dialog.leave-dialog::backdrop {
 
 .leave-list-actions .btn {
   width: 10.5rem;
+  max-width: 100%;
   justify-content: center;
 }
 
@@ -4963,7 +4971,9 @@ dialog.leave-dialog::backdrop {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .leave-link-btn {

@@ -57,7 +57,7 @@
   .emp-profile-grid,
   .emp-apply-grid,
   .profile-two-col {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-hero-strip {
@@ -298,7 +298,7 @@
   }
 
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Stat Cards Compact Layout */
@@ -353,17 +353,17 @@
 
   /* Employee Workspace Mobile Refinements */
   .emp-kpi-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
 
   .emp-category-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
 
   .emp-summary-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-summary-cell {
@@ -378,7 +378,7 @@
 
   .emp-dl-grid,
   .emp-policy-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-filter-toolbar {
@@ -428,7 +428,7 @@
   .profile-dl-grid,
   .profile-form-grid,
   .cropper-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-strip-item {
@@ -516,7 +516,7 @@
    ========================================================================== */
 @media (max-width: 420px) {
   .emp-welcome-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-requests-table,
@@ -525,11 +525,11 @@
   }
 
   .leave-benefit-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .leave-dialog-kv {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.2rem;
   }
 
