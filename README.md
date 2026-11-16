@@ -16,8 +16,8 @@
 [**Documentation Hub**](docs/README.md) &middot;
 [**System Architecture**](docs/01-core/ARCHITECTURE.md) &middot;
 [**User Manual**](docs/01-core/USER-MANUAL.md) &middot;
-[**Quick-Start**](#-quick-start-guide-docker-compose) &middot;
-[**Automated Tests**](#-running-automated-tests) &middot;
+[**Quick-Start & CLI Commands**](#-quick-start-guide--essential-cli-commands) &middot;
+[**Automated Tests**](#-running-automated-tests--quality-gates) &middot;
 [**Defense Guide**](docs/06-defense/project-defense-guide.md)
 
 </div>
@@ -227,72 +227,245 @@
 
 ---
 
-## 🚀 Quick-Start Guide (Docker Compose)
+## 🚀 Quick-Start Guide &amp; Essential CLI Commands
 
-The fastest and recommended way to start NEXORA HR is using Docker Compose:
+<p align="justify">
+  The recommended way to run <strong>NEXORA HR</strong> with its complete 11-container infrastructure (Nginx reverse proxy, PHP 8.5/Apache runtime, MySQL 8.0 InnoDB, Ratchet WebSocket server, Dedicated Cron Scheduler, Queue Worker, Mailpit SMTP, Swagger UI, phpMyAdmin, Prometheus, and Grafana) is via Docker Compose:
+</p>
 
 ```bash
-# 1. Clone the repository
+# ==============================================================================
+# 1. Clone Repository & Configure Environment
+# ==============================================================================
 git clone https://github.com/JeriStack/HRIS-SYSTEM.git
 cd HRIS-SYSTEM
+cp .env.docker.example .env
 
-# 2. Start container stack (Nginx, Apache/PHP 8.5, MySQL 8.0, WebSocket, Prometheus, Grafana)
+# ==============================================================================
+# 2. Build & Start Full Multi-Container Stack
+# ==============================================================================
 docker compose up -d --build
+docker compose ps
 
-# 3. Execute database migrations
+# Follow live logs across web app, cron scheduler, queue worker, and WebSockets
+docker compose logs -f app scheduler worker realtime
+
+# Stop containers safely (preserves persistent MySQL db_data volume)
+docker compose down
+
+# ==============================================================================
+# 3. Database Migrations & Controlled Role Provisioning (CLI)
+# ==============================================================================
+# Apply all pending idempotent SQL migrations (database/migrations/*.sql)
 docker compose exec app php bin/migrate.php
 
-# 4. (Optional) Run initial database seeds
-docker compose exec app php database/seeds/DatabaseSeeder.php
+# Bootstrap or promote a System Administrator account (CLI-only guard)
+docker compose exec app php bin/create_admin_user.php \
+  --username=admin \
+  --email=admin@company.local \
+  --password="Admin@Password123!"
+
+# Provision an additional HR Officer account via CLI
+docker compose exec app php bin/create_hr_user.php \
+  --username=hr02 \
+  --email=hr02@company.local \
+  --password="Hr@Password123!"
+
+# ==============================================================================
+# 4. Scheduled Tasks (Cron Kernel), Queue Worker & Outbox Daemons
+# ==============================================================================
+# List all registered cron tasks (cleanup-sessions, process-notifications,
+# process-announcements, send-leave-reminders, cleanup-temp-files)
+docker compose exec app php bin/console schedule:list
+
+# Manually trigger all due scheduled tasks (with flock overlap protection)
+docker compose exec app php bin/console schedule:run
+
+# Inspect real-time MySQL job queue health (pending, reserved, failed_jobs)
+docker compose exec app php bin/console queue:status
+
+# Process pending background jobs once and exit (or run continuous daemon)
+docker compose exec app php bin/console queue:work --once
+docker compose exec app php bin/queue-worker.php --sleep=2 --lease=300 --max-runtime=3600
+
+# Retry a failed dead-letter job by ID
+docker compose exec app php bin/console queue:retry 1
+
+# Relay pending transactional outbox events & verify WebSocket daemon health
+docker compose exec app php bin/outbox-worker.php --once
+docker compose exec app php bin/realtime-healthcheck.php
+
+# ==============================================================================
+# 5. Leave Accrual, OpenAPI Docs, DSA Benchmarks, SMTP & Database Backups
+# ==============================================================================
+# Preview or execute annual leave quota initialization / accrual
+docker compose exec app php bin/accrue-leave.php --dry-run
+docker compose exec app php bin/accrue-leave.php
+
+# Regenerate OpenAPI 3.0 YAML & JSON specifications (docs/api/openapi.*)
+docker compose exec app composer swagger:generate
+
+# Verify SMTP / Mailpit email transport and OTP delivery
+docker compose exec app php bin/test_smtp.php
+
+# Run empirical Data Structures & Algorithms (DSA) benchmark suite
+docker compose exec app php benchmarks/run.php
+
+# Create or restore SHA-256 checksummed MySQL backups
+powershell -ExecutionPolicy Bypass -File scripts/backup/backup-db.ps1
+bash scripts/backup/backup-db.sh
+bash scripts/restore/restore-db.sh backups/<backup_file>.sql.gz
+
+# ==============================================================================
+# 6. GNU Makefile Task Shortcuts
+# ==============================================================================
+make help       # Display all available automation targets
+make up         # Start all Docker services in the background
+make migrate    # Run pending database migrations inside the app container
+make test       # Execute the full PHPUnit test suite
+make lint       # Run PSR-12 baseline check and PHPStan static analysis
+make e2e        # Execute headless Selenium E2E browser suite
+make clean      # Safely purge disposable test caches and temporary reports
 ```
 
 ### Accessing Local Services
 
-| Interface | URL | Access / Credentials |
-|---|---|---|
-| **NEXORA HR Application** | [http://localhost:8080](http://localhost:8080) | Portals: `/hr/dashboard` or `/employee/dashboard` |
-| **phpMyAdmin** | [http://localhost:8081](http://localhost:8081) | Host: `db`, User: `root`, Pass: `rootpassword` |
-| **Swagger UI Documentation** | [http://localhost:8080/docs](http://localhost:8080/docs) | Interactive OpenAPI 3.0 Explorer |
-| **Prometheus Telemetry** | [http://localhost:9090](http://localhost:9090) | Metric scrapers (`nginx`, `mysqld`) |
-| **Grafana Dashboards** | [http://localhost:3000](http://localhost:3000) | Default: `admin` / `admin` |
-| **Mailpit (Local Email/OTP)** | [http://localhost:8025](http://localhost:8025) | Local SMTP mailbox for 6-digit OTP codes |
+<table>
+  <thead>
+    <tr>
+      <th align="center">Service / Interface</th>
+      <th align="center">Local URL</th>
+      <th align="justify">Portal Routes &amp; Default Credentials</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><strong>NEXORA HR Web App</strong></td>
+      <td align="center"><a href="http://localhost:8080"><code>http://localhost:8080</code></a></td>
+      <td align="justify">Role Portals: <code>/admin/dashboard</code>, <code>/hr/dashboard</code>, <code>/employee/dashboard</code> (Prometheus metrics at <code>/metrics</code>)</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>Mailpit (Local SMTP / OTP)</strong></td>
+      <td align="center"><a href="http://localhost:8025"><code>http://localhost:8025</code></a></td>
+      <td align="justify">Captures all outgoing 6-digit Email OTP verification codes, password reset links, and support notifications</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>Swagger UI (OpenAPI 3.0)</strong></td>
+      <td align="center"><a href="http://localhost:8083"><code>http://localhost:8083</code></a></td>
+      <td align="justify">Interactive REST API v1 explorer (also served in-app at <a href="http://localhost:8080/api/docs"><code>http://localhost:8080/api/docs</code></a>)</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>phpMyAdmin</strong></td>
+      <td align="center"><a href="http://localhost:8081"><code>http://localhost:8081</code></a></td>
+      <td align="justify">Host: <code>db</code> &middot; User: <code>root</code> &middot; Password: <code>rootpassword</code> (Direct MySQL port: <code>127.0.0.1:3307</code>)</td>
+    </tr>
+    <tr>
+      <td align="center"><strong>Prometheus Telemetry</strong></td>
+      <td align="center"><a href="http://localhost:9090"><code>http://localhost:9090</code></a></td>
+      <td align="justify">Scrapes application <code>/metrics</code>, <code>nginx-exporter (:9113)</code>, and <code>mysqld-exporter (:9104)</code></td>
+    </tr>
+    <tr>
+      <td align="center"><strong>Grafana Dashboards</strong></td>
+      <td align="center"><a href="http://localhost:3100"><code>http://localhost:3100</code></a></td>
+      <td align="justify">Pre-provisioned HRIS observability dashboards &middot; Default login: <code>admin</code> / <code>admin</code></td>
+    </tr>
+  </tbody>
+</table>
 
-### Pre-Seeded Default Accounts
+### Pre-Seeded &amp; Bootstrapped Accounts
 
-| Account Email | Role | Password | Target Portal |
-|---|---|---|---|
-| `marcus.tan@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
-| `sofia.reyes@company.local` | Human Resources (`hr`) | `Admin@123` | `/hr/dashboard` |
-| `david.cruz@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
-| `maria.santos@company.local` | Employee (`employee`) | `Employee@123` | `/employee/dashboard` |
+<table>
+  <thead>
+    <tr>
+      <th align="center">Account Email / Username</th>
+      <th align="center">Role</th>
+      <th align="center">Default Password</th>
+      <th align="center">Target Workspace</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><code>admin@company.local</code> (<code>admin</code>)</td>
+      <td align="center">Administrator (<code>admin</code>)</td>
+      <td align="center"><em>Provisioned via <code>bin/create_admin_user.php</code></em></td>
+      <td align="center"><code>/admin/dashboard</code></td>
+    </tr>
+    <tr>
+      <td align="center"><code>marcus.tan@company.local</code> (<code>hr01</code>)</td>
+      <td align="center">Human Resources (<code>hr</code>)</td>
+      <td align="center"><code>Admin@123</code></td>
+      <td align="center"><code>/hr/dashboard</code></td>
+    </tr>
+    <tr>
+      <td align="center"><code>sofia.reyes@company.local</code> (<code>emp003</code>)</td>
+      <td align="center">Human Resources (<code>hr</code>)</td>
+      <td align="center"><code>Admin@123</code></td>
+      <td align="center"><code>/hr/dashboard</code></td>
+    </tr>
+    <tr>
+      <td align="center"><code>david.cruz@company.local</code> (<code>emp004</code>)</td>
+      <td align="center">Employee (<code>employee</code>)</td>
+      <td align="center"><code>Employee@123</code></td>
+      <td align="center"><code>/employee/dashboard</code></td>
+    </tr>
+    <tr>
+      <td align="center"><code>maria.santos@company.local</code> (<code>emp002</code>)</td>
+      <td align="center">Employee (<code>employee</code>)</td>
+      <td align="center"><code>Employee@123</code></td>
+      <td align="center"><code>/employee/dashboard</code></td>
+    </tr>
+  </tbody>
+</table>
 
-*Note: Retrieve your 6-digit OTP token from Mailpit at [http://localhost:8025](http://localhost:8025) during sign-in.*
+<p align="justify">
+  <em><strong>Note:</strong> During sign-in, retrieve your 6-digit Email OTP verification code from the local Mailpit inbox at <a href="http://localhost:8025"><code>http://localhost:8025</code></a>.</em>
+</p>
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Running Automated Tests &amp; Quality Gates
 
 ### 1. PHPUnit Automated Test Suite (764 Tests)
-Run the entire backend test suite:
 ```bash
-./vendor/bin/phpunit
-```
-*Current Live Result:* **764 tests, 4,078 assertions, 0 errors, 0 failures (100% passing)**.
+# Execute the full unit, integration, and feature test suite (against hris_test)
+php vendor/bin/phpunit
 
-### 2. Code Style & Static Analysis Gates
+# Run specific test suites (Domain Unit, Integration, or Feature/RBAC)
+php vendor/bin/phpunit tests/Unit
+php vendor/bin/phpunit tests/Integration
+php vendor/bin/phpunit tests/Feature
+
+# Run with readable testdox output and display warnings
+php vendor/bin/phpunit --testdox --display-warnings
+```
+*Current Verified Result:* **`764` tests, `4,078` assertions, `0` errors, `0` failures (`100%` pass rate)**.
+
+### 2. PSR-12 Code Style &amp; PHPStan Static Analysis
 ```bash
+# Run both PSR-12 baseline verification and PHPStan static analysis
+composer lint
+
+# Or run each quality gate individually
 php bin/check-phpcs-baseline.php
-php vendor/bin/phpstan analyse --memory-limit=512M
+php vendor/bin/phpstan analyse --memory-limit=512M --no-progress
 ```
-*Requirement:* Must introduce **0 new PSR-12 violations** against the project baseline and **0 PHPStan errors**.
+*Requirement:* Must introduce **`0` new PSR-12 violations** against the project baseline and **`0` PHPStan errors**.
 
-### 3. Selenium E2E Browser Automation (45 Tests)
+### 3. Selenium End-to-End Browser Automation (45 Tests)
 ```powershell
+# Activate the E2E virtual environment and run the full browser suite
 cd e2e-tests
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-pytest tests/ -v
+
+# Run all 45 E2E tests in headless mode and generate self-contained HTML report
+pytest tests/ -v --headless
+
+# Filter E2E tests by registered pytest markers (smoke, auth, rbac, leave, support, announcements)
+pytest tests/ -m "announcements" -v --headless
+pytest tests/ -m "support" -v --headless
+pytest tests/ -m "smoke" -v --headless
 ```
 
 ---
