@@ -14,7 +14,7 @@
 [![UI Tests](https://img.shields.io/badge/Selenium%20E2E-45%20Tests%20Passed%20(Chrome%20%7C%20Brave)-16A34A.svg?style=flat-square)](e2e-tests/README.md)
 
 [**Documentation Hub**](docs/README.md) &middot;
-[**System Architecture**](docs/01-core/ARCHITECTURE.md) &middot;
+[**Architecture & Structure**](#-architecture--repository-structure) &middot;
 [**User Manual**](docs/01-core/USER-MANUAL.md) &middot;
 [**Quick-Start & CLI Commands**](#-quick-start-guide--essential-cli-commands) &middot;
 [**Automated Tests**](#-running-automated-tests--quality-gates) &middot;
@@ -226,6 +226,180 @@
     </p>
   </li>
 </ul>
+
+---
+
+<h2 id="-architecture--repository-structure" align="center">🏗️ Architecture &amp; Repository Structure</h2>
+
+<p align="justify">
+  <strong>NEXORA HR</strong> combines a custom native PHP 8.5 <strong>4-Tier MVC Architecture</strong> with <strong>Domain-Driven Design (DDD)</strong> bounded contexts (<code>Leave</code> and <code>Announcement</code>), an <strong>Anti-Corruption Layer (ACL)</strong> of controller adapters, and an asynchronous <strong>Transactional Outbox + MySQL Job Queue</strong> pipeline. Every HTTP and REST API v1 request passes through front-controller routing (<code>public/index.php</code>), fail-closed authentication and role/permission middleware (<code>core/</code>), and ACID-compliant MySQL 8.0 InnoDB persistence before emitting domain events to background workers and connected WebSocket clients.
+</p>
+
+<h3 align="center">System &amp; Container Architecture</h3>
+
+```mermaid
+flowchart TB
+    subgraph ClientTier["Client Presentation Tier"]
+        Browser["Web Browser (Admin / HR / Employee Portals)\nNative HTML5, CSS3 Tokens (Light/Dark), Vanilla JS & WebSocket Client"]
+    end
+
+    subgraph EdgeTier["Edge Reverse Proxy Tier"]
+        Nginx["Nginx Reverse Proxy (:8080)\nHTTP Routing & /ws WebSocket Upgrade"]
+    end
+
+    subgraph AppTier["Application, Domain & Real-Time Tier (PHP 8.5)"]
+        Router["Front Controller & Router (public/index.php)\nAuthMiddleware | RoleMiddleware | PermissionMiddleware | CsrfMiddleware"]
+        Controllers["Web & REST API v1 Controllers (app/controllers/)\nACL Controller Adapters (app/Application/)"]
+        Domain["DDD Bounded Contexts & Services\nApp\\Domain\\Leave | App\\Domain\\Announcement | App\\Services | App\\Dsa"]
+        WS["Ratchet WebSocket Server (:8090)\nEventAuthorizer & ChannelPolicy"]
+        Scheduler["Dedicated Cron Scheduler (hris_scheduler)\nbin/console schedule:run (flock Overlap Locks)"]
+        Worker["MySQL Queue Worker (hris_worker)\nbin/queue-worker.php (FOR UPDATE SKIP LOCKED)"]
+    end
+
+    subgraph DataTier["Persistence & Isolated Storage Tier"]
+        MySQL[("MySQL 8.0 InnoDB (:3306 / Host :3307)\n49 Tables | Pessimistic Locking | outbox_events | queue_jobs")]
+        Storage[("Protected File Storage (storage/uploads/)\nLeave Docs | Support & Announcement Attachments")]
+    end
+
+    subgraph OpsTier["Observability, Mail & API Docs Tier"]
+        Mailpit["Mailpit SMTP (:1025) & Web UI (:8025)"]
+        Prometheus["Prometheus (:9090) + Exporters (:9104 / :9113)"]
+        Grafana["Grafana Dashboards (:3100)"]
+        Swagger["Swagger UI (:8083 / /api/docs)"]
+    end
+
+    Browser -- "HTTPS / HTTP :8080" --> Nginx
+    Browser <-- "WebSocket /ws" --> Nginx
+    Nginx -- "HTTP :80" --> Router
+    Nginx <-- "WS :8090" --> WS
+    Router --> Controllers --> Domain
+    Domain --> MySQL
+    Domain --> Storage
+    Scheduler --> MySQL
+    Worker --> MySQL
+    WS --> MySQL
+    Worker & Domain --> Mailpit
+    Prometheus --> Nginx & MySQL & Router
+    Grafana --> Prometheus
+```
+
+<h3 align="center">Repository Directory Structure</h3>
+
+```text
+HRIS-SYSTEM/
+├── app/                                        # Application, Domain, Infrastructure & MVC Layers
+│   ├── Application/                            # DDD Application Layer (ACL Adapters, Commands, UseCases)
+│   │   ├── Announcement/Adapters/              # AnnouncementControllerAdapter & OperationResult
+│   │   └── Leave/                              # Leave Adapters, Commands & UseCases
+│   ├── Console/                                # CLI Kernel, ScheduledTask & flock TaskLock
+│   ├── controllers/                            # Web MVC Controllers & REST API v1 Controllers (Api/)
+│   ├── Domain/                                 # Pure DDD Bounded Contexts (Entities, VOs, Events, Contracts)
+│   │   ├── Announcement/                       # Announcement Aggregate Root, Value Objects & Domain Events
+│   │   ├── Common/                             # Shared Domain Event Contracts & Dispatcher Interfaces
+│   │   └── Leave/                              # Leave Aggregate Root, Value Objects & Domain Events
+│   ├── dsa/                                    # Custom PHP Data Structures & Algorithms Engine
+│   │   ├── algorithms/                         # Binary/Linear Search & Merge/Quick/Insertion/Selection/Bubble Sort
+│   │   ├── arrays/                             # Array manipulation utilities
+│   │   ├── benchmarks/                         # Instrumented algorithm runner, counter & dataset generator
+│   │   └── structures/                         # LinkedList, Queue (FIFO), Stack (LIFO), HashTable, BST
+│   ├── Infrastructure/                         # Concrete Persistence, Event Handlers & Transactional Outbox
+│   │   ├── Database/                           # Transaction managers & database adapters
+│   │   ├── Events/                             # EventBootstrap & post-commit domain event handlers
+│   │   ├── Outbox/                             # MySqlOutboxRepository & OutboxEventSerializer
+│   │   └── Persistence/                        # MySqlAnnouncementRepository & Leave repositories
+│   ├── models/                                 # Active-Record / PDO Domain Models (User, Employee, Leave, Support)
+│   ├── Queue/                                  # MySQL Job Queue Service, Worker, JobRegistry & Job Handlers
+│   ├── realtime/                               # Ratchet WebSocket Server, EventAuthorizer & PdoRealtimeStore
+│   ├── services/                               # Application Services (Auth, OTP, Leave, Support, Attachments)
+│   └── views/                                  # Native PHP Views & Responsive Layouts (Admin, HR, Employee)
+├── benchmarks/                                 # Empirical DSA Benchmark Runner & Generated SVG/CSV/JSON Reports
+├── bin/                                        # CLI Binaries (migrate, console, queue-worker, create_admin_user)
+├── config/                                     # Environment-backed Configuration (app, database, mail, auth, announcements)
+├── core/                                       # Framework Core (Router, Database, Session, RBAC, AuditService, CSRF)
+├── database/                                   # Canonical Schema (schema.sql), Seeds (seed.sql) & SQL Migrations
+│   └── migrations/                             # Idempotent timestamped SQL migrations (2026_03 to 2026_11)
+├── docker/                                     # Container Configs (Nginx, MySQL Init, Scheduler, Prometheus, Grafana)
+├── docs/                                       # 6-Pillar Authoritative Documentation Hub & OpenAPI 3.0 Specs
+│   ├── 01-core/                                # PRD, ARCHITECTURE, DESIGN, RULES, TASK, MEMORY, USER-MANUAL & modules/
+│   ├── 02-technical/                           # Architecture, Database/ERD, Security, UML, Workflows, DSA & API
+│   ├── 03-operations/                          # Deployment, DevOps, Cron/Queue, Prometheus/Grafana & Troubleshooting
+│   ├── 04-quality-assurance/                   # Testing Strategy, QA Results, Performance Benchmarks & Functional Audit
+│   ├── 05-reference/                           # Domain Glossary & 44-Permission RBAC Reference Matrices
+│   ├── 06-defense/                             # Defense Guide, Q&A Bank, Demo Script & Presentation Outline
+│   ├── api/                                    # Machine-readable OpenAPI 3.0 specs (openapi.yaml, openapi.json)
+│   └── screenshots/                            # Verified Portal Captures & DSA Benchmark SVG Graphs
+├── e2e-tests/                                  # Python Selenium WebDriver E2E Suite (Page Objects, Fixtures, 45 Tests)
+├── public/                                     # Web Server Document Root (index.php Front Controller & Static Assets)
+│   └── assets/                                 # Vanilla CSS3 Design System (css/), Progressive JS (js/) & Logos (img/)
+├── scripts/                                    # Operational Scripts (DB Backup/Restore, Smoke Tests & Scheduled Cron Jobs)
+├── storage/                                    # Protected Non-Public Storage (Uploads, Attachments, Logs & Task Locks)
+├── terraform/                                  # Modular Infrastructure-as-Code (Network & Sandbox Modules, Dev/Prod Envs)
+├── tests/                                      # PHPUnit Automated Test Suite (764 Unit, Integration & Feature Tests)
+├── docker-compose.yml                          # Local 11-Container Development & Observability Orchestration
+├── docker-compose.prod.yml                     # Hardened Production Container Orchestration
+├── Dockerfile                                  # PHP 8.5 Apache Application & Worker Container Image Definition
+├── Makefile                                    # Cross-Platform Developer Task Automation
+├── phpcs.xml.dist                              # PSR-12 Coding Standard Ruleset
+├── phpstan.neon.dist                           # PHPStan Static Analysis Configuration
+└── phpunit.xml                                 # Isolated Test Suite Configuration (DB_DATABASE=hris_test)
+```
+
+<h3 align="center">Architectural Layer Breakdown</h3>
+
+<div align="center">
+<table>
+  <thead>
+    <tr>
+      <th align="center">Directory / Layer</th>
+      <th align="center">Architectural Responsibility &amp; Key Components</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><code>public/</code> &amp; <code>core/</code></td>
+      <td align="justify">
+        <strong>Front Controller, Routing &amp; Security Kernel:</strong> <code>public/index.php</code> dispatches every HTTP and REST API v1 request through <code>Core\Router</code>, enforcing <code>AuthMiddleware</code>, <code>RoleMiddleware</code>, <code>PermissionMiddleware</code>, <code>CsrfMiddleware</code>, continuous session verification (<code>Core\Session</code>), dynamic 44-permission evaluation (<code>Core\AuthorizationService</code>), and SHA-256 hash-chained audit logging (<code>Core\AuditService</code>).
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>app/Domain/</code> &amp; <code>app/Application/</code></td>
+      <td align="justify">
+        <strong>DDD Bounded Contexts &amp; Anti-Corruption Layer (ACL):</strong> Encapsulates rich domain aggregates, value objects, domain exceptions, and domain events for <code>Leave</code> and <code>Announcement</code> workflows, bridged to web/API controllers through <code>LeaveControllerAdapter</code> and <code>AnnouncementControllerAdapter</code>.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>app/Infrastructure/</code> &amp; <code>app/models/</code></td>
+      <td align="justify">
+        <strong>Persistence, Transactional Outbox &amp; Domain Event Relay:</strong> Implements PDO/InnoDB repositories with prepared statements and pessimistic row locking (<code>SELECT ... FOR UPDATE</code>), persists domain events atomically into <code>outbox_events</code>, and dispatches post-commit handlers via <code>EventBootstrap</code>.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>app/Console/</code>, <code>app/Queue/</code> &amp; <code>app/realtime/</code></td>
+      <td align="justify">
+        <strong>Asynchronous Processing, Cron Scheduler &amp; WebSockets:</strong> Coordinates scheduled maintenance and lifecycle transitions via <code>App\Console\Kernel</code> (protected by non-blocking <code>flock</code> locks), processes background jobs via <code>App\Queue\QueueWorker</code> (<code>FOR UPDATE SKIP LOCKED</code>), and streams real-time events via the Ratchet WebSocket server (<code>:8090</code>).
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>app/dsa/</code> &amp; <code>benchmarks/</code></td>
+      <td align="justify">
+        <strong>Custom Data Structures &amp; Algorithms Workbench:</strong> Houses from-scratch PHP implementations of <code>LinkedList</code>, <code>Queue</code>, <code>Stack</code>, <code>HashTable</code>, <code>BinarySearchTree</code>, and seven sorting/searching algorithms with operation counters and automated SVG/CSV/JSON benchmark generation.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>database/</code> &amp; <code>storage/</code></td>
+      <td align="justify">
+        <strong>Relational Schema, Migrations &amp; Isolated File Storage:</strong> Maintains strict schema parity between <code>database/schema.sql</code>, <code>docker/mysql/init/01-schema.sql</code>, and timestamped migrations in <code>database/migrations/</code>, while storing sensitive leave, support, and announcement attachments outside the public web root in <code>storage/uploads/</code>.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><code>tests/</code> &amp; <code>e2e-tests/</code></td>
+      <td align="justify">
+        <strong>Multi-Layer Automated Verification:</strong> Combines <code>764</code> PHPUnit unit, integration, and feature/security tests in <code>tests/</code> (isolated against <code>hris_test</code>) with <code>45</code> Python Selenium browser automation tests in <code>e2e-tests/</code> verifying desktop, mobile (<code>390x844</code>), and Light/Dark Mode workflows.
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 ---
 
