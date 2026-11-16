@@ -35,18 +35,74 @@
 
 ## 📚 Authoritative Documentation Architecture
 
-NEXORA HR maintains authoritative documentation centralized within [`docs/`](docs/README.md):
+<p align="justify">
+  <strong>NEXORA HR</strong> maintains a single-source-of-truth documentation suite organized into six numbered pillars inside <a href="docs/README.md"><code>docs/</code></a> (<code>01-core</code> through <code>06-defense</code>, plus machine-readable OpenAPI specifications and verified visual evidence):
+</p>
 
-| Document | Purpose & Description |
-|---|---|
-| **[PRD.md](docs/01-core/PRD.md)** | **Product Requirements Document:** Business vision, functional requirements (FR-001–016), leave business rules, NFRs, and RTM table. |
-| **[ARCHITECTURE.md](docs/01-core/ARCHITECTURE.md)** | **System Architecture:** 4-tier MVC & DDD engine, database architecture, pessimistic locking, Transactional Outbox, and Mermaid diagrams. |
-| **[USER-MANUAL.md](docs/01-core/USER-MANUAL.md)** | **Three-Role User Manual:** Step-by-step operations for Admin, HR, and Employee roles with permissions, expected outcomes, and screenshot references. |
-| **[RULES.md](docs/01-core/RULES.md)** | **Engineering & AI Agent Rules:** Mandatory 3-role constraints under ADR-012, PSR-12 standards, operational safety, and prohibited actions. |
-| **[DESIGN.md](docs/01-core/DESIGN.md)** | **UI/UX Design System:** Color tokens, typography, spatial grid, responsive App Shell, and WCAG 2.2 AA accessibility guidelines. |
-| **[TASK.md](docs/01-core/TASK.md)** | **Roadmap & Progress Tracking:** Phase breakdown (Phases 1–16), verified test metrics (764 passing tests), and active tasks. |
-| **[MEMORY.md](docs/01-core/MEMORY.md)** | **AI Context Primer:** High-density context primer, key file paths, core constraints, and essential CLI commands. |
-| **[docs/README.md](docs/README.md)** | **Technical Documentation Hub:** Unified directory connecting specialized security, database, UML, DSA, testing, API, deployment, and defense guides. |
+<table>
+  <thead>
+    <tr>
+      <th align="center">Document</th>
+      <th align="center">Purpose &amp; Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/PRD.md">PRD.md</a></strong></td>
+      <td align="justify">
+        <strong>Product Requirements Document:</strong> Defines the executive product vision, three-role operational scope (<code>Admin</code>, <code>HR</code>, <code>Employee</code>), functional requirements (<code>FR-001</code>–<code>FR-016</code>), Philippine statutory and company leave rules, non-functional security/performance SLAs, and the verified Requirements Traceability Matrix (RTM).
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/ARCHITECTURE.md">ARCHITECTURE.md</a></strong></td>
+      <td align="justify">
+        <strong>System Architecture Specification:</strong> Documents the custom 4-tier MVC and Domain-Driven Design (DDD) bounded contexts, 49-table MySQL 8.0 InnoDB schema, pessimistic row-level concurrency locking (<code>SELECT ... FOR UPDATE</code>), Transactional Outbox WebSocket pipeline (:8090), Dedicated Cron Scheduler container, and MySQL Queue Worker.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/USER-MANUAL.md">USER-MANUAL.md</a></strong></td>
+      <td align="justify">
+        <strong>Three-Role User Manual:</strong> Provides step-by-step operational guides for Administrators (<code>/admin/*</code>), HR Officers (<code>/hr/*</code>), and Employees (<code>/employee/*</code>) covering account provisioning, RBAC governance, leave filing and FIFO adjudication, multi-tier support ticketing, company announcements, and validation messages.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/RULES.md">RULES.md</a></strong></td>
+      <td align="justify">
+        <strong>Engineering, Security &amp; AI Agent Rules:</strong> Enforces mandatory least-privilege boundaries under <code>ADR-012</code> and <code>ADR-013</code>, server-side ownership guards, CSRF and session-fingerprint protections, PSR-12 coding standards, database migration parity rules, and non-destructive operational guardrails.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/DESIGN.md">DESIGN.md</a></strong></td>
+      <td align="justify">
+        <strong>UI/UX Design System:</strong> Establishes the Cobalt Blue and Deep Slate enterprise visual language, typography scale, 8px spatial grid, responsive App Shell, native <code>&lt;dialog&gt;</code> and semantic table patterns, Light/Dark Mode token parity, and WCAG 2.2 AA accessibility compliance.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/TASK.md">TASK.md</a></strong></td>
+      <td align="justify">
+        <strong>Development Roadmap &amp; Milestone Tracker:</strong> Tracks engineering execution across Phases 1–16 and scope addenda (<code>v3.1</code>–<code>v3.3</code>), live quality gate metrics (<code>764</code> PHPUnit tests, <code>45</code> Selenium E2E tests, <code>0</code> PHPStan/PSR-12 regressions), and production release readiness.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/MEMORY.md">MEMORY.md</a></strong></td>
+      <td align="justify">
+        <strong>AI Agent Context Primer:</strong> Supplies a high-density architectural reference map, core domain invariants, canonical file locations across MVC and DDD layers, database isolation rules (<code>hris_db</code> vs. <code>hris_test</code>), and essential CLI verification commands.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/01-core/modules/">01-core/modules/</a></strong></td>
+      <td align="justify">
+        <strong>Feature &amp; Module Specifications:</strong> Contains dedicated specifications for <a href="docs/01-core/modules/announcements-management.md">Announcements Management</a>, <a href="docs/01-core/modules/employee-help-and-support.md">Employee Support &amp; Confidential Complaints</a>, <a href="docs/01-core/modules/hr-admin-help-and-support.md">HR-to-Admin Support</a>, <a href="docs/01-core/modules/smart-otp-trusted-devices.md">Smart OTP &amp; Trusted Devices</a>, and <a href="docs/01-core/modules/public-help-and-password-recovery.md">Public Help &amp; Password Recovery</a>.
+      </td>
+    </tr>
+    <tr>
+      <td align="center"><strong><a href="docs/README.md">docs/README.md</a></strong></td>
+      <td align="justify">
+        <strong>Unified Technical Documentation Hub:</strong> Serves as the master directory indexing all specialized architecture, database/ERD, UML, workflow flowcharts, custom DSA, security, REST API/OpenAPI, DevOps/Terraform, Prometheus/Grafana monitoring, QA benchmark, RBAC reference, and academic defense packages.
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ### Priority Technical, QA & Defense Guides
 * 🏛️ **[System Architecture & Components (docs/02-technical/system-architecture.md)](docs/02-technical/system-architecture.md):** Verified container topology, Clean Architecture layers, and request/data flow.
