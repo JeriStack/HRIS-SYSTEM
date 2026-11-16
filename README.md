@@ -33,12 +33,13 @@
 
 ---
 
-## 📚 Authoritative Documentation Architecture
+<h2 align="center">📚 Authoritative Documentation Architecture</h2>
 
 <p align="justify">
   <strong>NEXORA HR</strong> maintains a single-source-of-truth documentation suite organized into six numbered pillars inside <a href="docs/README.md"><code>docs/</code></a> (<code>01-core</code> through <code>06-defense</code>, plus machine-readable OpenAPI specifications and verified visual evidence):
 </p>
 
+<div align="center">
 <table>
   <thead>
     <tr>
@@ -103,8 +104,9 @@
     </tr>
   </tbody>
 </table>
+</div>
 
-### Priority Technical, QA & Defense Guides
+<h3 align="center">Priority Technical, QA &amp; Defense Guides</h3>
 
 <ul>
   <li>
@@ -166,7 +168,7 @@
 
 ---
 
-## ⚡ Core System Capabilities
+<h2 align="center">⚡ Core System Capabilities</h2>
 
 <p align="justify">
   <strong>NEXORA HR</strong> unifies ten production-hardened engineering capabilities spanning identity security, organizational workforce management, statutory leave accounting, multi-tier support workflows, real-time event streaming, and algorithmic computation:
@@ -227,7 +229,7 @@
 
 ---
 
-## 🚀 Quick-Start Guide &amp; Essential CLI Commands
+<h2 id="-quick-start-guide--essential-cli-commands" align="center">🚀 Quick-Start Guide &amp; Essential CLI Commands</h2>
 
 <p align="justify">
   The recommended way to run <strong>NEXORA HR</strong> with its complete 11-container infrastructure (Nginx reverse proxy, PHP 8.5/Apache runtime, MySQL 8.0 InnoDB, Ratchet WebSocket server, Dedicated Cron Scheduler, Queue Worker, Mailpit SMTP, Swagger UI, phpMyAdmin, Prometheus, and Grafana) is via Docker Compose:
@@ -328,14 +330,15 @@ make e2e        # Execute headless Selenium E2E browser suite
 make clean      # Safely purge disposable test caches and temporary reports
 ```
 
-### Accessing Local Services
+<h3 align="center">Accessing Local Services</h3>
 
+<div align="center">
 <table>
   <thead>
     <tr>
       <th align="center">Service / Interface</th>
       <th align="center">Local URL</th>
-      <th align="justify">Portal Routes &amp; Default Credentials</th>
+      <th align="center">Portal Routes &amp; Default Credentials</th>
     </tr>
   </thead>
   <tbody>
@@ -371,9 +374,11 @@ make clean      # Safely purge disposable test caches and temporary reports
     </tr>
   </tbody>
 </table>
+</div>
 
-### Pre-Seeded &amp; Bootstrapped Accounts
+<h3 align="center">Pre-Seeded &amp; Bootstrapped Accounts</h3>
 
+<div align="center">
 <table>
   <thead>
     <tr>
@@ -416,14 +421,15 @@ make clean      # Safely purge disposable test caches and temporary reports
     </tr>
   </tbody>
 </table>
+</div>
 
-<p align="justify">
+<p align="center">
   <em><strong>Note:</strong> During sign-in, retrieve your 6-digit Email OTP verification code from the local Mailpit inbox at <a href="http://localhost:8025"><code>http://localhost:8025</code></a>.</em>
 </p>
 
 ---
 
-## 🧪 Running Automated Tests &amp; Quality Gates
+<h2 id="-running-automated-tests--quality-gates" align="center">🧪 Running Automated Tests &amp; Quality Gates</h2>
 
 ### 1. PHPUnit Automated Test Suite (764 Tests)
 ```bash
@@ -438,7 +444,16 @@ php vendor/bin/phpunit tests/Feature
 # Run with readable testdox output and display warnings
 php vendor/bin/phpunit --testdox --display-warnings
 ```
-*Current Verified Result:* **`764` tests, `4,078` assertions, `0` errors, `0` failures (`100%` pass rate)**.
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        ✅ <kbd><strong>Current Verified Result: 764 tests, 4,078 assertions, 0 errors, 0 failures (100% pass rate).</strong></kbd>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ### 2. PSR-12 Code Style &amp; PHPStan Static Analysis
 ```bash
@@ -449,7 +464,16 @@ composer lint
 php bin/check-phpcs-baseline.php
 php vendor/bin/phpstan analyse --memory-limit=512M --no-progress
 ```
-*Requirement:* Must introduce **`0` new PSR-12 violations** against the project baseline and **`0` PHPStan errors**.
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        🛡️ <kbd><strong>Requirement: Must introduce 0 new PSR-12 violations against the project baseline and 0 PHPStan errors.</strong></kbd>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ### 3. Selenium End-to-End Browser Automation (45 Tests)
 ```powershell
@@ -470,7 +494,7 @@ pytest tests/ -m "smoke" -v --headless
 
 ---
 
-## 📄 License & Attribution
+<h2 align="center">📄 License &amp; Attribution</h2>
 
 <p align="justify">
   <strong>NEXORA HR</strong> is engineered and maintained as an enterprise Human Resource Information System (HRIS), statutory leave management platform, and Data Structures &amp; Algorithms (DSA) engineering workbench. Distributed under the terms of the <a href="LICENSE">MIT License</a>.
