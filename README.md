@@ -22,7 +22,14 @@
 
 </div>
 
-> **NEXORA HR** (*People. Processes. Progress.*) is a production-grade Human Resource Information System (HRIS) and Leave Management Platform engineered with native PHP 8.5, MySQL 8.0 (InnoDB), and custom Data Structures & Algorithms (DSA). The platform enforces strict least-privilege 3-role RBAC (`admin`, `hr`, `employee`), controlled CLI Administrator bootstrapping, Smart OTP & TOTP Multi-Factor Authentication, Philippine statutory & company leave accounting with pessimistic row locking (`SELECT ... FOR UPDATE`), Employee & HR-to-Admin Support Centers, DDD Announcements Management, and real-time WebSocket notifications via a Transactional Outbox.
+<blockquote>
+  <p align="justify">
+    <strong>NEXORA HR</strong> (<em>People. Processes. Progress.</em>) is a production-grade Enterprise Human Resource Information System (HRIS), Statutory Leave Management Platform, and Data Structures &amp; Algorithms (DSA) Workbench engineered with native PHP 8.5, MySQL 8.0 (InnoDB), and Domain-Driven Design (DDD). Designed to unify organizational workforce operations with rigorous computer science fundamentals, the platform enforces a fail-closed, database-driven three-role access model (<code>admin</code>, <code>hr</code>, and <code>employee</code>) backed by 44 granular permissions, continuous session-state verification, and a SHA-256 hash-chained tamper-evident audit trail.
+  </p>
+  <p align="justify">
+    Across its role-scoped workspaces, NEXORA HR delivers end-to-end employee lifecycle management, a Philippine statutory and company leave ledger protected by pessimistic row-level locking (<code>SELECT ... FOR UPDATE</code>), Smart Email OTP and RFC 6238 TOTP Multi-Factor Authentication with cryptographic trusted-device rotation, anti-enumeration password recovery, tokenized pre-login assistance (<code>AUTH-YYYY-NNNNN</code>), Employee-to-HR Help &amp; Support with conflict-of-interest-isolated confidential workplace complaints (<code>SUP-YYYY-NNNNN</code>), HR-to-Admin technical escalation ticketing (<code>HR-SUP-YYYY-XXXXXXXX</code>), and scheduled/targeted Company Announcements with employee read and acknowledgment receipts (<code>ANN-YYYY-XXXXXXXX</code>). Real-time notifications are broadcast in under 100ms via a Ratchet WebSocket server (:8090), Transactional Outbox, and MySQL-backed Queue Worker, orchestrated inside a multi-container Docker Compose stack with Nginx, Prometheus, Grafana, and OpenAPI 3.0 documentation.
+  </p>
+</blockquote>
 
 ---
 
@@ -57,14 +64,14 @@ NEXORA HR maintains authoritative documentation centralized within [`docs/`](doc
 
 ## ⚡ Core System Capabilities
 
-* **Authoritative 3-Role RBAC (ADR-012):** Segregated interfaces for Administrators (`/admin/dashboard`, `/admin/users*`), Human Resources (`/hr/dashboard`), and Employees (`/employee/dashboard`).
-* **Controlled Admin Provisioning:** Initial Administrator creation is protected via CLI utility (`bin/create_admin_user.php`) with password complexity, audit logging, and lockout protection.
-* **Multi-Factor Authentication (MFA):** Mandatory 6-digit numeric Email OTP verification with 10-minute validity, supported by RFC 6238 TOTP backup.
-* **Continuous Session Verification:** `Session::verifyAuthenticatedAccountState()` validates account status and synchronizes employee names/positions live on every HTTP request.
-* **Business-Day Leave Engine:** Automatic working-day calculation (Monday through Friday, excluding weekends) with cross-year boundary and overlap validation.
-* **Pessimistic Concurrency Locking:** FIFO approval queue with atomic database transactions utilizing `SELECT ... FOR UPDATE` row locks, preventing race conditions and balance overdrafts.
-* **Real-Time Push Notifications:** Sub-100ms event distribution via a Ratchet WebSocket daemon (:8090) backed by a reliable Transactional Outbox pattern.
-* **Interactive API Portal:** Integrated Swagger UI accessible at `/docs` backed by OpenAPI 3.0 specification files.
+* **Dynamic 3-Role RBAC & Least-Privilege Governance (`ADR-012` / `ADR-013`):** Strict server-side separation across Administrators (`/admin/dashboard`, `/admin/users*`, `/admin/roles`, `/admin/support*`), HR Officers (`/hr/dashboard`, `/hr/employees*`, `/hr/announcements*`, `/hr/support*`, `/hr/help*`), and Employees (`/employee/dashboard`, `/employee/profile`, `/employee/announcements*`, `/support*`) across 44 dynamic permissions.
+* **Smart OTP, TOTP MFA & Trusted Device Security:** Mandatory 6-digit Email OTP and RFC 6238 TOTP verification paired with HMAC-SHA256 single-use rotating trusted-browser cookies, risk-based step-up challenges, anti-enumeration password recovery, and self-service device revocation (`/account/security`).
+* **Philippine Statutory & Company Leave Engine:** Supports Vacation, Sick, Service Incentive Leave (SIL), Maternity (RA 11210), Paternity (RA 8187), Solo Parent (RA 8972), VAWC (RA 9262), and Special Leave for Women (RA 9710) with confidentiality masking, qualification verification, and Monday–Friday business-day calculation.
+* **Pessimistic Concurrency Locking (`SELECT ... FOR UPDATE`):** FIFO leave approval queue executing inside atomic InnoDB transactions with row-level locks on `leave_requests` and `leave_balances` to prevent race conditions and balance overdrafts.
+* **Multi-Tier Help, Support & Confidential Complaints:** Dedicated Employee-to-HR Support & Confidential Complaint handling (`SUP-YYYY-NNNNN`) with COI exclusions, pre-login authentication assistance (`AUTH-YYYY-NNNNN`), and isolated HR-to-Admin technical support (`HR-SUP-YYYY-XXXXXXXX`) with private Admin internal notes.
+* **DDD Company Announcements Management:** Full announcement lifecycle (`Draft`, `Scheduled`, `Published`, `Expired`, `Archived`) with department/company-wide audience targeting, automated CRON publication/expiration (`process-announcements`), attachment validation, and idempotent employee read/acknowledgment receipts.
+* **Real-Time WebSockets, Outbox & Queue Worker:** Sub-100ms push notifications via a Ratchet WebSocket server (`:8090`), Transactional Outbox (`outbox_events`), and `FOR UPDATE SKIP LOCKED` MySQL Queue Worker (`bin/queue-worker.php`).
+* **Custom Data Structures & Algorithms (DSA) Laboratory:** Native PHP implementations of Singly Linked Lists, FIFO Queues, LIFO Stacks, Hash Tables, Binary Search Trees, and Merge/Quick/Insertion/Selection/Bubble Sort & Binary/Linear Search with empirical benchmarking.
 
 ---
 
@@ -139,4 +146,7 @@ pytest tests/ -v
 ---
 
 ## 📄 License & Attribution
-NEXORA HR is engineered and maintained as an enterprise human resource information system and data structures & algorithms workbench. All rights reserved.
+
+<p align="justify">
+  <strong>NEXORA HR</strong> is engineered and maintained as an enterprise Human Resource Information System (HRIS), statutory leave management platform, and Data Structures &amp; Algorithms (DSA) engineering workbench. Distributed under the terms of the <a href="LICENSE">MIT License</a>.
+</p>
