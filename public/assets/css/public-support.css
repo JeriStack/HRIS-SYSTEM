@@ -323,10 +323,33 @@
 }
 
 /* Form Controls, Hints ABOVE Inputs & Validation Feedback BELOW Inputs */
+.ps-form-section {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1.35rem;
+}
+
+.ps-form-section + .ps-form-section {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.ps-section-legend {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin-bottom: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brand-blue);
+}
+
 .ps-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 1.05rem 1.15rem;
 }
 
 .ps-field-full {
@@ -343,11 +366,16 @@
 .ps-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--heading);
+}
+
+.ps-required {
+  color: var(--error-icon);
+  font-weight: 700;
 }
 
 .ps-hint {
-  margin: 0;
+  margin: 0 0 auto;
   font-size: 0.8125rem;
   line-height: 1.4;
   color: var(--text-muted);
@@ -362,7 +390,9 @@
 .ps-control {
   width: 100%;
   min-width: 0;
-  padding: 0.68rem 0.85rem;
+  min-block-size: 44px;
+  box-sizing: border-box;
+  padding: 0.65rem 0.875rem;
   border-radius: 8px;
   border: 1px solid var(--border-input);
   background: var(--surface);
@@ -370,11 +400,54 @@
   font-family: inherit;
   font-size: 0.875rem;
   line-height: 1.45;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.ps-control::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+
+.ps-control--select {
+  appearance: none;
+  padding-right: 2.5rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  background-size: 16px 16px;
+}
+
+.ps-control--file {
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.ps-control--file::file-selector-button {
+  padding: 0.45rem 0.9rem;
+  margin-right: 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-subtle);
+  color: var(--heading);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.ps-control--file::file-selector-button:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-focus);
 }
 
 .ps-control--with-toggle {
   padding-right: 2.75rem;
+}
+
+.ps-control:hover:not(:focus) {
+  border-color: var(--border-strong);
 }
 
 .ps-control:focus {
@@ -391,11 +464,11 @@
 
 textarea.ps-control {
   resize: vertical;
-  min-height: 120px;
+  min-height: 124px;
 }
 
 .ps-field-error {
-  min-height: 1.15rem;
+  margin-top: 0.1rem;
   font-size: 0.8125rem;
   line-height: 1.35;
   color: var(--error-text);
@@ -403,7 +476,21 @@ textarea.ps-control {
 }
 
 .ps-field-error[data-empty="true"] {
-  visibility: hidden;
+  display: none;
+}
+
+.ps-form-actions {
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--border);
+}
+
+.ps-form-actions :where(.ps-btn-primary, .ps-btn-secondary) {
+  box-sizing: border-box;
+  min-block-size: 44px;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
 }
 
 .ps-pw-rules {
@@ -749,6 +836,10 @@ textarea.ps-control {
 }
 
 /* Dark Theme Refinements matching auth.css tokens */
+html[data-theme="dark"] .ps-control--select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
 html[data-theme="dark"] .ps-option-icon {
   background: rgba(59, 130, 246, 0.16);
   border-color: rgba(96, 165, 250, 0.35);

@@ -22,7 +22,7 @@ $submissionResult = $submissionResult ?? null;
 
         <section class="ps-hero">
             <h1>Report a Login Issue or Contact Support</h1>
-            <p class="ps-hero-desc">
+            <p class="ps-hero-desc ps-hero-desc--wide">
                 Submit a pre-login support ticket directly to NEXORA HR &amp; IT Support. After submitting, you will receive an <strong>AUTH-YYYY-NNNNN</strong> reference and a private tracking link by email.
             </p>
         </section>
@@ -82,178 +82,191 @@ $submissionResult = $submissionResult ?? null;
                     <input type="text" id="companyWebsite" name="company_website" value="" tabindex="-1" autocomplete="off">
                 </div>
 
-                <div class="ps-form-grid">
-                    <div class="ps-field">
-                        <label for="publicReqName" class="ps-label">Full Name <span aria-hidden="true">*</span></label>
-                        <p id="publicReqNameHint" class="ps-hint">Enter your full name as listed on your employee profile (2-120 characters).</p>
-                        <input
-                            type="text"
-                            id="publicReqName"
-                            name="requester_name"
-                            class="ps-control"
-                            value="<?= e((string)($old['requester_name'] ?? '')) ?>"
-                            required
-                            minlength="2"
-                            maxlength="120"
-                            autocomplete="name"
-                            aria-invalid="false"
-                            aria-describedby="publicReqNameHint"
-                            data-error-id="publicReqNameError"
-                            placeholder="Juan Dela Cruz">
-                        <div id="publicReqNameError" class="ps-field-error" data-empty="true"></div>
-                    </div>
+                <fieldset class="ps-form-section">
+                    <legend class="ps-section-legend">1. Contact Information</legend>
+                    <div class="ps-form-grid">
+                        <div class="ps-field">
+                            <label for="publicReqName" class="ps-label">Full Name <span class="ps-required" aria-hidden="true">*</span></label>
+                            <p id="publicReqNameHint" class="ps-hint">Full name listed on your employee record (2-120 chars).</p>
+                            <input
+                                type="text"
+                                id="publicReqName"
+                                name="requester_name"
+                                class="ps-control"
+                                value="<?= e((string)($old['requester_name'] ?? '')) ?>"
+                                required
+                                minlength="2"
+                                maxlength="120"
+                                autocomplete="name"
+                                aria-invalid="false"
+                                aria-describedby="publicReqNameHint"
+                                data-error-id="publicReqNameError"
+                                placeholder="Juan Dela Cruz">
+                            <div id="publicReqNameError" class="ps-field-error" data-empty="true"></div>
+                        </div>
 
-                    <div class="ps-field">
-                        <label for="publicReqEmail" class="ps-label">Contact Email Address <span aria-hidden="true">*</span></label>
-                        <p id="publicReqEmailHint" class="ps-hint">Your ticket confirmation and private tracking link will be sent here.</p>
-                        <input
-                            type="email"
-                            id="publicReqEmail"
-                            name="requester_email"
-                            class="ps-control"
-                            value="<?= e((string)($old['requester_email'] ?? '')) ?>"
-                            required
-                            maxlength="150"
-                            autocomplete="email"
-                            autocorrect="off"
-                            autocapitalize="none"
-                            spellcheck="false"
-                            aria-invalid="false"
-                            aria-describedby="publicReqEmailHint"
-                            data-error-id="publicReqEmailError"
-                            placeholder="you@company.local">
-                        <div id="publicReqEmailError" class="ps-field-error" data-empty="true"></div>
+                        <div class="ps-field">
+                            <label for="publicReqEmail" class="ps-label">Contact Email Address <span class="ps-required" aria-hidden="true">*</span></label>
+                            <p id="publicReqEmailHint" class="ps-hint">Your ticket confirmation and tracking link are sent here.</p>
+                            <input
+                                type="email"
+                                id="publicReqEmail"
+                                name="requester_email"
+                                class="ps-control"
+                                value="<?= e((string)($old['requester_email'] ?? '')) ?>"
+                                required
+                                maxlength="150"
+                                autocomplete="email"
+                                autocorrect="off"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                aria-invalid="false"
+                                aria-describedby="publicReqEmailHint"
+                                data-error-id="publicReqEmailError"
+                                placeholder="you@company.local">
+                            <div id="publicReqEmailError" class="ps-field-error" data-empty="true"></div>
+                        </div>
                     </div>
+                </fieldset>
 
-                    <div class="ps-field">
-                        <label for="publicCategory" class="ps-label">Issue Category <span aria-hidden="true">*</span></label>
-                        <p id="publicCategoryHint" class="ps-hint">Select the category that matches your sign-in issue.</p>
-                        <select
-                            id="publicCategory"
-                            name="category"
-                            class="ps-control"
-                            required
-                            aria-invalid="false"
-                            aria-describedby="publicCategoryHint"
-                            data-error-id="publicCategoryError">
-                            <option value="">Select a category...</option>
-                            <?php foreach ($categories as $catKey => $catMeta):
-                                $selectedCat = (string)($old['category'] ?? '') === (string)$catKey;
-                            ?>
-                                <option value="<?= e((string)$catKey) ?>"<?= $selectedCat ? ' selected' : '' ?>>
-                                    <?= e((string)($catMeta['label'] ?? $catKey)) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div id="publicCategoryError" class="ps-field-error" data-empty="true"></div>
+                <fieldset class="ps-form-section">
+                    <legend class="ps-section-legend">2. Issue Classification &amp; Environment</legend>
+                    <div class="ps-form-grid">
+                        <div class="ps-field">
+                            <label for="publicCategory" class="ps-label">Issue Category <span class="ps-required" aria-hidden="true">*</span></label>
+                            <p id="publicCategoryHint" class="ps-hint">Select the category that best matches your sign-in issue.</p>
+                            <select
+                                id="publicCategory"
+                                name="category"
+                                class="ps-control ps-control--select"
+                                required
+                                aria-invalid="false"
+                                aria-describedby="publicCategoryHint"
+                                data-error-id="publicCategoryError">
+                                <option value="">Select a category...</option>
+                                <?php foreach ($categories as $catKey => $catMeta):
+                                    $selectedCat = (string)($old['category'] ?? '') === (string)$catKey;
+                                ?>
+                                    <option value="<?= e((string)$catKey) ?>"<?= $selectedCat ? ' selected' : '' ?>>
+                                        <?= e((string)($catMeta['label'] ?? $catKey)) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div id="publicCategoryError" class="ps-field-error" data-empty="true"></div>
+                        </div>
+
+                        <div class="ps-field">
+                            <label for="publicPriority" class="ps-label">Urgency</label>
+                            <p id="publicPriorityHint" class="ps-hint">Optional impact severity (defaults per category).</p>
+                            <select id="publicPriority" name="priority" class="ps-control ps-control--select" aria-describedby="publicPriorityHint">
+                                <option value="">Recommended default</option>
+                                <?php foreach ($priorities as $prio):
+                                    $selectedPrio = (string)($old['priority'] ?? '') === (string)$prio;
+                                ?>
+                                    <option value="<?= e((string)$prio) ?>"<?= $selectedPrio ? ' selected' : '' ?>>
+                                        <?= e((string)$prio) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="ps-field-error" data-empty="true"></div>
+                        </div>
+
+                        <div class="ps-field">
+                            <label for="publicIssueDatetime" class="ps-label">Approximate Date &amp; Time of Issue</label>
+                            <p id="publicDatetimeHint" class="ps-hint">Optional (e.g. Nov 16, 9:15 AM PHT) to help check auth logs.</p>
+                            <input
+                                type="text"
+                                id="publicIssueDatetime"
+                                name="issue_datetime"
+                                class="ps-control"
+                                value="<?= e((string)($old['issue_datetime'] ?? '')) ?>"
+                                maxlength="100"
+                                aria-describedby="publicDatetimeHint"
+                                placeholder="Today at 9:15 AM PHT">
+                            <div class="ps-field-error" data-empty="true"></div>
+                        </div>
+
+                        <div class="ps-field">
+                            <label for="publicClientEnv" class="ps-label">Browser &amp; Device Context</label>
+                            <p id="publicClientEnvHint" class="ps-hint">Auto-filled browser summary (editable before submission).</p>
+                            <input
+                                type="text"
+                                id="publicClientEnv"
+                                name="client_env"
+                                class="ps-control"
+                                maxlength="255"
+                                aria-describedby="publicClientEnvHint"
+                                placeholder="Chrome on Windows">
+                            <div class="ps-field-error" data-empty="true"></div>
+                        </div>
                     </div>
+                </fieldset>
 
-                    <div class="ps-field">
-                        <label for="publicPriority" class="ps-label">Urgency</label>
-                        <p id="publicPriorityHint" class="ps-hint">Optional impact severity (defaults per category).</p>
-                        <select id="publicPriority" name="priority" class="ps-control" aria-describedby="publicPriorityHint">
-                            <option value="">Recommended default</option>
-                            <?php foreach ($priorities as $prio):
-                                $selectedPrio = (string)($old['priority'] ?? '') === (string)$prio;
-                            ?>
-                                <option value="<?= e((string)$prio) ?>"<?= $selectedPrio ? ' selected' : '' ?>>
-                                    <?= e((string)$prio) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="ps-field-error" data-empty="true"></div>
+                <fieldset class="ps-form-section">
+                    <legend class="ps-section-legend">3. Details &amp; Supporting Files</legend>
+                    <div class="ps-form-grid">
+                        <div class="ps-field ps-field-full">
+                            <label for="publicSubject" class="ps-label">Subject <span class="ps-required" aria-hidden="true">*</span></label>
+                            <p id="publicSubjectHint" class="ps-hint">Brief summary of your sign-in issue (5-200 characters).</p>
+                            <input
+                                type="text"
+                                id="publicSubject"
+                                name="subject"
+                                class="ps-control"
+                                value="<?= e((string)($old['subject'] ?? '')) ?>"
+                                required
+                                minlength="5"
+                                maxlength="200"
+                                aria-invalid="false"
+                                aria-describedby="publicSubjectHint"
+                                data-error-id="publicSubjectError"
+                                placeholder="OTP verification email not arriving after password login">
+                            <div id="publicSubjectError" class="ps-field-error" data-empty="true"></div>
+                        </div>
+
+                        <div class="ps-field ps-field-full">
+                            <label for="publicDescription" class="ps-label">Detailed Description <span class="ps-required" aria-hidden="true">*</span></label>
+                            <p id="publicDescHint" class="ps-hint">Describe what happened and any exact on-screen message (15-5,000 characters). Never paste passwords or OTP codes.</p>
+                            <textarea
+                                id="publicDescription"
+                                name="description"
+                                class="ps-control"
+                                rows="5"
+                                required
+                                minlength="15"
+                                maxlength="5000"
+                                aria-invalid="false"
+                                aria-describedby="publicDescHint"
+                                data-error-id="publicDescError"
+                                placeholder="Include steps taken, selected portal (Admin/HR/Employee), and visible error banner text..."><?= e((string)($old['description'] ?? '')) ?></textarea>
+                            <div id="publicDescError" class="ps-field-error" data-empty="true"></div>
+                        </div>
+
+                        <div class="ps-field ps-field-full">
+                            <label for="publicAttachments" class="ps-label">Supporting Screenshots or Logs (Optional)</label>
+                            <p id="publicFilesHint" class="ps-hint">
+                                Allowed formats: PNG, JPG, WEBP, PDF, TXT (up to <?= $maxFiles ?> files, max <?= $maxMb ?> MB each). Crop out passwords or tokens before uploading.
+                            </p>
+                            <input
+                                type="file"
+                                id="publicAttachments"
+                                name="attachments[]"
+                                class="ps-control ps-control--file"
+                                multiple
+                                accept=".png,.jpg,.jpeg,.webp,.pdf,.txt"
+                                aria-describedby="publicFilesHint"
+                                data-ps-files
+                                data-max-files="<?= $maxFiles ?>"
+                                data-max-bytes="<?= $maxBytes ?>"
+                                data-list-id="publicFileList"
+                                data-status-id="publicFileStatus">
+                            <ul id="publicFileList" class="ps-file-list" hidden></ul>
+                            <div id="publicFileStatus" class="ps-field-error" data-empty="true" hidden></div>
+                        </div>
                     </div>
+                </fieldset>
 
-                    <div class="ps-field">
-                        <label for="publicIssueDatetime" class="ps-label">Approximate Date &amp; Time of Issue</label>
-                        <p id="publicDatetimeHint" class="ps-hint">Optional (e.g. Nov 16, 9:15 AM PHT) to help check mail/auth logs.</p>
-                        <input
-                            type="text"
-                            id="publicIssueDatetime"
-                            name="issue_datetime"
-                            class="ps-control"
-                            value="<?= e((string)($old['issue_datetime'] ?? '')) ?>"
-                            maxlength="100"
-                            aria-describedby="publicDatetimeHint"
-                            placeholder="Today at 9:15 AM PHT">
-                        <div class="ps-field-error" data-empty="true"></div>
-                    </div>
-
-                    <div class="ps-field">
-                        <label for="publicClientEnv" class="ps-label">Browser &amp; Device Context</label>
-                        <p id="publicClientEnvHint" class="ps-hint">Auto-filled browser summary (editable before submission).</p>
-                        <input
-                            type="text"
-                            id="publicClientEnv"
-                            name="client_env"
-                            class="ps-control"
-                            maxlength="255"
-                            aria-describedby="publicClientEnvHint"
-                            placeholder="Chrome on Windows">
-                        <div class="ps-field-error" data-empty="true"></div>
-                    </div>
-
-                    <div class="ps-field ps-field-full">
-                        <label for="publicSubject" class="ps-label">Subject <span aria-hidden="true">*</span></label>
-                        <p id="publicSubjectHint" class="ps-hint">Brief summary of your sign-in issue (5-200 characters).</p>
-                        <input
-                            type="text"
-                            id="publicSubject"
-                            name="subject"
-                            class="ps-control"
-                            value="<?= e((string)($old['subject'] ?? '')) ?>"
-                            required
-                            minlength="5"
-                            maxlength="200"
-                            aria-invalid="false"
-                            aria-describedby="publicSubjectHint"
-                            data-error-id="publicSubjectError"
-                            placeholder="OTP verification email not arriving after password login">
-                        <div id="publicSubjectError" class="ps-field-error" data-empty="true"></div>
-                    </div>
-
-                    <div class="ps-field ps-field-full">
-                        <label for="publicDescription" class="ps-label">Detailed Description <span aria-hidden="true">*</span></label>
-                        <p id="publicDescHint" class="ps-hint">Describe what happened and any exact on-screen message (15-5,000 characters). Never paste passwords or OTP codes.</p>
-                        <textarea
-                            id="publicDescription"
-                            name="description"
-                            class="ps-control"
-                            rows="5"
-                            required
-                            minlength="15"
-                            maxlength="5000"
-                            aria-invalid="false"
-                            aria-describedby="publicDescHint"
-                            data-error-id="publicDescError"
-                            placeholder="Include steps taken, selected portal (Admin/HR/Employee), and visible error banner text..."><?= e((string)($old['description'] ?? '')) ?></textarea>
-                        <div id="publicDescError" class="ps-field-error" data-empty="true"></div>
-                    </div>
-
-                    <div class="ps-field ps-field-full">
-                        <label for="publicAttachments" class="ps-label">Supporting Screenshots or Logs (Optional)</label>
-                        <p id="publicFilesHint" class="ps-hint">
-                            Allowed formats: PNG, JPG, WEBP, PDF, TXT (up to <?= $maxFiles ?> files, max <?= $maxMb ?> MB each). Crop out passwords or tokens before uploading.
-                        </p>
-                        <input
-                            type="file"
-                            id="publicAttachments"
-                            name="attachments[]"
-                            class="ps-control"
-                            multiple
-                            accept=".png,.jpg,.jpeg,.webp,.pdf,.txt"
-                            aria-describedby="publicFilesHint"
-                            data-ps-files
-                            data-max-files="<?= $maxFiles ?>"
-                            data-max-bytes="<?= $maxBytes ?>"
-                            data-list-id="publicFileList"
-                            data-status-id="publicFileStatus">
-                        <ul id="publicFileList" class="ps-file-list" hidden></ul>
-                        <div id="publicFileStatus" class="ps-field-error" data-empty="true" hidden></div>
-                    </div>
-                </div>
-
-                <div class="ps-actions-row">
+                <div class="ps-actions-row ps-actions-row--end ps-form-actions">
                     <a href="<?= url('/auth/help') ?>" class="ps-btn-secondary">Cancel</a>
                     <button type="submit" id="publicSupportSubmitBtn" class="ps-btn-primary" data-submit-lock>
                         Submit Support Request
