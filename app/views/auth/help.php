@@ -153,7 +153,7 @@ require __DIR__ . '/_public_support_header.php';
                             placeholder="Paste your tracking token">
                         <div id="hubTrackError" class="ps-field-error" data-empty="true"></div>
                     </div>
-                    <div class="ps-actions-row ps-actions-row--center">
+                    <div class="ps-actions-row ps-actions-row--start">
                         <button type="submit" class="ps-btn-primary" data-submit-lock>View Request Status</button>
                     </div>
                 </form>
@@ -169,7 +169,7 @@ require __DIR__ . '/_public_support_header.php';
                 <p class="ps-option-desc" style="margin-bottom: 1rem;">
                     If you lost access to your registered company mailbox or recovery device, submit a support request with an alternative contact email and HR will coordinate in-person or official identity verification before updating your account record.
                 </p>
-                <div class="ps-actions-row ps-actions-row--center">
+                <div class="ps-actions-row ps-actions-row--start">
                     <a href="<?= url('/auth/support/report?category=' . rawurlencode('Account Locked or Disabled')) ?>" class="ps-btn-secondary">
                         Request Account Verification Guidance
                     </a>
