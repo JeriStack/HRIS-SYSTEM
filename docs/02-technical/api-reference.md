@@ -18,8 +18,8 @@ NEXORA HR provides an enterprise REST API v1 for programmatic workforce operatio
 * **Content Type:** `application/json; charset=utf-8` on all request bodies and responses.
 * **Interactive Documentation:** Integrated Swagger UI accessible at `/docs` or `/api/docs`.
 * **Machine-Readable Specifications:**
-  * YAML: [`docs/api/openapi.yaml`](../../api/openapi.yaml)
-  * JSON: [`docs/api/openapi.json`](../../api/openapi.json)
+  * YAML: [`docs/api/openapi.yaml`](../api/openapi.yaml)
+  * JSON: [`docs/api/openapi.json`](../api/openapi.json)
 
 ---
 
