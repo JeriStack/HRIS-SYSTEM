@@ -112,6 +112,7 @@
   letter-spacing: -0.025em;
   color: var(--heading);
   line-height: 1.2;
+  text-wrap: balance;
 }
 
 .ps-hero-desc {
@@ -288,6 +289,7 @@
   font-size: 1.125rem;
   font-weight: 700;
   color: var(--heading);
+  text-wrap: balance;
 }
 
 /* Diagnostics Accordion / Grid for OTP Help */
@@ -313,6 +315,7 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--heading);
+  text-wrap: balance;
 }
 
 .ps-diag-item p {
