@@ -44,12 +44,12 @@ class PasswordPolicy
     public static function rulesSummary(): array
     {
         return [
-            ['key' => 'length', 'label' => 'At least 8 characters (maximum 72 bytes)'],
-            ['key' => 'upper', 'label' => 'At least one uppercase letter (A-Z)'],
-            ['key' => 'lower', 'label' => 'At least one lowercase letter (a-z)'],
-            ['key' => 'digit', 'label' => 'At least one number (0-9)'],
-            ['key' => 'special', 'label' => 'At least one special character (e.g. ! @ # $ % & *)'],
-            ['key' => 'match', 'label' => 'Matches confirmation password and differs from your email or username'],
+            ['key' => 'length', 'label' => '8–72 characters'],
+            ['key' => 'upper', 'label' => 'Uppercase letter (A–Z)'],
+            ['key' => 'lower', 'label' => 'Lowercase letter (a–z)'],
+            ['key' => 'digit', 'label' => 'Number (0–9)'],
+            ['key' => 'special', 'label' => 'Special character (!@#$%&*)'],
+            ['key' => 'match', 'label' => 'Matches confirmation'],
         ];
     }
 

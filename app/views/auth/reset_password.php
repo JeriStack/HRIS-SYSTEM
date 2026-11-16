@@ -59,11 +59,11 @@ $resetErrors = $resetErrors ?? [];
                     </div>
                 <?php endif; ?>
 
-                <div class="ps-security-note" role="note" style="margin-bottom: 1rem;">
+                <div class="ps-security-note" role="note" style="margin-bottom: 1.15rem;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
-                    <span>
+                    <span class="ps-text-justify">
                         Saving a new password will immediately sign out all active sessions, revoke all remembered trusted browsers, and require Email OTP verification on your next sign-in.
                     </span>
                 </div>
@@ -72,16 +72,8 @@ $resetErrors = $resetErrors ?? [];
                     <?= csrf_field() ?>
                     <input type="hidden" name="token" value="<?= e((string)$token) ?>">
 
-                    <div class="ps-field" style="margin-bottom: 0.5rem;">
-                        <label for="resetNewPassword" class="ps-label">New Password <span aria-hidden="true">*</span></label>
-                        <ul id="passwordRulesBox" class="ps-pw-rules" aria-label="Password requirements">
-                            <?php foreach ($passwordRules as $rule): ?>
-                                <li class="ps-pw-rule" data-rule="<?= e((string)$rule['key']) ?>">
-                                    <span class="ps-pw-rule-dot" aria-hidden="true"></span>
-                                    <span><?= e((string)$rule['label']) ?></span>
-                                </li>
-                            <?php endforeach; ?>
-                        </ul>
+                    <div class="ps-field" style="margin-bottom: 1rem;">
+                        <label for="resetNewPassword" class="ps-label">New Password <span class="ps-required" aria-hidden="true">*</span></label>
                         <div class="ps-input-box">
                             <input
                                 type="password"
@@ -116,11 +108,18 @@ $resetErrors = $resetErrors ?? [];
                             </button>
                         </div>
                         <div id="resetNewPwError" class="ps-field-error" data-empty="true"></div>
+                        <ul id="passwordRulesBox" class="ps-pw-rules" aria-label="Password requirements">
+                            <?php foreach ($passwordRules as $rule): ?>
+                                <li class="ps-pw-rule" data-rule="<?= e((string)$rule['key']) ?>">
+                                    <span class="ps-pw-rule-dot" aria-hidden="true"></span>
+                                    <span><?= e((string)$rule['label']) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     </div>
 
                     <div class="ps-field">
-                        <label for="resetConfirmPassword" class="ps-label">Confirm New Password <span aria-hidden="true">*</span></label>
-                        <p id="resetConfirmHint" class="ps-hint">Re-enter your exact new password to confirm.</p>
+                        <label for="resetConfirmPassword" class="ps-label">Confirm New Password <span class="ps-required" aria-hidden="true">*</span></label>
                         <div class="ps-input-box">
                             <input
                                 type="password"
@@ -132,7 +131,6 @@ $resetErrors = $resetErrors ?? [];
                                 maxlength="72"
                                 autocomplete="new-password"
                                 aria-invalid="false"
-                                aria-describedby="resetConfirmHint"
                                 data-error-id="resetConfirmPwError"
                                 placeholder="Confirm your new password">
                             <button
@@ -157,7 +155,7 @@ $resetErrors = $resetErrors ?? [];
                         <div id="resetConfirmPwError" class="ps-field-error" data-empty="true"></div>
                     </div>
 
-                    <div class="ps-actions-row">
+                    <div class="ps-actions-row ps-form-actions">
                         <a href="<?= url('/login') ?>" class="ps-btn-secondary">Cancel</a>
                         <button type="submit" id="resetSubmitBtn" class="ps-btn-primary" data-submit-lock>
                             Save New Password

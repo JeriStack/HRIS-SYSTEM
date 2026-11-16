@@ -494,23 +494,24 @@ textarea.ps-control {
 }
 
 .ps-pw-rules {
-  margin: 0.15rem 0 0.25rem;
-  padding: 0.7rem 0.85rem;
+  margin: 0.4rem 0 0;
+  padding: 0.75rem 0.9rem;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-subtle);
   list-style: none;
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.3rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.85rem;
 }
 
 .ps-pw-rule {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  font-size: 0.8125rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
+  min-width: 0;
 }
 
 .ps-pw-rule.is-met {
@@ -544,9 +545,14 @@ textarea.ps-control {
   line-height: 1.45;
 }
 
+.ps-security-note > span.ps-text-justify {
+  flex: 1;
+  min-width: 0;
+}
+
 .ps-security-note svg {
   flex: 0 0 18px;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 .ps-summary-grid {
@@ -894,5 +900,11 @@ html[data-theme="dark"] .ps-msg--hr {
 
   .ps-header-nav-links {
     display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .ps-pw-rules {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
