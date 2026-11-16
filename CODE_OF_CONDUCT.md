@@ -40,7 +40,7 @@ This Code of Conduct applies within all project spaces, including the repository
 
 Report instances of abusive, harassing, or otherwise unacceptable behavior to the project team:
 
-- **Primary Contact:** jerilpalinya@gmail.com
+- **Primary Contact:** jerilpalin@gmail.com
 - **Lead Maintainer:** Jeril Mark Estinsu
 - **Core Maintainer:** Kevin Quijano
 
