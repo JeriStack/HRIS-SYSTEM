@@ -28,10 +28,9 @@
     <file>public/index.php</file>
     <file>tests</file>
 
-    <!-- Exclude third-party, cache, views, and scratch directories -->
+    <!-- Exclude third-party, cache, and views directories -->
     <exclude-pattern>*/vendor/*</exclude-pattern>
     <exclude-pattern>*/node_modules/*</exclude-pattern>
-    <exclude-pattern>*/scratch/*</exclude-pattern>
     <exclude-pattern>*/app/views/*</exclude-pattern>
     <exclude-pattern>*/docker/*</exclude-pattern>
 </ruleset>

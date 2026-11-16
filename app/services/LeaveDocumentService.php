@@ -255,9 +255,9 @@ final class LeaveDocumentService
         $viewerRole = strtolower((string)($viewerUser['role'] ?? ''));
         $viewerEmpId = (int)($viewerUser['employee_id'] ?? 0);
         $isOwner = $viewerEmpId > 0 && $viewerEmpId === (int)$doc['employee_id'];
-        $isHrOrAdmin = in_array($viewerRole, ['admin', 'hr'], true);
+        $isAuthorizedHr = ($viewerRole === 'hr');
 
-        if (!$isOwner && !$isHrOrAdmin) {
+        if (!$isOwner && !$isAuthorizedHr) {
             ConfidentialLeaveService::logSensitiveAccess(
                 $pdo,
                 (int)$doc['leave_request_id'],

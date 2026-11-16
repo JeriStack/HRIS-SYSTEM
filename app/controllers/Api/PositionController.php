@@ -168,7 +168,7 @@ class PositionController extends ApiController
     )]
     public function store(): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
 
         $name = trim((string)($input['position_name'] ?? ''));
@@ -266,7 +266,7 @@ class PositionController extends ApiController
     )]
     public function update(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $pos = $this->positionModel->findById($id);
         if (!$pos) {
             $this->error('Position not found.', 404);

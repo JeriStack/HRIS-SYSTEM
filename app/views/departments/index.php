@@ -4,10 +4,12 @@
         <p style="color: #64748B; margin: 0; font-size: 0.875rem;">Manage company divisions, organizational structures, and job position alignments.</p>
     </div>
     <div>
-        <a href="<?= url('/hr/departments/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>➕</span>
-            <span>Add Department</span>
-        </a>
+        <?php if (can('departments.manage')): ?>
+            <a href="<?= url('/hr/departments/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span>➕</span>
+                <span>Add Department</span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -43,9 +45,11 @@
                             </td>
                             <td style="padding: 0.875rem 1.25rem; text-align: right;">
                                 <div class="action-btns" style="justify-content: flex-end;">
-                                    <a href="<?= url('/hr/departments/' . $dept['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Department">
-                                        ✏️ Edit
-                                    </a>
+                                    <?php if (can('departments.manage')): ?>
+                                        <a href="<?= url('/hr/departments/' . $dept['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Department">
+                                            ✏️ Edit
+                                        </a>
+                                    <?php endif; ?>
                                     <a href="<?= url('/hr/employees?dept=' . $dept['id']) ?>" class="btn btn-secondary btn-sm" title="View Employees in Department">
                                         👥 Staff
                                     </a>

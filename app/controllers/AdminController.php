@@ -10,7 +10,10 @@
 namespace App\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\TrustedDevice;
 use App\Models\User;
+use App\Services\AuthRiskService;
+use App\Services\AuthSecurityNotificationService;
 use Core\AuthorizationService;
 use Core\Controller;
 use Core\Database;
@@ -133,6 +136,24 @@ class AdminController extends Controller
         // 9. Live System Health Probe
         $systemHealth = $this->probeLiveHealth();
 
+        // 10. Live HR-to-Admin Support Management Summary & Recent Queue
+        $hrSupportStats = [
+            'total_open'        => 0,
+            'newly_submitted'   => 0,
+            'critical_and_high' => 0,
+            'awaiting_hr'       => 0,
+            'in_progress'       => 0,
+            'recently_resolved' => 0,
+        ];
+        $recentHrSupportTickets = [];
+        try {
+            $hrSupportModel = new \App\Models\HrSupportTicket($this->getPdo());
+            $hrSupportStats = $hrSupportModel->getAdminDashboardStats();
+            $recentHrSupportTickets = $hrSupportModel->findForAdminInbox(['limit' => 5]);
+        } catch (\Throwable $e) {
+            error_log('[AdminController::hrSupport] ' . $e->getMessage());
+        }
+
         $metrics = [
             'total_employees'    => (int)($empStats['total'] ?? 0),
             'active_employees'   => (int)($empStats['active'] ?? 0),
@@ -145,14 +166,16 @@ class AdminController extends Controller
         ];
 
         $this->view('dashboard.admin', [
-            'pageTitle'         => 'System Overview',
-            'user'              => currentUser(),
-            'metrics'           => $metrics,
-            'deptDistribution'  => $deptDistribution,
-            'leaveDistribution' => $leaveDistribution,
-            'monthlyTrends'     => array_reverse($monthlyTrends),
-            'recentLogs'        => $recentLogs,
-            'systemHealth'      => $systemHealth,
+            'pageTitle'              => 'System Overview',
+            'user'                   => currentUser(),
+            'metrics'                => $metrics,
+            'deptDistribution'       => $deptDistribution,
+            'leaveDistribution'      => $leaveDistribution,
+            'monthlyTrends'          => array_reverse($monthlyTrends),
+            'recentLogs'             => $recentLogs,
+            'systemHealth'           => $systemHealth,
+            'hrSupportStats'         => $hrSupportStats,
+            'recentHrSupportTickets' => $recentHrSupportTickets,
         ], 'hr');
     }
 
@@ -337,7 +360,7 @@ class AdminController extends Controller
                OR a.action LIKE '%SECURITY%'
         ";
         if ($filter !== '') {
-            $sql .= " AND (a.action LIKE :filter OR a.details LIKE :filter OR u.username LIKE :filter)";
+            $sql .= " AND (a.action LIKE :filter OR a.description LIKE :filter OR u.username LIKE :filter)";
         }
         $sql .= " ORDER BY a.id DESC LIMIT 50";
 
@@ -361,15 +384,25 @@ class AdminController extends Controller
      */
     public function authSettings(): void
     {
+        $deviceConfig = (array)config('auth_devices', []);
+        $roleDays = (array)($deviceConfig['trust_days_by_role'] ?? ['employee' => 30, 'hr' => 7, 'admin' => 7]);
+        $empDays = (int)($roleDays['employee'] ?? 30);
+        $hrDays = (int)($roleDays['hr'] ?? 7);
+        $adminDays = (int)($roleDays['admin'] ?? 7);
+
         $policy = [
-            'mfa_status'             => 'Enforced (Mandatory 2FA Email OTP)',
-            'otp_expiry_seconds'     => 300, // 5 minutes
+            'mfa_status'             => 'Enforced (Smart Email OTP + Cryptographic Trusted Devices)',
+            'otp_expiry_seconds'     => (int)config('otp.expiry_seconds', 300),
             'max_otp_attempts'       => 5,
             'session_idle_timeout'   => 1800, // 30 minutes
-            'session_max_lifetime'   => 43200, // 12 hours
+            'session_max_lifetime'   => (int)config('session_max_lifetime', 43200), // 12 hours
             'password_algorithm'     => 'Bcrypt (cost 12)',
             'lockout_policy'         => 'Automatic lockout after 5 consecutive failed verification attempts',
-            'session_fingerprint'    => 'Strict SHA-256 IP & User-Agent hashing with database parity validation',
+            'session_fingerprint'    => 'SHA-256 auth-state parity fingerprint (role, status, password hash, employment status)',
+            'trusted_device_policy'  => "Fixed expiration ({$empDays}d Employee, {$hrDays}d HR, {$adminDays}d Admin) with selector+validator rotation",
+            'trusted_cookie_name'    => (string)($deviceConfig['cookie_name'] ?? 'nexora_td'),
+            'logout_behavior'        => 'Sign-out destroys PHP session and WebSocket tickets only; trusted browsers stay remembered until revoked or expired',
+            'step_up_triggers'       => 'Password change, email change, MFA change, account recovery, replay anomaly, or privileged multi-signal drift',
         ];
 
         $this->view('admin.auth_settings', [
@@ -461,51 +494,86 @@ class AdminController extends Controller
         $user = $this->getUserModel()->findByIdWithAuthState($userId);
         if (!$user) {
             Session::flash('error', 'User account not found.');
-            redirect('/admin/account');
+            $this->redirect('/admin/account');
+            return;
         }
 
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Session::flash('error', 'Please provide a valid email address.');
-            redirect('/admin/account');
+            $this->redirect('/admin/account');
+            return;
         }
 
         $existingUser = $this->getUserModel()->findByEmail($email);
         if ($existingUser && (int)$existingUser['id'] !== $userId) {
             Session::flash('error', 'The email address is already assigned to another account.');
-            redirect('/admin/account');
+            $this->redirect('/admin/account');
+            return;
         }
 
         // Handle password update if supplied
+        $emailChanged = strcasecmp($email, (string)($user['email'] ?? '')) !== 0;
+        $passwordChanged = $newPassword !== '';
         $updateData = ['email' => $email];
-        if ($newPassword !== '') {
+        if ($passwordChanged) {
             if (!password_verify($currentPassword, (string)($user['password'] ?? ''))) {
                 Session::flash('error', 'Current password verification failed.');
-                redirect('/admin/account');
+                $this->redirect('/admin/account');
+                return;
             }
 
             if (strlen($newPassword) < 8) {
                 Session::flash('error', 'New password must be at least 8 characters long.');
-                redirect('/admin/account');
+                $this->redirect('/admin/account');
+                return;
             }
 
             if ($newPassword !== $confirmPassword) {
                 Session::flash('error', 'New password and confirmation do not match.');
-                redirect('/admin/account');
+                $this->redirect('/admin/account');
+                return;
             }
 
-            $updateData['password'] = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+            $updateData['password'] = \App\Services\PasswordPolicy::hash($newPassword);
         }
 
         $this->getUserModel()->update($userId, $updateData);
 
-        // Refresh session email and auth fingerprint so Session::verifyAuthenticatedAccountState() stays in sync
+        // Enforce security state transitions: password change revokes all trusted devices & requires fresh OTP;
+        // email change requires OTP verification on next login even from an otherwise trusted browser.
         $freshUser = $this->getUserModel()->findByIdWithAuthState($userId);
+        if ($passwordChanged || $emailChanged) {
+            try {
+                $riskService = new AuthRiskService();
+                if ($passwordChanged) {
+                    $trustedDeviceModel = new TrustedDevice($this->getPdo());
+                    $revokedCount = $trustedDeviceModel->revokeAllForUser($userId, 'password_changed');
+                    $riskService->flagPasswordChanged($userId);
+
+                    if ($revokedCount > 0) {
+                        $notifier = new AuthSecurityNotificationService();
+                        $notifier->notifyAllDevicesRevoked(
+                            $freshUser ?? $user,
+                            $revokedCount,
+                            'Administrator account password changed'
+                        );
+                    }
+                }
+                if ($emailChanged) {
+                    $riskService->flagEmailChanged($userId);
+                }
+            } catch (Throwable $e) {
+                error_log('[AdminController::updateAccount] Trusted device/risk update failed: ' . $e->getMessage());
+            }
+        }
+
+        // Refresh session email and auth fingerprint so Session::verifyAuthenticatedAccountState() stays in sync
         $sessionUser = Session::get('user');
         if (is_array($sessionUser) && is_array($freshUser)) {
             $sessionUser['email'] = (string)($freshUser['email'] ?? $email);
             $sessionUser['auth_fingerprint'] = Session::computeAuthFingerprint($freshUser);
             Session::set('user', $sessionUser);
-            if ($newPassword !== '') {
+            if ($passwordChanged) {
                 Session::regenerate();
             }
         }
@@ -526,7 +594,7 @@ class AdminController extends Controller
         }
 
         Session::flash('success', 'Account profile and security credentials successfully updated.');
-        redirect('/admin/account');
+        $this->redirect('/admin/account');
     }
 
     /**

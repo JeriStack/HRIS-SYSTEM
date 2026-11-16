@@ -2,8 +2,8 @@
 
 **Brand:** NEXORA HR — *People. Processes. Progress.*  
 **System:** Employee HRIS & Leave Management System  
-**Roles:** HR (`hr`) and Employee (`employee`) strictly (Admin role is forbidden)  
-**Specification Version:** Comprehensive Development Plan, Version 3.1  
+**Roles:** Administrator (`admin`), HR (`hr`), and Employee (`employee`) under least-privilege 3-role RBAC  
+**Specification Version:** Comprehensive Development Plan, Version 3.2  
 **Last Updated:** November 2026
 
 ---
@@ -12,9 +12,10 @@
 
 This document specifies the hardened authentication, multi-factor authentication (MFA), session lifecycle, authorization enforcement, and sensitive-operation protection architecture for **NEXORA HR**.
 
-The system strictly enforces a **two-role access control model**:
-- **HR (`hr`)**: Workforce management, organizational structure, leave policy and approval workflows, user provisioning and governance.
-- **Employee (`employee`)**: Self-service profile viewing, personal leave balances, and leave request submission/cancellation.
+The system strictly enforces a **least-privilege three-role access control model**:
+- **Administrator (`admin`)**: System administration, user account and role permission management, HR-to-Admin support ticket management (`/admin/support*`), private Admin internal notes, and security/audit monitoring (restricted from HR operational mutations, confidential leave documents, and Employee self-service).
+- **HR (`hr`)**: Workforce management, organizational structure, leave policy and approval workflows, Employee Support Inbox (`/hr/support*`), and submitting HR support tickets to Admin (`/hr/help*`).
+- **Employee (`employee`)**: Self-service profile viewing, personal leave balances, leave request submission/cancellation, and Employee Help & Support (`/support*`).
 
 Every fresh sign-in across both roles mandates strong primary password verification followed by cryptographically secure **Email OTP** verification. No remembered-device bypasses or client-side authentication trusts are permitted.
 

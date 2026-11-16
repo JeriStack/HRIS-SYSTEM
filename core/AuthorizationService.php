@@ -136,12 +136,7 @@ class AuthorizationService
             return $role === PermissionRegistry::ROLE_EMPLOYEE;
         }
 
-        // Admin has guaranteed full application authority across all valid registered permissions
-        if ($role === PermissionRegistry::ROLE_ADMIN) {
-            return true;
-        }
-
-        // Check assigned permissions for HR and Employee roles
+        // Check assigned permissions (Admin enforces immutable least-privilege defaults; HR/Employee support dynamic RBAC)
         $permissions = $this->getPermissions($role);
 
         // Check canonical slug first, then fallback to raw input token if different
@@ -226,15 +221,9 @@ class AuthorizationService
             return self::$permissionCache[$role];
         }
 
-        // Admin has all registered permissions
+        // Admin strictly holds its immutable least-privilege governance and oversight permissions
         if ($role === PermissionRegistry::ROLE_ADMIN) {
-            $adminPerms = [];
-            foreach (PermissionRegistry::PERMISSIONS as $slug => $meta) {
-                $adminPerms[$slug] = true;
-            }
-            foreach (PermissionRegistry::CAPABILITY_ALIASES as $alias => $slug) {
-                $adminPerms[$alias] = true;
-            }
+            $adminPerms = PermissionRegistry::getDefaultPermissionsForRole(PermissionRegistry::ROLE_ADMIN);
             self::$permissionCache[$role] = $adminPerms;
             return $adminPerms;
         }
@@ -316,7 +305,7 @@ class AuthorizationService
                 'description' => 'Full system-wide administrative governance and security management',
                 'is_system' => 1,
                 'user_count' => 1,
-                'permission_count' => count(PermissionRegistry::PERMISSIONS),
+                'permission_count' => PermissionRegistry::getDefaultPermissionCount(PermissionRegistry::ROLE_ADMIN),
             ],
             [
                 'id' => 2,
@@ -371,10 +360,12 @@ class AuthorizationService
                 return $defaults;
             }
 
-            // Guarantee Admin displays total count of registered permissions
+            // Ensure Admin displays its authoritative least-privilege governance permission count
             foreach ($roles as &$roleRow) {
                 if ($roleRow['slug'] === PermissionRegistry::ROLE_ADMIN) {
-                    $roleRow['permission_count'] = count(PermissionRegistry::PERMISSIONS);
+                    $roleRow['permission_count'] = PermissionRegistry::getDefaultPermissionCount(
+                        PermissionRegistry::ROLE_ADMIN
+                    );
                 }
             }
 
@@ -398,11 +389,8 @@ class AuthorizationService
             PermissionRegistry::ROLE_EMPLOYEE => [],
         ];
 
-        // Admin always has all registered permissions
-        foreach (PermissionRegistry::PERMISSIONS as $slug => $meta) {
-            $map[PermissionRegistry::ROLE_ADMIN][$slug] = true;
-        }
-
+        // Admin resolves via its immutable least-privilege defaults
+        $map[PermissionRegistry::ROLE_ADMIN] = $this->getPermissions(PermissionRegistry::ROLE_ADMIN);
         $map[PermissionRegistry::ROLE_HR] = $this->getPermissions(PermissionRegistry::ROLE_HR);
         $map[PermissionRegistry::ROLE_EMPLOYEE] = $this->getPermissions(PermissionRegistry::ROLE_EMPLOYEE);
 

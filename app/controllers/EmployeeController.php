@@ -113,9 +113,22 @@ class EmployeeController extends Controller
             }
         }
 
+        $canManageHrRecords = can('employees.update');
+        if (!$canManageHrRecords) {
+            foreach ($employees as &$empRow) {
+                $empRow['phone'] = null;
+                $empRow['personal_email'] = null;
+                $empRow['address'] = null;
+                $empRow['birth_date'] = null;
+                $empRow['civil_status'] = null;
+            }
+            unset($empRow);
+        }
+
         $this->view('employees.index', [
-            'pageTitle'        => 'Employees Directory',
-            'employees'        => $employees,
+            'pageTitle'          => 'Employees Directory',
+            'employees'          => $employees,
+            'canManageHrRecords' => $canManageHrRecords,
             'departments'      => $departments,
             'counts'           => $counts,
             'searchQuery'      => $search,
@@ -152,28 +165,39 @@ class EmployeeController extends Controller
 
         $tenure = EmployeeTenureCalculator::calculate($employee['date_hired'] ?? null);
         $avatarUrl = ProfilePictureService::avatarUrl((int)$employee['id'], $employee['profile_picture'] ?? null);
+        $canManageHrRecords = can('employees.update');
 
         $emergencyContacts = [];
-        try {
-            $emergencyContacts = $this->emergencyModel->getByEmployee($id);
-        } catch (\Throwable $e) {
-            error_log('[EmployeeController::show] Emergency contacts query skipped: ' . $e->getMessage());
-        }
-
         $employmentHistory = [];
         $lastPromotion = null;
+        $correctionRequests = [];
+
+        if ($canManageHrRecords) {
+            try {
+                $emergencyContacts = $this->emergencyModel->getByEmployee($id);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController::show] Emergency contacts query skipped: ' . $e->getMessage());
+            }
+
+            try {
+                $correctionRequests = $this->correctionModel->getByEmployee($id, 20);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController::show] Correction requests query skipped: ' . $e->getMessage());
+            }
+        } else {
+            // Least-privilege Admin directory oversight: mask personal contact, residential, and demographic fields.
+            $employee['personal_email'] = null;
+            $employee['phone'] = null;
+            $employee['address'] = null;
+            $employee['birth_date'] = null;
+            $employee['civil_status'] = null;
+        }
+
         try {
             $employmentHistory = $this->historyModel->getByEmployee($id);
             $lastPromotion = $this->historyModel->getLastPromotion($id);
         } catch (\Throwable $e) {
             error_log('[EmployeeController::show] Employment history query skipped: ' . $e->getMessage());
-        }
-
-        $correctionRequests = [];
-        try {
-            $correctionRequests = $this->correctionModel->getByEmployee($id, 20);
-        } catch (\Throwable $e) {
-            error_log('[EmployeeController::show] Correction requests query skipped: ' . $e->getMessage());
         }
 
         $this->view('employees.show', [
@@ -185,6 +209,7 @@ class EmployeeController extends Controller
             'emergencyContacts'  => $emergencyContacts,
             'employmentHistory'  => $employmentHistory,
             'correctionRequests' => $correctionRequests,
+            'canManageHrRecords' => $canManageHrRecords,
             'departments'        => $this->fetchDepartmentsList(),
             'positions'          => $this->fetchPositionsList(),
             'employmentTypes'    => (array)config('profile.employment_types', []),
@@ -367,6 +392,17 @@ class EmployeeController extends Controller
 
         // Find linked user account for this employee and dispatch real-time notification
         $linkedUser = $this->userModel->findByEmployeeId($id);
+        if ($linkedUser && !empty($linkedUser['id'])) {
+            $oldWorkEmail = strtolower(trim((string)($employee['email'] ?? '')));
+            $newWorkEmail = strtolower(trim((string)($data['email'] ?? '')));
+            if ($oldWorkEmail !== $newWorkEmail && $newWorkEmail !== '') {
+                try {
+                    (new \App\Services\AuthRiskService())->flagEmailChanged((int)$linkedUser['id']);
+                } catch (\Throwable $e) {
+                    error_log('[EmployeeController] Failed to flag email change step-up: ' . $e->getMessage());
+                }
+            }
+        }
         $notificationModel = new Notification($this->pdo);
         if ($linkedUser && !empty($linkedUser['id'])) {
             try {

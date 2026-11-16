@@ -29,16 +29,16 @@ class Permission
         'system_settings'           => ['admin'],
         'view_monitoring'           => ['admin'],
 
-        // Workforce & Organization Operations (Admin & HR)
+        // Workforce & Organization Operations (Restricted Oversight vs Full HR CRUD)
         'manage_employees'          => ['admin', 'hr'],
-        'manage_departments'        => ['admin', 'hr'],
-        'manage_positions'          => ['admin', 'hr'],
+        'manage_departments'        => ['hr'],
+        'manage_positions'          => ['hr'],
         'view_employee_records'     => ['admin', 'hr'],
 
-        // Leave Governance & Balance Adjustments (Admin & HR)
-        'manage_leave_types'        => ['admin', 'hr'],
-        'review_leave_requests'     => ['admin', 'hr'],
-        'manage_leave_balances'     => ['admin', 'hr'],
+        // Leave Governance & Balance Adjustments (HR Operational Ownership)
+        'manage_leave_types'        => ['hr'],
+        'review_leave_requests'     => ['hr'],
+        'manage_leave_balances'     => ['hr'],
 
         // Employee Self-Service Operations (Ownership-Enforced)
         'view_own_profile'          => ['employee'],

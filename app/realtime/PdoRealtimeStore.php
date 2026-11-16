@@ -191,15 +191,43 @@ final class PdoRealtimeStore implements RealtimeStore
                         UNIX_TIMESTAMP(n.created_at) AS created_ts,
                         u.role AS recipient_role, u.status AS recipient_status,
                         CASE WHEN lr.id IS NOT NULL AND u.employee_id IS NOT NULL
-                                  AND lr.employee_id = u.employee_id THEN 1 ELSE 0 END AS owner_matches
+                                  AND lr.employee_id = u.employee_id THEN 1 ELSE 0 END AS owner_matches,
+                        CASE WHEN st.id IS NOT NULL AND u.employee_id IS NOT NULL
+                                  AND st.employee_id = u.employee_id THEN 1 ELSE 0 END AS support_owner_matches,
+                        CASE WHEN st.id IS NOT NULL AND st.subject_employee_id IS NOT NULL
+                                  AND u.employee_id IS NOT NULL
+                                  AND st.subject_employee_id = u.employee_id THEN 1 ELSE 0 END AS support_coi_blocked,
+                        CASE WHEN st.id IS NOT NULL AND st.is_confidential = 1 THEN
+                            CASE WHEN sth.id IS NOT NULL AND sth.is_active = 1 AND sth.can_handle_confidential = 1 THEN 1
+                                 WHEN st.escalated_flag = 1 AND LOWER(u.role) = 'admin' THEN 1
+                                 ELSE 0 END
+                        ELSE 1 END AS support_confidential_authorized,
+                        hst.ticket_ref AS hr_support_ref,
+                        CASE WHEN hst.id IS NOT NULL AND hst.submitted_by_user_id = u.id THEN 1 ELSE 0 END AS hr_support_owner_matches,
+                        CASE WHEN ann.id IS NOT NULL AND ann.status = 'Published'
+                                  AND (ann.expires_at IS NULL OR ann.expires_at > :now_exp)
+                                  AND emp.id IS NOT NULL AND emp.employment_status = 'Active'
+                                  AND EXISTS (
+                                      SELECT 1 FROM announcement_targets annt
+                                      WHERE annt.announcement_id = ann.id
+                                        AND (annt.target_type = 'all' OR (annt.target_type = 'department' AND annt.department_id = emp.department_id))
+                                  ) THEN 1 ELSE 0 END AS announcement_targeted
                    FROM notifications n
                    INNER JOIN users u ON u.id = n.user_id
+                   LEFT JOIN employees emp ON emp.id = u.employee_id
                    LEFT JOIN leave_requests lr ON lr.id = n.entity_id
+                   LEFT JOIN support_tickets st ON st.id = n.entity_id AND n.event_type LIKE 'support_%'
+                   LEFT JOIN support_ticket_handlers sth ON sth.user_id = u.id
+                   LEFT JOIN hr_support_tickets hst ON hst.id = n.entity_id AND n.event_type LIKE 'hr_support.%'
+                   LEFT JOIN announcements ann ON ann.id = n.entity_id AND n.event_type LIKE 'announcement.%'
                   WHERE n.id > :after
                   ORDER BY n.id ASC
                   LIMIT {$limit}"
             );
-            $stmt->execute(['after' => $afterId]);
+            $stmt->execute([
+                'after'   => $afterId,
+                'now_exp' => (new \DateTimeImmutable())->format('Y-m-d H:i:s'),
+            ]);
             return $stmt->fetchAll();
         });
     }

@@ -774,5 +774,512 @@ CREATE TABLE IF NOT EXISTS `leave_sensitive_access_logs` (
     INDEX `idx_lsal_accessor` (`accessor_user_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- 28. Support Ticket Sequences Table
+-- Atomic annual sequence counter for server-generated SUP-YYYY-NNNNN ticket refs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_ticket_sequences` (
+    `ticket_year` SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 29. Support Tickets & Workplace Complaints Table
+-- Tracks general support requests and confidential workplace grievances
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_ref` VARCHAR(30) NOT NULL,
+    `employee_id` INT UNSIGNED NULL DEFAULT NULL,
+    `submitted_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `support_channel` ENUM('employee_portal', 'public_auth') NOT NULL DEFAULT 'employee_portal',
+    `is_public_ticket` TINYINT(1) NOT NULL DEFAULT 0,
+    `requester_name` VARCHAR(120) NULL DEFAULT NULL,
+    `requester_email` VARCHAR(150) NULL DEFAULT NULL,
+    `matched_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `public_issue_datetime` VARCHAR(100) NULL DEFAULT NULL,
+    `public_client_env` VARCHAR(255) NULL DEFAULT NULL,
+    `request_type` ENUM('support', 'complaint') NOT NULL DEFAULT 'support',
+    `category` VARCHAR(80) NOT NULL,
+    `complaint_category` VARCHAR(80) NULL DEFAULT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `subject_employee_id` INT UNSIGNED NULL DEFAULT NULL,
+    `subject_reference` VARCHAR(150) NULL DEFAULT NULL,
+    `subject` VARCHAR(200) NOT NULL,
+    `description` TEXT NOT NULL,
+    `incident_date` DATE NULL DEFAULT NULL,
+    `category_metadata_json` JSON NULL DEFAULT NULL,
+    `priority` ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
+    `status` ENUM('Submitted', 'Under Review', 'Waiting for Employee', 'Resolved', 'Closed') NOT NULL DEFAULT 'Submitted',
+    `assigned_to_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `resolution_remarks` TEXT NULL DEFAULT NULL,
+    `escalated_flag` TINYINT(1) NOT NULL DEFAULT 0,
+    `escalation_reason` VARCHAR(255) NULL DEFAULT NULL,
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `closed_at` DATETIME NULL DEFAULT NULL,
+    `last_activity_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_st_ticket_ref` UNIQUE (`ticket_ref`),
+    CONSTRAINT `fk_st_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_matched_user` FOREIGN KEY (`matched_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_subject_employee` FOREIGN KEY (`subject_employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_assigned_to` FOREIGN KEY (`assigned_to_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_st_emp_status` (`employee_id`, `status`, `last_activity_at`),
+    INDEX `idx_st_type_conf_status` (`request_type`, `is_confidential`, `status`),
+    INDEX `idx_st_assigned_status` (`assigned_to_user_id`, `status`),
+    INDEX `idx_st_subject_emp` (`subject_employee_id`),
+    INDEX `idx_st_created` (`created_at`),
+    INDEX `idx_st_public_channel` (`support_channel`, `is_public_ticket`, `status`, `last_activity_at`),
+    INDEX `idx_st_requester_email` (`requester_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 30. Support Confidential Handlers Registry Table
+-- User-scoped authorization within HR/Admin roles for confidential complaints
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_ticket_handlers` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `can_handle_confidential` TINYINT(1) NOT NULL DEFAULT 1,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `designation_notes` VARCHAR(255) NULL DEFAULT NULL,
+    `granted_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_sth_user` UNIQUE (`user_id`),
+    CONSTRAINT `fk_sth_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sth_granted_by` FOREIGN KEY (`granted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sth_active` (`is_active`, `can_handle_confidential`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 31. Support Messages Table
+-- Chronological conversation history separating employee-visible & internal HR notes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_messages` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sender_role` ENUM('employee', 'public_requester', 'hr', 'admin', 'system') NOT NULL DEFAULT 'employee',
+    `message_type` ENUM('initial_submission', 'hr_response', 'employee_reply', 'info_request', 'internal_note', 'status_change') NOT NULL,
+    `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0,
+    `body` TEXT NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sm_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sm_sender` FOREIGN KEY (`sender_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sm_ticket_vis` (`ticket_id`, `is_internal_note`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 32. Support Attachments Table
+-- Non-public uploaded supporting documents linked to tickets and messages
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `message_id` INT UNSIGNED NULL DEFAULT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `is_internal_only` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sa_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sa_message` FOREIGN KEY (`message_id`)
+        REFERENCES `support_messages` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_sa_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sa_ticket` (`ticket_id`),
+    INDEX `idx_sa_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 33. Support Status History Table
+-- Complete audit trail of ticket lifecycle transitions and remarks
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_status_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `from_status` VARCHAR(40) NULL DEFAULT NULL,
+    `to_status` VARCHAR(40) NOT NULL,
+    `changed_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `remarks` TEXT NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_ssh_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssh_actor` FOREIGN KEY (`changed_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_ssh_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 34. Support Assignments Table
+-- Assignment, reassignment, and COI/policy escalation events
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_assignments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `assigned_to_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action` ENUM('assigned', 'reassigned', 'unassigned', 'escalated') NOT NULL DEFAULT 'assigned',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sas_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sas_assignee` FOREIGN KEY (`assigned_to_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_sas_actor` FOREIGN KEY (`assigned_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sas_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 35. Support Sensitive Access Logs Table
+-- Audit trail of confidential complaint access attempts, COI blocks, & downloads
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_sensitive_access_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NULL DEFAULT NULL,
+    `attachment_id` INT UNSIGNED NULL DEFAULT NULL,
+    `accessor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action_type` ENUM('view_ticket', 'view_complaint', 'download_attachment', 'assign_handler', 'update_status', 'export_masked', 'coi_blocked') NOT NULL,
+    `access_granted` TINYINT(1) NOT NULL DEFAULT 1,
+    `reason_code` VARCHAR(80) NULL DEFAULT NULL,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_ssal_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssal_attachment` FOREIGN KEY (`attachment_id`)
+        REFERENCES `support_attachments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssal_accessor` FOREIGN KEY (`accessor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_ssal_ticket` (`ticket_id`, `created_at`),
+    INDEX `idx_ssal_accessor` (`accessor_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 36. Trusted Devices Table (Smart OTP "Remember This Device")
+-- Selector + hashed validator credentials with fixed expiry & single-use rotation
+-- See database/migrations/2026_11_18_create_trusted_devices_and_auth_security.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `trusted_devices` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'SHA-256 or HMAC-SHA256 verifier of secret validator',
+    `device_name` VARCHAR(150) NOT NULL COMMENT 'Human-readable browser and OS label for display',
+    `browser_name` VARCHAR(64) NULL DEFAULT NULL,
+    `os_name` VARCHAR(64) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Descriptive UA metadata; never proves identity',
+    `last_ip` VARCHAR(45) NULL DEFAULT NULL COMMENT 'Contextual IP metadata; never primary trust proof',
+    `trust_days` SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `last_used_at` DATETIME NULL DEFAULT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `revocation_reason` VARCHAR(100) NULL DEFAULT NULL,
+    CONSTRAINT `fk_trusted_devices_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_trusted_devices_selector` (`selector`),
+    INDEX `idx_trusted_devices_user_active` (`user_id`, `revoked_at`, `expires_at`),
+    INDEX `idx_trusted_devices_expires` (`expires_at`),
+    INDEX `idx_trusted_devices_last_used` (`user_id`, `last_used_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 37. User Authentication Security States Table
+-- Per-user risk-based step-up & recovery flags forcing additional OTP verification
+-- See database/migrations/2026_11_18_create_trusted_devices_and_auth_security.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_auth_security_states` (
+    `user_id` INT UNSIGNED PRIMARY KEY,
+    `require_otp_next_login` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Forces fresh email OTP verification on next login even for trusted browsers',
+    `step_up_reason` VARCHAR(100) NULL DEFAULT NULL,
+    `password_changed_at` DATETIME NULL DEFAULT NULL,
+    `email_changed_at` DATETIME NULL DEFAULT NULL,
+    `mfa_changed_at` DATETIME NULL DEFAULT NULL,
+    `last_recovery_at` DATETIME NULL DEFAULT NULL,
+    `last_suspicious_event_at` DATETIME NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_user_auth_security_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 38. Password Resets Table
+-- Selector + HMAC-hashed verifier tokens with 15-minute expiry & single-use lock
+-- See database/migrations/2026_11_19_create_password_resets_and_public_support.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `password_resets` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret validator',
+    `requested_email` VARCHAR(150) NOT NULL,
+    `requested_ip` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `consumed_at` DATETIME NULL DEFAULT NULL,
+    `invalidated_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_password_resets_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_password_resets_selector` (`selector`),
+    INDEX `idx_password_resets_user_active` (`user_id`, `consumed_at`, `invalidated_at`, `expires_at`),
+    INDEX `idx_password_resets_email_created` (`requested_email`, `created_at`),
+    INDEX `idx_password_resets_ip_created` (`requested_ip`, `created_at`),
+    INDEX `idx_password_resets_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 39. Public Support Ticket Sequences Table
+-- Atomic year-scoped counter for public pre-login AUTH-YYYY-NNNNN ticket refs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_ticket_sequences` (
+    `ticket_year` SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 40. Public Support Tracking Tokens Table
+-- Selector + HMAC-hashed verifier tokens for unauthenticated redacted ticket tracking
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_tracking_tokens` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret tracking validator',
+    `expires_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `last_viewed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pstt_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_pstt_selector` (`selector`),
+    INDEX `idx_pstt_ticket_active` (`ticket_id`, `revoked_at`, `expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 41. HR-to-Admin Support Tickets Table
+-- Isolated technical & operational escalations submitted by HR to Administrators
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_ref` VARCHAR(32) NOT NULL COMMENT 'Unique non-guessable tracking reference (e.g. HR-SUP-2026-8F3K9C2M)',
+    `submitted_by_user_id` INT UNSIGNED NOT NULL,
+    `subject` VARCHAR(200) NOT NULL,
+    `description` TEXT NOT NULL,
+    `category` VARCHAR(80) NOT NULL,
+    `priority` ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL DEFAULT 'Medium',
+    `status` ENUM('Submitted', 'Under Review', 'In Progress', 'Waiting for HR', 'Resolved', 'Closed') NOT NULL DEFAULT 'Submitted',
+    `assigned_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `resolution_summary` TEXT NULL DEFAULT NULL,
+    `reopen_count` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `last_activity_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `closed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_hst_admin_ticket_ref` UNIQUE (`ticket_ref`),
+    CONSTRAINT `fk_hst_admin_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_hst_admin_assigned_to` FOREIGN KEY (`assigned_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_submitter_status` (`submitted_by_user_id`, `status`, `last_activity_at`),
+    INDEX `idx_hst_status_prio_activity` (`status`, `priority`, `last_activity_at`),
+    INDEX `idx_hst_assigned_status` (`assigned_admin_id`, `status`),
+    INDEX `idx_hst_category_status` (`category`, `status`),
+    INDEX `idx_hst_created` (`created_at`),
+    INDEX `idx_hst_resolved` (`resolved_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 42. HR-to-Admin Ticket Conversation Messages & Admin-Only Internal Notes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_messages` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sender_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `message_type` ENUM('initial_submission', 'hr_reply', 'admin_response', 'info_request', 'internal_note', 'reopen_request', 'resolution_confirmation', 'status_change') NOT NULL,
+    `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Admin-only confidential note; never returned to HR',
+    `body` TEXT NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hstm_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hstm_sender` FOREIGN KEY (`sender_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hstm_ticket_vis` (`ticket_id`, `is_internal_note`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 43. HR-to-Admin Ticket Attachments Table (Private Storage)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `message_id` INT UNSIGNED NULL DEFAULT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_internal_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Attached to Admin-only internal note',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_message` FOREIGN KEY (`message_id`)
+        REFERENCES `hr_support_ticket_messages` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsta_ticket` (`ticket_id`),
+    INDEX `idx_hsta_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 44. HR-to-Admin Ticket Assignment Audit Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_assignments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `assigned_to_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action` ENUM('assigned', 'reassigned', 'unassigned') NOT NULL DEFAULT 'assigned',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_assign_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_admin` FOREIGN KEY (`assigned_to_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_actor` FOREIGN KEY (`assigned_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_assign_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 45. HR-to-Admin Ticket Transition History Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `event_kind` ENUM('created', 'status_changed', 'priority_changed', 'assigned', 'reopened', 'resolved', 'closed') NOT NULL DEFAULT 'status_changed',
+    `from_status` VARCHAR(40) NULL DEFAULT NULL,
+    `to_status` VARCHAR(40) NULL DEFAULT NULL,
+    `from_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `to_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `changed_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `actor_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `remarks` TEXT NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsth_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsth_actor` FOREIGN KEY (`changed_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsth_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 46. Announcements Aggregate Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcements` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(200) NOT NULL,
+    `content` TEXT NOT NULL,
+    `category` VARCHAR(80) NOT NULL,
+    `priority` ENUM('Normal', 'Important', 'Urgent') NOT NULL DEFAULT 'Normal',
+    `status` ENUM('Draft', 'Scheduled', 'Published', 'Archived', 'Expired') NOT NULL DEFAULT 'Draft',
+    `author_id` INT UNSIGNED NOT NULL,
+    `published_at` DATETIME NULL DEFAULT NULL,
+    `scheduled_at` DATETIME NULL DEFAULT NULL,
+    `expires_at` DATETIME NULL DEFAULT NULL,
+    `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    `archived_at` DATETIME NULL DEFAULT NULL,
+    CONSTRAINT `fk_ann_author` FOREIGN KEY (`author_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    INDEX `idx_ann_status_sched` (`status`, `scheduled_at`),
+    INDEX `idx_ann_status_exp` (`status`, `expires_at`),
+    INDEX `idx_ann_feed_order` (`status`, `is_pinned`, `priority`, `published_at`),
+    INDEX `idx_ann_author_status` (`author_id`, `status`, `created_at`),
+    INDEX `idx_ann_category_status` (`category`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 47. Announcement Audience Targets Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_targets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `target_type` ENUM('all', 'department') NOT NULL DEFAULT 'all',
+    `department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_annt_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_annt_department` FOREIGN KEY (`department_id`)
+        REFERENCES `departments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_annt_ann_type_dept` (`announcement_id`, `target_type`, `department_id`),
+    INDEX `idx_annt_dept` (`target_type`, `department_id`, `announcement_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 48. Announcement Read Receipts Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_reads` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `read_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_ann_reads_ann_emp` UNIQUE (`announcement_id`, `employee_id`),
+    CONSTRAINT `fk_annr_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_annr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_annr_emp` (`employee_id`, `announcement_id`),
+    INDEX `idx_annr_ann_read_at` (`announcement_id`, `read_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 49. Announcement Attachments Table (Private Storage)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL DEFAULT '',
+    `uploaded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_anna_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_anna_uploader` FOREIGN KEY (`uploaded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_anna_ann` (`announcement_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 

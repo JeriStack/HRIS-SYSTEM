@@ -8,6 +8,7 @@ use App\Controllers\DashboardController;
 use App\Controllers\NotificationController;
 use App\Models\Leave;
 use App\Models\Notification;
+use App\Models\SupportTicket;
 use Core\Session;
 use PDO;
 use PDOStatement;
@@ -236,15 +237,35 @@ class EmployeeDashboardEnhancementTest extends TestCase
                 ['id' => 91, 'status' => 'Approved', 'start_date' => '2026-12-01'],
             ]);
 
+        $supportMock = $this->createMock(SupportTicket::class);
+        $supportMock->expects($this->once())
+            ->method('getRecentByEmployee')
+            ->with(10, 3)
+            ->willReturn([
+                [
+                    'id'              => 12,
+                    'ticket_ref'      => 'SUP-2026-00012',
+                    'request_type'    => 'complaint',
+                    'category'        => 'Workplace Complaint',
+                    'subject'         => 'Sensitive Subject Never Shown',
+                    'is_confidential' => 1,
+                    'status'          => 'Under Review',
+                ],
+            ]);
+        $supportMock->expects($this->once())
+            ->method('countOpenByEmployee')
+            ->with(10)
+            ->willReturn(1);
+
         $captured = [];
-        $controller = new class ($pdo, $notifMock, $leaveMock, $captured) extends DashboardController {
+        $controller = new class ($pdo, $notifMock, $leaveMock, $supportMock, $captured) extends DashboardController {
             /** @var array<string, mixed> */
             private array $store;
 
             /** @param array<string, mixed> $store */
-            public function __construct(PDO $pdo, Notification $n, Leave $l, array &$store)
+            public function __construct(PDO $pdo, Notification $n, Leave $l, SupportTicket $s, array &$store)
             {
-                parent::__construct($pdo, $n, $l);
+                parent::__construct($pdo, $n, $l, $s);
                 $this->store = &$store;
             }
 
@@ -264,6 +285,8 @@ class EmployeeDashboardEnhancementTest extends TestCase
         $this->assertCount(3, $data['requests']);
         $this->assertCount(1, $data['upcomingApprovedLeaves']);
         $this->assertSame('/leaves/33', $data['recentNotifications'][0]['destination_path']);
+        $this->assertSame(1, $data['supportSummary']['open_count']);
+        $this->assertSame('Confidential Workplace Concern', $data['supportSummary']['recent_tickets'][0]['display_subject']);
 
         // Balances failure is isolated cleanly with no raw SQL details exposed
         $this->assertNotNull($data['sectionErrors']['balances']);
@@ -271,6 +294,7 @@ class EmployeeDashboardEnhancementTest extends TestCase
         $this->assertNull($data['sectionErrors']['requests']);
         $this->assertNull($data['sectionErrors']['upcoming']);
         $this->assertNull($data['sectionErrors']['notifications']);
+        $this->assertNull($data['sectionErrors']['support']);
     }
 
     public function testNotificationMarkReadEnforcesOwnershipAndSafeRedirect(): void

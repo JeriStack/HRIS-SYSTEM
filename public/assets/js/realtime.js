@@ -208,7 +208,10 @@
                p.indexOf('/employee/profile') !== -1 ||
                p.indexOf('/activity-logs') !== -1 ||
                p.indexOf('/reports') !== -1 ||
-               p.indexOf('/notifications') !== -1;
+               p.indexOf('/notifications') !== -1 ||
+               p.indexOf('/admin/support') !== -1 ||
+               p.indexOf('/hr/help') !== -1 ||
+               p.indexOf('/announcements') !== -1;
     }
 
     function isUserActivelyInputting() {
@@ -528,6 +531,17 @@
         var shouldAutoReload = onWorkflowPage && !userBusy;
 
         toast(item, shouldAutoReload);
+
+        if (msg.event === 'announcement.published' || msg.event === 'announcement.urgent') {
+            var annBadge = document.getElementById('sidebarAnnouncementsBadge');
+            if (annBadge) {
+                var currentAnn = parseInt(annBadge.textContent || '0', 10) || 0;
+                var nextAnn = currentAnn + 1;
+                annBadge.textContent = nextAnn > 99 ? '99+' : String(nextAnn);
+                annBadge.hidden = false;
+                annBadge.setAttribute('aria-label', nextAnn + ' unread announcements');
+            }
+        }
 
         // Notify any page scripts via standard DOM custom event
         try {

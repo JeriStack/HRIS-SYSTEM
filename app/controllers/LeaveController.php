@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Leave Management Controller
  * Handles leave applications, approvals, rejections, cancellations, balances, and leave types
@@ -68,7 +69,7 @@ class LeaveController extends Controller
 
         $rawRequests = $this->leaveModel->getAllRequests($status, $empId, 200, $startDate, $endDate, $deptId);
         $requests = array_map(
-            fn (array $row): array => ConfidentialLeaveService::maskRequestForViewer($row, $user, $this->pdo),
+            fn(array $row): array => ConfidentialLeaveService::maskRequestForViewer($row, $user, $this->pdo),
             $rawRequests
         );
         $departments = $this->departmentModel->getAll();
@@ -510,7 +511,7 @@ class LeaveController extends Controller
         if ($status === 'Inactive') {
             $leaveTypes = array_values(array_filter(
                 $leaveTypes,
-                static fn (array $t): bool => ($t['status'] ?? '') === 'Inactive'
+                static fn(array $t): bool => ($t['status'] ?? '') === 'Inactive'
             ));
         }
 
@@ -980,8 +981,9 @@ class LeaveController extends Controller
     public function requestInfo(int $id): void
     {
         $user = currentUser();
-        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
-            Session::flash('error', 'Forbidden: HR or Administrator role is required.');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr' || !can('leave.approve')) {
+            http_response_code(403);
+            Session::flash('error', 'Forbidden: HR operational leave review permission is required.');
             redirect('/dashboard');
             return;
         }
@@ -1072,8 +1074,9 @@ class LeaveController extends Controller
     public function approve(int $id): void
     {
         $user = currentUser();
-        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
-            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr' || !can('leave.approve')) {
+            http_response_code(403);
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -1124,8 +1127,9 @@ class LeaveController extends Controller
     public function processNextQueue(): void
     {
         $user = currentUser();
-        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
-            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may approve leave requests.');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr' || !can('leave.approve')) {
+            http_response_code(403);
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may approve leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -1158,8 +1162,9 @@ class LeaveController extends Controller
     public function reject(int $id): void
     {
         $user = currentUser();
-        if (!$user || !in_array(strtolower((string)($user['role'] ?? '')), ['admin', 'hr'], true)) {
-            Session::flash('error', 'Forbidden: Only authorized HR or Administrator personnel may reject leave requests.');
+        if (!$user || strtolower((string)($user['role'] ?? '')) !== 'hr' || !can('leave.reject')) {
+            http_response_code(403);
+            Session::flash('error', 'Forbidden: Only authorized HR personnel may reject leave requests.');
             redirect('/dashboard');
             return;
         }
@@ -1219,7 +1224,7 @@ class LeaveController extends Controller
         $userRole = strtolower($user['role'] ?? 'employee');
         $myEmpId = (int)($user['employee_id'] ?? 0);
 
-        $isHr = in_array($userRole, ['admin', 'hr'], true);
+        $isHr = ($userRole === 'hr') && can('leave.approve');
 
         $req = $this->leaveModel->getRequestById($id);
         $wasApproved = $req && ($req['status'] ?? '') === 'Approved';

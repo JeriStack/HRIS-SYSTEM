@@ -30,7 +30,7 @@ class ProfileController extends ApiController
     #[OA\Get(
         path: "/api/v1/profile",
         summary: "Retrieve authenticated user's profile",
-        description: "Returns the currently authenticated user's account details, role ('hr' or 'employee'), and linked workforce employee record if applicable.",
+        description: "Returns the currently authenticated user's account details, role ('admin', 'hr', or 'employee'), and linked workforce employee record if applicable.",
         tags: ["Account and Profile"],
         security: [["cookieAuth" => []]],
         responses: [

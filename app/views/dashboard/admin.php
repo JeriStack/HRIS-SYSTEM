@@ -25,6 +25,18 @@ $deptList = (isset($deptDistribution) && is_array($deptDistribution)) ? $deptDis
 /** @var array<int, array<string, mixed>>|null $recentLogs */
 $activityFeed = (isset($recentLogs) && is_array($recentLogs)) ? $recentLogs : [];
 
+/** @var array<string, int>|null $hrSupportStats */
+$supportSummary = (isset($hrSupportStats) && is_array($hrSupportStats)) ? $hrSupportStats : [];
+$supTotalOpen = (int) ($supportSummary['total_open'] ?? 0);
+$supNewlySubmitted = (int) ($supportSummary['newly_submitted'] ?? 0);
+$supCriticalHigh = (int) ($supportSummary['critical_and_high'] ?? 0);
+$supAwaitingHr = (int) ($supportSummary['awaiting_hr'] ?? 0);
+$supInProgress = (int) ($supportSummary['in_progress'] ?? 0);
+$supRecentResolved = (int) ($supportSummary['recently_resolved'] ?? 0);
+
+/** @var array<int, array<string, mixed>>|null $recentHrSupportTickets */
+$recentHrTickets = (isset($recentHrSupportTickets) && is_array($recentHrSupportTickets)) ? $recentHrSupportTickets : [];
+
 $totalEmployees    = (int) ($m['total_employees'] ?? 0);
 $activeEmployees   = (int) ($m['active_employees'] ?? 0);
 $inactiveEmployees = max(0, $totalEmployees - $activeEmployees);
@@ -92,6 +104,10 @@ $infraNeedsAttention = ($dbBadgeClass !== 'badge-success') || ($queueStatus !== 
             <?= icon('shield', 16) ?>
             <span>Roles</span>
         </a>
+        <a href="<?= url('/admin/support') ?>" class="btn btn-secondary">
+            <?= icon('shield', 16) ?>
+            <span>Support Inbox</span>
+        </a>
         <a href="<?= url('/admin/system-health') ?>" class="btn btn-secondary">
             <?= icon('activity', 16) ?>
             <span>System Health</span>
@@ -100,7 +116,7 @@ $infraNeedsAttention = ($dbBadgeClass !== 'badge-success') || ($queueStatus !== 
 </div>
 
 <!-- =========================================================================
-     2. Conditional Priority Alert Strip (System Degradation or Pending Queue)
+     2. Conditional Priority Alert Strip (System Degradation, Support Queue, or Pending Queue)
      ========================================================================= -->
 <?php if ($infraNeedsAttention) : ?>
     <div class="admin-attention-strip is-danger" role="status">
@@ -117,6 +133,19 @@ $infraNeedsAttention = ($dbBadgeClass !== 'badge-success') || ($queueStatus !== 
             </div>
         </div>
         <a href="<?= url('/admin/system-health') ?>" class="btn btn-secondary btn-sm">Inspect Diagnostics &rarr;</a>
+    </div>
+<?php elseif ($supCriticalHigh > 0 || $supNewlySubmitted > 0) : ?>
+    <div class="admin-attention-strip" role="status">
+        <div class="admin-attention-body">
+            <span class="admin-attention-icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
+            <div>
+                <strong>HR Support Attention:</strong>
+                <strong class="tabular-nums"><?= $supTotalOpen ?></strong> open HR ticket<?= $supTotalOpen === 1 ? '' : 's' ?>
+                (<strong class="tabular-nums"><?= $supNewlySubmitted ?></strong> newly submitted,
+                <strong class="tabular-nums"><?= $supCriticalHigh ?></strong> high/critical priority).
+            </div>
+        </div>
+        <a href="<?= url('/admin/support') ?>" class="btn btn-secondary btn-sm">Open Support Inbox &rarr;</a>
     </div>
 <?php elseif ($pendingLeaves > 0) : ?>
     <div class="admin-attention-strip" role="status">
@@ -208,6 +237,128 @@ $infraNeedsAttention = ($dbBadgeClass !== 'badge-success') || ($queueStatus !== 
                 <?= icon('shield', 22) ?>
             </div>
         </a>
+    </div>
+</section>
+
+<!-- =========================================================================
+     3B. HR Support Management Live Summary Metrics
+     ========================================================================= -->
+<section aria-labelledby="admin-support-summary-heading" class="card" style="margin-bottom: var(--space-6);">
+    <div class="card-header">
+        <div class="card-title-group">
+            <h2 id="admin-support-summary-heading" class="card-title">
+                <?= icon('shield', 18) ?>
+                <span>HR Help &amp; Support Summary</span>
+            </h2>
+            <p class="card-subtitle">Live database metrics from the HR-to-Administrator technical support queue</p>
+        </div>
+        <a href="<?= url('/admin/support') ?>" class="btn btn-primary btn-sm">Open Support Inbox &rarr;</a>
+    </div>
+    <div class="card-body">
+        <div class="support-kpi-grid" style="margin-bottom: <?= empty($recentHrTickets) ? '0' : 'var(--space-5)' ?>;">
+            <a href="<?= url('/admin/support') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">Total Open Tickets</span>
+                    <span class="stat-value tabular-nums"><?= $supTotalOpen ?></span>
+                    <span class="stat-subtext">Submitted through Waiting</span>
+                </div>
+                <div class="stat-icon-wrapper icon-blue" aria-hidden="true"><?= icon('layers', 20) ?></div>
+            </a>
+
+            <a href="<?= url('/admin/support?status=Submitted') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">Newly Submitted</span>
+                    <span class="stat-value tabular-nums"><?= $supNewlySubmitted ?></span>
+                    <span class="stat-subtext">Awaiting acknowledgment</span>
+                </div>
+                <div class="stat-icon-wrapper icon-amber" aria-hidden="true"><?= icon('file-plus', 20) ?></div>
+            </a>
+
+            <a href="<?= url('/admin/support?priority=Critical') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">Critical &amp; High</span>
+                    <span class="stat-value tabular-nums"><?= $supCriticalHigh ?></span>
+                    <span class="stat-subtext">Open high-impact issues</span>
+                </div>
+                <div class="stat-icon-wrapper icon-amber" aria-hidden="true"><?= icon('alert-triangle', 20) ?></div>
+            </a>
+
+            <a href="<?= url('/admin/support?status=Waiting+for+HR') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">Awaiting HR Response</span>
+                    <span class="stat-value tabular-nums"><?= $supAwaitingHr ?></span>
+                    <span class="stat-subtext">Information requested</span>
+                </div>
+                <div class="stat-icon-wrapper icon-purple" aria-hidden="true"><?= icon('mail', 20) ?></div>
+            </a>
+
+            <a href="<?= url('/admin/support?status=In+Progress') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">In Progress</span>
+                    <span class="stat-value tabular-nums"><?= $supInProgress ?></span>
+                    <span class="stat-subtext">Active investigation</span>
+                </div>
+                <div class="stat-icon-wrapper icon-teal" aria-hidden="true"><?= icon('clock', 20) ?></div>
+            </a>
+
+            <a href="<?= url('/admin/support?status=Resolved') ?>" class="stat-card" style="text-decoration: none;">
+                <div class="stat-info">
+                    <span class="stat-label">Recently Resolved</span>
+                    <span class="stat-value tabular-nums"><?= $supRecentResolved ?></span>
+                    <span class="stat-subtext">Resolved/Closed in 7 days</span>
+                </div>
+                <div class="stat-icon-wrapper icon-teal" aria-hidden="true"><?= icon('check-circle', 20) ?></div>
+            </a>
+        </div>
+
+        <?php if (!empty($recentHrTickets)) : ?>
+            <div class="table-responsive">
+                <table class="table table-hover" aria-label="Latest HR support tickets">
+                    <thead>
+                        <tr>
+                            <th scope="col">Reference</th>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (array_slice($recentHrTickets, 0, 5) as $ticketRow) : ?>
+                            <?php
+                            $tRef = (string) ($ticketRow['ticket_ref'] ?? '');
+                            $tPrio = (string) ($ticketRow['priority'] ?? 'Medium');
+                            $tStat = (string) ($ticketRow['status'] ?? 'Submitted');
+                            $prioClass = match ($tPrio) {
+                                'Critical' => 'badge-danger',
+                                'High'     => 'badge-warning',
+                                'Low'      => 'badge-neutral',
+                                default    => 'badge-primary',
+                            };
+                            $statClass = match ($tStat) {
+                                'Resolved', 'Closed' => 'badge-success',
+                                'Waiting for HR'     => 'badge-warning',
+                                'In Progress'        => 'badge-primary',
+                                'Under Review'       => 'badge-info',
+                                default              => 'badge-neutral',
+                            };
+                            ?>
+                            <tr>
+                                <td class="tabular-nums"><strong><?= e($tRef) ?></strong></td>
+                                <td><?= e((string) ($ticketRow['subject'] ?? '')) ?></td>
+                                <td><?= e((string) ($ticketRow['category'] ?? '')) ?></td>
+                                <td><span class="badge <?= e($prioClass) ?>"><?= e($tPrio) ?></span></td>
+                                <td><span class="badge <?= e($statClass) ?>"><?= e($tStat) ?></span></td>
+                                <td class="text-right">
+                                    <a href="<?= url('/admin/support/tickets/' . rawurlencode($tRef)) ?>" class="btn btn-secondary btn-sm">Manage</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 

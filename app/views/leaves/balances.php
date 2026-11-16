@@ -115,6 +115,7 @@ $selectedDept = $selectedDept ?? null;
     </div>
 </div>
 
+<?php if (can('leave_balances.manage')): ?>
 <!-- HR Management Actions Grid: Quota Adjustment, Initialize Balances, SIL Cash Conversion -->
 <div class="grid grid-cols-2" style="gap: var(--space-5); margin-bottom: var(--space-6); align-items: start;">
     <div class="card">
@@ -234,6 +235,7 @@ $selectedDept = $selectedDept ?? null;
         </div>
     </div>
 </div>
+<?php endif; ?>
 
 <!-- Immutable Transaction Ledger -->
 <div class="card">

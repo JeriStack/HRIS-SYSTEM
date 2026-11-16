@@ -57,7 +57,7 @@
   .emp-profile-grid,
   .emp-apply-grid,
   .profile-two-col {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-hero-strip {
@@ -219,19 +219,43 @@
     display: inline-flex !important;
   }
 
+  .app-header,
+  .top-bar {
+    padding: 0 var(--space-4);
+    gap: var(--space-2);
+  }
+
+  .header-left,
+  .top-bar-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: var(--space-3);
+  }
+
+  .header-right,
+  .top-bar-right {
+    flex-shrink: 0;
+    gap: var(--space-2);
+  }
+
+  .header-breadcrumb {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   .header-breadcrumb a,
   .header-breadcrumb .crumb-separator {
     display: none;
   }
 
   .header-breadcrumb .crumb-current {
-    display: inline-block;
+    display: block;
     font-size: var(--font-size-md);
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 220px;
+    max-width: 100%;
   }
 
   .app-content,
@@ -274,7 +298,7 @@
   }
 
   .form-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Stat Cards Compact Layout */
@@ -329,17 +353,17 @@
 
   /* Employee Workspace Mobile Refinements */
   .emp-kpi-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
 
   .emp-category-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
 
   .emp-summary-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-summary-cell {
@@ -354,7 +378,7 @@
 
   .emp-dl-grid,
   .emp-policy-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-filter-toolbar {
@@ -404,7 +428,7 @@
   .profile-dl-grid,
   .profile-form-grid,
   .cropper-workspace {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-strip-item {
@@ -492,7 +516,7 @@
    ========================================================================== */
 @media (max-width: 420px) {
   .emp-welcome-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .emp-requests-table,
@@ -501,11 +525,11 @@
   }
 
   .leave-benefit-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .leave-dialog-kv {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.2rem;
   }
 

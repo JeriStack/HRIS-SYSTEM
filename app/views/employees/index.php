@@ -1,13 +1,20 @@
+<?php
+$canCreateEmployee = can('employees.create');
+$canUpdateEmployee = !empty($canManageHrRecords) || can('employees.update');
+$canDeactivateEmployee = can('employees.deactivate');
+?>
 <div class="content-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
         <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">Employees Directory</h1>
         <p style="color: #64748B; margin: 0; font-size: 0.875rem;">Centralized workforce registry, demographic profiles, and status lifecycle management.</p>
     </div>
     <div>
-        <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>➕</span>
-            <span>Add New Employee</span>
-        </a>
+        <?php if ($canCreateEmployee): ?>
+            <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span>➕</span>
+                <span>Add New Employee</span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -148,7 +155,9 @@
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
                                 <div style="color: #334155;"><?= e($emp['email']) ?></div>
-                                <div style="font-size: 0.75rem; color: #94A3B8;"><?= e($emp['phone'] ?: 'No phone') ?></div>
+                                <div style="font-size: 0.75rem; color: #94A3B8;">
+                                    <?= $canUpdateEmployee ? e($emp['phone'] ?: 'No phone') : 'Restricted (HR Only)' ?>
+                                </div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
                                 <div style="font-weight: 500; color: #1E293B;"><?= e($emp['department_name'] ?? 'Unassigned') ?></div>
@@ -169,10 +178,12 @@
                                     <a href="<?= url('/hr/employees/' . $emp['id']) ?>" class="btn btn-secondary btn-sm" title="View Profile">
                                         👁️ View
                                     </a>
-                                    <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
-                                        ✏️ Edit
-                                    </a>
-                                    <?php if ($emp['employment_status'] === 'Active'): ?>
+                                    <?php if ($canUpdateEmployee): ?>
+                                        <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
+                                            ✏️ Edit
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($emp['employment_status'] === 'Active' && $canDeactivateEmployee): ?>
                                         <button type="button" 
                                                 class="btn btn-danger btn-sm" 
                                                 onclick="confirmDeactivation(<?= e($emp['id']) ?>, '<?= e(addslashes($emp['first_name'] . ' ' . $emp['last_name'])) ?>', '<?= e($emp['employee_no']) ?>')" 
@@ -194,7 +205,7 @@
                             </p>
                             <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus)): ?>
                                 <a href="<?= url('/hr/employees') ?>" class="btn btn-secondary btn-sm">Clear All Filters</a>
-                            <?php else: ?>
+                            <?php elseif ($canCreateEmployee): ?>
                                 <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary btn-sm">Register First Employee</a>
                             <?php endif; ?>
                         </td>
@@ -205,6 +216,7 @@
     </div>
 </div>
 
+<?php if ($canDeactivateEmployee): ?>
 <!-- Soft-Deactivation Confirmation Modal -->
 <div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
@@ -253,3 +265,4 @@
         closeModal('deactivateModal');
     }
 </script>
+<?php endif; ?>

@@ -9,8 +9,10 @@ namespace App\Controllers\Api;
 use Core\Session;
 use App\Models\User;
 use App\Models\EmailOtp;
+use App\Services\AuthRiskService;
 use App\Services\MailService;
 use App\Services\RealtimeTicketService;
+use App\Services\TrustedDeviceService;
 use OpenApi\Attributes as OA;
 
 class AuthController extends ApiController
@@ -18,15 +20,21 @@ class AuthController extends ApiController
     private User $userModel;
     private EmailOtp $otpModel;
     private MailService $mailService;
+    private TrustedDeviceService $trustedDeviceService;
+    private AuthRiskService $riskService;
 
     public function __construct(
         ?User $userModel = null,
         ?EmailOtp $otpModel = null,
-        ?MailService $mailService = null
+        ?MailService $mailService = null,
+        ?TrustedDeviceService $trustedDeviceService = null,
+        ?AuthRiskService $riskService = null
     ) {
-        $this->userModel   = $userModel ?? new User();
-        $this->otpModel    = $otpModel ?? new EmailOtp();
-        $this->mailService = $mailService ?? new MailService();
+        $this->userModel            = $userModel ?? new User();
+        $this->otpModel             = $otpModel ?? new EmailOtp();
+        $this->mailService          = $mailService ?? new MailService();
+        $this->trustedDeviceService = $trustedDeviceService ?? new TrustedDeviceService();
+        $this->riskService          = $riskService ?? new AuthRiskService();
     }
 
     #[OA\Get(
@@ -181,14 +189,56 @@ class AuthController extends ApiController
         }
 
         // Rehash password if cost or algorithm updated
-        if (password_needs_rehash($user['password'], PASSWORD_DEFAULT)) {
-            $this->userModel->updatePasswordHash((int)$user['id'], password_hash($password, PASSWORD_DEFAULT));
+        if (\App\Services\PasswordPolicy::needsRehash($user['password'])) {
+            $newHash = \App\Services\PasswordPolicy::hash($password);
+            $this->userModel->updatePasswordHash((int)$user['id'], $newHash);
+            $user['password'] = $newHash;
         }
 
         $recipientEmail = strtolower(trim((string)($user['email'] ?? '')));
         if ($recipientEmail === '' || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
             $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_MISSING_EMAIL', "API login blocked: No valid email address configured for user ID: {$user['id']}", 'USER', (string)$user['id']);
             $this->error('Your account does not have a valid registered email address. Please contact HR.', 403);
+        }
+
+        // Smart OTP: Validate trusted-device cookie after credentials + account checks pass
+        $trustedResult = $this->trustedDeviceService->evaluateAndRotateOnLogin(
+            $user,
+            $this->trustedDeviceService->readCookieFromRequest(),
+            $_SERVER['HTTP_USER_AGENT'] ?? null,
+            client_ip()
+        );
+
+        if (!empty($trustedResult['trusted'])) {
+            $displayName = $this->establishAuthenticatedSession(
+                $user,
+                $role,
+                'trusted_device',
+                $trustedResult['device_id'] ?? null,
+                null
+            );
+
+            $this->userModel->logActivity(
+                (int)$user['id'],
+                'AUTH_LOGIN',
+                "User {$user['username']} completed API login via trusted device ({$role})",
+                'USER',
+                (string)$user['id']
+            );
+
+            $this->success([
+                'step'             => 'authenticated',
+                'auth_method'      => 'trusted_device',
+                'device_id'        => $trustedResult['device_id'] ?? null,
+                'trust_expires_at' => $trustedResult['expires_at'] ?? null,
+                'user_id'          => (int)$user['id'],
+                'username'         => $user['username'],
+                'role'             => $role,
+                'name'             => $displayName,
+                'email'            => $recipientEmail,
+                'csrf_token'       => csrf_token(),
+            ], 'Authentication successful via trusted device.');
+            return;
         }
 
         // Refuse to issue new codes while the account is locked out from repeated failed guesses
@@ -225,13 +275,18 @@ class AuthController extends ApiController
         Session::set('pending_otp_email', $recipientEmail);
         Session::set('pending_otp_name', $displayName);
         Session::set('pending_otp_time', time());
+        if (!empty($trustedResult['step_up_reason'])) {
+            Session::set('pending_otp_step_up_reason', (string)$trustedResult['step_up_reason']);
+        }
 
         $this->userModel->logActivity((int)$user['id'], 'AUTH_OTP_DISPATCHED', 'API login OTP dispatched to registered email for user: ' . mask_email($recipientEmail), 'USER', (string)$user['id']);
 
         $this->success([
-            'step'               => 'otp_required',
-            'email'              => $recipientEmail,
-            'expires_in_seconds' => 300,
+            'step'                 => 'otp_required',
+            'email'                => $recipientEmail,
+            'expires_in_seconds'   => 300,
+            'step_up_reason'       => $trustedResult['step_up_reason'] ?? null,
+            'remember_device_days' => $this->trustedDeviceService->trustDaysForRole($role),
         ], 'A 6-digit verification code has been dispatched to your registered email address.');
     }
 
@@ -354,41 +409,46 @@ class AuthController extends ApiController
             $this->error('Your employment account is inactive. Please contact Human Resources.', 403);
         }
 
-        // Bind the session to the current security-relevant account state
-        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
-        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
+        $rememberDevice = filter_var($input['remember_device'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $this->riskService->clearStepUpAfterVerifiedOtp((int)$user['id']);
 
-        Session::regenerate(true);
-        $this->clearPendingState();
+        $registeredDevice = null;
+        if ($rememberDevice) {
+            $registeredDevice = $this->trustedDeviceService->registerBrowserAfterOtp(
+                $user,
+                $this->trustedDeviceService->readCookieFromRequest(),
+                $_SERVER['HTTP_USER_AGENT'] ?? null,
+                client_ip()
+            );
+        }
 
-        $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
-        $displayName = $fullName !== '' ? $fullName : $user['username'];
+        $displayName = $this->establishAuthenticatedSession(
+            $user,
+            $role,
+            'email_otp',
+            $registeredDevice['device_id'] ?? null,
+            time()
+        );
 
-        Session::set('user', [
-            'id'          => (int)$user['id'],
-            'username'    => $user['username'],
-            'role'        => $role,
-            'employee_id' => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
-            'employee_no' => $user['employee_no'] ?? null,
-            'name'        => $displayName,
-            'email'       => $user['email'] ?? null,
-            'department'  => $user['department_name'] ?? 'Unassigned',
-            'position'    => $user['position_name'] ?? 'Unassigned',
-            'login_time'  => time(),
-            'last_mfa_verified_at' => time(),
-            'auth_fingerprint'     => $authFingerprint,
-        ]);
-        Session::set('last_activity', time());
-
-        $this->userModel->logActivity((int)$user['id'], 'AUTH_LOGIN', "User {$user['username']} completed API 2FA login ({$role})", 'USER', (string)$user['id']);
+        $this->userModel->logActivity(
+            (int)$user['id'],
+            'AUTH_LOGIN',
+            "User {$user['username']} completed API 2FA login ({$role})"
+                . ($registeredDevice !== null ? ' and trusted browser' : ''),
+            'USER',
+            (string)$user['id']
+        );
 
         $this->success([
-            'user_id'    => (int)$user['id'],
-            'username'   => $user['username'],
-            'role'       => $role,
-            'name'       => $displayName,
-            'email'      => $user['email'] ?? null,
-            'csrf_token' => csrf_token(),
+            'user_id'          => (int)$user['id'],
+            'username'         => $user['username'],
+            'role'             => $role,
+            'name'             => $displayName,
+            'email'            => $user['email'] ?? null,
+            'device_trusted'   => $registeredDevice !== null,
+            'trust_days'       => $registeredDevice['trust_days'] ?? null,
+            'trust_expires_at' => $registeredDevice['expires_at'] ?? null,
+            'csrf_token'       => csrf_token(),
         ], 'Authentication successful. Session established.');
     }
 
@@ -528,12 +588,50 @@ class AuthController extends ApiController
         $this->success(null, 'Signed out successfully.');
     }
 
+    private function establishAuthenticatedSession(
+        array $user,
+        string $role,
+        string $authMethod,
+        ?int $trustedDeviceId,
+        ?int $mfaVerifiedAt
+    ): string {
+        $authState = $this->userModel->findByIdWithAuthState((int)$user['id']);
+        $authFingerprint = $authState ? Session::computeAuthFingerprint($authState) : null;
+
+        Session::regenerate(true);
+        $this->clearPendingState();
+
+        $fullName = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+        $displayName = $fullName !== '' ? $fullName : $user['username'];
+
+        Session::set('user', [
+            'id'                   => (int)$user['id'],
+            'username'             => $user['username'],
+            'role'                 => $role,
+            'employee_id'          => !empty($user['employee_id']) ? (int)$user['employee_id'] : null,
+            'employee_no'          => $user['employee_no'] ?? null,
+            'name'                 => $displayName,
+            'email'                => $user['email'] ?? null,
+            'department'           => $user['department_name'] ?? 'Unassigned',
+            'position'             => $user['position_name'] ?? 'Unassigned',
+            'login_time'           => time(),
+            'last_mfa_verified_at' => $mfaVerifiedAt,
+            'login_auth_method'    => $authMethod,
+            'trusted_device_id'    => $trustedDeviceId,
+            'auth_fingerprint'     => $authFingerprint,
+        ]);
+        Session::set('last_activity', time());
+
+        return $displayName;
+    }
+
     private function clearPendingState(): void
     {
         Session::remove('pending_otp_user_id');
         Session::remove('pending_otp_email');
         Session::remove('pending_otp_name');
         Session::remove('pending_otp_time');
+        Session::remove('pending_otp_step_up_reason');
     }
 
     /**

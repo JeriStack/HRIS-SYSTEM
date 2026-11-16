@@ -1,0 +1,10 @@
+# Deny direct web execution and HTTP access to private announcement attachments
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+php_flag engine off
+RemoveHandler .php .phtml .php3 .php4 .php5 .phar

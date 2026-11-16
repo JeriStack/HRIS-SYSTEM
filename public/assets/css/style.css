@@ -986,9 +986,10 @@ form[hidden] {
 .app-content,
 .content-container {
   flex: 1;
-  padding: var(--space-6) var(--space-8);
+  min-width: 0;
   max-width: var(--content-max-width);
   width: 100%;
+  padding: var(--space-6) var(--space-8);
   margin: 0 auto;
 }
 

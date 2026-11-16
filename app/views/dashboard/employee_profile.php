@@ -741,6 +741,70 @@ $selectedCorrReason = ($activeForm === 'correction') ? (string)($formOld['reason
             <?php endif; ?>
         </div>
     </section>
+
+    <!-- Account Security & Trusted Browsers Summary -->
+    <?php
+    $tdList = is_array($trustedDevices ?? null) ? $trustedDevices : [];
+    $tdActiveDevices = array_values(array_filter(
+        $tdList,
+        static fn(array $d): bool => ($d['device_status'] ?? '') === 'active'
+    ));
+    $tdCurrentTrusted = false;
+    foreach ($tdActiveDevices as $tdRow) {
+        if (!empty($tdRow['is_current_device'])) {
+            $tdCurrentTrusted = true;
+            break;
+        }
+    }
+    $tdDays = isset($trustedDeviceDays) ? max(1, (int)$trustedDeviceDays) : 30;
+    $tdStepUpText = \App\Services\AuthRiskService::describeStepUpReason(
+        is_string($stepUpQueuedReason ?? null) ? $stepUpQueuedReason : null
+    );
+    ?>
+    <section class="card profile-section" id="security-devices" aria-labelledby="securityDevicesProfileHeading">
+        <div class="card-header">
+            <h2 class="card-title" id="securityDevicesProfileHeading">
+                <?= icon('shield', 18) ?> Account Security &amp; Trusted Devices
+            </h2>
+            <a href="<?= e(url('/account/security')) ?>" class="btn btn-primary btn-sm">
+                <?= icon('lock', 15) ?>
+                <span>Manage Devices &amp; Recovery</span>
+            </a>
+        </div>
+        <div class="card-body">
+            <?php if ($tdStepUpText !== null): ?>
+                <div class="alert alert-warning security-alert-banner" style="margin-bottom: var(--space-4);" role="alert">
+                    <span class="security-alert-icon" aria-hidden="true"><?= icon('alert-triangle', 18) ?></span>
+                    <div>
+                        <strong>Email OTP Step-Up Required Next Sign-In</strong>
+                        <p><?= e($tdStepUpText) ?></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <div class="security-profile-summary-bar">
+                <div class="security-profile-stats">
+                    <div class="security-profile-stat">
+                        <span class="security-profile-stat-label">Active Trusted Browsers</span>
+                        <span class="security-profile-stat-val"><?= count($tdActiveDevices) ?></span>
+                    </div>
+                    <div class="security-profile-stat">
+                        <span class="security-profile-stat-label">Current Browser</span>
+                        <span class="security-profile-stat-val">
+                            <?php if ($tdCurrentTrusted): ?>
+                                <span class="badge badge-success">Remembered (Up to <?= $tdDays ?>d)</span>
+                            <?php else: ?>
+                                <span class="badge badge-neutral">OTP Required Next Login</span>
+                            <?php endif; ?>
+                        </span>
+                    </div>
+                </div>
+                <p class="form-hint-text" style="margin: 0; max-width: 54ch;">
+                    Trusted browsers let you skip Email OTP after entering your password for up to <?= $tdDays ?> days. Review activity, revoke individual browsers, or trigger lost-device recovery anytime.
+                </p>
+            </div>
+        </div>
+    </section>
 </div>
 
 <!-- Native Accessible Dialog: Profile Picture Upload & Interactive Square Cropper -->

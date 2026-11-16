@@ -98,6 +98,16 @@
   2. Open **Security Events** (`/admin/security-events`) to inspect failed logins, OTP lockouts, and portal mismatches.
   3. Open **My Account Settings** (`/admin/account`) to update your administrator email address or password (requires entering your **Current Password**).
 - **Expected Result:** Updating credentials on `/admin/account` updates `users`, refreshes your session `auth_fingerprint` so you remain signed in, rotates your session ID, and logs `ADMIN_ACCOUNT_UPDATED`.
+
+### 2.6 HR Support Management (`/admin/support`)
+- **Purpose:** Triage, investigate, assign, and resolve technical issues, system errors, and access problems submitted by HR personnel (`HR-SUP-YYYY-XXXXXXXX`), and record private Admin-only investigation notes.
+- **Required Access / Permission:** `admin` role (`hr_support.admin_inbox`, `hr_support.admin_manage`, `hr_support.internal_notes`); routes `GET /admin/support`, `GET /admin/support/tickets/{ref}`, `POST /admin/support/tickets/{ref}/assign`, `POST /admin/support/tickets/{ref}/triage`, `POST /admin/support/tickets/{ref}/respond`, `GET /admin/support/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Support Management** (`/admin/support`) from the Admin Sidebar or System Overview.
+  2. Review the 6 live database KPI cards (`Total Open Tickets`, `Newly Submitted`, `Critical & High Priority`, `Awaiting HR Response`, `In Progress`, `Recently Resolved`).
+  3. Filter by status, priority, category, date range, or assigned administrator, and click **Manage** on a ticket.
+  4. Use **Assign Administrator** to assign the ticket to an active Admin user, **Status, Priority & Resolution** to transition statuses (`Submitted`, `Under Review`, `In Progress`, `Waiting for HR`, `Resolved`, `Closed`), or **Respond to HR or Add Internal Admin Note** to send an HR-visible reply, request info, or save a private internal note (hidden from HR).
+- **Expected Result:** Status transitions, assignments, responses, and redacted internal note metadata are logged in `activity_logs`; HR receives in-app, WebSocket, and redacted SMTP/Mailpit notifications (internal notes never notify or appear to HR).
 - **Screenshot Reference:** `docs/screenshots/admin/admin-system-health.png`, `docs/screenshots/admin/admin-security-events.png`
 
 ---
@@ -168,6 +178,24 @@
   3. Open **DSA Laboratory** (`/dsa`) to run Searching, Sorting, Stack, Queue, Linked List, Hash Table, and Binary Search Tree demonstrations on live HRIS data.
 - **Screenshot Reference:** `docs/screenshots/reports/hr-reports.png`, `docs/screenshots/dsa/dsa-visualizer.png`
 
+### 3.6 Help & Support Center for Reporting Issues to Administrators (`/hr/help`)
+- **Purpose:** Report technical errors, login/access issues, leave/employee module defects, or data discrepancies directly to System Administrators, track own submitted tickets, reply with supporting screenshots, confirm resolution, or request reopening.
+- **Required Access / Permission:** `hr` role (`hr_support.submit`, `hr_support.view_own`, `hr_support.reply_own`); routes `GET /hr/help`, `GET /hr/help/create`, `POST /hr/help/tickets`, `GET /hr/help/tickets/{ref}`, `POST /hr/help/tickets/{ref}/reply`, `POST /hr/help/tickets/{ref}/confirm-resolution`, `POST /hr/help/tickets/{ref}/reopen`, `GET /hr/help/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Help & Support (Admin)** (`/hr/help`) from the HR Sidebar or Daily HR Workflows.
+  2. Click **Submit Support Ticket** (`/hr/help/create`), enter **Subject**, **Issue Category**, **Priority** (`Low`, `Medium`, `High`, `Critical`), **Detailed Description**, and optional screenshots/files (`PNG`, `JPG`, `WEBP`, `PDF`, `TXT`, up to 3 files, max 5 MB each), review the confirmation dialog, and click **Confirm & Submit**.
+  3. Open any ticket (`HR-SUP-YYYY-XXXXXXXX`) from **My Support Tickets** to view public history and Admin replies, post follow-up messages, **Confirm Resolution** (`Resolved -> Closed`), or **Request Reopen** (`Resolved -> Under Review` within 14 days).
+- **Expected Result:** A unique `HR-SUP-YYYY-XXXXXXXX` ticket is persisted, Administrators are notified, and private Admin internal notes are never exposed to HR.
+
+### 3.7 Company Announcements Management (`/hr/announcements`)
+- **Purpose:** Create, draft, schedule, publish, target, archive, and track read/acknowledgment analytics for official company announcements.
+- **Required Access / Permission:** `hr` role (`announcements.view_manage`, `announcements.create`, `announcements.edit`, `announcements.schedule`, `announcements.publish`, `announcements.archive`, `announcements.delete_draft`, `announcements.view_analytics`); routes `GET /hr/announcements`, `GET /hr/announcements/create`, `POST /hr/announcements`, `GET /hr/announcements/{id}`, `GET /hr/announcements/{id}/edit`, `POST /hr/announcements/{id}/update`, `POST /hr/announcements/{id}/publish`, `POST /hr/announcements/{id}/schedule`, `POST /hr/announcements/{id}/archive`, `POST /hr/announcements/{id}/delete`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Announcements** (`/hr/announcements`) from the HR Sidebar or HR Dashboard.
+  2. Click **Create Announcement** (`/hr/announcements/create`), fill in **Title**, **Category**, **Priority** (`Normal`, `Important`, `Urgent`), **Summary**, **Detailed Content**, **Target Audience** (`All Active Employees` or selected `Specific Departments`), optional **Pin to Top**, optional **Require Employee Acknowledgment**, optional **Expiration Date**, and optional supporting attachments (`PDF`, `PNG`, `JPG`, `WEBP`, up to 3 files, max 10 MB each).
+  3. Choose **Save as Draft**, **Schedule Publication** (with future date/time), or **Publish Immediately** (confirmed via modal dialog).
+  4. Open any announcement (`/hr/announcements/{id}`) to inspect delivery analytics (**Targeted Audience**, **Read Count**, **Read Rate %**, **Unread**, **Acknowledged**), employee read receipts, and audit history.
+
 ---
 
 ## 4. Employee Manual (`role = 'employee'`)
@@ -218,4 +246,13 @@
   1. Watch the notification bell badge in the top navigation bar update in real time over WebSocket (`/ws`).
   2. Click the notification bell or open `/notifications` to read full messages and click **Mark All as Read**.
 - **Expected Result:** `notifications.is_read` is updated to `1` and the unread badge counter resets to `0`.
+
+### 4.5 Company Announcements Center (`/employee/announcements`)
+- **Purpose:** Read official company announcements targeted to your active employee profile or department, download official attachments, and record read/acknowledgment receipts.
+- **Required Access / Permission:** `employee` role (`announcements.read`, `announcements.acknowledge`); routes `GET /employee/announcements`, `GET /employee/announcements/{id}`, `POST /employee/announcements/{id}/read`, `GET /employee/announcements/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. View pinned and recent announcements directly on the **Employee Dashboard** (`/employee/dashboard`) or click **Announcements** (`/employee/announcements`) in the sidebar (which displays your live unread badge count).
+  2. Filter announcements by **Category**, **Priority**, **Read Status** (`Unread Only` / `Read`), or keyword search.
+  3. Click **Read Announcement** (`/employee/announcements/{id}`) to automatically record your `read_at` receipt, download attachments, and click **Acknowledge Announcement** when `requires_acknowledgment` is enabled.
+
 

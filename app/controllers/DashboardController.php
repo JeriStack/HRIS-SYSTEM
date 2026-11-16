@@ -17,15 +17,21 @@ class DashboardController extends Controller
     private PDO $pdo;
     private ?\App\Models\Notification $notificationModel;
     private ?\App\Models\Leave $leaveModel;
+    private ?\App\Models\SupportTicket $supportModel;
+    private ?\App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository $announcementRepo;
 
     public function __construct(
         ?PDO $pdo = null,
         ?\App\Models\Notification $notificationModel = null,
-        ?\App\Models\Leave $leaveModel = null
+        ?\App\Models\Leave $leaveModel = null,
+        ?\App\Models\SupportTicket $supportModel = null,
+        ?\App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository $announcementRepo = null
     ) {
         $this->pdo = $pdo ?? Database::getInstance()->getConnection();
         $this->notificationModel = $notificationModel;
         $this->leaveModel = $leaveModel;
+        $this->supportModel = $supportModel;
+        $this->announcementRepo = $announcementRepo;
     }
 
     private function getNotificationModel(): \App\Models\Notification
@@ -42,6 +48,14 @@ class DashboardController extends Controller
             $this->leaveModel = new \App\Models\Leave($this->pdo);
         }
         return $this->leaveModel;
+    }
+
+    private function getSupportModel(): \App\Models\SupportTicket
+    {
+        if ($this->supportModel === null) {
+            $this->supportModel = new \App\Models\SupportTicket($this->pdo);
+        }
+        return $this->supportModel;
     }
 
     /**
@@ -91,6 +105,65 @@ class DashboardController extends Controller
             ];
         }
 
+        $supportEvents = [
+            \App\Realtime\EventAuthorizer::SUPPORT_SUBMITTED,
+            \App\Realtime\EventAuthorizer::SUPPORT_HR_RESPONDED,
+            \App\Realtime\EventAuthorizer::SUPPORT_INFO_REQUESTED,
+            \App\Realtime\EventAuthorizer::SUPPORT_EMPLOYEE_REPLIED,
+            \App\Realtime\EventAuthorizer::SUPPORT_STATUS_CHANGED,
+            \App\Realtime\EventAuthorizer::SUPPORT_ASSIGNED,
+            \App\Realtime\EventAuthorizer::SUPPORT_COMPLAINT_ALERT,
+        ];
+        if (in_array($eventType, $supportEvents, true)) {
+            $role = function_exists('currentUserRole') ? strtolower((string)(currentUserRole() ?? 'employee')) : 'employee';
+            $isStaff = in_array($role, ['hr', 'admin'], true);
+            $prefix = $isStaff ? '/hr/support' : '/support';
+            return [
+                'path'  => $entityId > 0 ? $prefix . '/' . $entityId : $prefix,
+                'label' => 'Open ticket',
+            ];
+        }
+
+        $hrSupportEvents = [
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_SUBMITTED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_ADMIN_RESPONDED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_INFO_REQUESTED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_HR_REPLIED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_STATUS_CHANGED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_ASSIGNED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_REOPENED,
+        ];
+        if (in_array($eventType, $hrSupportEvents, true)) {
+            $role = function_exists('currentUserRole') ? strtolower((string)(currentUserRole() ?? 'employee')) : 'employee';
+            $base = $role === 'admin' ? '/admin/support' : '/hr/help';
+            $notifText = trim((string)($notification['title'] ?? '')) . ' ' . trim((string)($notification['message'] ?? ''));
+            $ticketRef = null;
+            if (preg_match('/HR-SUP-\d{4}-[A-Z0-9]{8}/', $notifText, $match) === 1) {
+                $ticketRef = $match[0];
+            } elseif ($entityId > 0) {
+                try {
+                    $ticketRef = (new \App\Models\HrSupportTicket())->findRefById($entityId);
+                } catch (\Throwable) {
+                    $ticketRef = null;
+                }
+            }
+
+            return [
+                'path'  => $ticketRef !== null ? $base . '/tickets/' . rawurlencode($ticketRef) : $base,
+                'label' => 'Open HR ticket',
+            ];
+        }
+
+        if (
+            $eventType === \App\Realtime\EventAuthorizer::ANNOUNCEMENT_PUBLISHED
+            || $eventType === \App\Realtime\EventAuthorizer::ANNOUNCEMENT_URGENT
+        ) {
+            return [
+                'path'  => $entityId > 0 ? '/employee/announcements/' . $entityId : '/employee/announcements',
+                'label' => 'Read announcement',
+            ];
+        }
+
         return null;
     }
 
@@ -109,6 +182,56 @@ class DashboardController extends Controller
             'total_positions'  => (int)$this->pdo->query("SELECT COUNT(*) FROM positions")->fetchColumn(),
         ];
 
+        $supportOverview = [
+            'total_open'               => 0,
+            'show_confidential_metric' => false,
+            'confidential_attention'   => 0,
+        ];
+        try {
+            $hrUser = currentUser();
+            if ($hrUser) {
+                $supportModel = new \App\Models\SupportTicket($this->pdo);
+                $supportHandlers = new \App\Models\SupportTicketHandler($this->pdo);
+                $supportAccess = new \App\Services\SupportAccessService();
+                $viewerCtx = $supportAccess->buildViewerContext($hrUser, $supportHandlers, $this->pdo);
+                $supportOverview = $supportModel->getHrOverviewStats($viewerCtx);
+            }
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::support] ' . $e->getMessage());
+        }
+
+        $hrAdminSupportStats = [
+            'total'          => 0,
+            'open'           => 0,
+            'waiting_for_hr' => 0,
+            'resolved'       => 0,
+        ];
+        try {
+            $uid = (int)currentUserId();
+            if ($uid > 0) {
+                $hrAdminSupportStats = (new \App\Models\HrSupportTicket($this->pdo))->getHrUserSummaryStats($uid);
+            }
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::hrAdminSupport] ' . $e->getMessage());
+        }
+
+        $announcementStats = [
+            'total'     => 0,
+            'draft'     => 0,
+            'scheduled' => 0,
+            'published' => 0,
+            'archived'  => 0,
+            'expired'   => 0,
+        ];
+        try {
+            $uid = (int)currentUserId();
+            $canManageAll = \Core\Permission::can('hr', 'announcements.manage_all');
+            $announcementStats = (new \App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository($this->pdo))
+                ->getHrSummaryStats($uid, $canManageAll);
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::announcements] ' . $e->getMessage());
+        }
+
         // Fetch recent active employees
         $recentEmployees = $this->pdo->query("
             SELECT e.employee_no, e.first_name, e.last_name, e.email, d.department_name, p.position_name, e.date_hired
@@ -121,10 +244,13 @@ class DashboardController extends Controller
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('dashboard.hr', [
-            'pageTitle'       => 'HR Dashboard - Employee HRIS',
-            'user'            => currentUser(),
-            'metrics'         => $metrics,
-            'recentEmployees' => $recentEmployees,
+            'pageTitle'           => 'HR Dashboard - Employee HRIS',
+            'user'                => currentUser(),
+            'metrics'             => $metrics,
+            'supportOverview'     => $supportOverview,
+            'hrAdminSupportStats' => $hrAdminSupportStats,
+            'announcementStats'   => $announcementStats,
+            'recentEmployees'     => $recentEmployees,
         ], 'hr');
     }
 
@@ -186,6 +312,7 @@ class DashboardController extends Controller
             'requests'      => null,
             'upcoming'      => null,
             'notifications' => null,
+            'support'       => null,
         ];
 
         if ($userId > 0) {
@@ -282,6 +409,51 @@ class DashboardController extends Controller
             }
         }
 
+        // 6. Fetch compact non-sensitive Help & Support summary for dashboard preview
+        $supportSummary = [
+            'open_count'     => 0,
+            'recent_tickets' => [],
+        ];
+        if ($employeeId !== null && $employeeId > 0) {
+            try {
+                $supportModel = $this->getSupportModel();
+                $supportAccess = new \App\Services\SupportAccessService();
+                $recentRaw = $supportModel->getRecentByEmployee($employeeId, 3);
+                $supportSummary = [
+                    'open_count'     => $supportModel->countOpenByEmployee($employeeId),
+                    'recent_tickets' => array_map(
+                        static fn (array $row): array => $supportAccess->maskForDashboard($row),
+                        $recentRaw
+                    ),
+                ];
+            } catch (\Throwable $e) {
+                error_log('[EmployeeDashboard::support] ' . $e->getMessage());
+                $sectionErrors['support'] = 'Unable to load support requests right now.';
+            }
+        }
+
+        // 7. Fetch max 3 targeted published announcements for Employee Dashboard preview (Phase 5.2)
+        // Strictly does NOT record read receipts on dashboard preview.
+        $recentAnnouncements = [];
+        $unreadAnnouncementsCount = 0;
+        if (
+            $employeeId > 0
+            && ($this->announcementRepo !== null || $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql')
+        ) {
+            try {
+                $annRepo = $this->announcementRepo
+                    ?? new \App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository($this->pdo);
+                $empDeptId = isset($employeeRecord['department_id']) && $employeeRecord['department_id'] !== null
+                    ? (int)$employeeRecord['department_id']
+                    : null;
+                $empStatus = (string)($employeeRecord['employment_status'] ?? 'Active');
+                $recentAnnouncements = $annRepo->getDashboardPreviewForEmployee($employeeId, $empDeptId, $empStatus, 3);
+                $unreadAnnouncementsCount = $annRepo->countUnreadForEmployee($employeeId, $empDeptId, $empStatus);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeDashboard::announcements] ' . $e->getMessage());
+            }
+        }
+
         $this->view('dashboard.employee', [
             'pageTitle'                => 'Employee Dashboard',
             'user'                     => $user,
@@ -291,6 +463,9 @@ class DashboardController extends Controller
             'pendingLeaves'            => $recentRequests,
             'upcomingApprovedLeaves'   => $upcomingApprovedLeaves,
             'pendingRequestsCount'     => $pendingRequestsCount,
+            'supportSummary'           => $supportSummary,
+            'recentAnnouncements'      => $recentAnnouncements,
+            'unreadAnnouncementsCount' => $unreadAnnouncementsCount,
             'recentNotifications'      => $recentNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
             'sectionErrors'            => $sectionErrors,
@@ -400,6 +575,18 @@ class DashboardController extends Controller
         $formOld    = Session::getFlash('profile_form_old', []);
         $activeForm = Session::getFlash('profile_active_form', '');
 
+        $trustedDevicesList = [];
+        $trustedDeviceDays = 30;
+        $stepUpQueuedReason = null;
+        try {
+            $tdService = new \App\Services\TrustedDeviceService();
+            $trustedDevicesList = $tdService->listDevicesForDisplay((int)$user['id'], $tdService->readCookieFromRequest());
+            $trustedDeviceDays = $tdService->trustDaysForRole((string)($user['role'] ?? 'employee'));
+            $stepUpQueuedReason = (new \App\Models\UserAuthSecurityState())->getRequiredStepUpReason((int)$user['id']);
+        } catch (\Throwable $e) {
+            error_log('[DashboardController::employeeProfile] Trusted device summary skipped: ' . $e->getMessage());
+        }
+
         $this->view('dashboard.employee_profile', [
             'pageTitle'               => 'My Profile',
             'user'                    => $user,
@@ -420,6 +607,9 @@ class DashboardController extends Controller
             'formErrors'              => is_array($formErrors) ? $formErrors : [],
             'formOld'                 => is_array($formOld) ? $formOld : [],
             'activeForm'              => is_string($activeForm) ? $activeForm : '',
+            'trustedDevices'          => $trustedDevicesList,
+            'trustedDeviceDays'       => $trustedDeviceDays,
+            'stepUpQueuedReason'      => $stepUpQueuedReason,
         ], 'hr');
     }
 
