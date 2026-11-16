@@ -72,6 +72,18 @@ class TestAnnouncementsModuleEndToEnd:
                         "mobile": width <= 767,
                     },
                 )
+        WebDriverWait(driver, 4).until(
+            lambda d: d.execute_script(
+                """
+                const ac = document.querySelector('.app-container');
+                if (!ac) return true;
+                if (window.innerWidth <= 767 && parseFloat(getComputedStyle(ac).marginLeft) > 0.5) {
+                    return false;
+                }
+                return true;
+                """
+            )
+        )
         time.sleep(0.15)
 
     @staticmethod
@@ -199,4 +211,9 @@ class TestAnnouncementsModuleEndToEnd:
             assert "Read Receipt Recorded" in driver.find_element(By.TAG_NAME, "body").text
             assert published_title in driver.find_element(By.TAG_NAME, "body").text
         finally:
+            if hasattr(driver, "execute_cdp_cmd"):
+                try:
+                    driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
+                except Exception:
+                    pass
             self._cleanup_announcements(created_ids)
