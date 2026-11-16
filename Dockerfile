@@ -27,6 +27,19 @@ RUN docker-php-ext-install -j"$(nproc)" \
     pdo_mysql \
     zip
 
+# Optional Xdebug for local step debugging. Off by default, so CI, CD and
+# production builds never include it; docker-compose.yml sets it to true.
+ARG INSTALL_XDEBUG=false
+ARG XDEBUG_VERSION=3.5.0
+COPY docker/php/xdebug.ini /tmp/xdebug.ini
+RUN if [ "$INSTALL_XDEBUG" = "true" ]; then \
+        pecl install "xdebug-${XDEBUG_VERSION}" \
+        && docker-php-ext-enable xdebug \
+        && cp /tmp/xdebug.ini /usr/local/etc/php/conf.d/zz-xdebug.ini \
+        && rm -rf /tmp/pear; \
+    fi \
+    && rm -f /tmp/xdebug.ini
+
 # Enable Apache modules (mod_rewrite, mod_headers)
 RUN a2enmod rewrite headers
 

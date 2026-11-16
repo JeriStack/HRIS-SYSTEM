@@ -36,8 +36,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Dev image only: installs Xdebug (inactive until XDEBUG_MODE below enables it)
+        INSTALL_XDEBUG: "true"
     expose:
       - "80"
+    # Lets Xdebug in the container reach the editor's listener on the host (Linux needs this)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # Read from the project .env (Compose interpolation) so the brand name is configurable.
       # OTP_PEPPER_SECRET is intentionally NOT listed here: the bind-mounted .env supplies it,
@@ -64,6 +70,9 @@ services:
       WS_PATH: /ws
       WS_PUBLIC_URL: ""
       WS_TICKET_TTL: 30
+      # Step debugging for web requests that carry XDEBUG_TRIGGER. Set XDEBUG_MODE=off
+      # in the project .env to disable it. Other services keep Xdebug off.
+      XDEBUG_MODE: "${XDEBUG_MODE:-debug,develop}"
       # Mailpit SMTP delivery (internal container hostname)
       MAIL_DRIVER: smtp
       SMTP_HOST: mailpit
