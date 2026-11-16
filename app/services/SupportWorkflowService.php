@@ -691,25 +691,27 @@ class SupportWorkflowService
             $updates = ['last_activity_at' => date('Y-m-d H:i:s')];
             if ($newStatus !== $currentStatus) {
                 $updates['status'] = $newStatus;
+                $isPublicTicket = !empty($ticket['is_public_ticket']) || (($ticket['support_channel'] ?? '') === 'public_auth');
+                $targetLabel = $isPublicTicket ? 'requester' : 'employee';
                 $this->tickets->addStatusHistory([
                     'ticket_id'          => $ticketId,
                     'from_status'        => $currentStatus,
                     'to_status'          => $newStatus,
                     'changed_by_user_id' => $userId,
                     'remarks'            => $mode === 'request_info'
-                        ? 'Additional information requested from employee.'
-                        : 'HR began review and responded to employee.',
+                        ? "Additional information requested from {$targetLabel}."
+                        : "HR began review and responded to {$targetLabel}.",
                 ]);
             }
 
             $this->tickets->updateTicketFields($ticketId, $updates);
             $updated = $this->tickets->findById($ticketId) ?? $ticket;
 
-            if (!$isInternal) {
-                $this->notifications->notifyHrPublicResponse($updated, $mode === 'request_info');
-            }
-
             $this->pdo->commit();
+
+            if (!$isInternal) {
+                $this->notifications->notifyHrPublicResponse($updated, $mode === 'request_info', $body);
+            }
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -811,13 +813,14 @@ class SupportWorkflowService
             ]);
 
             $updated = $this->tickets->findById($ticketId) ?? $ticket;
+            $this->pdo->commit();
+
             if ($assigneeId !== null) {
                 $this->notifications->notifyHandlerAssigned($updated, $assigneeId);
             }
             if ($moveToReview) {
                 $this->notifications->notifyStatusChanged($updated, 'Under Review');
             }
-            $this->pdo->commit();
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -942,10 +945,11 @@ class SupportWorkflowService
             }
 
             $updated = $this->tickets->findById($ticketId) ?? $ticket;
-            if ($statusChanged) {
-                $this->notifications->notifyStatusChanged($updated, $newStatus);
-            }
             $this->pdo->commit();
+
+            if ($statusChanged) {
+                $this->notifications->notifyStatusChanged($updated, $newStatus, $remarks !== '' ? $remarks : null);
+            }
         } catch (\Throwable $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();

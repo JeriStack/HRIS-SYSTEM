@@ -151,6 +151,7 @@ $showConfidentialCard = !empty($stats['show_confidential_metric']);
                     <option value="mine"<?= $filters['scope'] === 'mine' ? ' selected' : '' ?>>Assigned to Me</option>
                     <option value="unassigned"<?= $filters['scope'] === 'unassigned' ? ' selected' : '' ?>>Unassigned Open</option>
                     <option value="general"<?= $filters['scope'] === 'general' ? ' selected' : '' ?>>General Support Only</option>
+                    <option value="public_auth"<?= $filters['scope'] === 'public_auth' ? ' selected' : '' ?>>Public Login Assistance</option>
                     <?php if ($canHandleConfidential): ?>
                         <option value="confidential"<?= $filters['scope'] === 'confidential' ? ' selected' : '' ?>>Confidential Complaints</option>
                     <?php endif; ?>
@@ -203,7 +204,13 @@ $showConfidentialCard = !empty($stats['show_confidential_metric']);
                             default  => 'badge-info',
                         };
                         $isConf = !empty($t['is_confidential']) || (($t['request_type'] ?? '') === 'complaint');
-                        $empName = trim((string)($t['first_name'] ?? '') . ' ' . (string)($t['last_name'] ?? ''));
+                        $isPublic = !empty($t['is_public_ticket']) || (($t['support_channel'] ?? '') === 'public_auth');
+                        $empName = $isPublic
+                            ? (trim((string)($t['requester_name'] ?? '')) ?: 'Public Requester')
+                            : trim((string)($t['first_name'] ?? '') . ' ' . (string)($t['last_name'] ?? ''));
+                        $empSub = $isPublic
+                            ? trim((string)($t['requester_email'] ?? '')) . ' · Public Inquiry'
+                            : (string)($t['employee_no'] ?? '');
                         $handlerName = trim((string)($t['assigned_first_name'] ?? '') . ' ' . (string)($t['assigned_last_name'] ?? ''));
                         if ($handlerName === '') {
                             $handlerName = (string)($t['assigned_to_username'] ?? 'Unassigned');
@@ -215,12 +222,15 @@ $showConfidentialCard = !empty($stats['show_confidential_metric']);
                                     <?= e((string)$t['ticket_ref']) ?>
                                 </a>
                             </td>
-                            <td data-label="Employee">
+                            <td data-label="<?= $isPublic ? 'Requester' : 'Employee' ?>">
                                 <div style="font-weight: 600;"><?= e($empName) ?></div>
-                                <div class="text-xs text-muted"><?= e((string)($t['employee_no'] ?? '')) ?></div>
+                                <div class="text-xs text-muted"><?= e($empSub) ?></div>
                             </td>
                             <td data-label="Category">
                                 <span><?= e((string)$t['category']) ?></span>
+                                <?php if ($isPublic): ?>
+                                    <span class="badge badge-info" style="margin-left: 0.35rem;">Public Login Issue</span>
+                                <?php endif; ?>
                                 <?php if ($isConf): ?>
                                     <span class="badge badge-warning" style="margin-left: 0.3rem;">Confidential</span>
                                 <?php endif; ?>

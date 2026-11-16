@@ -15,6 +15,7 @@ use Core\CsrfMiddleware;
 use Core\PermissionMiddleware;
 use App\Controllers\HomeController;
 use App\Controllers\AuthController;
+use App\Controllers\PublicAuthSupportController;
 use App\Controllers\AccountSecurityController;
 use App\Controllers\DashboardController;
 use App\Controllers\AdminController;
@@ -57,6 +58,20 @@ try {
     $router->post('/verify-otp/cancel', [AuthController::class, 'cancelOtp'], [CsrfMiddleware::class]);
     // Logout is state-changing: POST + CSRF only. GET /logout is intentionally not routed (405).
     $router->post('/logout', [AuthController::class, 'logout'], [AuthMiddleware::class, CsrfMiddleware::class]);
+
+    // Public Help & Support, Password Recovery, and Pre-Login Assistance Routes
+    $router->get('/auth/help', [PublicAuthSupportController::class, 'helpHub']);
+    $router->get('/auth/help/otp', [PublicAuthSupportController::class, 'otpHelp']);
+    $router->get('/forgot-password', [PublicAuthSupportController::class, 'showForgotPasswordForm']);
+    $router->post('/forgot-password', [PublicAuthSupportController::class, 'submitForgotPassword'], [CsrfMiddleware::class]);
+    $router->get('/reset-password', [PublicAuthSupportController::class, 'showResetPasswordForm']);
+    $router->post('/reset-password', [PublicAuthSupportController::class, 'submitResetPassword'], [CsrfMiddleware::class]);
+    $router->get('/auth/support/report', [PublicAuthSupportController::class, 'showReportForm']);
+    $router->post('/auth/support/report', [PublicAuthSupportController::class, 'submitReport'], [CsrfMiddleware::class]);
+    $router->get('/auth/support/track', [PublicAuthSupportController::class, 'trackTicket']);
+    $router->post('/auth/support/track', [PublicAuthSupportController::class, 'trackTicket'], [CsrfMiddleware::class]);
+    $router->post('/auth/support/track/reply', [PublicAuthSupportController::class, 'replyToTrackedTicket'], [CsrfMiddleware::class]);
+    $router->get('/auth/support/attachments/{id}', [PublicAuthSupportController::class, 'downloadPublicAttachment']);
 
     // Role-Directed Dashboard Entry Point
     $router->get('/dashboard', [AuthController::class, 'dashboard'], [AuthMiddleware::class]);
@@ -330,13 +345,13 @@ try {
     $router->post('/support/{id}/close', [\App\Controllers\SupportController::class, 'confirmClose'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
 
     // Group: HR Support Inbox & Confidential Handler Governance
-    $router->get('/hr/support', [\App\Controllers\HrSupportController::class, 'index'], [$hrOnly, new \Core\PermissionMiddleware('support.inbox_view')]);
-    $router->get('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'handlers'], [$hrOnly, new \Core\PermissionMiddleware('support.manage_handlers')]);
-    $router->post('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'updateHandler'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_handlers')]);
-    $router->get('/hr/support/{id}', [\App\Controllers\HrSupportController::class, 'show'], [$hrOnly, new \Core\PermissionMiddleware('support.inbox_view')]);
-    $router->post('/hr/support/{id}/respond', [\App\Controllers\HrSupportController::class, 'respond'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.respond')]);
-    $router->post('/hr/support/{id}/assign', [\App\Controllers\HrSupportController::class, 'assign'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.assign')]);
-    $router->post('/hr/support/{id}/status', [\App\Controllers\HrSupportController::class, 'updateStatus'], [$hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_status')]);
+    $router->get('/hr/support', [\App\Controllers\HrSupportController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('support.inbox_view')]);
+    $router->get('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'handlers'], [AuthMiddleware::class, $adminOnly, new \Core\PermissionMiddleware('support.manage_handlers')]);
+    $router->post('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'updateHandler'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_handlers')]);
+    $router->get('/hr/support/{id}', [\App\Controllers\HrSupportController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('support.inbox_view')]);
+    $router->post('/hr/support/{id}/respond', [\App\Controllers\HrSupportController::class, 'respond'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.respond')]);
+    $router->post('/hr/support/{id}/assign', [\App\Controllers\HrSupportController::class, 'assign'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.assign')]);
+    $router->post('/hr/support/{id}/status', [\App\Controllers\HrSupportController::class, 'updateStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_status')]);
 
     // 4. Dispatch Request through the Router
     $router->dispatch();

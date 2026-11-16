@@ -75,10 +75,11 @@ final class SupportAccessService
             return (bool)($this->permissionChecker)($user, $permissionSlug, $pdo);
         }
 
+        $sessionUid = (int)($_SESSION['user']['id'] ?? ($_SESSION['user_id'] ?? 0));
         if (
             function_exists('can')
-            && isset($_SESSION['user_id'])
-            && (int)$_SESSION['user_id'] === (int)($user['id'] ?? 0)
+            && $sessionUid > 0
+            && $sessionUid === (int)($user['id'] ?? 0)
         ) {
             return can($permissionSlug);
         }

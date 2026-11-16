@@ -640,9 +640,9 @@
               </svg>
             </span>
             <div>
-              <h3 class="security-card-title">Strict Two-Role Authorization</h3>
+              <h3 class="security-card-title">Strict Three-Role Authorization</h3>
               <p class="security-card-desc">
-                Server-side middleware enforces clear separation between HR and Employee permissions on every route, ensuring users only access authorized records and actions.
+                Server-side middleware enforces clear separation between Admin, HR, and Employee permissions on every route, ensuring users only access authorized records and actions.
               </p>
             </div>
           </article>
@@ -835,7 +835,7 @@
         <div>
           <h3 class="footer-col-title">Platform</h3>
           <ul class="footer-links-list">
-            <li><a class="footer-link" href="#roles">HR &amp; Employee Roles</a></li>
+            <li><a class="footer-link" href="#roles">Admin, HR &amp; Employee Roles</a></li>
             <li><a class="footer-link" href="#security">Security &amp; Reliability</a></li>
             <li><a class="footer-link" href="<?= e(url('/login')) ?>">Sign In</a></li>
           </ul>
@@ -845,6 +845,9 @@
           <h3 class="footer-col-title">System Access</h3>
           <ul class="footer-links-list">
             <li><a class="footer-link" href="<?= e(url('/login')) ?>">Account Login</a></li>
+            <li><a class="footer-link" href="<?= e(url('/auth/help')) ?>">Help &amp; Support</a></li>
+            <li><a class="footer-link" href="<?= e(url('/forgot-password')) ?>">Forgot Password</a></li>
+            <li><a class="footer-link" href="<?= e(url('/auth/support/track')) ?>">Track Support Request</a></li>
             <li><a class="footer-link" href="<?= e(url('/health')) ?>">System Health Check</a></li>
           </ul>
         </div>
@@ -858,6 +861,8 @@
 
         <div class="footer-bottom-links">
           <a href="#home">Back to Top</a>
+          <span aria-hidden="true">&bull;</span>
+          <a href="<?= e(url('/auth/help')) ?>">Help &amp; Support</a>
           <span aria-hidden="true">&bull;</span>
           <a href="<?= e(url('/login')) ?>">Login</a>
         </div>

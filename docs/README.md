@@ -26,6 +26,8 @@ Essential architectural, design, user manual, and product specifications governi
   High-density context primer, key file paths, core business rules, and essential CLI commands for AI assistants and context engineering.
 * **[Smart OTP & Trusted Devices Specification](01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md)** (`01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md`)  
   Architecture, token/cookie cryptography, single-use rotation, risk-based step-up rules, and self-service `/account/security` design.
+* **[Public Help, Password Recovery & Login Assistance Spec](01-core/PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md)** (`01-core/PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md`)  
+  Pre-login Help Hub, anti-enumeration Forgot/Reset Password lifecycle, and tokenized `AUTH-YYYY-NNNNN` login support intake & redacted tracker.
 
 ---
 

@@ -44,12 +44,16 @@ if (!empty($ticket['category_metadata_json'])) {
 ?>
 <div class="page-header">
     <div class="page-title-group">
+<?php $isPublic = !empty($ticket['is_public_ticket']) || (($ticket['support_channel'] ?? '') === 'public_auth'); ?>
         <div class="inline-flex items-center gap-2 flex-wrap">
             <h1 class="tabular-nums"><?= e((string)$ticket['ticket_ref']) ?></h1>
             <span class="badge <?= $statusBadge ?>"><?= e($status) ?></span>
             <span class="badge badge-neutral"><?= e((string)($ticket['priority'] ?? 'Medium')) ?> Priority</span>
             <?php if ($isConfidential): ?>
                 <span class="badge badge-warning">Confidential Case</span>
+            <?php endif; ?>
+            <?php if ($isPublic): ?>
+                <span class="badge badge-info">Public Login Assistance</span>
             <?php endif; ?>
             <?php if (!empty($ticket['escalated_flag'])): ?>
                 <span class="badge badge-danger">Escalated Policy Oversight</span>
@@ -110,9 +114,14 @@ if (!empty($ticket['category_metadata_json'])) {
                                 $cardClass .= ' is-hr';
                             }
 
-                            $senderName = trim(((string)($m['sender_first_name'] ?? '')) . ' ' . ((string)($m['sender_last_name'] ?? '')));
-                            if ($senderName === '') {
-                                $senderName = (string)($m['sender_username'] ?? ucfirst((string)($m['sender_role'] ?? 'System')));
+                            $senderRole = (string)($m['sender_role'] ?? '');
+                            if ($senderRole === 'public_requester') {
+                                $senderName = trim((string)($ticket['requester_name'] ?? '')) ?: 'Public Requester';
+                            } else {
+                                $senderName = trim(((string)($m['sender_first_name'] ?? '')) . ' ' . ((string)($m['sender_last_name'] ?? '')));
+                                if ($senderName === '') {
+                                    $senderName = (string)($m['sender_username'] ?? ucfirst($senderRole !== '' ? $senderRole : 'System'));
+                                }
                             }
 
                             $typeLabel = match ($mType) {
@@ -225,12 +234,35 @@ if (!empty($ticket['category_metadata_json'])) {
             </div>
             <div class="card-body" style="display: flex; flex-direction: column; gap: 0.65rem;">
                 <div>
-                    <div class="text-xs text-muted">Submitted By</div>
-                    <div class="text-sm" style="font-weight: 600;">
-                        <?= e($empName) ?> (<?= e((string)($ticket['employee_no'] ?? '')) ?>)
-                    </div>
-                    <?php if (!empty($ticket['department_name'])): ?>
-                        <div class="text-xs text-muted"><?= e((string)$ticket['department_name']) ?></div>
+                    <?php if ($isPublic): ?>
+                        <div class="text-xs text-muted">Public Requester</div>
+                        <div class="text-sm" style="font-weight: 600;">
+                            <?= e((string)($ticket['requester_name'] ?? 'Public Requester')) ?>
+                        </div>
+                        <div class="text-xs text-muted" style="word-break: break-word;">
+                            <?= e((string)($ticket['requester_email'] ?? '')) ?>
+                        </div>
+                        <?php if (!empty($ticket['public_issue_datetime'])): ?>
+                            <div class="text-xs text-muted" style="margin-top: 0.35rem;">
+                                Issue time: <?= e((string)$ticket['public_issue_datetime']) ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!empty($ticket['public_client_env'])): ?>
+                            <div class="text-xs text-muted">
+                                Environment: <?= e((string)$ticket['public_client_env']) ?>
+                            </div>
+                        <?php endif; ?>
+                        <div class="text-xs text-warning" style="margin-top: 0.5rem;">
+                            Security notice: never share passwords, reset links, or OTP codes inside ticket replies.
+                        </div>
+                    <?php else: ?>
+                        <div class="text-xs text-muted">Submitted By</div>
+                        <div class="text-sm" style="font-weight: 600;">
+                            <?= e($empName) ?> (<?= e((string)($ticket['employee_no'] ?? '')) ?>)
+                        </div>
+                        <?php if (!empty($ticket['department_name'])): ?>
+                            <div class="text-xs text-muted"><?= e((string)$ticket['department_name']) ?></div>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <div>

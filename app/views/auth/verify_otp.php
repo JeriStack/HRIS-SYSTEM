@@ -418,6 +418,13 @@ if ($hasServerError) {
                         </form>
                     </div>
 
+                    <div class="otp-help-strip">
+                        Having OTP trouble?
+                        <a href="<?= e(url('/auth/help/otp')) ?>">OTP Troubleshooting</a>
+                        <span aria-hidden="true">&middot;</span>
+                        <a href="<?= e(url('/auth/support/report?category=' . rawurlencode('OTP Delivery Problem'))) ?>">Report OTP Issue</a>
+                    </div>
+
                     <!-- Card Bottom Guard Disclaimer -->
                     <div class="card-footer-strip">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--brand-blue)" style="vertical-align: -2px; margin-right: 3px;" aria-hidden="true">

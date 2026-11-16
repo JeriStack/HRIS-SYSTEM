@@ -189,8 +189,10 @@ class AuthController extends ApiController
         }
 
         // Rehash password if cost or algorithm updated
-        if (password_needs_rehash($user['password'], PASSWORD_DEFAULT)) {
-            $this->userModel->updatePasswordHash((int)$user['id'], password_hash($password, PASSWORD_DEFAULT));
+        if (\App\Services\PasswordPolicy::needsRehash($user['password'])) {
+            $newHash = \App\Services\PasswordPolicy::hash($password);
+            $this->userModel->updatePasswordHash((int)$user['id'], $newHash);
+            $user['password'] = $newHash;
         }
 
         $recipientEmail = strtolower(trim((string)($user['email'] ?? '')));

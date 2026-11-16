@@ -514,7 +514,7 @@ class AdminController extends Controller
                 return;
             }
 
-            $updateData['password'] = password_hash($newPassword, PASSWORD_BCRYPT, ['cost' => 12]);
+            $updateData['password'] = \App\Services\PasswordPolicy::hash($newPassword);
         }
 
         $this->getUserModel()->update($userId, $updateData);

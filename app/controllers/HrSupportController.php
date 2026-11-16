@@ -96,7 +96,10 @@ class HrSupportController extends Controller
             'filters'               => $filters,
             'canHandleConfidential' => !empty($viewerContext['can_handle_confidential']),
             'canManageHandlers'     => $this->access->hasCapability($user, 'support.manage_handlers', $this->pdo),
-            'categories'            => (array)config('support.support_categories', []),
+            'categories'            => array_merge(
+                (array)config('support.support_categories', []),
+                (array)config('support.public_auth_categories', [])
+            ),
             'statuses'              => (array)config('support.statuses', []),
             'priorities'            => (array)config('support.priorities', []),
         ], 'hr');

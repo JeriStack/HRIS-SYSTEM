@@ -251,9 +251,10 @@ class AuthController extends Controller
         }
 
         // 9. Transparent Password Rehashing if cost or algorithm updated
-        if (password_needs_rehash($user['password'], PASSWORD_DEFAULT)) {
-            $newHash = password_hash($password, PASSWORD_DEFAULT);
+        if (\App\Services\PasswordPolicy::needsRehash($user['password'])) {
+            $newHash = \App\Services\PasswordPolicy::hash($password);
             $this->userModel->updatePasswordHash((int)$user['id'], $newHash);
+            $user['password'] = $newHash;
         }
 
         // 10. Verify Recipient Email from Database Account Record

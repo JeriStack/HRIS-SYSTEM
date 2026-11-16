@@ -1523,6 +1523,37 @@ html.theme-transitioning .email-chip {
   }
 }
 
+:root {
+  color-scheme: light dark;
+}
+
+.otp-help-strip {
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.otp-help-strip a {
+  font-weight: 600;
+  color: var(--border-focus);
+  text-decoration: none;
+  padding: 0.15rem 0.25rem;
+  border-radius: 4px;
+}
+
+.otp-help-strip a:hover,
+.otp-help-strip a:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.otp-help-strip a:focus-visible {
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

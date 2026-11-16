@@ -18,16 +18,19 @@ class SupportNotificationService
     private Notification $notifications;
     private User $users;
     private SupportTicketHandler $handlers;
+    private MailService $mailer;
 
     public function __construct(
         ?Notification $notifications = null,
         ?User $users = null,
-        ?SupportTicketHandler $handlers = null
+        ?SupportTicketHandler $handlers = null,
+        ?MailService $mailer = null
     ) {
         $pdo = $handlers?->getDb();
         $this->notifications = $notifications ?? new Notification($pdo);
         $this->users = $users ?? new User($pdo);
         $this->handlers = $handlers ?? new SupportTicketHandler($pdo);
+        $this->mailer = $mailer ?? new MailService();
     }
 
     /**
@@ -107,7 +110,8 @@ class SupportNotificationService
             return;
         }
 
-        // Standard support requests: notify active non-conflicted HR staff (excluding submitter if HR)
+        // Standard & public login support requests: notify active non-conflicted HR staff (excluding submitter if HR)
+        $isPublicTicket = $this->isPublicTicket($ticket);
         foreach ($this->handlers->getAssignableStandardHandlers($subjectEmpId) as $staff) {
             if (strtolower((string)($staff['role'] ?? '')) !== 'hr') {
                 continue;
@@ -116,10 +120,17 @@ class SupportNotificationService
             if ($uid <= 0 || $uid === $submitterUserId) {
                 continue;
             }
+            $title = $isPublicTicket
+                ? "Public Login Support Request ({$ticketRef})"
+                : "New Support Request ({$ticketRef})";
+            $message = $isPublicTicket
+                ? "New pre-login {$ticket['category']} ticket ({$ticketRef}) submitted via Public Support for HR review."
+                : "New {$ticket['category']} request ({$ticketRef}) submitted for HR review.";
+
             $this->notifications->create(
                 $uid,
-                "New Support Request ({$ticketRef})",
-                "New {$ticket['category']} request ({$ticketRef}) submitted for HR review.",
+                $title,
+                $message,
                 'info',
                 EventAuthorizer::SUPPORT_SUBMITTED,
                 $ticketId
@@ -128,12 +139,28 @@ class SupportNotificationService
     }
 
     /**
-     * Notify employee when HR posts a visible response or requests additional information.
+     * Notify employee (or email unauthenticated public requester) when HR posts a visible response
+     * or requests additional information.
      *
      * @param array<string, mixed> $ticket
      */
-    public function notifyHrPublicResponse(array $ticket, bool $isInfoRequest = false): void
+    public function notifyHrPublicResponse(array $ticket, bool $isInfoRequest = false, ?string $publicMessageExcerpt = null): void
     {
+        if ($this->isPublicTicket($ticket)) {
+            $ticketRef = (string)($ticket['ticket_ref'] ?? '');
+            $subjectLine = $isInfoRequest
+                ? "Action Needed on Your NEXORA HR Support Request ({$ticketRef})"
+                : "HR Support Update on Your Request ({$ticketRef})";
+            $headline = $isInfoRequest
+                ? 'Additional Information Requested'
+                : 'New Response from HR Support';
+            $intro = $isInfoRequest
+                ? "An HR Support specialist requested additional information on your login assistance ticket <strong>" . e($ticketRef) . '</strong>.'
+                : "An HR Support specialist posted a response on your login assistance ticket <strong>" . e($ticketRef) . '</strong>.';
+            $this->sendPublicRequesterUpdateEmail($ticket, $subjectLine, $headline, $intro, $publicMessageExcerpt);
+            return;
+        }
+
         $owner = $this->resolveActiveOwnerUser($ticket);
         if (!$owner) {
             return;
@@ -162,12 +189,25 @@ class SupportNotificationService
     }
 
     /**
-     * Notify employee when ticket status changes, resolves, or closes.
+     * Notify employee (or email public requester) when ticket status changes, resolves, or closes.
      *
      * @param array<string, mixed> $ticket
      */
-    public function notifyStatusChanged(array $ticket, string $newStatus): void
+    public function notifyStatusChanged(array $ticket, string $newStatus, ?string $publicRemarks = null): void
     {
+        if ($this->isPublicTicket($ticket)) {
+            $ticketRef = (string)($ticket['ticket_ref'] ?? '');
+            $displayStatus = $newStatus === 'Waiting for Employee' ? 'Waiting for Requester' : $newStatus;
+            $this->sendPublicRequesterUpdateEmail(
+                $ticket,
+                "Support Ticket Status Updated: {$displayStatus} ({$ticketRef})",
+                "Ticket Status Updated: {$displayStatus}",
+                "Your login assistance request <strong>" . e($ticketRef) . '</strong> is now marked as <strong>' . e($displayStatus) . '</strong>.',
+                $publicRemarks
+            );
+            return;
+        }
+
         $owner = $this->resolveActiveOwnerUser($ticket);
         if (!$owner) {
             return;
@@ -338,5 +378,96 @@ class SupportNotificationService
     private function isConfidential(array $ticket): bool
     {
         return !empty($ticket['is_confidential']) || (($ticket['request_type'] ?? '') === 'complaint');
+    }
+
+    /**
+     * @param array<string, mixed> $ticket
+     */
+    private function isPublicTicket(array $ticket): bool
+    {
+        return !empty($ticket['is_public_ticket']) || (($ticket['support_channel'] ?? '') === 'public_auth');
+    }
+
+    /**
+     * Notify public requester synchronously by email without revealing internal notes, handlers, or account details.
+     *
+     * @param array<string, mixed> $ticket
+     */
+    private function sendPublicRequesterUpdateEmail(
+        array $ticket,
+        string $emailSubject,
+        string $headline,
+        string $introHtml,
+        ?string $publicExcerpt = null
+    ): void {
+        $email = strtolower(trim((string)($ticket['requester_email'] ?? '')));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return;
+        }
+
+        $name = trim((string)($ticket['requester_name'] ?? 'Requester'));
+        if ($name === '') {
+            $name = 'Requester';
+        }
+
+        $appName = e((string)config('config.app_name', 'NEXORA HR'));
+        $safeName = e($name);
+        $safeHeadline = e($headline);
+        $ticketRef = e((string)($ticket['ticket_ref'] ?? ''));
+        $trackHubUrl = e(absolute_url('/auth/support/track'));
+        $year = date('Y');
+
+        $excerptBlock = '';
+        $excerptText = '';
+        if ($publicExcerpt !== null && trim($publicExcerpt) !== '') {
+            $cleanExcerpt = mb_substr(trim($publicExcerpt), 0, 1200);
+            $excerptBlock = '<div style="margin:14px 0;padding:12px 14px;background:#F8FAFC;border:1px solid #CBD5E1;border-radius:6px;font-size:13px;color:#0F172A;">'
+                . '<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#475569;margin-bottom:6px;">Message Summary</div>'
+                . nl2br(e($cleanExcerpt))
+                . '</div>';
+            $excerptText = "\n\nUpdate Summary:\n{$cleanExcerpt}";
+        }
+
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>{$safeHeadline}</title></head>
+<body style="margin:0;padding:24px;background:#F1F5F9;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;overflow:hidden;">
+    <tr>
+      <td style="background:#0F2C59;padding:20px 24px;color:#FFFFFF;">
+        <div style="font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#93C5FD;font-weight:700;">{$appName} Login Support</div>
+        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#FFFFFF;">{$safeHeadline}</h1>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:24px;font-size:14px;line-height:1.6;">
+        <p style="margin:0 0 12px;">Hello {$safeName},</p>
+        <p style="margin:0 0 12px;">{$introHtml}</p>
+        {$excerptBlock}
+        <p style="margin:14px 0 0;font-size:13px;color:#334155;">Open the private tracking link included in your original confirmation email (or enter your tracking token at <a href="{$trackHubUrl}" style="color:#1D4ED8;">Public Support Tracker</a>) to review your ticket thread and post a reply.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:14px 24px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;">
+        Automated update for ticket <strong>{$ticketRef}</strong> from {$appName} &copy; {$year}. HR will never ask for your password or OTP code.
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+HTML;
+
+        $altBody = "Hello {$name},\n\n"
+            . strip_tags($introHtml)
+            . $excerptText
+            . "\n\nOpen the private tracking link from your confirmation email or visit " . absolute_url('/auth/support/track') . " with your token.\n"
+            . "HR will never ask for your password or OTP code.\n";
+
+        try {
+            $this->mailer->sendMail($email, $name, $emailSubject, $html, $altBody);
+        } catch (\Throwable $e) {
+            error_log('[SupportNotification] Public requester email failed: ' . get_class($e));
+        }
     }
 }

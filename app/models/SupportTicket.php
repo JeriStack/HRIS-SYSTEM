@@ -40,9 +40,10 @@ class SupportTicket extends Model
     }
 
     /**
-     * Atomically generate the next yearly server-side ticket reference (e.g. SUP-2026-00001).
+     * Atomically generate the next yearly server-side ticket reference
+     * (SUP-YYYY-NNNNN for authenticated portal tickets, AUTH-YYYY-NNNNN for public auth issues).
      */
-    public function generateNextTicketRef(int $year, ?PDO $txPdo = null): string
+    public function generateNextTicketRef(int $year, ?PDO $txPdo = null, bool $isPublic = false): string
     {
         $pdo = $txPdo ?? $this->db;
         $startedTx = false;
@@ -51,21 +52,26 @@ class SupportTicket extends Model
             $startedTx = true;
         }
 
+        $seqTable = $isPublic ? 'public_support_ticket_sequences' : 'support_ticket_sequences';
+        $prefix = $isPublic
+            ? (string)config('support.public_ticket_prefix', 'AUTH')
+            : (string)config('support.ticket_prefix', 'SUP');
+
         try {
             $insertStmt = $pdo->prepare(
-                "INSERT IGNORE INTO support_ticket_sequences (ticket_year, last_sequence) VALUES (:yr, 0)"
+                "INSERT IGNORE INTO {$seqTable} (ticket_year, last_sequence) VALUES (:yr, 0)"
             );
             $insertStmt->execute(['yr' => $year]);
 
             $lockStmt = $pdo->prepare(
-                "SELECT last_sequence FROM support_ticket_sequences WHERE ticket_year = :yr FOR UPDATE"
+                "SELECT last_sequence FROM {$seqTable} WHERE ticket_year = :yr FOR UPDATE"
             );
             $lockStmt->execute(['yr' => $year]);
             $currentSeq = (int)$lockStmt->fetchColumn();
             $nextSeq = $currentSeq + 1;
 
             $updStmt = $pdo->prepare(
-                "UPDATE support_ticket_sequences SET last_sequence = :seq WHERE ticket_year = :yr"
+                "UPDATE {$seqTable} SET last_sequence = :seq WHERE ticket_year = :yr"
             );
             $updStmt->execute([
                 'seq' => $nextSeq,
@@ -76,7 +82,6 @@ class SupportTicket extends Model
                 $pdo->commit();
             }
 
-            $prefix = (string)config('support.ticket_prefix', 'SUP');
             return sprintf('%s-%04d-%05d', $prefix, $year, $nextSeq);
         } catch (\Throwable $e) {
             if ($startedTx && $pdo->inTransaction()) {
@@ -87,7 +92,7 @@ class SupportTicket extends Model
     }
 
     /**
-     * Insert a new support ticket or workplace complaint record.
+     * Insert a new support ticket, confidential complaint, or public auth assistance record.
      *
      * @param array<string, mixed> $data
      */
@@ -98,6 +103,13 @@ class SupportTicket extends Model
                 ticket_ref,
                 employee_id,
                 submitted_by_user_id,
+                support_channel,
+                is_public_ticket,
+                requester_name,
+                requester_email,
+                matched_user_id,
+                public_issue_datetime,
+                public_client_env,
                 request_type,
                 category,
                 complaint_category,
@@ -118,6 +130,13 @@ class SupportTicket extends Model
                 :ticket_ref,
                 :employee_id,
                 :submitted_by_user_id,
+                :support_channel,
+                :is_public_ticket,
+                :requester_name,
+                :requester_email,
+                :matched_user_id,
+                :public_issue_datetime,
+                :public_client_env,
                 :request_type,
                 :category,
                 :complaint_category,
@@ -140,8 +159,15 @@ class SupportTicket extends Model
         $stmt = $this->db->prepare($sql);
         $stmt->execute([
             'ticket_ref'             => $data['ticket_ref'],
-            'employee_id'            => (int)$data['employee_id'],
-            'submitted_by_user_id'   => (int)$data['submitted_by_user_id'],
+            'employee_id'            => !empty($data['employee_id']) ? (int)$data['employee_id'] : null,
+            'submitted_by_user_id'   => !empty($data['submitted_by_user_id']) ? (int)$data['submitted_by_user_id'] : null,
+            'support_channel'        => ($data['support_channel'] ?? 'employee_portal') === 'public_auth' ? 'public_auth' : 'employee_portal',
+            'is_public_ticket'       => !empty($data['is_public_ticket']) ? 1 : 0,
+            'requester_name'         => $data['requester_name'] ?? null,
+            'requester_email'        => $data['requester_email'] ?? null,
+            'matched_user_id'        => !empty($data['matched_user_id']) ? (int)$data['matched_user_id'] : null,
+            'public_issue_datetime'  => $data['public_issue_datetime'] ?? null,
+            'public_client_env'      => $data['public_client_env'] ?? null,
             'request_type'           => $data['request_type'],
             'category'               => $data['category'],
             'complaint_category'     => $data['complaint_category'] ?? null,
@@ -187,9 +213,9 @@ class SupportTicket extends Model
                 se.first_name AS subject_first_name,
                 se.last_name AS subject_last_name
             FROM support_tickets t
-            INNER JOIN employees e ON t.employee_id = e.id
+            LEFT JOIN employees e ON t.employee_id = e.id
             LEFT JOIN departments d ON e.department_id = d.id
-            INNER JOIN users su ON t.submitted_by_user_id = su.id
+            LEFT JOIN users su ON t.submitted_by_user_id = su.id
             LEFT JOIN users au ON t.assigned_to_user_id = au.id
             LEFT JOIN employees ae ON au.employee_id = ae.id
             LEFT JOIN employees se ON t.subject_employee_id = se.id
@@ -366,12 +392,14 @@ class SupportTicket extends Model
         $search = trim((string)($filters['search'] ?? ''));
         if ($search !== '') {
             $term = '%' . $search . '%';
-            $conditions[] = "(t.ticket_ref LIKE :s1 OR t.subject LIKE :s2 OR e.employee_no LIKE :s3 OR CONCAT(e.first_name, ' ', e.last_name) LIKE :s4 OR t.category LIKE :s5)";
+            $conditions[] = "(t.ticket_ref LIKE :s1 OR t.subject LIKE :s2 OR COALESCE(e.employee_no, '') LIKE :s3 OR COALESCE(CONCAT(e.first_name, ' ', e.last_name), '') LIKE :s4 OR t.category LIKE :s5 OR COALESCE(t.requester_name, '') LIKE :s6 OR COALESCE(t.requester_email, '') LIKE :s7)";
             $params['s1'] = $term;
             $params['s2'] = $term;
             $params['s3'] = $term;
             $params['s4'] = $term;
             $params['s5'] = $term;
+            $params['s6'] = $term;
+            $params['s7'] = $term;
         }
 
         $category = trim((string)($filters['category'] ?? ''));
@@ -397,6 +425,10 @@ class SupportTicket extends Model
             $conditions[] = "t.is_confidential = 1";
         } elseif ($scope === 'general') {
             $conditions[] = "t.is_confidential = 0";
+        } elseif ($scope === 'public_auth') {
+            $conditions[] = "t.is_public_ticket = 1";
+        } elseif ($scope === 'internal') {
+            $conditions[] = "t.is_public_ticket = 0";
         } elseif ($scope === 'unassigned') {
             $conditions[] = "t.assigned_to_user_id IS NULL AND t.status IN ('Submitted', 'Under Review', 'Waiting for Employee')";
         } elseif ($scope === 'mine' && !empty($viewerContext['user_id'])) {
@@ -410,6 +442,12 @@ class SupportTicket extends Model
                 t.id,
                 t.ticket_ref,
                 t.employee_id,
+                t.support_channel,
+                t.is_public_ticket,
+                t.requester_name,
+                t.requester_email,
+                t.public_issue_datetime,
+                t.public_client_env,
                 t.request_type,
                 t.category,
                 t.complaint_category,
@@ -430,7 +468,7 @@ class SupportTicket extends Model
                 ae.first_name AS assigned_first_name,
                 ae.last_name AS assigned_last_name
             FROM support_tickets t
-            INNER JOIN employees e ON t.employee_id = e.id
+            LEFT JOIN employees e ON t.employee_id = e.id
             LEFT JOIN departments d ON e.department_id = d.id
             LEFT JOIN users au ON t.assigned_to_user_id = au.id
             LEFT JOIN employees ae ON au.employee_id = ae.id
@@ -691,6 +729,8 @@ class SupportTicket extends Model
                 a.*,
                 t.ticket_ref,
                 t.employee_id AS ticket_employee_id,
+                t.is_public_ticket AS ticket_is_public_ticket,
+                t.support_channel AS ticket_support_channel,
                 t.is_confidential AS ticket_is_confidential,
                 t.subject_employee_id AS ticket_subject_employee_id,
                 t.escalated_flag AS ticket_escalated_flag,

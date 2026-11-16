@@ -116,6 +116,13 @@
 - [x] Build accessible `/verify-otp` opt-in & `/account/security` UI (Light/Dark Mode, `@container` mobile table responsiveness, native `<dialog>` confirmations, explicit Email OTP assurance disclosure).
 - [x] Verify with `InitSchemaParityTest`, `TrustedDeviceServiceTest`, `SmartOtpAuthenticationTest`, Selenium + Mailpit E2E tests (`test_smart_otp_trusted_devices.py`), PSR-12 baseline check, PHPStan, and full PHPUnit suite.
 
+### Phase 11D: Public Help & Support, Password Recovery, and Login Assistance (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md](PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md).*
+- [x] Create database migration (`2026_11_19_create_password_resets_and_public_support.sql`) for `password_resets`, `public_support_ticket_sequences`, `public_support_tracking_tokens`, and `support_tickets` / `support_messages` public-auth extensions, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement `PasswordPolicy` recovery checks, `PasswordReset`, and `PasswordRecoveryService` (15-min MySQL clock CSPRNG split tokens, HMAC-SHA256 at rest, timing-equalized anti-enumeration, atomic single-use consumption, trusted-device/session/OTP revocation, mandatory fresh OTP step-up).
+- [x] Implement `PublicSupportTrackingToken`, `PublicAuthSupportService`, and `PublicAuthSupportController` for `/auth/help`, `/auth/help/otp`, `/forgot-password`, `/reset-password`, `/auth/support/report` (`AUTH-YYYY-NNNNN`), redacted `/auth/support/track`, and HR inbox integration (`/hr/support?scope=public_auth`).
+- [x] Integrate accessible Light/Dark public assistance views, entry points (`/`, `/login`, `/verify-otp`), and security controls validated via `PasswordRecoveryServiceTest`, `PublicAuthSupportAndRecoveryTest`, Selenium + Mailpit E2E (`test_public_auth_support_and_recovery.py`), PHPCS, PHPStan, and PHPUnit.
+
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
 - [ ] Configure production domain DNS and Let's Encrypt automated SSL renewal.

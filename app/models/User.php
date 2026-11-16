@@ -105,7 +105,7 @@ class User extends Model
 
         $passwordHash = (string)$data['password'];
         if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
-            $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
+            $passwordHash = \App\Services\PasswordPolicy::hash($passwordHash);
         }
 
         $params = [
@@ -423,7 +423,7 @@ class User extends Model
         if (!empty($data['password'])) {
             $passwordHash = (string)$data['password'];
             if (!str_starts_with($passwordHash, '$2y$') && !str_starts_with($passwordHash, '$argon2')) {
-                $passwordHash = password_hash($passwordHash, PASSWORD_DEFAULT);
+                $passwordHash = \App\Services\PasswordPolicy::hash($passwordHash);
             }
             $sets[] = 'password = :password';
             $params['password'] = $passwordHash;
@@ -473,7 +473,7 @@ class User extends Model
      */
     public function needsRehash(string $hash): bool
     {
-        return password_needs_rehash($hash, PASSWORD_DEFAULT);
+        return \App\Services\PasswordPolicy::needsRehash($hash);
     }
 
     /**

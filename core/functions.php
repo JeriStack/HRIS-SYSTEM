@@ -64,6 +64,33 @@ if (!function_exists('url')) {
     }
 }
 
+if (!function_exists('absolute_url')) {
+    /**
+     * Build an absolute http(s) URL suitable for outbound emails and external links.
+     *
+     * @param string $path Relative route path
+     * @param array<string, mixed> $query Optional query parameters
+     * @return string
+     */
+    function absolute_url(string $path = '', array $query = []): string
+    {
+        $resolved = url($path);
+        if (!preg_match('#^https?://#i', $resolved)) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+            $rawHost = trim((string)($_SERVER['HTTP_HOST'] ?? 'localhost:8080'));
+            $host = preg_match('/^[a-zA-Z0-9.\-:\[\]]+$/', $rawHost) ? $rawHost : 'localhost:8080';
+            $resolved = $scheme . '://' . $host . '/' . ltrim($resolved, '/');
+        }
+
+        if ($query !== []) {
+            $qs = http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+            $resolved .= (str_contains($resolved, '?') ? '&' : '?') . $qs;
+        }
+
+        return $resolved;
+    }
+}
+
 if (!function_exists('asset')) {
     /**
      * Generate an asset URL with automatic cache-busting filemtime query parameter.

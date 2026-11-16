@@ -791,8 +791,15 @@ CREATE TABLE IF NOT EXISTS `support_ticket_sequences` (
 CREATE TABLE IF NOT EXISTS `support_tickets` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `ticket_ref` VARCHAR(30) NOT NULL,
-    `employee_id` INT UNSIGNED NOT NULL,
-    `submitted_by_user_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NULL DEFAULT NULL,
+    `submitted_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `support_channel` ENUM('employee_portal', 'public_auth') NOT NULL DEFAULT 'employee_portal',
+    `is_public_ticket` TINYINT(1) NOT NULL DEFAULT 0,
+    `requester_name` VARCHAR(120) NULL DEFAULT NULL,
+    `requester_email` VARCHAR(150) NULL DEFAULT NULL,
+    `matched_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `public_issue_datetime` VARCHAR(100) NULL DEFAULT NULL,
+    `public_client_env` VARCHAR(255) NULL DEFAULT NULL,
     `request_type` ENUM('support', 'complaint') NOT NULL DEFAULT 'support',
     `category` VARCHAR(80) NOT NULL,
     `complaint_category` VARCHAR(80) NULL DEFAULT NULL,
@@ -819,6 +826,8 @@ CREATE TABLE IF NOT EXISTS `support_tickets` (
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_st_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
         REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_matched_user` FOREIGN KEY (`matched_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_st_subject_employee` FOREIGN KEY (`subject_employee_id`)
         REFERENCES `employees` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_st_assigned_to` FOREIGN KEY (`assigned_to_user_id`)
@@ -827,7 +836,9 @@ CREATE TABLE IF NOT EXISTS `support_tickets` (
     INDEX `idx_st_type_conf_status` (`request_type`, `is_confidential`, `status`),
     INDEX `idx_st_assigned_status` (`assigned_to_user_id`, `status`),
     INDEX `idx_st_subject_emp` (`subject_employee_id`),
-    INDEX `idx_st_created` (`created_at`)
+    INDEX `idx_st_created` (`created_at`),
+    INDEX `idx_st_public_channel` (`support_channel`, `is_public_ticket`, `status`, `last_activity_at`),
+    INDEX `idx_st_requester_email` (`requester_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -859,7 +870,7 @@ CREATE TABLE IF NOT EXISTS `support_messages` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `ticket_id` INT UNSIGNED NOT NULL,
     `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
-    `sender_role` ENUM('employee', 'hr', 'admin', 'system') NOT NULL DEFAULT 'employee',
+    `sender_role` ENUM('employee', 'public_requester', 'hr', 'admin', 'system') NOT NULL DEFAULT 'employee',
     `message_type` ENUM('initial_submission', 'hr_response', 'employee_reply', 'info_request', 'internal_note', 'status_change') NOT NULL,
     `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0,
     `body` TEXT NOT NULL,
@@ -1010,6 +1021,61 @@ CREATE TABLE IF NOT EXISTS `user_auth_security_states` (
     `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT `fk_user_auth_security_user` FOREIGN KEY (`user_id`)
         REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 38. Password Resets Table
+-- Selector + HMAC-hashed verifier tokens with 15-minute expiry & single-use lock
+-- See database/migrations/2026_11_19_create_password_resets_and_public_support.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `password_resets` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret validator',
+    `requested_email` VARCHAR(150) NOT NULL,
+    `requested_ip` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `consumed_at` DATETIME NULL DEFAULT NULL,
+    `invalidated_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_password_resets_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_password_resets_selector` (`selector`),
+    INDEX `idx_password_resets_user_active` (`user_id`, `consumed_at`, `invalidated_at`, `expires_at`),
+    INDEX `idx_password_resets_email_created` (`requested_email`, `created_at`),
+    INDEX `idx_password_resets_ip_created` (`requested_ip`, `created_at`),
+    INDEX `idx_password_resets_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 39. Public Support Ticket Sequences Table
+-- Atomic year-scoped counter for public pre-login AUTH-YYYY-NNNNN ticket refs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_ticket_sequences` (
+    `ticket_year` SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 40. Public Support Tracking Tokens Table
+-- Selector + HMAC-hashed verifier tokens for unauthenticated redacted ticket tracking
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_tracking_tokens` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret tracking validator',
+    `expires_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `last_viewed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pstt_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_pstt_selector` (`selector`),
+    INDEX `idx_pstt_ticket_active` (`ticket_id`, `revoked_at`, `expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

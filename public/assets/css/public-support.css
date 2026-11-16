@@ -1,0 +1,741 @@
+/**
+ * NEXORA HR — Public Help & Support, Password Recovery & Pre-Login Support Tracker
+ * Layered cleanly on top of auth.css Light/Dark palette tokens.
+ */
+
+:root {
+  color-scheme: light dark;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.hp-field-wrap {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.ps-shell {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ps-shell--narrow {
+  max-width: 560px;
+}
+
+.ps-header-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--heading);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.ps-header-brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.ps-header-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ps-nav-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.ps-nav-chip:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+  color: var(--heading);
+}
+
+.ps-nav-chip:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}
+
+.ps-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ps-hero--centered {
+  align-items: center;
+  text-align: center;
+}
+
+.ps-hero h1 {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(1.5rem, 2.6vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--heading);
+  line-height: 1.2;
+}
+
+.ps-hero-desc {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.ps-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.ps-breadcrumb a {
+  color: var(--brand-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ps-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* Primary 4-option Hub Grid */
+.ps-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ps-option-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.35rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  min-width: 0;
+}
+
+.ps-option-card:hover {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.ps-option-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.ps-option-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--hr-accent-bg);
+  border: 1px solid var(--hr-accent-border);
+  color: var(--brand-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ps-option-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ps-option-title {
+  margin: 0 0 0.25rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.ps-option-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.ps-option-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  align-self: flex-start;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: var(--brand-blue);
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color 0.16s ease;
+}
+
+.ps-option-action:hover {
+  background: var(--brand-blue-hover);
+  color: #ffffff;
+}
+
+.ps-option-action--secondary {
+  background: var(--surface-subtle);
+  color: var(--heading);
+  border-color: var(--border-strong);
+}
+
+.ps-option-action--secondary:hover {
+  background: var(--surface-hover);
+  color: var(--heading);
+}
+
+/* Split Panels & Surface Cards */
+.ps-two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ps-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  min-width: 0;
+}
+
+.ps-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.9rem;
+  margin-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.ps-card-title {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+/* Diagnostics Accordion / Grid for OTP Help */
+.ps-diag-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ps-diag-item {
+  padding: 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.ps-diag-item h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.ps-diag-item p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Form Controls, Hints ABOVE Inputs & Validation Feedback BELOW Inputs */
+.ps-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ps-field-full {
+  grid-column: 1 / -1;
+}
+
+.ps-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.ps-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ps-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.ps-input-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ps-control {
+  width: 100%;
+  min-width: 0;
+  padding: 0.68rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-input);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ps-control--with-toggle {
+  padding-right: 2.75rem;
+}
+
+.ps-control:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.ps-control:user-invalid,
+.ps-control[aria-invalid="true"] {
+  border-color: var(--error-icon);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+textarea.ps-control {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.ps-field-error {
+  min-height: 1.15rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--error-text);
+  font-weight: 500;
+}
+
+.ps-field-error[data-empty="true"] {
+  visibility: hidden;
+}
+
+.ps-pw-rules {
+  margin: 0.15rem 0 0.25rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+  list-style: none;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.3rem;
+}
+
+.ps-pw-rule {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.ps-pw-rule.is-met {
+  color: var(--success-text);
+  font-weight: 600;
+}
+
+.ps-pw-rule-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  flex-shrink: 0;
+}
+
+.ps-pw-rule.is-met .ps-pw-rule-dot {
+  background: var(--success-icon);
+}
+
+/* Security Notices & Confirmation */
+.ps-security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.ps-security-note svg {
+  flex: 0 0 18px;
+  margin-top: 1px;
+}
+
+.ps-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.ps-meta-cell {
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+  min-width: 0;
+}
+
+.ps-meta-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.ps-meta-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--heading);
+  overflow-wrap: anywhere;
+}
+
+.ps-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.ps-badge-info {
+  background: var(--hr-accent-bg);
+  border-color: var(--hr-accent-border);
+  color: var(--hr-badge-text);
+}
+
+.ps-badge-success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.ps-badge-warning {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.ps-badge-neutral {
+  background: var(--surface-subtle);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conversation Thread on Tokenized Tracker */
+.ps-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ps-msg {
+  padding: 0.95rem 1.05rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.ps-msg--hr {
+  background: var(--hr-accent-bg);
+  border-color: var(--hr-accent-border);
+}
+
+.ps-msg--system {
+  background: var(--surface-subtle);
+}
+
+.ps-msg-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.45rem;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.ps-msg-sender {
+  font-weight: 700;
+  color: var(--heading);
+}
+
+.ps-msg-body {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ps-file-list {
+  list-style: none;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ps-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-subtle);
+  font-size: 0.8125rem;
+  color: var(--text);
+  min-width: 0;
+}
+
+.ps-file-item span {
+  overflow-wrap: anywhere;
+}
+
+.ps-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.ps-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--brand-blue);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.16s ease, opacity 0.16s ease;
+}
+
+.ps-btn-primary:hover:not(:disabled) {
+  background: var(--brand-blue-hover);
+  color: #ffffff;
+}
+
+.ps-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ps-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.05rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.16s ease;
+}
+
+.ps-btn-secondary:hover {
+  background: var(--surface-subtle);
+}
+
+.ps-footer {
+  margin-top: auto;
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+/* Inline Help Links on Login / OTP Views */
+.auth-help-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.auth-help-links a {
+  color: var(--brand-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-help-links a:hover {
+  text-decoration: underline;
+}
+
+.modal-help-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+}
+
+.modal-help-strip a {
+  color: var(--brand-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.modal-help-strip a:hover {
+  text-decoration: underline;
+}
+
+/* Dark Theme Refinements matching auth.css tokens */
+html[data-theme="dark"] .ps-option-icon {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .ps-security-note {
+  background: rgba(180, 83, 9, 0.18);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fde68a;
+}
+
+html[data-theme="dark"] .ps-msg--hr {
+  background: rgba(37, 99, 235, 0.14);
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+@media (max-width: 760px) {
+  .ps-options-grid,
+  .ps-two-col,
+  .ps-diag-grid,
+  .ps-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ps-shell {
+    padding: 1.1rem 0.9rem 2.25rem;
+  }
+
+  .ps-card {
+    padding: 1.1rem;
+  }
+
+  .auth-header-right {
+    gap: 0.45rem;
+  }
+
+  .ps-header-nav-links {
+    display: none;
+  }
+}
