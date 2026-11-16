@@ -128,6 +128,20 @@
           </svg>
         </button>
 
+        <!-- Public Help & Support Link (Icon-Only Utility Button) -->
+        <a
+          id="headerHelpSupportLink"
+          class="header-icon-btn"
+          href="<?= e(url('/auth/help')) ?>"
+          aria-label="Help &amp; Support"
+          title="Help &amp; Support">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </a>
+
         <a
           class="btn btn-primary header-cta"
           href="<?= e(url('/login')) ?>">
