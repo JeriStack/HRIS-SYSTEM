@@ -633,6 +633,10 @@ textarea.ps-control {
   margin-top: auto;
 }
 
+.ps-actions-row--end {
+  justify-content: flex-end;
+}
+
 .ps-options-grid .ps-option-action,
 .ps-two-col--hub :where(.ps-btn-primary, .ps-btn-secondary) {
   box-sizing: border-box;

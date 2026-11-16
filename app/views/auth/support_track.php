@@ -87,7 +87,7 @@ if (is_array($ticket)) {
                         placeholder="Paste your selector.verifier token or full tracking link">
                     <div id="trackTokenError" class="ps-field-error" data-empty="true"></div>
                 </div>
-                <div class="ps-actions-row">
+                <div class="ps-actions-row ps-actions-row--end">
                     <a href="<?= url('/auth/support/report') ?>" class="ps-btn-secondary">Submit New Support Request</a>
                     <button type="submit" class="ps-btn-primary" data-submit-lock>Look Up Ticket</button>
                 </div>
