@@ -214,22 +214,22 @@ class AuthSecurityNotificationService
 <body style="margin:0;padding:24px;background:#F1F5F9;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:10px;overflow:hidden;">
     <tr>
-      <td style="background:#0F2C59;padding:20px 24px;color:#FFFFFF;">
-        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93C5FD;font-weight:700;">{$appName} Security Notice</div>
-        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#FFFFFF;">{$safeHeadline}</h1>
+      <td align="center" style="background:#0F2C59;padding:20px 24px;color:#FFFFFF;text-align:center;">
+        <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#93C5FD;font-weight:700;text-align:center;">{$appName} Security Notice</div>
+        <h1 style="margin:6px 0 0;font-size:18px;font-weight:700;color:#FFFFFF;text-align:center;">{$safeHeadline}</h1>
       </td>
     </tr>
     <tr>
-      <td style="padding:24px;font-size:14px;line-height:1.6;">
-        <p style="margin:0 0 12px;">Hello {$safeName},</p>
-        <p style="margin:0 0 14px;">{$bodyHtml}</p>
-        <div style="background:#F8FAFC;border-left:4px solid #2563EB;padding:12px 14px;font-size:13px;color:#334155;">
+      <td style="padding:24px;font-size:14px;line-height:1.6;text-align:justify;hyphens:auto;">
+        <p style="margin:0 0 12px;text-align:justify;hyphens:auto;">Hello {$safeName},</p>
+        <p style="margin:0 0 14px;text-align:justify;hyphens:auto;">{$bodyHtml}</p>
+        <div style="background:#F8FAFC;border-left:4px solid #2563EB;padding:12px 14px;font-size:13px;color:#334155;text-align:justify;hyphens:auto;">
           {$advisoryHtml}
         </div>
       </td>
     </tr>
     <tr>
-      <td style="padding:14px 24px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;">
+      <td style="padding:14px 24px;background:#F8FAFC;border-top:1px solid #E2E8F0;font-size:12px;color:#64748B;text-align:justify;hyphens:auto;">
         Automated security notice from {$appName} &copy; {$year}. Never reply with passwords or codes.
       </td>
     </tr>
