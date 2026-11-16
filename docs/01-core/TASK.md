@@ -101,7 +101,7 @@
 - [x] Document Architectural Decision Record ADR-012 in `docs/02-technical/decisions/DECISIONS.md`.
 
 ### Phase 11B: Employee Help & Support and Complaint Management Module (`DONE`)
-*Scope Addendum under Comprehensive Development Plan v3.1 — see [HELP-AND-SUPPORT-MODULE-SPEC.md](HELP-AND-SUPPORT-MODULE-SPEC.md).*
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [HELP-AND-SUPPORT-MODULE-SPEC.md](modules/HELP-AND-SUPPORT-MODULE-SPEC.md).*
 - [x] Create database migration (`2026_11_17_create_support_and_complaint_module.sql`) and synchronize canonical `database/schema.sql` and Docker init parity.
 - [x] Register granular `Help & Support` permissions within the 3-role RBAC model (`admin`, `hr`, `employee`) plus user-scoped confidential complaint handlers (`support_ticket_handlers`).
 - [x] Implement backend models, access/COI policy service, workflow service, encrypted/isolated attachment storage service, privacy-aware notification service, and controllers (`SupportController`, `HrSupportController`).
@@ -109,7 +109,7 @@
 - [x] Verify with PSR-12 baseline check, PHPStan, PHPUnit unit/feature/security suites, and Selenium E2E tests.
 
 ### Phase 11C: Smart OTP Authentication & Trusted Device Management (`DONE`)
-*Scope Addendum under Comprehensive Development Plan v3.1 — see [SMART-OTP-TRUSTED-DEVICES-SPEC.md](SMART-OTP-TRUSTED-DEVICES-SPEC.md).*
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [SMART-OTP-TRUSTED-DEVICES-SPEC.md](modules/SMART-OTP-TRUSTED-DEVICES-SPEC.md).*
 - [x] Create database migration (`2026_11_18_create_trusted_devices_and_auth_security.sql`) for `trusted_devices` & `user_auth_security_states`, and synchronize canonical `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
 - [x] Implement `config/auth_devices.php`, `TrustedDevice`, `UserAuthSecurityState`, `TrustedDeviceService` (single-use atomic validator rotation, HMAC-SHA256 hashed validators, fixed 30d/7d expiration, HTTPS/proxy-aware cookies), `AuthRiskService` (risk-based step-up without false-positive IP blocking), and `AuthSecurityNotificationService`.
 - [x] Wire Smart OTP & `"Remember this device"` opt-in into `AuthController`, `Api\AuthController`, `AdminController::updateAccount()`, and self-service `/account/security` management & lost-device recovery (`AccountSecurityController`).
@@ -117,21 +117,21 @@
 - [x] Verify with `InitSchemaParityTest`, `TrustedDeviceServiceTest`, `SmartOtpAuthenticationTest`, Selenium + Mailpit E2E tests (`test_smart_otp_trusted_devices.py`), PSR-12 baseline check, PHPStan, and full PHPUnit suite.
 
 ### Phase 11D: Public Help & Support, Password Recovery, and Login Assistance (`DONE`)
-*Scope Addendum under Comprehensive Development Plan v3.1 — see [PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md](PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md).*
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md](modules/PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md).*
 - [x] Create database migration (`2026_11_19_create_password_resets_and_public_support.sql`) for `password_resets`, `public_support_ticket_sequences`, `public_support_tracking_tokens`, and `support_tickets` / `support_messages` public-auth extensions, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
 - [x] Implement `PasswordPolicy` recovery checks, `PasswordReset`, and `PasswordRecoveryService` (15-min MySQL clock CSPRNG split tokens, HMAC-SHA256 at rest, timing-equalized anti-enumeration, atomic single-use consumption, trusted-device/session/OTP revocation, mandatory fresh OTP step-up).
 - [x] Implement `PublicSupportTrackingToken`, `PublicAuthSupportService`, and `PublicAuthSupportController` for `/auth/help`, `/auth/help/otp`, `/forgot-password`, `/reset-password`, `/auth/support/report` (`AUTH-YYYY-NNNNN`), redacted `/auth/support/track`, and HR inbox integration (`/hr/support?scope=public_auth`).
 - [x] Integrate accessible Light/Dark public assistance views, entry points (`/`, `/login`, `/verify-otp`), and security controls validated via `PasswordRecoveryServiceTest`, `PublicAuthSupportAndRecoveryTest`, Selenium + Mailpit E2E (`test_public_auth_support_and_recovery.py`), PHPCS, PHPStan, and PHPUnit.
 
 ### Phase 11E: Least-Privilege Admin Governance & HR-to-Admin Help & Support Module (`DONE`)
-*Scope Addendum under Comprehensive Development Plan v3.2 — see [HR-ADMIN-HELP-SUPPORT-SPEC.md](HR-ADMIN-HELP-SUPPORT-SPEC.md).*
+*Scope Addendum under Comprehensive Development Plan v3.2 — see [HR-ADMIN-HELP-SUPPORT-SPEC.md](modules/HR-ADMIN-HELP-SUPPORT-SPEC.md).*
 - [x] Author idempotent migration (`2026_11_20_create_hr_to_admin_support_module.sql`) creating `hr_support_tickets`, `hr_support_ticket_messages`, `hr_support_ticket_attachments`, `hr_support_ticket_assignments`, and `hr_support_ticket_history`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
 - [x] Enforce least-privilege Admin boundaries across `PermissionRegistry`, `AuthorizationService`, `Permission`, `ConfidentialLeaveService`, `LeaveDocumentService`, `EmployeeController`, `LeaveController`, `HrSupportController`, and REST API v1 controllers.
 - [x] Implement `HrSupportTicket`, `HrSupportAccessService`, `HrSupportNotificationService`, `HrSupportWorkflowService`, `HrAdminSupportController` (`/hr/help*`), and `AdminSupportController` (`/admin/support*`) with `HR-SUP-YYYY-XXXXXXXX` references, private Admin internal notes, redacted SMTP/Mailpit notifications, and real-time `hr_support.*` WebSocket events.
 - [x] Verify with `InitSchemaParityTest`, `HrSupportAccessUnitTest`, `HrSupportLifecycleAndSecurityTest`, Impeccable craft-floor UI audit, PSR-12 baseline check, and full PHPUnit suite.
 
 ### Phase 11F: HR Announcements Management System (`DONE`)
-*Scope Addendum under Comprehensive Development Plan v3.3 — see [ANNOUNCEMENTS-MODULE-SPEC.md](ANNOUNCEMENTS-MODULE-SPEC.md).*
+*Scope Addendum under Comprehensive Development Plan v3.3 — see [ANNOUNCEMENTS-MODULE-SPEC.md](modules/ANNOUNCEMENTS-MODULE-SPEC.md).*
 - [x] Author idempotent migration (`2026_11_21_create_announcements_module.sql`) creating `announcements`, `announcement_targets`, `announcement_reads`, and `announcement_attachments`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
 - [x] Implement DDD Announcement bounded context (`App\Domain\Announcement` entities, value objects, domain events, repository contract), `MySqlAnnouncementRepository`, `AnnouncementControllerAdapter` (ACL), and `AnnouncementAttachmentService`.
 - [x] Integrate post-commit Domain Events (`AnnouncementEventHandler`), Transactional Outbox (`OutboxEventSerializer`), Queue Worker (`DistributeAnnouncementNotificationsHandler`), Scheduled CRON Kernel (`process-announcements`), and Real-Time WebSockets (`announcement.published`, `announcement.urgent`).
