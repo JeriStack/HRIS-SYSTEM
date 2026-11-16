@@ -43,6 +43,7 @@ class QueueWorkerTest extends TestCase
         $this->assertTrue(JobRegistry::isRegistered(JobRegistry::TYPE_LEAVE_REMINDER));
         $this->assertTrue(JobRegistry::isRegistered(JobRegistry::TYPE_REPORT_EXPORT));
         $this->assertTrue(JobRegistry::isRegistered(JobRegistry::TYPE_OUTBOX_RELAY));
+        $this->assertTrue(JobRegistry::isRegistered(JobRegistry::TYPE_DISTRIBUTE_ANNOUNCEMENT));
 
         $this->assertFalse(JobRegistry::isRegistered('malicious_arbitrary_job'));
         $this->assertFalse(JobRegistry::isRegistered('system_exec'));

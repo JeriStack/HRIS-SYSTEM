@@ -1,37 +1,33 @@
-# HRIS Docker & Observability Stack
+# NEXORA HR — Observability & Monitoring Stack
 
-**Project:** Employee HRIS & Leave Management System  
-**Observability Architecture:** Nginx Reverse Proxy + Prometheus Time-Series Storage + Grafana Visualization + Specialized Monitoring Exporters
+**Project:** NEXORA HR — Human Resource Information System  
+**Observability Architecture:** Nginx Reverse Proxy + Prometheus Time-Series Storage (:9090) + Grafana Visualization (:3100) + Specialized Monitoring Exporters (`nginx-exporter`, `mysqld-exporter`) + Application `/metrics` Endpoint
 
 ---
 
 ## 1. Executive Summary
 
-This directory documents the production-grade containerized architecture and observability infrastructure integrated into the Employee HRIS & Leave Management System. The deployment preserves the core PHP/Apache execution model and MySQL transactional database while introducing an edge reverse proxy and automated Prometheus/Grafana telemetry.
+This directory documents the production-grade observability infrastructure integrated into NEXORA HR. The stack collects, stores, and visualizes real-time telemetry across the Nginx edge reverse proxy, PHP/Apache application runtime (`/metrics`), MySQL 8.0 InnoDB database, background Queue Worker, and WebSocket server.
 
 ---
 
-## 2. Infrastructure Directory Index
+## 2. Monitoring Documentation Index
 
 | Document | Description |
 | :--- | :--- |
-| **[`architecture.md`](architecture.md)** | End-to-end request flow, service responsibilities, and container network topology. |
-| **[`setup-guide.md`](setup-guide.md)** | Step-by-step instructions for starting, stopping, verifying, and configuring the environment. |
-| **[`nginx-configuration.md`](nginx-configuration.md)** | Reverse proxy routing, upstream keepalive, client buffer limits, and metrics stub status. |
-| **[`prometheus-configuration.md`](prometheus-configuration.md)** | Scrape intervals, target configurations, self-monitoring, and metric definitions. |
-| **[`grafana-dashboards.md`](grafana-dashboards.md)** | Automated provisioning of datasources, dashboard JSON schema, and visualization panels. |
-| **[`network-and-security.md`](network-and-security.md)** | Port mapping strategy, least-privilege exporter accounts, and container isolation. |
-| **[`troubleshooting.md`](troubleshooting.md)** | Diagnostic playbooks, common log warnings, port conflict resolutions, and repairs. |
-| **[`verification-report.md`](verification-report.md)** | Empirical test logs, target health reports, and end-to-end regression test results. |
+| **[`monitoring-architecture.md`](monitoring-architecture.md)** | End-to-end telemetry dataflow, exporter topology, and business domain metrics (`/metrics`). |
+| **[`prometheus-setup.md`](prometheus-setup.md)** | Prometheus v2.51.0 scrape jobs, target endpoints, intervals, reload mechanics, and verification queries. |
+| **[`grafana-dashboards.md`](grafana-dashboards.md)** | Automated file-based datasource and dashboard provisioning under `docker/grafana/`. |
+| **[`monitoring-troubleshooting.md`](monitoring-troubleshooting.md)** | Diagnostic playbooks and remediation procedures for Prometheus targets, exporters, and Grafana panels. |
 
 ---
 
-## 3. Quick Access URLs & Credentials
+## 3. Quick Access URLs & Default Ports
 
-| Service | Access URL | Port (Host:Container) | Credentials (Default) |
+| Service | Access URL | Port (Host:Container) | Notes |
 | :--- | :--- | :--- | :--- |
-| **HRIS Application** | [http://localhost:8080](http://localhost:8080) | `8080:80` (Nginx) | `hr01` / `Admin@123`<br>`emp004` / `Employee@123` |
-| **phpMyAdmin** | [http://localhost:8081](http://localhost:8081) | `8081:80` | `root` / `rootpassword` |
-| **Prometheus** | [http://localhost:9090](http://localhost:9090) | `9090:9090` | Public in development |
-| **Grafana** | [http://localhost:3100](http://localhost:3100) | `3100:3000` | `admin` / `admin` |
-| **MySQL Direct** | `127.0.0.1:3307` | `3307:3306` | `root` / `rootpassword`<br>`hris_user` / `hris_password` |
+| **NEXORA HR Application** | `http://localhost:8080` | `8080:80` (Nginx) | Exposes Prometheus metrics at `/metrics` |
+| **Prometheus UI** | `http://localhost:9090` | `9090:9090` | Time-series scrape status & PromQL explorer |
+| **Grafana UI** | `http://localhost:3100` | `3100:3000` | Pre-provisioned HRIS observability dashboards |
+| **phpMyAdmin** | `http://localhost:8081` | `8081:80` | Local database inspection UI |
+| **Swagger UI** | `http://localhost:8083` | `8083:8080` | Interactive OpenAPI 3.0 specification viewer |

@@ -125,6 +125,8 @@ pytest tests/ --browser=chrome --headless --app-url=http://localhost:8080
 | `@pytest.mark.department`| Department directory and position alignments |
 | `@pytest.mark.leave` | Leave application form and HR review queue |
 | `@pytest.mark.rbac` | Role-based access control and unauthorized route redirects |
+| `@pytest.mark.support` | Employee Help & Support and confidential complaint E2E workflow tests |
+| `@pytest.mark.announcements` | HR Announcements Management and Employee Announcement Feed E2E workflow tests |
 
 Example filtered run:
 ```powershell

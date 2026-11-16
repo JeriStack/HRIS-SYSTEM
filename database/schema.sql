@@ -45,14 +45,18 @@ CREATE TABLE IF NOT EXISTS `employees` (
     `middle_name` VARCHAR(50) NULL,
     `last_name` VARCHAR(50) NOT NULL,
     `email` VARCHAR(100) NOT NULL,
+    `personal_email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(25) NULL,
     `address` TEXT NULL,
     `birth_date` DATE NOT NULL,
     `gender` ENUM('Male', 'Female', 'Other') NOT NULL,
+    `civil_status` ENUM('Single', 'Married', 'Widowed', 'Separated', 'Divorced') NULL DEFAULT NULL,
     `department_id` INT UNSIGNED NOT NULL,
     `position_id` INT UNSIGNED NOT NULL,
     `date_hired` DATE NOT NULL,
+    `employment_type` VARCHAR(50) NOT NULL DEFAULT 'Regular',
     `employment_status` ENUM('Active', 'Inactive', 'Terminated') NOT NULL DEFAULT 'Active',
+    `profile_picture` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `uq_employees_emp_no` UNIQUE (`employee_no`),
     CONSTRAINT `uq_employees_email` UNIQUE (`email`),
@@ -61,6 +65,7 @@ CREATE TABLE IF NOT EXISTS `employees` (
     CONSTRAINT `fk_employees_position` FOREIGN KEY (`position_id`) 
         REFERENCES `positions` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     INDEX `idx_employees_status` (`employment_status`),
+    INDEX `idx_employees_employment_type` (`employment_type`),
     INDEX `idx_employees_dept` (`department_id`),
     INDEX `idx_employees_pos` (`position_id`),
     INDEX `idx_employees_name` (`last_name`, `first_name`)
@@ -116,11 +121,23 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `leave_types` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `leave_name` VARCHAR(100) NOT NULL,
+    `leave_code` VARCHAR(30) NULL DEFAULT NULL,
     `description` TEXT NULL,
+    `classification` ENUM('Statutory', 'Company') NOT NULL DEFAULT 'Company',
+    `benefit_category` ENUM('StatutoryAnnual', 'StatutoryEvent', 'CompanyAnnual', 'CompanyEvent', 'Unpaid') NOT NULL DEFAULT 'CompanyAnnual',
+    `entitlement_model` ENUM('annual', 'event_based', 'unpaid') NOT NULL DEFAULT 'annual',
+    `legal_reference` VARCHAR(191) NULL DEFAULT NULL,
     `default_days` INT UNSIGNED NOT NULL DEFAULT 15,
+    `default_unit` ENUM('working_days', 'calendar_days') NOT NULL DEFAULT 'working_days',
+    `is_paid` TINYINT(1) NOT NULL DEFAULT 1,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `statutory_protected` TINYINT(1) NOT NULL DEFAULT 0,
+    `active_policy_version_id` INT UNSIGNED NULL DEFAULT NULL,
     `status` ENUM('Active', 'Inactive') NOT NULL DEFAULT 'Active',
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT `uq_leave_types_name` UNIQUE (`leave_name`)
+    CONSTRAINT `uq_leave_types_name` UNIQUE (`leave_name`),
+    CONSTRAINT `uq_leave_types_code` UNIQUE (`leave_code`),
+    INDEX `idx_leave_types_model` (`classification`, `entitlement_model`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -135,6 +152,13 @@ CREATE TABLE IF NOT EXISTS `leave_balances` (
     `allocated_days` INT NOT NULL DEFAULT 0,
     `used_days` INT NOT NULL DEFAULT 0,
     `remaining_days` INT NOT NULL DEFAULT 0,
+    `carried_over_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `converted_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `expired_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `policy_version_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sil_credited_from_vl` TINYINT(1) NOT NULL DEFAULT 0,
+    `eligibility_status` ENUM('Available', 'PendingVerification', 'CreditedViaVL', 'Ineligible', 'NotAllocated') NOT NULL DEFAULT 'Available',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_leave_balances_employee` FOREIGN KEY (`employee_id`) 
         REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -144,22 +168,35 @@ CREATE TABLE IF NOT EXISTS `leave_balances` (
     CONSTRAINT `chk_leave_balances_allocated` CHECK (`allocated_days` >= 0),
     CONSTRAINT `chk_leave_balances_used` CHECK (`used_days` >= 0),
     CONSTRAINT `chk_leave_balances_remaining` CHECK (`remaining_days` >= 0),
-    INDEX `idx_leave_balances_emp_year` (`employee_id`, `year`)
+    INDEX `idx_leave_balances_emp_year` (`employee_id`, `year`),
+    INDEX `idx_lb_policy_version` (`policy_version_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
 -- 7. Leave Requests Table
--- Lifecycle of employee leave filings, working day durations, and approvals
+-- Lifecycle of employee leave filings, working/calendar day durations, and approvals
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `leave_requests` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `employee_id` INT UNSIGNED NOT NULL,
     `leave_type_id` INT UNSIGNED NOT NULL,
+    `policy_version_id` INT UNSIGNED NULL DEFAULT NULL,
+    `event_entitlement_id` INT UNSIGNED NULL DEFAULT NULL,
     `start_date` DATE NOT NULL,
     `end_date` DATE NOT NULL,
     `number_of_days` INT UNSIGNED NOT NULL,
+    `entitlement_unit` ENUM('working_days', 'calendar_days') NOT NULL DEFAULT 'working_days',
+    `is_paid` TINYINT(1) NOT NULL DEFAULT 1,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
     `reason` TEXT NOT NULL,
+    `application_metadata_json` JSON NULL DEFAULT NULL,
     `rejection_reason` TEXT NULL,
+    `info_request_status` ENUM('None', 'Requested', 'Responded') NOT NULL DEFAULT 'None',
+    `hr_info_request_note` TEXT NULL,
+    `employee_info_response` TEXT NULL,
+    `info_requested_by` INT UNSIGNED NULL DEFAULT NULL,
+    `info_requested_at` DATETIME NULL DEFAULT NULL,
+    `info_responded_at` DATETIME NULL DEFAULT NULL,
     `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
     `approved_by` INT UNSIGNED NULL,
     `approved_at` DATETIME NULL,
@@ -170,11 +207,18 @@ CREATE TABLE IF NOT EXISTS `leave_requests` (
         REFERENCES `leave_types` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT `fk_leave_requests_approver` FOREIGN KEY (`approved_by`) 
         REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_lr_policy_version` FOREIGN KEY (`policy_version_id`)
+        REFERENCES `leave_policy_versions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lr_event_entitlement` FOREIGN KEY (`event_entitlement_id`)
+        REFERENCES `leave_event_entitlements` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `chk_leave_requests_dates` CHECK (`start_date` <= `end_date`),
     CONSTRAINT `chk_leave_requests_days` CHECK (`number_of_days` > 0),
     INDEX `idx_leave_requests_status` (`status`),
     INDEX `idx_leave_requests_emp_status` (`employee_id`, `status`),
-    INDEX `idx_leave_requests_dates` (`start_date`, `end_date`)
+    INDEX `idx_leave_requests_dates` (`start_date`, `end_date`),
+    INDEX `idx_lr_policy_version` (`policy_version_id`),
+    INDEX `idx_lr_event_entitlement` (`event_entitlement_id`),
+    INDEX `idx_lr_confidential` (`is_confidential`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- -----------------------------------------------------------------------------
@@ -425,6 +469,816 @@ CREATE TABLE IF NOT EXISTS `failed_jobs` (
     INDEX `idx_failed_jobs_job_id` (`job_id`),
     INDEX `idx_failed_jobs_queue_type` (`queue`, `job_type`),
     INDEX `idx_failed_jobs_failed_at` (`failed_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 19. Employee Emergency Contacts Table
+-- Normalized emergency contacts per employee (self-service editable)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employee_emergency_contacts` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `full_name` VARCHAR(120) NOT NULL,
+    `relationship` VARCHAR(60) NOT NULL,
+    `contact_number` VARCHAR(30) NOT NULL,
+    `alternative_contact_number` VARCHAR(30) NULL DEFAULT NULL,
+    `address` TEXT NULL,
+    `is_primary` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emergency_contacts_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_emergency_contacts_emp` (`employee_id`, `is_primary`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 20. Employment History Table
+-- Chronological career progression records distinct from security activity logs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employment_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `event_type` VARCHAR(50) NOT NULL,
+    `effective_date` DATE NOT NULL,
+    `previous_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `previous_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `new_position_id` INT UNSIGNED NULL DEFAULT NULL,
+    `employment_type` VARCHAR(50) NULL DEFAULT NULL,
+    `description` TEXT NULL,
+    `recorded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emp_history_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_dept` FOREIGN KEY (`previous_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_dept` FOREIGN KEY (`new_department_id`)
+        REFERENCES `departments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_prev_pos` FOREIGN KEY (`previous_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_new_pos` FOREIGN KEY (`new_position_id`)
+        REFERENCES `positions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_history_recorded_by` FOREIGN KEY (`recorded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_emp_history_timeline` (`employee_id`, `effective_date`, `id`),
+    INDEX `idx_emp_history_event_type` (`event_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 21. Profile Correction Requests Table
+-- Employee-initiated correction requests for HR-controlled profile attributes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `profile_correction_requests` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `requested_by_user_id` INT UNSIGNED NOT NULL,
+    `field_name` VARCHAR(50) NOT NULL,
+    `current_value` TEXT NULL,
+    `requested_value` TEXT NOT NULL,
+    `reason` TEXT NOT NULL,
+    `status` ENUM('Pending', 'Approved', 'Rejected', 'Cancelled') NOT NULL DEFAULT 'Pending',
+    `reviewed_by` INT UNSIGNED NULL DEFAULT NULL,
+    `reviewed_at` DATETIME NULL DEFAULT NULL,
+    `decision_reason` TEXT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pcr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_requested_by` FOREIGN KEY (`requested_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_pcr_reviewed_by` FOREIGN KEY (`reviewed_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_pcr_emp_status` (`employee_id`, `status`, `created_at`),
+    INDEX `idx_pcr_status_created` (`status`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 22. Leave Policy Versions Table
+-- Non-retroactive versioned rules for Philippine statutory and company leave
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `leave_policy_versions` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_type_id` INT UNSIGNED NOT NULL,
+    `version_number` INT UNSIGNED NOT NULL DEFAULT 1,
+    `policy_code` VARCHAR(50) NOT NULL,
+    `effective_from` DATE NOT NULL,
+    `effective_to` DATE NULL DEFAULT NULL,
+    `approval_status` ENUM('Draft', 'PendingReview', 'Active', 'Superseded', 'Archived') NOT NULL DEFAULT 'Draft',
+    `classification` ENUM('Statutory', 'Company') NOT NULL DEFAULT 'Company',
+    `entitlement_model` ENUM('annual', 'event_based', 'unpaid') NOT NULL DEFAULT 'annual',
+    `benefit_tier` ENUM('statutory_minimum', 'employer_enhanced', 'company_benefit', 'unpaid') NOT NULL DEFAULT 'company_benefit',
+    `sector_scope` ENUM('all', 'private', 'public') NOT NULL DEFAULT 'all',
+    `legal_reference` VARCHAR(191) NULL DEFAULT NULL,
+    `entitlement_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `entitlement_unit` ENUM('working_days', 'calendar_days') NOT NULL DEFAULT 'working_days',
+    `is_paid` TINYINT(1) NOT NULL DEFAULT 1,
+    `allocation_frequency` ENUM('annual', 'per_event', 'unlimited_unpaid') NOT NULL DEFAULT 'annual',
+    `carry_over_allowed` TINYINT(1) NOT NULL DEFAULT 0,
+    `max_carry_over_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `cash_convertible` TINYINT(1) NOT NULL DEFAULT 0,
+    `cash_conversion_max_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `min_service_months` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `service_window_months` SMALLINT UNSIGNED NULL DEFAULT NULL,
+    `counts_as_sil_equivalent` TINYINT(1) NOT NULL DEFAULT 0,
+    `stack_with_equivalent` TINYINT(1) NOT NULL DEFAULT 0,
+    `max_events_lifetime` SMALLINT UNSIGNED NULL DEFAULT NULL,
+    `max_extension_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `requires_documentation` TINYINT(1) NOT NULL DEFAULT 0,
+    `document_requirements` TEXT NULL,
+    `requires_qualification` TINYINT(1) NOT NULL DEFAULT 0,
+    `qualification_type` VARCHAR(40) NULL DEFAULT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `rules_json` JSON NULL DEFAULT NULL,
+    `change_notes` TEXT NULL,
+    `created_by` INT UNSIGNED NULL DEFAULT NULL,
+    `approved_by` INT UNSIGNED NULL DEFAULT NULL,
+    `approved_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_policy_type_version` UNIQUE (`leave_type_id`, `version_number`),
+    CONSTRAINT `fk_policy_versions_type` FOREIGN KEY (`leave_type_id`)
+        REFERENCES `leave_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_policy_versions_created_by` FOREIGN KEY (`created_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_policy_versions_approved_by` FOREIGN KEY (`approved_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_policy_type_status` (`leave_type_id`, `approval_status`),
+    INDEX `idx_policy_effective_window` (`effective_from`, `effective_to`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 23. Employee Leave Qualifications Table
+-- Verified Solo Parent IDs (SPIC), marriage records, and statutory exclusions
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `employee_leave_qualifications` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `qualification_type` ENUM('solo_parent_spic', 'paternity_marriage', 'sil_exclusion', 'maternity_eligibility', 'slw_eligibility', 'vawc_protection') NOT NULL,
+    `verification_status` ENUM('PendingVerification', 'Verified', 'Expired', 'Revoked', 'Rejected') NOT NULL DEFAULT 'PendingVerification',
+    `reference_no` VARCHAR(100) NULL DEFAULT NULL,
+    `valid_from` DATE NULL DEFAULT NULL,
+    `valid_to` DATE NULL DEFAULT NULL,
+    `sil_exempt_override` TINYINT(1) NOT NULL DEFAULT 0,
+    `exclusion_reason` VARCHAR(150) NULL DEFAULT NULL,
+    `supporting_notes` TEXT NULL,
+    `verified_by` INT UNSIGNED NULL DEFAULT NULL,
+    `verified_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_emp_qual_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_emp_qual_verifier` FOREIGN KEY (`verified_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_emp_qual_lookup` (`employee_id`, `qualification_type`, `verification_status`, `valid_to`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 24. Leave Event Entitlements Table
+-- Per-event leave instances (Maternity, Paternity deliveries, SLW, VAWC, Bereavement)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `leave_event_entitlements` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `leave_type_id` INT UNSIGNED NOT NULL,
+    `policy_version_id` INT UNSIGNED NULL DEFAULT NULL,
+    `event_code` VARCHAR(40) NOT NULL,
+    `event_scenario` VARCHAR(60) NOT NULL,
+    `event_date` DATE NOT NULL,
+    `delivery_sequence` TINYINT UNSIGNED NULL DEFAULT NULL,
+    `spouse_name` VARCHAR(120) NULL DEFAULT NULL,
+    `relationship_type` VARCHAR(60) NULL DEFAULT NULL,
+    `entitled_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `transferred_out_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `unpaid_extension_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `used_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `pending_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `remaining_days` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `valid_from` DATE NOT NULL,
+    `valid_to` DATE NULL DEFAULT NULL,
+    `verification_status` ENUM('PendingVerification', 'Verified', 'Active', 'Completed', 'Expired', 'Cancelled') NOT NULL DEFAULT 'PendingVerification',
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `metadata_json` JSON NULL DEFAULT NULL,
+    `created_by` INT UNSIGNED NULL DEFAULT NULL,
+    `verified_by` INT UNSIGNED NULL DEFAULT NULL,
+    `verified_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_event_entitlement_code` UNIQUE (`employee_id`, `event_code`),
+    CONSTRAINT `fk_event_ent_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_event_ent_leave_type` FOREIGN KEY (`leave_type_id`)
+        REFERENCES `leave_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_event_ent_policy` FOREIGN KEY (`policy_version_id`)
+        REFERENCES `leave_policy_versions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_event_ent_created_by` FOREIGN KEY (`created_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_event_ent_verified_by` FOREIGN KEY (`verified_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_event_ent_lookup` (`employee_id`, `leave_type_id`, `verification_status`),
+    INDEX `idx_event_ent_delivery` (`employee_id`, `leave_type_id`, `delivery_sequence`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 25. Leave Balance Transactions Ledger Table
+-- Append-only ledger tracking allocations, deductions, SIL conversions, & expiry
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `leave_balance_transactions` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `leave_type_id` INT UNSIGNED NOT NULL,
+    `leave_balance_id` INT UNSIGNED NULL DEFAULT NULL,
+    `leave_request_id` INT UNSIGNED NULL DEFAULT NULL,
+    `event_entitlement_id` INT UNSIGNED NULL DEFAULT NULL,
+    `policy_version_id` INT UNSIGNED NULL DEFAULT NULL,
+    `balance_year` SMALLINT UNSIGNED NOT NULL,
+    `transaction_type` ENUM('initial_allocation', 'annual_allocation', 'approved_deduction', 'balance_restoration', 'adjustment', 'carry_over', 'expiration', 'sil_conversion', 'event_allocation', 'unpaid_recorded') NOT NULL,
+    `days_delta` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `balance_before` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `balance_after` DECIMAL(6,2) NOT NULL DEFAULT 0.00,
+    `conversion_scope` ENUM('none', 'annual_unused', 'separation') NOT NULL DEFAULT 'none',
+    `conversion_reference` VARCHAR(80) NULL DEFAULT NULL,
+    `remarks` VARCHAR(255) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `actor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lbt_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_leave_type` FOREIGN KEY (`leave_type_id`)
+        REFERENCES `leave_types` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_leave_balance` FOREIGN KEY (`leave_balance_id`)
+        REFERENCES `leave_balances` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_leave_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_event_entitlement` FOREIGN KEY (`event_entitlement_id`)
+        REFERENCES `leave_event_entitlements` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_policy_version` FOREIGN KEY (`policy_version_id`)
+        REFERENCES `leave_policy_versions` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lbt_actor_user` FOREIGN KEY (`actor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lbt_emp_year` (`employee_id`, `balance_year`, `created_at`),
+    INDEX `idx_lbt_type_year` (`leave_type_id`, `balance_year`),
+    INDEX `idx_lbt_request` (`leave_request_id`),
+    INDEX `idx_lbt_tx_type` (`transaction_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 26. Leave Request Documents Table
+-- Secure non-public supporting document metadata with SHA-256 checksums
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `leave_request_documents` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_category` VARCHAR(50) NOT NULL DEFAULT 'supporting_document',
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `review_status` ENUM('PendingReview', 'Accepted', 'NeedsClarification', 'Rejected') NOT NULL DEFAULT 'PendingReview',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lrd_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_lrd_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lrd_request` (`leave_request_id`),
+    INDEX `idx_lrd_employee` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 27. Leave Sensitive Access Logs Table
+-- Audit log of confidential leave (RA 9262 / RA 9710) and document access
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `leave_sensitive_access_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `leave_request_id` INT UNSIGNED NULL DEFAULT NULL,
+    `document_id` INT UNSIGNED NULL DEFAULT NULL,
+    `accessor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action_type` ENUM('view_request', 'view_confidential_reason', 'download_document', 'export_redacted', 'verify_qualification') NOT NULL,
+    `access_granted` TINYINT(1) NOT NULL DEFAULT 1,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_lsal_request` FOREIGN KEY (`leave_request_id`)
+        REFERENCES `leave_requests` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_document` FOREIGN KEY (`document_id`)
+        REFERENCES `leave_request_documents` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_lsal_accessor` FOREIGN KEY (`accessor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_lsal_request` (`leave_request_id`, `created_at`),
+    INDEX `idx_lsal_accessor` (`accessor_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 28. Support Ticket Sequences Table
+-- Atomic annual sequence counter for server-generated SUP-YYYY-NNNNN ticket refs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_ticket_sequences` (
+    `ticket_year` SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 29. Support Tickets & Workplace Complaints Table
+-- Tracks general support requests and confidential workplace grievances
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_ref` VARCHAR(30) NOT NULL,
+    `employee_id` INT UNSIGNED NULL DEFAULT NULL,
+    `submitted_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `support_channel` ENUM('employee_portal', 'public_auth') NOT NULL DEFAULT 'employee_portal',
+    `is_public_ticket` TINYINT(1) NOT NULL DEFAULT 0,
+    `requester_name` VARCHAR(120) NULL DEFAULT NULL,
+    `requester_email` VARCHAR(150) NULL DEFAULT NULL,
+    `matched_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `public_issue_datetime` VARCHAR(100) NULL DEFAULT NULL,
+    `public_client_env` VARCHAR(255) NULL DEFAULT NULL,
+    `request_type` ENUM('support', 'complaint') NOT NULL DEFAULT 'support',
+    `category` VARCHAR(80) NOT NULL,
+    `complaint_category` VARCHAR(80) NULL DEFAULT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `subject_employee_id` INT UNSIGNED NULL DEFAULT NULL,
+    `subject_reference` VARCHAR(150) NULL DEFAULT NULL,
+    `subject` VARCHAR(200) NOT NULL,
+    `description` TEXT NOT NULL,
+    `incident_date` DATE NULL DEFAULT NULL,
+    `category_metadata_json` JSON NULL DEFAULT NULL,
+    `priority` ENUM('Low', 'Medium', 'High', 'Urgent') NOT NULL DEFAULT 'Medium',
+    `status` ENUM('Submitted', 'Under Review', 'Waiting for Employee', 'Resolved', 'Closed') NOT NULL DEFAULT 'Submitted',
+    `assigned_to_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `resolution_remarks` TEXT NULL DEFAULT NULL,
+    `escalated_flag` TINYINT(1) NOT NULL DEFAULT 0,
+    `escalation_reason` VARCHAR(255) NULL DEFAULT NULL,
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `closed_at` DATETIME NULL DEFAULT NULL,
+    `last_activity_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_st_ticket_ref` UNIQUE (`ticket_ref`),
+    CONSTRAINT `fk_st_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_matched_user` FOREIGN KEY (`matched_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_subject_employee` FOREIGN KEY (`subject_employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_st_assigned_to` FOREIGN KEY (`assigned_to_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_st_emp_status` (`employee_id`, `status`, `last_activity_at`),
+    INDEX `idx_st_type_conf_status` (`request_type`, `is_confidential`, `status`),
+    INDEX `idx_st_assigned_status` (`assigned_to_user_id`, `status`),
+    INDEX `idx_st_subject_emp` (`subject_employee_id`),
+    INDEX `idx_st_created` (`created_at`),
+    INDEX `idx_st_public_channel` (`support_channel`, `is_public_ticket`, `status`, `last_activity_at`),
+    INDEX `idx_st_requester_email` (`requester_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 30. Support Confidential Handlers Registry Table
+-- User-scoped authorization within HR/Admin roles for confidential complaints
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_ticket_handlers` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `can_handle_confidential` TINYINT(1) NOT NULL DEFAULT 1,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `designation_notes` VARCHAR(255) NULL DEFAULT NULL,
+    `granted_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_sth_user` UNIQUE (`user_id`),
+    CONSTRAINT `fk_sth_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sth_granted_by` FOREIGN KEY (`granted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sth_active` (`is_active`, `can_handle_confidential`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 31. Support Messages Table
+-- Chronological conversation history separating employee-visible & internal HR notes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_messages` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sender_role` ENUM('employee', 'public_requester', 'hr', 'admin', 'system') NOT NULL DEFAULT 'employee',
+    `message_type` ENUM('initial_submission', 'hr_response', 'employee_reply', 'info_request', 'internal_note', 'status_change') NOT NULL,
+    `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0,
+    `body` TEXT NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sm_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sm_sender` FOREIGN KEY (`sender_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sm_ticket_vis` (`ticket_id`, `is_internal_note`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 32. Support Attachments Table
+-- Non-public uploaded supporting documents linked to tickets and messages
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `message_id` INT UNSIGNED NULL DEFAULT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_confidential` TINYINT(1) NOT NULL DEFAULT 0,
+    `is_internal_only` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sa_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sa_message` FOREIGN KEY (`message_id`)
+        REFERENCES `support_messages` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_sa_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sa_ticket` (`ticket_id`),
+    INDEX `idx_sa_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 33. Support Status History Table
+-- Complete audit trail of ticket lifecycle transitions and remarks
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_status_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `from_status` VARCHAR(40) NULL DEFAULT NULL,
+    `to_status` VARCHAR(40) NOT NULL,
+    `changed_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `remarks` TEXT NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_ssh_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssh_actor` FOREIGN KEY (`changed_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_ssh_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 34. Support Assignments Table
+-- Assignment, reassignment, and COI/policy escalation events
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_assignments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `assigned_to_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action` ENUM('assigned', 'reassigned', 'unassigned', 'escalated') NOT NULL DEFAULT 'assigned',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_sas_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_sas_assignee` FOREIGN KEY (`assigned_to_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_sas_actor` FOREIGN KEY (`assigned_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_sas_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 35. Support Sensitive Access Logs Table
+-- Audit trail of confidential complaint access attempts, COI blocks, & downloads
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `support_sensitive_access_logs` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NULL DEFAULT NULL,
+    `attachment_id` INT UNSIGNED NULL DEFAULT NULL,
+    `accessor_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action_type` ENUM('view_ticket', 'view_complaint', 'download_attachment', 'assign_handler', 'update_status', 'export_masked', 'coi_blocked') NOT NULL,
+    `access_granted` TINYINT(1) NOT NULL DEFAULT 1,
+    `reason_code` VARCHAR(80) NULL DEFAULT NULL,
+    `ip_address` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_ssal_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssal_attachment` FOREIGN KEY (`attachment_id`)
+        REFERENCES `support_attachments` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_ssal_accessor` FOREIGN KEY (`accessor_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_ssal_ticket` (`ticket_id`, `created_at`),
+    INDEX `idx_ssal_accessor` (`accessor_user_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 36. Trusted Devices Table (Smart OTP "Remember This Device")
+-- Selector + hashed validator credentials with fixed expiry & single-use rotation
+-- See database/migrations/2026_11_18_create_trusted_devices_and_auth_security.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `trusted_devices` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'SHA-256 or HMAC-SHA256 verifier of secret validator',
+    `device_name` VARCHAR(150) NOT NULL COMMENT 'Human-readable browser and OS label for display',
+    `browser_name` VARCHAR(64) NULL DEFAULT NULL,
+    `os_name` VARCHAR(64) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL COMMENT 'Descriptive UA metadata; never proves identity',
+    `last_ip` VARCHAR(45) NULL DEFAULT NULL COMMENT 'Contextual IP metadata; never primary trust proof',
+    `trust_days` SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `last_used_at` DATETIME NULL DEFAULT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `revocation_reason` VARCHAR(100) NULL DEFAULT NULL,
+    CONSTRAINT `fk_trusted_devices_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_trusted_devices_selector` (`selector`),
+    INDEX `idx_trusted_devices_user_active` (`user_id`, `revoked_at`, `expires_at`),
+    INDEX `idx_trusted_devices_expires` (`expires_at`),
+    INDEX `idx_trusted_devices_last_used` (`user_id`, `last_used_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 37. User Authentication Security States Table
+-- Per-user risk-based step-up & recovery flags forcing additional OTP verification
+-- See database/migrations/2026_11_18_create_trusted_devices_and_auth_security.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `user_auth_security_states` (
+    `user_id` INT UNSIGNED PRIMARY KEY,
+    `require_otp_next_login` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Forces fresh email OTP verification on next login even for trusted browsers',
+    `step_up_reason` VARCHAR(100) NULL DEFAULT NULL,
+    `password_changed_at` DATETIME NULL DEFAULT NULL,
+    `email_changed_at` DATETIME NULL DEFAULT NULL,
+    `mfa_changed_at` DATETIME NULL DEFAULT NULL,
+    `last_recovery_at` DATETIME NULL DEFAULT NULL,
+    `last_suspicious_event_at` DATETIME NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_user_auth_security_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 38. Password Resets Table
+-- Selector + HMAC-hashed verifier tokens with 15-minute expiry & single-use lock
+-- See database/migrations/2026_11_19_create_password_resets_and_public_support.sql
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `password_resets` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `user_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret validator',
+    `requested_email` VARCHAR(150) NOT NULL,
+    `requested_ip` VARCHAR(45) NULL DEFAULT NULL,
+    `user_agent` VARCHAR(255) NULL DEFAULT NULL,
+    `expires_at` DATETIME NOT NULL,
+    `consumed_at` DATETIME NULL DEFAULT NULL,
+    `invalidated_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_password_resets_user` FOREIGN KEY (`user_id`)
+        REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_password_resets_selector` (`selector`),
+    INDEX `idx_password_resets_user_active` (`user_id`, `consumed_at`, `invalidated_at`, `expires_at`),
+    INDEX `idx_password_resets_email_created` (`requested_email`, `created_at`),
+    INDEX `idx_password_resets_ip_created` (`requested_ip`, `created_at`),
+    INDEX `idx_password_resets_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 39. Public Support Ticket Sequences Table
+-- Atomic year-scoped counter for public pre-login AUTH-YYYY-NNNNN ticket refs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_ticket_sequences` (
+    `ticket_year` SMALLINT UNSIGNED NOT NULL PRIMARY KEY,
+    `last_sequence` INT UNSIGNED NOT NULL DEFAULT 0,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 40. Public Support Tracking Tokens Table
+-- Selector + HMAC-hashed verifier tokens for unauthenticated redacted ticket tracking
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `public_support_tracking_tokens` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `selector` CHAR(32) NOT NULL COMMENT 'Public 128-bit hex token identifier',
+    `token_hash` CHAR(64) NOT NULL COMMENT 'HMAC-SHA256 digest of secret tracking validator',
+    `expires_at` DATETIME NOT NULL,
+    `revoked_at` DATETIME NULL DEFAULT NULL,
+    `last_viewed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_pstt_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE KEY `uq_pstt_selector` (`selector`),
+    INDEX `idx_pstt_ticket_active` (`ticket_id`, `revoked_at`, `expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 41. HR-to-Admin Support Tickets Table
+-- Isolated technical & operational escalations submitted by HR to Administrators
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_ref` VARCHAR(32) NOT NULL COMMENT 'Unique non-guessable tracking reference (e.g. HR-SUP-2026-8F3K9C2M)',
+    `submitted_by_user_id` INT UNSIGNED NOT NULL,
+    `subject` VARCHAR(200) NOT NULL,
+    `description` TEXT NOT NULL,
+    `category` VARCHAR(80) NOT NULL,
+    `priority` ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL DEFAULT 'Medium',
+    `status` ENUM('Submitted', 'Under Review', 'In Progress', 'Waiting for HR', 'Resolved', 'Closed') NOT NULL DEFAULT 'Submitted',
+    `assigned_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `resolution_summary` TEXT NULL DEFAULT NULL,
+    `reopen_count` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `last_activity_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `closed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_hst_admin_ticket_ref` UNIQUE (`ticket_ref`),
+    CONSTRAINT `fk_hst_admin_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_hst_admin_assigned_to` FOREIGN KEY (`assigned_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_submitter_status` (`submitted_by_user_id`, `status`, `last_activity_at`),
+    INDEX `idx_hst_status_prio_activity` (`status`, `priority`, `last_activity_at`),
+    INDEX `idx_hst_assigned_status` (`assigned_admin_id`, `status`),
+    INDEX `idx_hst_category_status` (`category`, `status`),
+    INDEX `idx_hst_created` (`created_at`),
+    INDEX `idx_hst_resolved` (`resolved_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 42. HR-to-Admin Ticket Conversation Messages & Admin-Only Internal Notes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_messages` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sender_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `message_type` ENUM('initial_submission', 'hr_reply', 'admin_response', 'info_request', 'internal_note', 'reopen_request', 'resolution_confirmation', 'status_change') NOT NULL,
+    `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Admin-only confidential note; never returned to HR',
+    `body` TEXT NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hstm_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hstm_sender` FOREIGN KEY (`sender_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hstm_ticket_vis` (`ticket_id`, `is_internal_note`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 43. HR-to-Admin Ticket Attachments Table (Private Storage)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `message_id` INT UNSIGNED NULL DEFAULT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_internal_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Attached to Admin-only internal note',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_message` FOREIGN KEY (`message_id`)
+        REFERENCES `hr_support_ticket_messages` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsta_ticket` (`ticket_id`),
+    INDEX `idx_hsta_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 44. HR-to-Admin Ticket Assignment Audit Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_assignments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `assigned_to_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action` ENUM('assigned', 'reassigned', 'unassigned') NOT NULL DEFAULT 'assigned',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_assign_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_admin` FOREIGN KEY (`assigned_to_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_actor` FOREIGN KEY (`assigned_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_assign_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 45. HR-to-Admin Ticket Transition History Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `event_kind` ENUM('created', 'status_changed', 'priority_changed', 'assigned', 'reopened', 'resolved', 'closed') NOT NULL DEFAULT 'status_changed',
+    `from_status` VARCHAR(40) NULL DEFAULT NULL,
+    `to_status` VARCHAR(40) NULL DEFAULT NULL,
+    `from_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `to_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `changed_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `actor_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `remarks` TEXT NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsth_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsth_actor` FOREIGN KEY (`changed_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsth_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 46. Announcements Aggregate Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcements` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `title` VARCHAR(200) NOT NULL,
+    `content` TEXT NOT NULL,
+    `category` VARCHAR(80) NOT NULL,
+    `priority` ENUM('Normal', 'Important', 'Urgent') NOT NULL DEFAULT 'Normal',
+    `status` ENUM('Draft', 'Scheduled', 'Published', 'Archived', 'Expired') NOT NULL DEFAULT 'Draft',
+    `author_id` INT UNSIGNED NOT NULL,
+    `published_at` DATETIME NULL DEFAULT NULL,
+    `scheduled_at` DATETIME NULL DEFAULT NULL,
+    `expires_at` DATETIME NULL DEFAULT NULL,
+    `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    `archived_at` DATETIME NULL DEFAULT NULL,
+    CONSTRAINT `fk_ann_author` FOREIGN KEY (`author_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    INDEX `idx_ann_status_sched` (`status`, `scheduled_at`),
+    INDEX `idx_ann_status_exp` (`status`, `expires_at`),
+    INDEX `idx_ann_feed_order` (`status`, `is_pinned`, `priority`, `published_at`),
+    INDEX `idx_ann_author_status` (`author_id`, `status`, `created_at`),
+    INDEX `idx_ann_category_status` (`category`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 47. Announcement Audience Targets Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_targets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `target_type` ENUM('all', 'department') NOT NULL DEFAULT 'all',
+    `department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_annt_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_annt_department` FOREIGN KEY (`department_id`)
+        REFERENCES `departments` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_annt_ann_type_dept` (`announcement_id`, `target_type`, `department_id`),
+    INDEX `idx_annt_dept` (`target_type`, `department_id`, `announcement_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 48. Announcement Read Receipts Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_reads` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `read_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_ann_reads_ann_emp` UNIQUE (`announcement_id`, `employee_id`),
+    CONSTRAINT `fk_annr_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_annr_employee` FOREIGN KEY (`employee_id`)
+        REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX `idx_annr_emp` (`employee_id`, `announcement_id`),
+    INDEX `idx_annr_ann_read_at` (`announcement_id`, `read_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 49. Announcement Attachments Table (Private Storage)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `announcement_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL DEFAULT '',
+    `uploaded_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_anna_announcement` FOREIGN KEY (`announcement_id`)
+        REFERENCES `announcements` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_anna_uploader` FOREIGN KEY (`uploaded_by`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_anna_ann` (`announcement_id`, `created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

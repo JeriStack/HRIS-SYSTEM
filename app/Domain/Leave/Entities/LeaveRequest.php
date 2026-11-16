@@ -30,6 +30,13 @@ class LeaveRequest
     private ?int $approvedBy;
     private ?DateTimeImmutable $approvedAt;
     private ?DateTimeImmutable $createdAt;
+    private string $entitlementUnit;
+    private bool $isPaid;
+    private bool $isConfidential;
+    private ?int $policyVersionId;
+    private ?int $eventEntitlementId;
+    private ?string $applicationMetadataJson;
+    private ?int $durationDaysOverride;
     /** @var DomainEventInterface[] */
     private array $recordedEvents = [];
 
@@ -43,7 +50,14 @@ class LeaveRequest
         ?string $rejectionReason = null,
         ?int $approvedBy = null,
         ?DateTimeImmutable $approvedAt = null,
-        ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null,
+        string $entitlementUnit = 'working_days',
+        bool $isPaid = true,
+        bool $isConfidential = false,
+        ?int $policyVersionId = null,
+        ?int $eventEntitlementId = null,
+        ?string $applicationMetadataJson = null,
+        ?int $durationDaysOverride = null
     ) {
         if ($employeeId <= 0) {
             throw new InvalidArgumentException('Employee ID must be a positive integer.');
@@ -68,6 +82,13 @@ class LeaveRequest
         $this->approvedBy = $approvedBy;
         $this->approvedAt = $approvedAt;
         $this->createdAt = $createdAt;
+        $this->entitlementUnit = $entitlementUnit === 'calendar_days' ? 'calendar_days' : 'working_days';
+        $this->isPaid = $isPaid;
+        $this->isConfidential = $isConfidential;
+        $this->policyVersionId = $policyVersionId;
+        $this->eventEntitlementId = $eventEntitlementId;
+        $this->applicationMetadataJson = $applicationMetadataJson;
+        $this->durationDaysOverride = $durationDaysOverride;
     }
 
     /**
@@ -77,7 +98,14 @@ class LeaveRequest
         int $employeeId,
         int $leaveTypeId,
         LeaveDateRange $dateRange,
-        string $reason
+        string $reason,
+        string $entitlementUnit = 'working_days',
+        bool $isPaid = true,
+        bool $isConfidential = false,
+        ?int $policyVersionId = null,
+        ?int $eventEntitlementId = null,
+        ?string $applicationMetadataJson = null,
+        ?int $durationDaysOverride = null
     ): self {
         return new self(
             id: null,
@@ -89,7 +117,14 @@ class LeaveRequest
             rejectionReason: null,
             approvedBy: null,
             approvedAt: null,
-            createdAt: new DateTimeImmutable()
+            createdAt: new DateTimeImmutable(),
+            entitlementUnit: $entitlementUnit,
+            isPaid: $isPaid,
+            isConfidential: $isConfidential,
+            policyVersionId: $policyVersionId,
+            eventEntitlementId: $eventEntitlementId,
+            applicationMetadataJson: $applicationMetadataJson,
+            durationDaysOverride: $durationDaysOverride
         );
     }
 
@@ -106,7 +141,14 @@ class LeaveRequest
         ?string $rejectionReason = null,
         ?int $approvedBy = null,
         ?DateTimeImmutable $approvedAt = null,
-        ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null,
+        string $entitlementUnit = 'working_days',
+        bool $isPaid = true,
+        bool $isConfidential = false,
+        ?int $policyVersionId = null,
+        ?int $eventEntitlementId = null,
+        ?string $applicationMetadataJson = null,
+        ?int $durationDaysOverride = null
     ): self {
         return new self(
             id: $id,
@@ -118,7 +160,14 @@ class LeaveRequest
             rejectionReason: $rejectionReason,
             approvedBy: $approvedBy,
             approvedAt: $approvedAt,
-            createdAt: $createdAt
+            createdAt: $createdAt,
+            entitlementUnit: $entitlementUnit,
+            isPaid: $isPaid,
+            isConfidential: $isConfidential,
+            policyVersionId: $policyVersionId,
+            eventEntitlementId: $eventEntitlementId,
+            applicationMetadataJson: $applicationMetadataJson,
+            durationDaysOverride: $durationDaysOverride
         );
     }
 
@@ -233,7 +282,42 @@ class LeaveRequest
 
     public function numberOfDays(): int
     {
-        return $this->dateRange->workingDays();
+        if ($this->durationDaysOverride !== null && $this->durationDaysOverride > 0) {
+            return $this->durationDaysOverride;
+        }
+        return $this->entitlementUnit === 'calendar_days'
+            ? $this->dateRange->calendarDays()
+            : $this->dateRange->workingDays();
+    }
+
+    public function entitlementUnit(): string
+    {
+        return $this->entitlementUnit;
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->isPaid;
+    }
+
+    public function isConfidential(): bool
+    {
+        return $this->isConfidential;
+    }
+
+    public function policyVersionId(): ?int
+    {
+        return $this->policyVersionId;
+    }
+
+    public function eventEntitlementId(): ?int
+    {
+        return $this->eventEntitlementId;
+    }
+
+    public function applicationMetadataJson(): ?string
+    {
+        return $this->applicationMetadataJson;
     }
 
     public function status(): LeaveStatus

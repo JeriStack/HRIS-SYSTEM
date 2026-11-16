@@ -26,7 +26,13 @@ class MailService
     public function __construct(?array $config = null, bool $mockMode = false)
     {
         $this->config = $config ?? config('mail', []);
-        $this->mockMode = $mockMode || (getenv('APP_ENV') === 'testing' && empty($this->config['username']));
+        $mockEnv = getenv('MAIL_MOCK_MODE');
+        if (is_string($mockEnv) && trim($mockEnv) !== '') {
+            $envMock = filter_var($mockEnv, FILTER_VALIDATE_BOOLEAN);
+        } else {
+            $envMock = getenv('APP_ENV') === 'testing' && empty($this->config['username']);
+        }
+        $this->mockMode = $mockMode || $envMock;
     }
 
     /**

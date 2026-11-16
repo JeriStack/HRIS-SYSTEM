@@ -55,6 +55,14 @@ try {
         $processed
     );
 
+    // Also process a bounded batch of pending queue jobs (e.g. announcement notification distribution)
+    try {
+        $queueWorker = new \App\Queue\QueueWorker();
+        $queueWorker->run(['once' => true, 'limit' => 25]);
+    } catch (\Throwable $qe) {
+        error_log('[process-notifications queue drain warning] ' . $qe->getMessage());
+    }
+
     return 0;
 } catch (\Throwable $e) {
     error_log('[process-notifications error] ' . $e->getMessage());

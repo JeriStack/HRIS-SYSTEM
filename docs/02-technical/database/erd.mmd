@@ -1,0 +1,367 @@
+erDiagram
+    DEPARTMENTS ||--o{ POSITIONS : "contains"
+    DEPARTMENTS ||--o{ EMPLOYEES : "assigns"
+    POSITIONS ||--o{ EMPLOYEES : "classifies"
+    EMPLOYEES ||--o| USERS : "linked_to"
+    ROLES ||--o{ USERS : "governs"
+    ROLES ||--o{ ROLE_PERMISSIONS : "grants"
+    PERMISSIONS ||--o{ ROLE_PERMISSIONS : "included_in"
+    USERS ||--o{ ROLE_PERMISSIONS : "granted_by"
+    EMPLOYEES ||--o{ LEAVE_BALANCES : "holds"
+    LEAVE_TYPES ||--o{ LEAVE_BALANCES : "defines"
+    EMPLOYEES ||--o{ LEAVE_REQUESTS : "submits"
+    LEAVE_TYPES ||--o{ LEAVE_REQUESTS : "categorizes"
+    USERS ||--o{ LEAVE_REQUESTS : "reviews_as_approver"
+    USERS ||--o{ ACTIVITY_LOGS : "records_actor"
+    USERS ||--o{ NOTIFICATIONS : "receives"
+    USERS ||--o{ EMAIL_OTPS : "verifies_via"
+    USERS ||--o| USER_TOTP : "enrolls_mfa"
+    USERS ||--o{ REALTIME_TICKETS : "authenticates_ws"
+    USERS ||--o{ ANNOUNCEMENTS : "creates_updates"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_TARGETS : "targets"
+    DEPARTMENTS ||--o{ ANNOUNCEMENT_TARGETS : "scopes_department"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_READS : "tracks_receipts"
+    EMPLOYEES ||--o{ ANNOUNCEMENT_READS : "acknowledges"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_ATTACHMENTS : "attaches"
+
+    DEPARTMENTS {
+        int_unsigned id PK
+        varchar_100 department_name UK "NOT NULL"
+        text description "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    POSITIONS {
+        int_unsigned id PK
+        varchar_100 position_name UK "NOT NULL"
+        int_unsigned department_id FK "NOT NULL -> departments.id"
+        text description "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    EMPLOYEES {
+        int_unsigned id PK
+        varchar_30 employee_no UK "NOT NULL"
+        varchar_50 first_name "NOT NULL"
+        varchar_50 middle_name "NULL"
+        varchar_50 last_name "NOT NULL"
+        varchar_100 email UK "NOT NULL"
+        varchar_25 phone "NULL"
+        text address "NULL"
+        date birth_date "NOT NULL"
+        enum gender "Male|Female|Other"
+        int_unsigned department_id FK "NOT NULL -> departments.id"
+        int_unsigned position_id FK "NOT NULL -> positions.id"
+        date date_hired "NOT NULL"
+        enum employment_status "Active|Inactive|Terminated"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ROLES {
+        int_unsigned id PK
+        varchar_50 slug UK "admin|hr|employee"
+        varchar_100 name "NOT NULL"
+        text description "NULL"
+        tinyint_1 is_system "DEFAULT 1"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    PERMISSIONS {
+        int_unsigned id PK
+        varchar_100 slug UK "e.g. leave.approve"
+        varchar_120 name "NOT NULL"
+        varchar_50 category "NOT NULL"
+        text description "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ROLE_PERMISSIONS {
+        int_unsigned role_id PK,FK "-> roles.id"
+        int_unsigned permission_id PK,FK "-> permissions.id"
+        int_unsigned granted_by FK "NULL -> users.id"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    USERS {
+        int_unsigned id PK
+        int_unsigned employee_id FK,UK "NULL -> employees.id"
+        int_unsigned role_id FK "NULL -> roles.id"
+        varchar_50 username UK "NOT NULL"
+        varchar_100 email UK "NULL"
+        varchar_255 password "NOT NULL (Bcrypt/Argon2)"
+        enum role "admin|hr|employee"
+        enum status "Active|Inactive"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    LEAVE_TYPES {
+        int_unsigned id PK
+        varchar_50 leave_name UK "NOT NULL"
+        text description "NULL"
+        int_unsigned default_days "DEFAULT 0"
+        tinyint_1 requires_attachment "DEFAULT 0"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    LEAVE_BALANCES {
+        int_unsigned id PK
+        int_unsigned employee_id FK "NOT NULL -> employees.id (UK with leave_type_id, year)"
+        int_unsigned leave_type_id FK "NOT NULL -> leave_types.id"
+        smallint_unsigned year "NOT NULL"
+        decimal_4_1 allocated_days "DEFAULT 0.0"
+        decimal_4_1 used_days "DEFAULT 0.0"
+        decimal_4_1 remaining_days "DEFAULT 0.0"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    LEAVE_REQUESTS {
+        int_unsigned id PK
+        int_unsigned employee_id FK "NOT NULL -> employees.id"
+        int_unsigned leave_type_id FK "NOT NULL -> leave_types.id"
+        date start_date "NOT NULL"
+        date end_date "NOT NULL"
+        decimal_4_1 number_of_days "NOT NULL"
+        text reason "NOT NULL"
+        enum status "Pending|Approved|Rejected|Cancelled"
+        int_unsigned approved_by FK "NULL -> users.id"
+        datetime approved_at "NULL"
+        text rejection_reason "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ACTIVITY_LOGS {
+        int_unsigned id PK
+        varchar_64 event_id UK "NULL (UUID/Hash ID)"
+        int_unsigned user_id FK "NULL -> users.id"
+        enum actor_role "admin|hr|employee"
+        varchar_50 action "NOT NULL"
+        varchar_50 category "DEFAULT general"
+        text details "NULL"
+        json old_values "NULL"
+        json new_values "NULL"
+        enum status "SUCCESS|FAILURE|WARNING"
+        varchar_45 ip_address "NULL"
+        text user_agent "NULL"
+        varchar_64 request_id "NULL"
+        varchar_64 prev_hash "NULL (SHA-256 Chain)"
+        varchar_64 event_hash "NULL (SHA-256 Digest)"
+        varchar_50 entity_type "NULL"
+        varchar_50 entity_id "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    NOTIFICATIONS {
+        int_unsigned id PK
+        int_unsigned user_id FK "NOT NULL -> users.id"
+        varchar_150 title "NOT NULL"
+        text message "NOT NULL"
+        tinyint_1 is_read "DEFAULT 0"
+        varchar_30 type "DEFAULT info"
+        varchar_50 event_type "NULL"
+        int_unsigned entity_id "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    EMAIL_OTPS {
+        int_unsigned id PK
+        int_unsigned user_id FK "NOT NULL -> users.id"
+        varchar_255 otp_hash "NOT NULL (HMAC-Peppered Bcrypt)"
+        datetime expires_at "NOT NULL"
+        tinyint_unsigned attempts "DEFAULT 0"
+        tinyint_1 is_used "DEFAULT 0"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    USER_TOTP {
+        int_unsigned user_id PK,FK "-> users.id"
+        text secret_ciphertext "NOT NULL (AES-256-GCM)"
+        json backup_codes_hashes "NULL"
+        tinyint_1 is_enabled "DEFAULT 0"
+        bigint last_used_slice "NULL (Replay Guard)"
+        datetime confirmed_at "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    REALTIME_TICKETS {
+        bigint_unsigned id PK
+        char_64 ticket_hash UK "SHA-256 of CSPRNG Token"
+        int_unsigned user_id FK "NOT NULL -> users.id"
+        char_64 session_ref "NOT NULL"
+        datetime expires_at "NOT NULL"
+        datetime consumed_at "NULL"
+        varchar_45 ip_address "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    REALTIME_OUTBOX {
+        bigint_unsigned id PK
+        varchar_64 event_type "NOT NULL"
+        json payload "NOT NULL"
+        varchar_64 channel "NULL"
+        int_unsigned target_user_id "NULL"
+        varchar_30 target_role "NULL"
+        tinyint_unsigned attempts "DEFAULT 0"
+        datetime available_at "DEFAULT CURRENT_TIMESTAMP"
+        datetime locked_at "NULL"
+        varchar_64 locked_by "NULL"
+        datetime delivered_at "NULL"
+        text last_error "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    JOBS {
+        bigint_unsigned id PK
+        varchar_100 queue "DEFAULT default"
+        varchar_100 job_type "NOT NULL"
+        json payload "NOT NULL"
+        tinyint_unsigned attempts "DEFAULT 0"
+        tinyint_unsigned max_attempts "DEFAULT 3"
+        datetime available_at "NOT NULL"
+        datetime reserved_at "NULL"
+        varchar_64 reserved_by "NULL"
+        text last_error "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    FAILED_JOBS {
+        bigint_unsigned id PK
+        bigint_unsigned original_job_id "NULL"
+        varchar_100 queue "DEFAULT default"
+        varchar_100 job_type "NOT NULL"
+        json payload "NOT NULL"
+        tinyint_unsigned attempts "NOT NULL"
+        text exception "NOT NULL"
+        timestamp failed_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    USERS ||--o{ HR_SUPPORT_TICKETS : "submits (submitted_by_user_id)"
+    USERS ||--o{ HR_SUPPORT_TICKETS : "assigned_to (assigned_admin_id)"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_MESSAGES : "contains"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_ATTACHMENTS : "has_files"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_ASSIGNMENTS : "tracks_assignments"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_HISTORY : "tracks_transitions"
+
+    HR_SUPPORT_TICKETS {
+        int_unsigned id PK
+        varchar_32 ticket_ref UK "NOT NULL (HR-SUP-YYYY-XXXXXXXX)"
+        int_unsigned submitted_by_user_id FK "NOT NULL -> users.id"
+        varchar_200 subject "NOT NULL"
+        text description "NOT NULL"
+        varchar_80 category "NOT NULL"
+        enum priority "Low | Medium | High | Critical"
+        enum status "Submitted | Under Review | In Progress | Waiting for HR | Resolved | Closed"
+        int_unsigned assigned_admin_id FK "NULL -> users.id"
+        text resolution_summary "NULL"
+        smallint_unsigned reopen_count "DEFAULT 0"
+        datetime last_activity_at "NOT NULL"
+        datetime resolved_at "NULL"
+        datetime closed_at "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_MESSAGES {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned sender_user_id FK "NULL -> users.id"
+        enum sender_role "hr | admin | system"
+        enum message_type "initial_submission | hr_reply | admin_response | info_request | internal_note | reopen_request | resolution_confirmation | status_change"
+        tinyint_1 is_internal_note "DEFAULT 0 (1 = Admin-only)"
+        text body "NOT NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_ATTACHMENTS {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned message_id FK "NULL -> hr_support_ticket_messages.id"
+        int_unsigned uploaded_by_user_id FK "NULL -> users.id"
+        varchar_255 original_filename "NOT NULL"
+        varchar_255 stored_filename "NOT NULL"
+        varchar_255 storage_relative_path "NOT NULL"
+        varchar_100 mime_type "NOT NULL"
+        int_unsigned file_size_bytes "NOT NULL"
+        char_64 sha256_checksum "NOT NULL"
+        tinyint_1 is_internal_only "DEFAULT 0 (1 = Admin-only)"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_ASSIGNMENTS {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned assigned_to_admin_id FK "NULL -> users.id"
+        int_unsigned assigned_by_user_id FK "NULL -> users.id"
+        enum action "assigned | reassigned | unassigned"
+        varchar_255 notes "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_HISTORY {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        enum event_kind "created | status_changed | priority_changed | assigned | reopened | resolved | closed"
+        varchar_40 from_status "NULL"
+        varchar_40 to_status "NULL"
+        varchar_20 from_priority "NULL"
+        varchar_20 to_priority "NULL"
+        int_unsigned changed_by_user_id FK "NULL -> users.id"
+        enum actor_role "hr | admin | system"
+        text remarks "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ANNOUNCEMENTS {
+        int_unsigned id PK
+        varchar_32 announcement_ref UK "NOT NULL (ANN-YYYY-XXXXXXXX)"
+        varchar_200 title "NOT NULL"
+        varchar_320 summary "NULL"
+        mediumtext content "NOT NULL"
+        varchar_60 category "NOT NULL"
+        enum priority "Normal | Important | Urgent"
+        enum status "Draft | Scheduled | Published | Expired | Archived"
+        enum audience_type "all_employees | departments"
+        tinyint_1 is_pinned "DEFAULT 0"
+        tinyint_1 requires_acknowledgment "DEFAULT 0"
+        datetime scheduled_publish_at "NULL"
+        datetime published_at "NULL"
+        datetime expires_at "NULL"
+        datetime archived_at "NULL"
+        int_unsigned created_by FK "NOT NULL -> users.id"
+        int_unsigned updated_by FK "NULL -> users.id"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    ANNOUNCEMENT_TARGETS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        enum target_type "all | department"
+        int_unsigned department_id FK "NULL -> departments.id"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ANNOUNCEMENT_READS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        int_unsigned employee_id FK "NOT NULL -> employees.id"
+        datetime read_at "NOT NULL"
+        tinyint_1 acknowledged "DEFAULT 0"
+        datetime acknowledged_at "NULL"
+    }
+
+    ANNOUNCEMENT_ATTACHMENTS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        int_unsigned uploaded_by_user_id FK "NULL -> users.id"
+        varchar_255 original_filename "NOT NULL"
+        varchar_255 stored_filename "NOT NULL"
+        varchar_255 storage_relative_path "NOT NULL"
+        varchar_100 mime_type "NOT NULL"
+        int_unsigned file_size_bytes "NOT NULL"
+        char_64 sha256_checksum "NOT NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+

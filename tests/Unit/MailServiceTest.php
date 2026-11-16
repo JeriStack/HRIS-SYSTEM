@@ -116,4 +116,30 @@ class MailServiceTest extends TestCase
             }
         }
     }
+
+    public function test_mail_mock_mode_env_override_controls_auto_mocking_in_testing_env(): void
+    {
+        $prevMockEnv = getenv('MAIL_MOCK_MODE');
+        $mailpitConfig = array_merge($this->testConfig, [
+            'host'     => '127.0.0.1',
+            'port'     => 1025,
+            'username' => '',
+            'password' => '',
+        ]);
+
+        try {
+            putenv('MAIL_MOCK_MODE');
+            $defaultService = new MailService($mailpitConfig);
+            $this->assertTrue($defaultService->isMockMode(), 'Empty username in APP_ENV=testing should default to mock mode.');
+
+            putenv('MAIL_MOCK_MODE=false');
+            $liveDeliveryService = new MailService($mailpitConfig);
+            $this->assertFalse($liveDeliveryService->isMockMode(), 'MAIL_MOCK_MODE=false must allow live SMTP delivery to Mailpit even in testing.');
+
+            $forcedMockService = new MailService($mailpitConfig, true);
+            $this->assertTrue($forcedMockService->isMockMode(), 'Explicit constructor $mockMode=true must remain authoritative.');
+        } finally {
+            putenv($prevMockEnv === false ? 'MAIL_MOCK_MODE' : "MAIL_MOCK_MODE={$prevMockEnv}");
+        }
+    }
 }

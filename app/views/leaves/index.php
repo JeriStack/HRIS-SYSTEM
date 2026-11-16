@@ -10,7 +10,7 @@
         <p>Review, approve, or reject employee absence applications. Manage workforce availability.</p>
     </div>
     <div class="page-actions">
-        <?php if (!empty($nextInLine)): ?>
+        <?php if (!empty($nextInLine) && can('leave.approve')): ?>
             <form method="POST" action="<?= url('/leaves/queue/next') ?>" style="display: inline-block; margin: 0;">
                 <?= csrf_field() ?>
                 <?php if (!empty($selectedDept)): ?>
@@ -39,7 +39,7 @@
                 All Requests
             </a>
             <a href="<?= url('/leaves') ?>?status=Pending" class="btn btn-sm <?= $selectedStatus === 'Pending' ? 'btn-primary' : 'btn-secondary' ?>">
-                ⏳ Pending
+                <?= icon('clock', 14) ?> Pending
             </a>
             <a href="<?= url('/leaves') ?>?status=Approved" class="btn btn-sm <?= $selectedStatus === 'Approved' ? 'btn-primary' : 'btn-secondary' ?>">
                 ✓ Approved
@@ -96,7 +96,7 @@
         </h2>
         <?php if (isset($queueDepth) && $queueDepth > 0): ?>
             <span class="badge badge-info" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">
-                ⏳ Pending Review Queue: <strong><?= (int)$queueDepth ?></strong> Application<?= $queueDepth === 1 ? '' : 's' ?>
+                <?= icon('clock', 14) ?> Pending Review Queue: <strong><?= (int)$queueDepth ?></strong> Application<?= $queueDepth === 1 ? '' : 's' ?>
             </span>
         <?php endif; ?>
     </div>
@@ -158,18 +158,43 @@
                             </td>
                             <td>
                                 <strong><?= e($req['leave_name']) ?></strong>
+                                <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.25rem;">
+                                    <?php if (!empty($req['classification'])): ?>
+                                        <span class="badge <?= ($req['classification'] === 'Statutory') ? 'badge-statutory' : 'badge-company' ?>" style="font-size: 0.6875rem;">
+                                            <?= e((string)$req['classification']) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                    <?php if (($req['entitlement_unit'] ?? 'working_days') === 'calendar_days'): ?>
+                                        <span class="badge badge-info" style="font-size: 0.6875rem;">Calendar</span>
+                                    <?php endif; ?>
+                                    <?php if (isset($req['is_paid']) && (int)$req['is_paid'] === 0): ?>
+                                        <span class="badge badge-unpaid" style="font-size: 0.6875rem;">Unpaid</span>
+                                    <?php endif; ?>
+                                    <?php if (!empty($req['is_confidential']) || !empty($req['is_redacted'])): ?>
+                                        <span class="badge badge-confidential" style="font-size: 0.6875rem;">Confidential</span>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                             <td style="font-size: 0.8125rem; white-space: nowrap;">
                                 <?= date('M d, Y', strtotime($req['start_date'])) ?> &rarr;<br>
                                 <?= date('M d, Y', strtotime($req['end_date'])) ?>
                             </td>
                             <td>
-                                <strong><?= (int)$req['number_of_days'] ?></strong> Day<?= (int)$req['number_of_days'] === 1 ? '' : 's' ?>
+                                <strong><?= (int)$req['number_of_days'] ?></strong> <?= (($req['entitlement_unit'] ?? 'working_days') === 'calendar_days') ? 'Cal.' : '' ?>Day<?= (int)$req['number_of_days'] === 1 ? '' : 's' ?>
                             </td>
                             <td style="font-size: 0.8125rem; color: var(--color-text-muted); max-width: 220px;">
-                                <span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="<?= e($req['reason']) ?>">
-                                    <?= e($req['reason']) ?>
-                                </span>
+                                <?php if (!empty($req['is_redacted'])): ?>
+                                    <span class="badge badge-confidential" style="font-size: 0.6875rem;">Protected Confidential Reason</span>
+                                <?php else: ?>
+                                    <span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="<?= e($req['reason']) ?>">
+                                        <?= e($req['reason']) ?>
+                                    </span>
+                                <?php endif; ?>
+                                <?php if (($req['info_request_status'] ?? 'None') === 'Requested'): ?>
+                                    <div style="margin-top: 0.25rem;"><span class="badge badge-danger" style="font-size: 0.6875rem;">Info Requested</span></div>
+                                <?php elseif (($req['info_request_status'] ?? 'None') === 'Responded'): ?>
+                                    <div style="margin-top: 0.25rem;"><span class="badge badge-info" style="font-size: 0.6875rem;">Clarification Received</span></div>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="badge <?= $statusBadgeClass ?>">
@@ -188,7 +213,7 @@
                                         View
                                     </a>
 
-                                    <?php if ($status === 'Pending'): ?>
+                                    <?php if ($status === 'Pending' && can('leave.approve')): ?>
                                         <!-- Approve Action -->
                                         <form method="POST" action="<?= url('/leaves/' . $req['id'] . '/approve') ?>" style="display: inline;" onsubmit="return confirm('Confirm approval of leave request #<?= $req['id'] ?> for <?= addslashes($req['first_name'] . ' ' . $req['last_name']) ?>?');">
                                             <?= csrf_field() ?>

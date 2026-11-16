@@ -65,6 +65,7 @@ class ActivityLogController extends Controller
             AuditService::CATEGORY_EMPLOYEE     => 'Employee Workforce',
             AuditService::CATEGORY_ORGANIZATION => 'Departments & Positions',
             AuditService::CATEGORY_LEAVE        => 'Leave Administration',
+            AuditService::CATEGORY_SUPPORT      => 'Help & Support Operations',
             AuditService::CATEGORY_REPORTS      => 'Reports & Exports',
             AuditService::CATEGORY_SYSTEM       => 'System Configuration',
         ];

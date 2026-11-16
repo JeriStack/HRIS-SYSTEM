@@ -67,7 +67,8 @@ Tasks are registered in [`App\Console\Kernel`](file:///c:/xampp/htdocs/GitHub_Cl
 | Task Name | Cron Schedule | Script / Handler | Purpose |
 | :--- | :--- | :--- | :--- |
 | `cleanup-sessions` | `*/15 * * * *` | `scripts/scheduled/cleanup-sessions.php` | Purges expired OTPs (>1h), stale tickets (>10m), and expired session files. |
-| `process-notifications`| `* * * * *` | `scripts/scheduled/process-notifications.php` | Claims and dispatches pending transactional outbox events. |
+| `process-notifications`| `* * * * *` | `scripts/scheduled/process-notifications.php` | Claims and dispatches pending transactional outbox events and queued notification jobs. |
+| `process-announcements`| `* * * * *` | `scripts/scheduled/process-announcements.php` | Publishes due `Scheduled` announcements (`scheduled_publish_at <= NOW()`) and expires past-due `Published` announcements (`expires_at <= NOW()`). |
 | `send-leave-reminders` | `0 8 * * *` | `scripts/scheduled/send-leave-reminders.php` | Sends automated notifications for approved leaves commencing tomorrow. |
 | `cleanup-temp-files` | `0 2 * * *` | `scripts/scheduled/cleanup-temp-files.php` | Removes CSV export files older than 24 hours from `storage/exports/`. |
 
@@ -136,6 +137,7 @@ All executable handlers are registered in [`App\Queue\JobRegistry`](file:///c:/x
 3. `leave_reminder` (`App\Queue\Handlers\LeaveReminderHandler`): Identifies tomorrow's approved leaves and generates reminder alerts.
 4. `report_export` (`App\Queue\Handlers\ReportExportHandler`): Generates and writes CSV export files in the background.
 5. `outbox_relay` (`App\Queue\Handlers\OutboxRelayHandler`): Bridges transactional outbox events to domain event handlers.
+6. `distribute_announcement_notifications` (`App\Queue\Handlers\DistributeAnnouncementNotificationsHandler`): Fan-out distribution of targeted in-app and WebSocket notifications (`announcement.published` / `announcement.urgent`) with idempotent `event_key = announcement_published_{id}_user_{uid}` deduplication and disabled bulk external email.
 
 ---
 

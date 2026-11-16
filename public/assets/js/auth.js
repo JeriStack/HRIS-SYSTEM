@@ -296,7 +296,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const shouldOpenInitially =
     modalBackdrop?.getAttribute("data-initial-open") === "true";
 
-  if (initialPortalRole === "hr" || initialPortalRole === "employee") {
+  if (
+    initialPortalRole === "admin" ||
+    initialPortalRole === "hr" ||
+    initialPortalRole === "employee"
+  ) {
     setModalRole(initialPortalRole, true);
   } else {
     setModalRole("hr", false);

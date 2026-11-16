@@ -33,7 +33,7 @@ class LeaveBalanceAdjustmentTest extends TestCase
         $this->leave = new Leave();
 
         $this->employeeId = (int)$this->pdo->query("SELECT id FROM employees LIMIT 1")->fetchColumn();
-        $this->leaveTypeId = (int)$this->pdo->query("SELECT id FROM leave_types LIMIT 1")->fetchColumn();
+        $this->leaveTypeId = (int)$this->pdo->query("SELECT id FROM leave_types WHERE status = 'Active' ORDER BY id ASC LIMIT 1")->fetchColumn();
         if ($this->employeeId <= 0 || $this->leaveTypeId <= 0) {
             $this->markTestSkipped('No employee/leave-type fixtures in hris_test.');
         }

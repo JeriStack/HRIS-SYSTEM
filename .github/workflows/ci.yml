@@ -226,7 +226,7 @@ jobs:
         run: mkdir -p "${{ github.workspace }}/.terraform.d/plugin-cache"
 
       - name: Cache Terraform Provider Plugins
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ github.workspace }}/.terraform.d/plugin-cache
           key: terraform-plugins-${{ runner.os }}-${{ hashFiles('**/.terraform.lock.hcl') }}
@@ -282,7 +282,7 @@ jobs:
           terraform -chdir=terraform/environments/prod validate
 
       - name: Set up TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@v6
         with:
           tflint_version: "v0.55.0"
 

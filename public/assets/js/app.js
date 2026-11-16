@@ -147,7 +147,7 @@ function initFormSubmitGuard() {
                 submitBtn.dataset.originalHtml = originalHtml;
                 submitBtn.disabled = true;
                 submitBtn.classList.add('is-loading');
-                submitBtn.innerHTML = `<span>⏳ Processing...</span>`;
+                submitBtn.innerHTML = `<span>Processing...</span>`;
 
                 // Failsafe: Re-enable after 8 seconds in case of client-side validation abort
                 setTimeout(() => {

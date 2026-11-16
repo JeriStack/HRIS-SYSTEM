@@ -13,10 +13,10 @@
 
 | Metric | Measured Value | Standard / Target | Status |
 |---|---|---|---|
-| **PHPUnit Test Suite** | 600 tests, 2,152 assertions | 100% Passing (0 failures, 0 errors, 94 skipped) | `DONE` |
-| **PSR-12 Code Style** | 235 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
-| **Database Schema** | 13 InnoDB tables, 7 core migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
-| **Role Model** | 3 Roles (`admin`, `hr`, `employee`) | Strict 3-role RBAC under ADR-012 | `DONE` |
+| **PHPUnit Test Suite** | 742 tests (739 passing, 3 WS E2E skipped), 3,937 assertions | 100% Passing (0 failures, 0 errors) | `DONE` |
+| **PSR-12 Code Style** | 232 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
+| **Database Schema** | 45 InnoDB tables, 16 migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
+| **Role Model** | 3 Roles (`admin`, `hr`, `employee`) | Least-privilege 3-role RBAC + HR-to-Admin Support | `DONE` |
 | **Multi-Factor Auth** | Email OTP (6-digit) + TOTP Authenticator | Mandatory 2FA, 10m TTL | `DONE` |
 | **Real-time Pipeline** | Ratchet WebSocket (:8090) + Outbox Worker | Transactional Outbox, sub-100ms dispatch | `DONE` |
 | **Documentation** | 5 Numbered Pillars (01-core to 05-reference) | Unified single source of truth | `DONE` |
@@ -99,6 +99,44 @@
 - [x] Update frontend views: 3-portal login screen with switcher tab, Admin sidebar branding, Admin dashboard console, and User Management views.
 - [x] Author comprehensive test suite (`tests/Feature/AdminRoleRbacTest.php`) bringing PHPUnit suite to 600 passing tests.
 - [x] Document Architectural Decision Record ADR-012 in `docs/02-technical/decisions/DECISIONS.md`.
+
+### Phase 11B: Employee Help & Support and Complaint Management Module (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [employee-help-and-support.md](modules/employee-help-and-support.md).*
+- [x] Create database migration (`2026_11_17_create_support_and_complaint_module.sql`) and synchronize canonical `database/schema.sql` and Docker init parity.
+- [x] Register granular `Help & Support` permissions within the 3-role RBAC model (`admin`, `hr`, `employee`) plus user-scoped confidential complaint handlers (`support_ticket_handlers`).
+- [x] Implement backend models, access/COI policy service, workflow service, encrypted/isolated attachment storage service, privacy-aware notification service, and controllers (`SupportController`, `HrSupportController`).
+- [x] Integrate `Help & Support` into Employee navigation & compact Employee Dashboard widget, and `Support Inbox` into HR/Admin workspaces with full Light & Dark Mode parity.
+- [x] Verify with PSR-12 baseline check, PHPStan, PHPUnit unit/feature/security suites, and Selenium E2E tests.
+
+### Phase 11C: Smart OTP Authentication & Trusted Device Management (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [smart-otp-trusted-devices.md](modules/smart-otp-trusted-devices.md).*
+- [x] Create database migration (`2026_11_18_create_trusted_devices_and_auth_security.sql`) for `trusted_devices` & `user_auth_security_states`, and synchronize canonical `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement `config/auth_devices.php`, `TrustedDevice`, `UserAuthSecurityState`, `TrustedDeviceService` (single-use atomic validator rotation, HMAC-SHA256 hashed validators, fixed 30d/7d expiration, HTTPS/proxy-aware cookies), `AuthRiskService` (risk-based step-up without false-positive IP blocking), and `AuthSecurityNotificationService`.
+- [x] Wire Smart OTP & `"Remember this device"` opt-in into `AuthController`, `Api\AuthController`, `AdminController::updateAccount()`, and self-service `/account/security` management & lost-device recovery (`AccountSecurityController`).
+- [x] Build accessible `/verify-otp` opt-in & `/account/security` UI (Light/Dark Mode, `@container` mobile table responsiveness, native `<dialog>` confirmations, explicit Email OTP assurance disclosure).
+- [x] Verify with `InitSchemaParityTest`, `TrustedDeviceServiceTest`, `SmartOtpAuthenticationTest`, Selenium + Mailpit E2E tests (`test_smart_otp_trusted_devices.py`), PSR-12 baseline check, PHPStan, and full PHPUnit suite.
+
+### Phase 11D: Public Help & Support, Password Recovery, and Login Assistance (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.1 — see [public-help-and-password-recovery.md](modules/public-help-and-password-recovery.md).*
+- [x] Create database migration (`2026_11_19_create_password_resets_and_public_support.sql`) for `password_resets`, `public_support_ticket_sequences`, `public_support_tracking_tokens`, and `support_tickets` / `support_messages` public-auth extensions, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement `PasswordPolicy` recovery checks, `PasswordReset`, and `PasswordRecoveryService` (15-min MySQL clock CSPRNG split tokens, HMAC-SHA256 at rest, timing-equalized anti-enumeration, atomic single-use consumption, trusted-device/session/OTP revocation, mandatory fresh OTP step-up).
+- [x] Implement `PublicSupportTrackingToken`, `PublicAuthSupportService`, and `PublicAuthSupportController` for `/auth/help`, `/auth/help/otp`, `/forgot-password`, `/reset-password`, `/auth/support/report` (`AUTH-YYYY-NNNNN`), redacted `/auth/support/track`, and HR inbox integration (`/hr/support?scope=public_auth`).
+- [x] Integrate accessible Light/Dark public assistance views, entry points (`/`, `/login`, `/verify-otp`), and security controls validated via `PasswordRecoveryServiceTest`, `PublicAuthSupportAndRecoveryTest`, Selenium + Mailpit E2E (`test_public_auth_support_and_recovery.py`), PHPCS, PHPStan, and PHPUnit.
+
+### Phase 11E: Least-Privilege Admin Governance & HR-to-Admin Help & Support Module (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.2 — see [hr-admin-help-and-support.md](modules/hr-admin-help-and-support.md).*
+- [x] Author idempotent migration (`2026_11_20_create_hr_to_admin_support_module.sql`) creating `hr_support_tickets`, `hr_support_ticket_messages`, `hr_support_ticket_attachments`, `hr_support_ticket_assignments`, and `hr_support_ticket_history`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Enforce least-privilege Admin boundaries across `PermissionRegistry`, `AuthorizationService`, `Permission`, `ConfidentialLeaveService`, `LeaveDocumentService`, `EmployeeController`, `LeaveController`, `HrSupportController`, and REST API v1 controllers.
+- [x] Implement `HrSupportTicket`, `HrSupportAccessService`, `HrSupportNotificationService`, `HrSupportWorkflowService`, `HrAdminSupportController` (`/hr/help*`), and `AdminSupportController` (`/admin/support*`) with `HR-SUP-YYYY-XXXXXXXX` references, private Admin internal notes, redacted SMTP/Mailpit notifications, and real-time `hr_support.*` WebSocket events.
+- [x] Verify with `InitSchemaParityTest`, `HrSupportAccessUnitTest`, `HrSupportLifecycleAndSecurityTest`, Impeccable craft-floor UI audit, PSR-12 baseline check, and full PHPUnit suite.
+
+### Phase 11F: HR Announcements Management System (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.3 — see [announcements-management.md](modules/announcements-management.md).*
+- [x] Author idempotent migration (`2026_11_21_create_announcements_module.sql`) creating `announcements`, `announcement_targets`, `announcement_reads`, and `announcement_attachments`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement DDD Announcement bounded context (`App\Domain\Announcement` entities, value objects, domain events, repository contract), `MySqlAnnouncementRepository`, `AnnouncementControllerAdapter` (ACL), and `AnnouncementAttachmentService`.
+- [x] Integrate post-commit Domain Events (`AnnouncementEventHandler`), Transactional Outbox (`OutboxEventSerializer`), Queue Worker (`DistributeAnnouncementNotificationsHandler`), Scheduled CRON Kernel (`process-announcements`), and Real-Time WebSockets (`announcement.published`, `announcement.urgent`).
+- [x] Implement HR Announcements Management UI (`/hr/announcements*`), Employee Announcement Feed & Dashboard Preview (`/employee/announcements*`), REST API v1 endpoints (`/api/v1/announcements*`, `/api/v1/employee/announcements*`), and OpenAPI specification.
+- [x] Verify with `AnnouncementDomainTest`, `AnnouncementLifecycleIntegrationTest`, `AnnouncementRbacAndSecurityTest`, `test_announcements_module.py`, Impeccable design detector, PSR-12 baseline check, and PHPStan.
 
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).

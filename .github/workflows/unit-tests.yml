@@ -200,50 +200,119 @@ jobs:
           fi
 
       - name: Transition Jira Issue to In Review
-        if: env.JIRA_BASE_URL != '' && env.JIRA_API_TOKEN != '' && steps.find_issue.outputs.issue != ''
+        id: transition_issue
+        if: env.JIRA_BASE_URL != '' && env.JIRA_USER_EMAIL != '' && env.JIRA_API_TOKEN != '' && steps.find_issue.outputs.issue != ''
         continue-on-error: true
         shell: bash
+        env:
+          ISSUE_KEY: ${{ steps.find_issue.outputs.issue }}
         run: |
-          ISSUE_KEY="${{ steps.find_issue.outputs.issue }}"
-          echo "Transitioning issue $ISSUE_KEY to 'In Review' via Jira Cloud REST API..."
+          echo "Transitioning issue ${ISSUE_KEY} to 'In Review' via Jira Cloud REST API..."
 
-          TRANSITIONS_JSON=$(curl -s -w "\n%{http_code}" -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+          BASE_URL=$(printf '%s' "$JIRA_BASE_URL" | tr -d '\r\n"' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g; s|/*$||; s|/(jira|browse|projects)(/.*)?$||; s|/*$||')
+          if [ -z "$BASE_URL" ]; then
+            echo "Notice: JIRA_BASE_URL is empty; skipping Jira transition."
+            echo "status=skipped_invalid_url" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$BASE_URL" in
+            http://*|https://*) ;;
+            *) BASE_URL="https://${BASE_URL}" ;;
+          esac
+
+          TRANSITIONS_JSON=$(curl -sS -m 15 --connect-timeout 10 -w "\n%{http_code}" \
+            -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
             -H "Accept: application/json" \
-            "${JIRA_BASE_URL%/}/rest/api/3/issue/${ISSUE_KEY}/transitions")
+            "${BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" || printf '\n000')
 
-          HTTP_CODE=$(echo "$TRANSITIONS_JSON" | tail -n 1)
-          BODY=$(echo "$TRANSITIONS_JSON" | sed '$d')
+          HTTP_CODE=$(printf '%s\n' "$TRANSITIONS_JSON" | tail -n 1)
+          BODY=$(printf '%s\n' "$TRANSITIONS_JSON" | sed '$d')
 
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "::warning::Failed to retrieve transitions from Jira (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" = "404" ]; then
+            MYSELF_JSON=$(curl -s -m 15 --connect-timeout 10 -w "\n%{http_code}" \
+              -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
+              -H "Accept: application/json" \
+              "${BASE_URL}/rest/api/3/myself" || printf '\n000')
+            MYSELF_CODE=$(printf '%s\n' "$MYSELF_JSON" | tail -n 1)
+
+            if [ "$MYSELF_CODE" = "200" ]; then
+              echo "Notice: Jira credentials verified, but issue ${ISSUE_KEY} does not exist or is not accessible (HTTP 404); skipping transition."
+              echo "status=skipped_issue_not_found" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            echo "::warning::Jira API check failed (issue HTTP 404; /rest/api/3/myself HTTP ${MYSELF_CODE}). Verify JIRA_BASE_URL, JIRA_USER_EMAIL, and JIRA_API_TOKEN repository secrets."
+            echo "status=failed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          TRANSITION_ID=$(echo "$BODY" | jq -r '.transitions[] | select(.name | ascii_downcase == "in review" or ascii_downcase == "in progress") | .id' | head -n 1)
+          if [ "$HTTP_CODE" != "200" ]; then
+            ERR_MSG=$(printf '%s' "$BODY" | jq -r '(.errorMessages // []) | join("; ")' 2>/dev/null || true)
+            if [ -n "$ERR_MSG" ]; then
+              echo "::warning::Failed to retrieve transitions from Jira for ${ISSUE_KEY} (HTTP ${HTTP_CODE}: ${ERR_MSG})"
+            else
+              echo "::warning::Failed to retrieve transitions from Jira for ${ISSUE_KEY} (HTTP ${HTTP_CODE})"
+            fi
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! printf '%s' "$BODY" | jq -e 'type == "object" and has("transitions")' >/dev/null 2>&1; then
+            echo "::warning::Unexpected non-JSON or malformed response from Jira for ${ISSUE_KEY}."
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          TRANSITION_ID=$(printf '%s' "$BODY" | jq -r '(.transitions // [])[] | select((.name | ascii_downcase) == "in review" or (.name | ascii_downcase) == "in progress") | .id' | head -n 1 || true)
 
           if [ -n "$TRANSITION_ID" ] && [ "$TRANSITION_ID" != "null" ]; then
-            echo "Found transition ID $TRANSITION_ID. Applying transition..."
-            curl -s -X POST -u "$JIRA_USER_EMAIL:$JIRA_API_TOKEN" \
+            echo "Found transition ID ${TRANSITION_ID}. Applying transition..."
+            POST_RESP=$(curl -sS -m 15 --connect-timeout 10 -w "\n%{http_code}" -X POST \
+              -u "${JIRA_USER_EMAIL}:${JIRA_API_TOKEN}" \
               -H "Accept: application/json" \
               -H "Content-Type: application/json" \
-              -d "{\"transition\":{\"id\":\"$TRANSITION_ID\"}}" \
-              "${JIRA_BASE_URL%/}/rest/api/3/issue/${ISSUE_KEY}/transitions"
-            echo "Jira transition request dispatched successfully."
+              -d "{\"transition\":{\"id\":\"${TRANSITION_ID}\"}}" \
+              "${BASE_URL}/rest/api/3/issue/${ISSUE_KEY}/transitions" || printf '\n000')
+            POST_CODE=$(printf '%s\n' "$POST_RESP" | tail -n 1)
+            if [ "$POST_CODE" = "204" ] || [ "$POST_CODE" = "200" ]; then
+              echo "Jira transition request dispatched successfully (HTTP ${POST_CODE})."
+              echo "status=transitioned" >> "$GITHUB_OUTPUT"
+            else
+              echo "::warning::Failed to apply Jira transition for ${ISSUE_KEY} (HTTP ${POST_CODE})."
+              echo "status=transition_failed" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "Notice: 'In Review' transition was not found in available transitions."
+            echo "status=no_matching_transition" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Jira Integration Status Report
         shell: bash
+        env:
+          ISSUE_KEY: ${{ steps.find_issue.outputs.issue }}
+          TRANSITION_STATUS: ${{ steps.transition_issue.outputs.status }}
         run: |
           echo "=========================================================="
           echo "  JIRA AUTOMATION STATUS"
           echo "=========================================================="
-          if [ -n "${{ steps.find_issue.outputs.issue }}" ]; then
-            echo "Detected Jira Issue: ${{ steps.find_issue.outputs.issue }}"
-            echo "Tests passed! Automated transition dispatched."
+          if [ -z "$ISSUE_KEY" ]; then
+            echo "No Jira issue key detected in branch or commit message."
+            echo "Unit tests completed with 100% pass rate."
+          elif [ "$TRANSITION_STATUS" = "transitioned" ]; then
+            echo "Detected Jira Issue: ${ISSUE_KEY}"
+            echo "Tests passed! Automated Jira transition applied."
+          elif [ "$TRANSITION_STATUS" = "skipped_issue_not_found" ]; then
+            echo "Detected Jira Issue Key: ${ISSUE_KEY}"
+            echo "Tests passed! Issue ${ISSUE_KEY} does not exist or is inaccessible in Jira; transition skipped."
+          elif [ "$TRANSITION_STATUS" = "no_matching_transition" ]; then
+            echo "Detected Jira Issue: ${ISSUE_KEY}"
+            echo "Tests passed! No matching 'In Review' or 'In Progress' transition available."
+          elif [ "$TRANSITION_STATUS" = "failed" ] || [ "$TRANSITION_STATUS" = "transition_failed" ]; then
+            echo "Detected Jira Issue: ${ISSUE_KEY}"
+            echo "Tests passed, but Jira transition could not complete (${TRANSITION_STATUS})."
           else
-            echo "No Jira issue key detected in branch or commit, or Jira credentials pending."
+            echo "Detected Jira Issue Key: ${ISSUE_KEY}"
+            echo "Jira credentials pending or incomplete; automated transition skipped."
             echo "Unit tests completed with 100% pass rate."
           fi
           echo "=========================================================="

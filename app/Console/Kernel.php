@@ -50,6 +50,14 @@ class Kernel
             'Claims and dispatches pending transactional outbox events'
         );
 
+        // 2b. Announcement scheduled publication & expiration lifecycle: every minute
+        $this->schedule(
+            'process-announcements',
+            '* * * * *',
+            $basePath . '/scripts/scheduled/process-announcements.php',
+            'Publishes due scheduled announcements and expires elapsed published announcements'
+        );
+
         // 3. Upcoming leave reminders: daily at 08:00
         $this->schedule(
             'send-leave-reminders',

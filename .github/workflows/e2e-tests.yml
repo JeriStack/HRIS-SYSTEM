@@ -7,11 +7,19 @@ on:
       - development
       - develop
       - 'HRIS-*'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   pull_request:
     branches:
       - main
       - development
       - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
@@ -43,6 +51,17 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+      mailpit:
+        image: axllent/mailpit:v1.22
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd="/mailpit readyz"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     env:
       DB_DRIVER: mysql
       DB_HOST: 127.0.0.1
@@ -50,13 +69,18 @@ jobs:
       DB_DATABASE: hris_test
       DB_USERNAME: hris_test_user
       DB_PASSWORD: test_password
-      APP_ENV: testing
+      APP_ENV: development
       # Align the PHP application clock with the MySQL service (both UTC in CI runners).
       # The app defaults to Asia/Manila (UTC+8); without this the OTP challenge's
       # expires_at (rebased onto the DB clock by the E2E auth helper) is read back by
       # verifyOtp() on the PHP clock and evaluates as already expired, which blocks the
       # real /verify-otp step and makes every authenticated test time out.
       TIMEZONE: UTC
+      SMTP_HOST: "127.0.0.1"
+      SMTP_PORT: "1025"
+      SMTP_ENCRYPTION: "none"
+      MAIL_MOCK_MODE: "false"
+      MAILPIT_API_URL: "http://127.0.0.1:8025/api/v1"
       BASE_URL: "http://127.0.0.1:8080"
       HRIS_BASE_URL: "http://127.0.0.1:8080"
       SELENIUM_BROWSER: chrome
@@ -95,14 +119,36 @@ jobs:
         run: |
           php -S 127.0.0.1:8080 -t public/ > /tmp/php_server.log 2>&1 &
           echo "Waiting for PHP application server to be reachable..."
+          php_ready=0
           for attempt in $(seq 1 20); do
             echo "Checking server health (attempt $attempt/20)..."
-            if curl -s http://127.0.0.1:8080/health | grep -q "ok"; then
+            if curl -sf http://127.0.0.1:8080/health | grep -q "ok"; then
               echo "PHP server healthy on http://127.0.0.1:8080"
+              php_ready=1
               break
             fi
             sleep 1
           done
+          if [ "$php_ready" -ne 1 ]; then
+            echo "PHP application server failed to become healthy."
+            cat /tmp/php_server.log || true
+            exit 1
+          fi
+
+          echo "Waiting for Mailpit HTTP API to be reachable..."
+          mailpit_ready=0
+          for attempt in $(seq 1 20); do
+            if curl -sf http://127.0.0.1:8025/readyz > /dev/null; then
+              echo "Mailpit API healthy on http://127.0.0.1:8025"
+              mailpit_ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$mailpit_ready" -ne 1 ]; then
+            echo "Mailpit API failed to become reachable on http://127.0.0.1:8025/readyz"
+            exit 1
+          fi
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v6

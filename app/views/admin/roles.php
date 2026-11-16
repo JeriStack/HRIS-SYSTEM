@@ -21,6 +21,11 @@ $recentAuditLogs = $recentAuditLogs ?? [];
 $userAccessList = $userAccessList ?? [];
 
 $totalPermCount = count(\Core\PermissionRegistry::PERMISSIONS);
+$adminPerms = $rolePermissionsMap[\Core\PermissionRegistry::ROLE_ADMIN] ?? [];
+$adminActiveCount = count(array_filter($adminPerms, fn($v) => $v === true));
+if ($adminActiveCount === 0) {
+    $adminActiveCount = \Core\PermissionRegistry::getDefaultPermissionCount(\Core\PermissionRegistry::ROLE_ADMIN);
+}
 $hrPerms = $rolePermissionsMap[\Core\PermissionRegistry::ROLE_HR] ?? [];
 $hrActiveCount = count(array_filter($hrPerms, fn($v) => $v === true));
 $empPerms = $rolePermissionsMap[\Core\PermissionRegistry::ROLE_EMPLOYEE] ?? [];
@@ -241,7 +246,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
                     <span class="badge badge-primary">SYSTEM PROTECTED</span>
                 </div>
                 <p style="font-size: 0.8125rem; color: var(--color-text-muted); line-height: 1.45; margin-bottom: 1rem;">
-                    Full application-level authority across all system modules, workforce management, audit logging, and configuration oversight.
+                    System-level governance across user accounts, roles, HR support management, audit logging, and configuration oversight under least-privilege boundaries.
                 </p>
                 <div style="background: var(--color-bg-muted); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem;">
                     <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 0.375rem;">
@@ -250,7 +255,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 0.375rem;">
                         <span style="color: var(--color-text-muted);">Enabled Permissions:</span>
-                        <strong style="color: var(--color-primary);"><?= $totalPermCount ?> / <?= $totalPermCount ?> (100%)</strong>
+                        <strong style="color: var(--color-primary);"><?= $adminActiveCount ?> / <?= $totalPermCount ?> (Least-Privilege)</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.8125rem;">
                         <span style="color: var(--color-text-muted);">Role Governance:</span>
@@ -354,7 +359,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
                         1. Immutable Administrator Protection
                     </div>
                     <div style="font-size: 0.8125rem; color: var(--color-text-muted); line-height: 1.4;">
-                        The Administrator role permanently retains all 33 system capabilities. Backend controllers reject any attempt to modify or strip Admin permissions.
+                        The Administrator role holds system-protected least-privilege governance capabilities. Backend controllers reject any attempt to modify or strip Admin permissions.
                     </div>
                 </div>
                 <div style="border-left: 3px solid var(--color-success); padding-left: 1rem;">
@@ -420,7 +425,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
                     </a>
                     <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.375rem 0.75rem; background: var(--color-bg-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-md); font-size: 0.8125rem; color: var(--color-text-muted);">
                         <span>🛡️</span>
-                        <span>Administrator: <strong>33/33 Active (Immutable)</strong></span>
+                        <span>Administrator: <strong><?= $adminActiveCount ?>/<?= $totalPermCount ?> Active (Immutable)</strong></span>
                     </div>
                 </div>
             </div>

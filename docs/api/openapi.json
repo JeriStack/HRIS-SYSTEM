@@ -2,7 +2,7 @@
     "openapi": "3.0.0",
     "info": {
         "title": "Employee HRIS & Leave Management System REST API",
-        "description": "Official enterprise REST API specification for the Employee HRIS & Leave Management System. Features role-based access control (strictly 'hr' and 'employee' roles), two-factor email OTP authentication, session cookie security with CSRF mitigation, workforce directory management, and full lifecycle leave request processing.",
+        "description": "Official enterprise REST API specification for the Employee HRIS & Leave Management System. Features strict three-role least-privilege access control ('admin', 'hr', and 'employee' roles), two-factor email OTP authentication, session cookie security with CSRF mitigation, workforce directory management, and full lifecycle leave request processing.",
         "version": "1.0.0"
     },
     "servers": [
@@ -16,6 +16,479 @@
         }
     ],
     "paths": {
+        "/api/v1/announcements": {
+            "get": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "List HR announcements with filtering, sorting, and pagination",
+                "description": "Returns a paginated list of announcements with summary KPI counts and read statistics. Requires HR role or explicit `announcements.view` permission.",
+                "operationId": "737b23a8aed24621ca37eb44b11061c3",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Normal",
+                                "Important",
+                                "Urgent"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Draft",
+                                "Scheduled",
+                                "Published",
+                                "Archived",
+                                "Expired"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated announcements list"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Create a new announcement (Draft, Scheduled, or Published)",
+                "description": "Creates a new announcement with validated audience targeting and optional attachments.",
+                "operationId": "fd30bd3ceeb89b0549353515085aba3c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "title",
+                                    "content",
+                                    "category",
+                                    "priority",
+                                    "target_type"
+                                ],
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "2026 Annual Benefits Enrollment"
+                                    },
+                                    "content": {
+                                        "type": "string",
+                                        "example": "Open enrollment starts next Monday for all active staff."
+                                    },
+                                    "category": {
+                                        "type": "string",
+                                        "example": "Leave and Benefits"
+                                    },
+                                    "priority": {
+                                        "type": "string",
+                                        "example": "Important",
+                                        "enum": [
+                                            "Normal",
+                                            "Important",
+                                            "Urgent"
+                                        ]
+                                    },
+                                    "target_type": {
+                                        "type": "string",
+                                        "example": "all",
+                                        "enum": [
+                                            "all",
+                                            "department"
+                                        ]
+                                    },
+                                    "department_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "publish_mode": {
+                                        "type": "string",
+                                        "example": "draft",
+                                        "enum": [
+                                            "draft",
+                                            "publish",
+                                            "schedule"
+                                        ]
+                                    },
+                                    "scheduled_at": {
+                                        "type": "string",
+                                        "example": "2026-12-01 08:00:00",
+                                        "nullable": true
+                                    },
+                                    "expires_at": {
+                                        "type": "string",
+                                        "example": "2026-12-31 18:00:00",
+                                        "nullable": true
+                                    },
+                                    "is_pinned": {
+                                        "type": "boolean",
+                                        "example": false
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Announcement created"
+                    },
+                    "400": {
+                        "description": "Validation error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}": {
+            "get": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Retrieve announcement details",
+                "operationId": "74e5d8373c0be4a91b2beabe42cad966",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement details"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Update an announcement",
+                "operationId": "b2289c475a5cf045ccc9f05c0accdeb3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement updated"
+                    },
+                    "400": {
+                        "description": "Validation error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}/publish": {
+            "post": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Publish an announcement immediately",
+                "operationId": "dea09e45108611c43f62aa9fec180f5a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement published"
+                    },
+                    "400": {
+                        "description": "Invalid lifecycle transition"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}/schedule": {
+            "post": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Schedule an announcement for future publication",
+                "operationId": "0fd769440c96e7792c660c233814fb89",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement scheduled"
+                    },
+                    "400": {
+                        "description": "Validation or transition error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}/archive": {
+            "post": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Archive an announcement",
+                "operationId": "9b76c404da7e89de710e76d776672bdb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement archived"
+                    },
+                    "400": {
+                        "description": "Invalid transition"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}/statistics": {
+            "get": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Retrieve announcement read statistics",
+                "operationId": "13d56a956649aa8782052c4dcbfe8c0b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement read statistics"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/announcements/{id}/reads": {
+            "get": {
+                "tags": [
+                    "Announcements Management"
+                ],
+                "summary": "Retrieve paginated employee read receipts for an announcement",
+                "operationId": "28028f4b9770ae73d385c24806d38dec",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "all",
+                                "read",
+                                "unread"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paginated read receipts"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/auth/csrf": {
             "get": {
                 "tags": [
@@ -767,6 +1240,227 @@
                 ]
             }
         },
+        "/api/v1/employee/announcements": {
+            "get": {
+                "tags": [
+                    "Employee Announcements"
+                ],
+                "summary": "Retrieve targeted published announcements for the authenticated employee",
+                "operationId": "bf42f0f81c0be58f0e6ab4a046b40ced",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "Normal",
+                                "Important",
+                                "Urgent"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "unread_only",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Employee announcement feed"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/employee/announcements/unread-count": {
+            "get": {
+                "tags": [
+                    "Employee Announcements"
+                ],
+                "summary": "Retrieve unread announcement count for the authenticated employee",
+                "operationId": "db4a7e31b41db474fbe9d94c4884285f",
+                "responses": {
+                    "200": {
+                        "description": "Unread announcement count"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/employee/announcements/{id}": {
+            "get": {
+                "tags": [
+                    "Employee Announcements"
+                ],
+                "summary": "Retrieve full announcement details for an authorized targeted employee",
+                "operationId": "19196e960a3e039764616c7155c5fa07",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Announcement details"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/employee/announcements/{id}/read": {
+            "post": {
+                "tags": [
+                    "Employee Announcements"
+                ],
+                "summary": "Idempotently record a read receipt for a targeted announcement",
+                "operationId": "94482d4577277a1515e3b5229c337011",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Read receipt recorded"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": [],
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/employee/announcements/{id}/attachments/{attachmentId}": {
+            "get": {
+                "tags": [
+                    "Employee Announcements"
+                ],
+                "summary": "Download an authorized announcement attachment",
+                "operationId": "431a27e298f8b81a050bdb1981a2692a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "attachmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Binary attachment stream"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    },
+                    "404": {
+                        "description": "Not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/employees": {
             "get": {
                 "tags": [
@@ -1334,6 +2028,52 @@
                 ]
             }
         },
+        "/api/v1/employees/{id}/reactivate": {
+            "post": {
+                "tags": [
+                    "Employee Management"
+                ],
+                "summary": "Reactivate employee record",
+                "description": "Restores an Inactive employee to Active and re-enables their linked login account (identity and history preserved; login still requires MFA). Restricted to HR accounts.",
+                "operationId": "8281a18a21c8229e1b3ed2b70a2dbb37",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Unique employee ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Employee reactivated successfully"
+                    },
+                    "400": {
+                        "description": "Employee is already active"
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "403": {
+                        "description": "Forbidden: Restricted to HR role"
+                    },
+                    "404": {
+                        "description": "Employee not found"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
         "/api/v1/health": {
             "get": {
                 "tags": [
@@ -1458,7 +2198,7 @@
                 ],
                 "summary": "List active leave categories",
                 "description": "Retrieves all currently active leave policy types (e.g. Vacation Leave, Sick Leave, Emergency Leave) along with default day allowances.",
-                "operationId": "6eefd1f46cf0149247aa4649dafe75c3",
+                "operationId": "dc588bc607f026ec4e5fc8b82d3c8798",
                 "responses": {
                     "200": {
                         "description": "List of active leave types",
@@ -2284,6 +3024,142 @@
                 ]
             }
         },
+        "/api/v1/hr/leaves/{id}/request-info": {
+            "post": {
+                "tags": [
+                    "HR Approvals"
+                ],
+                "summary": "Request additional clarification from filing employee",
+                "description": "Places a pending leave request into HR clarification mode without rejecting it. Restricted to HR/Admin accounts.",
+                "operationId": "f07dd81d68272eff5b6be91d186fbc17",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "note"
+                                ],
+                                "properties": {
+                                    "note": {
+                                        "type": "string",
+                                        "example": "Please upload a legible copy of your updated Solo Parent ID."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Clarification requested"
+                    },
+                    "400": {
+                        "description": "Validation or status error"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/leaves/{id}/respond-info": {
+            "post": {
+                "tags": [
+                    "Leave Requests"
+                ],
+                "summary": "Submit clarification response on pending leave request",
+                "description": "Allows the owning employee to respond to an HR clarification request on a pending application.",
+                "operationId": "12579b0d17aaaad3118971f15819f2fc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "response"
+                                ],
+                                "properties": {
+                                    "response": {
+                                        "type": "string",
+                                        "example": "Uploaded scanned Solo Parent ID valid through Dec 2027."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Clarification response recorded"
+                    },
+                    "400": {
+                        "description": "Validation or authorization error"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "csrfToken": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/hr/leave-qualifications": {
+            "get": {
+                "tags": [
+                    "HR Approvals"
+                ],
+                "summary": "List employee statutory leave qualifications",
+                "description": "Retrieves verified, pending, expired, or revoked statutory leave qualifications (Solo Parent SPIC, Paternity Marriage Proof, SIL Exclusions). Restricted to HR/Admin.",
+                "operationId": "08e6b5e80c63b3cdaf602096adcafe62",
+                "responses": {
+                    "200": {
+                        "description": "Qualification list retrieved"
+                    },
+                    "403": {
+                        "description": "Forbidden"
+                    }
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/positions": {
             "get": {
                 "tags": [
@@ -2693,7 +3569,7 @@
                     "Account and Profile"
                 ],
                 "summary": "Retrieve authenticated user's profile",
-                "description": "Returns the currently authenticated user's account details, role ('hr' or 'employee'), and linked workforce employee record if applicable.",
+                "description": "Returns the currently authenticated user's account details, role ('admin', 'hr', or 'employee'), and linked workforce employee record if applicable.",
                 "operationId": "2ffc6dfc18d8b196e3cf6a29dcb8ef26",
                 "responses": {
                     "200": {
@@ -3068,6 +3944,14 @@
         {
             "name": "HR Approvals",
             "description": "HR management review, approval, and rejection of employee leave applications"
+        },
+        {
+            "name": "Announcements Management",
+            "description": "HR announcements lifecycle management, audience targeting, scheduling, archiving, and read statistics"
+        },
+        {
+            "name": "Employee Announcements",
+            "description": "Employee self-service announcement feed, unread counts, read receipts, and attachment downloads"
         },
         {
             "name": "Health and Diagnostics",

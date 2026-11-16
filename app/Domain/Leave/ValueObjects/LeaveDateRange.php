@@ -20,8 +20,11 @@ final class LeaveDateRange
     private int $workingDays;
     private int $calendarDays;
 
-    private function __construct(DateTimeImmutable $startDate, DateTimeImmutable $endDate)
-    {
+    private function __construct(
+        DateTimeImmutable $startDate,
+        DateTimeImmutable $endDate,
+        bool $requireWorkingDays = true
+    ) {
         $startDate = $startDate->setTime(0, 0, 0);
         $endDate   = $endDate->setTime(0, 0, 0);
 
@@ -42,7 +45,7 @@ final class LeaveDateRange
         // Calculate working days (Monday-Friday inclusive)
         $this->workingDays = $this->calculateWorkingDays($startDate, $endDate);
 
-        if ($this->workingDays === 0) {
+        if ($requireWorkingDays && $this->workingDays === 0) {
             throw InvalidDateRangeException::zeroWorkingDays(
                 $startDate->format('Y-m-d'),
                 $endDate->format('Y-m-d')
@@ -69,6 +72,38 @@ final class LeaveDateRange
         }
 
         return new self($start, $end);
+    }
+
+    public static function fromDatesForUnit(
+        DateTimeImmutable $startDate,
+        DateTimeImmutable $endDate,
+        string $unit = 'working_days'
+    ): self {
+        return new self($startDate, $endDate, $unit !== 'calendar_days');
+    }
+
+    public static function fromStringsForUnit(
+        string $startDate,
+        string $endDate,
+        string $unit = 'working_days'
+    ): self {
+        $start = DateTimeImmutable::createFromFormat('!Y-m-d', trim($startDate));
+        $end   = DateTimeImmutable::createFromFormat('!Y-m-d', trim($endDate));
+
+        if ($start === false) {
+            throw InvalidDateRangeException::invalidFormat($startDate);
+        }
+
+        if ($end === false) {
+            throw InvalidDateRangeException::invalidFormat($endDate);
+        }
+
+        return new self($start, $end, $unit !== 'calendar_days');
+    }
+
+    public function effectiveDays(string $unit = 'working_days'): int
+    {
+        return $unit === 'calendar_days' ? $this->calendarDays : $this->workingDays;
     }
 
     public function startDate(): DateTimeImmutable

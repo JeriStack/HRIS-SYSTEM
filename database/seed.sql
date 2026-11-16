@@ -62,13 +62,19 @@ ON DUPLICATE KEY UPDATE `email` = VALUES(`email`), `username` = VALUES(`username
 -- -----------------------------------------------------------------------------
 -- 5. Leave Types Seed
 -- -----------------------------------------------------------------------------
-INSERT INTO `leave_types` (`id`, `leave_name`, `description`, `default_days`, `status`, `created_at`) VALUES
-(1, 'Vacation Leave', 'Annual rest and personal vacation leave', 15, 'Active', NOW()),
-(2, 'Sick Leave', 'Medical rest due to illness, injury, or clinical consult', 10, 'Active', NOW()),
-(3, 'Emergency Leave', 'Unplanned personal emergencies or urgent family matters', 5, 'Active', NOW()),
-(4, 'Maternity Leave', 'Statutory maternal leave for female employees', 60, 'Active', NOW()),
-(5, 'Paternity Leave', 'Statutory paternal leave for married male employees', 7, 'Active', NOW())
-ON DUPLICATE KEY UPDATE `leave_name` = VALUES(`leave_name`);
+INSERT INTO `leave_types` (`id`, `leave_name`, `leave_code`, `description`, `classification`, `benefit_category`, `entitlement_model`, `legal_reference`, `default_days`, `default_unit`, `is_paid`, `is_confidential`, `statutory_protected`, `status`, `created_at`) VALUES
+(1, 'Vacation Leave', 'VL', 'Annual rest and personal vacation leave', 'Company', 'CompanyAnnual', 'annual', 'Company Policy (Satisfies Labor Code Art. 95 SIL equivalent when >= 5 paid days)', 15, 'working_days', 1, 0, 0, 'Active', NOW()),
+(2, 'Sick Leave', 'SL', 'Medical rest due to illness, injury, or clinical consult', 'Company', 'CompanyAnnual', 'annual', 'Company Policy', 10, 'working_days', 1, 0, 0, 'Active', NOW()),
+(3, 'Emergency Leave', 'EL', 'Unplanned personal emergencies or urgent family matters', 'Company', 'CompanyAnnual', 'annual', 'Company Policy (Distinct from RA 8972/11861 Solo Parent Leave)', 5, 'working_days', 1, 0, 0, 'Active', NOW()),
+(4, 'Maternity Leave', 'MATERNITY', 'Statutory expanded maternal leave (105d live birth, 120d solo parent, 60d miscarriage/ETP)', 'Statutory', 'StatutoryEvent', 'event_based', 'RA 11210 (Expanded Maternity Leave Law)', 105, 'calendar_days', 1, 0, 1, 'Active', NOW()),
+(5, 'Paternity Leave', 'PATERNITY', 'Statutory paternal leave for up to first 4 deliveries of lawful spouse', 'Statutory', 'StatutoryEvent', 'event_based', 'RA 8187 (Paternity Leave Act, First 4 Deliveries of Lawful Spouse)', 7, 'working_days', 1, 0, 1, 'Active', NOW()),
+(6, 'Service Incentive Leave', 'SIL', 'Five (5) paid working days after at least 1 year of service under Article 95 of the Labor Code (unless satisfied by equivalent paid vacation leave).', 'Statutory', 'StatutoryAnnual', 'annual', 'Labor Code Article 95', 5, 'working_days', 1, 0, 1, 'Active', NOW()),
+(7, 'Parental Leave for Solo Parents', 'SOLO_PARENT', 'Up to seven (7) paid working days per year for qualified Solo Parents with at least 6 months of service and a valid Solo Parent ID Card (SPIC).', 'Statutory', 'StatutoryAnnual', 'annual', 'RA 8972 as amended by RA 11861', 7, 'working_days', 1, 0, 1, 'Active', NOW()),
+(8, 'Special Leave for Women', 'SLW', 'Up to two (2) months (60 calendar days) full pay following surgery caused by gynecological disorders for female employees with at least 6 months aggregate service in the last 12 months.', 'Statutory', 'StatutoryEvent', 'event_based', 'RA 9710 Section 18 (Magna Carta of Women)', 60, 'calendar_days', 1, 1, 1, 'Active', NOW()),
+(9, 'VAWC Leave', 'VAWC', 'Up to ten (10) paid working days (extendable by protection order) for victims of violence against women and their children under strict confidentiality.', 'Statutory', 'StatutoryEvent', 'event_based', 'RA 9262 Section 43 (Anti-VAWC Act)', 10, 'working_days', 1, 1, 1, 'Active', NOW()),
+(10, 'Bereavement Leave', 'BEREAVEMENT', 'Compassionate leave upon the death of an immediate family member per company policy.', 'Company', 'CompanyEvent', 'event_based', 'Company Bereavement Policy', 3, 'working_days', 1, 0, 0, 'Active', NOW()),
+(11, 'Leave Without Pay', 'LWOP', 'Unpaid authorized absence tracked separately without deducting paid leave credits.', 'Company', 'Unpaid', 'unpaid', 'Company Unpaid Leave Policy', 0, 'working_days', 0, 0, 0, 'Active', NOW())
+ON DUPLICATE KEY UPDATE `leave_name` = VALUES(`leave_name`), `leave_code` = VALUES(`leave_code`), `classification` = VALUES(`classification`), `benefit_category` = VALUES(`benefit_category`), `entitlement_model` = VALUES(`entitlement_model`);
 
 -- -----------------------------------------------------------------------------
 -- 6. Leave Balances Seed (Fiscal Year 2026)
@@ -129,5 +135,110 @@ INSERT INTO `notifications` (`id`, `user_id`, `title`, `message`, `type`, `is_re
 (3, 5, 'Leave Request Approved', 'Your Vacation Leave request from 2026-09-14 to 2026-09-18 was approved.', 'success', 1, NOW()),
 (4, 7, 'Leave Request Rejected', 'Your Vacation Leave request for 2026-09-21 was rejected by HR.', 'warning', 0, NOW())
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`);
+
+-- -----------------------------------------------------------------------------
+-- 10. Canonical V1 Leave Policy Versions & Ledger Backfill
+-- -----------------------------------------------------------------------------
+INSERT INTO `leave_policy_versions` (
+    `leave_type_id`, `version_number`, `policy_code`, `effective_from`, `approval_status`,
+    `classification`, `entitlement_model`, `benefit_tier`, `sector_scope`, `legal_reference`,
+    `entitlement_days`, `entitlement_unit`, `is_paid`, `allocation_frequency`,
+    `carry_over_allowed`, `max_carry_over_days`, `cash_convertible`, `cash_conversion_max_days`,
+    `min_service_months`, `service_window_months`, `counts_as_sil_equivalent`, `stack_with_equivalent`,
+    `max_events_lifetime`, `max_extension_days`, `requires_documentation`, `document_requirements`,
+    `requires_qualification`, `qualification_type`, `is_confidential`, `change_notes`
+)
+SELECT
+    lt.id,
+    1,
+    CONCAT(COALESCE(lt.leave_code, CONCAT('LT', lt.id)), '-V1'),
+    '2025-01-01',
+    'Active',
+    lt.classification,
+    lt.entitlement_model,
+    CASE
+        WHEN lt.leave_code IN ('SIL', 'SOLO_PARENT', 'MATERNITY', 'PATERNITY', 'SLW', 'VAWC') THEN 'statutory_minimum'
+        WHEN lt.entitlement_model = 'unpaid' THEN 'unpaid'
+        ELSE 'company_benefit'
+    END,
+    'all',
+    lt.legal_reference,
+    lt.default_days,
+    lt.default_unit,
+    lt.is_paid,
+    CASE
+        WHEN lt.entitlement_model = 'event_based' THEN 'per_event'
+        WHEN lt.entitlement_model = 'unpaid' THEN 'unlimited_unpaid'
+        ELSE 'annual'
+    END,
+    0,
+    0.00,
+    CASE WHEN lt.leave_code = 'SIL' THEN 1 ELSE 0 END,
+    CASE WHEN lt.leave_code = 'SIL' THEN 5.00 ELSE 0.00 END,
+    CASE
+        WHEN lt.leave_code = 'SIL' THEN 12
+        WHEN lt.leave_code IN ('SOLO_PARENT', 'SLW') THEN 6
+        ELSE 0
+    END,
+    CASE WHEN lt.leave_code = 'SLW' THEN 12 ELSE NULL END,
+    CASE WHEN lt.leave_code = 'VL' THEN 1 ELSE 0 END,
+    0,
+    CASE WHEN lt.leave_code = 'PATERNITY' THEN 4 ELSE NULL END,
+    CASE WHEN lt.leave_code IN ('MATERNITY', 'VAWC') THEN 30.00 ELSE 0.00 END,
+    CASE WHEN lt.leave_code IN ('SOLO_PARENT', 'MATERNITY', 'PATERNITY', 'SLW', 'VAWC', 'BEREAVEMENT') THEN 1 ELSE 0 END,
+    CASE lt.leave_code
+        WHEN 'SOLO_PARENT' THEN 'Valid DSWD/LGU Solo Parent Identification Card (SPIC) verified by HR.'
+        WHEN 'MATERNITY' THEN 'Obstetric medical certificate / birth certificate or miscarriage clinical certification.'
+        WHEN 'PATERNITY' THEN 'Marriage certificate / cohabitation proof and notification of spouse pregnancy/delivery.'
+        WHEN 'SLW' THEN 'Certified gynecological surgeon medical certificate.'
+        WHEN 'VAWC' THEN 'Barangay/Court Protection Order or prosecutor/clerk/medical certification.'
+        WHEN 'BEREAVEMENT' THEN 'Death certificate or official notice establishing immediate family relationship.'
+        ELSE 'Optional supporting documentation.'
+    END,
+    CASE WHEN lt.leave_code IN ('SOLO_PARENT', 'PATERNITY', 'SIL') THEN 1 ELSE 0 END,
+    CASE lt.leave_code
+        WHEN 'SOLO_PARENT' THEN 'solo_parent_spic'
+        WHEN 'PATERNITY' THEN 'paternity_marriage'
+        WHEN 'SIL' THEN 'sil_exclusion'
+        ELSE NULL
+    END,
+    lt.is_confidential,
+    'Canonical seed policy V1'
+FROM `leave_types` lt
+WHERE NOT EXISTS (
+    SELECT 1 FROM `leave_policy_versions` lpv
+    WHERE lpv.leave_type_id = lt.id AND lpv.version_number = 1
+);
+
+UPDATE `leave_types` lt
+INNER JOIN `leave_policy_versions` lpv ON lpv.leave_type_id = lt.id AND lpv.approval_status = 'Active'
+SET lt.active_policy_version_id = lpv.id
+WHERE lt.active_policy_version_id IS NULL;
+
+INSERT INTO `leave_balance_transactions` (
+    `employee_id`, `leave_type_id`, `leave_balance_id`, `policy_version_id`,
+    `balance_year`, `transaction_type`, `days_delta`, `balance_before`, `balance_after`,
+    `conversion_scope`, `remarks`, `is_confidential`
+)
+SELECT
+    lb.employee_id, lb.leave_type_id, lb.id, lt.active_policy_version_id,
+    lb.year, 'initial_allocation', lb.allocated_days, 0.00, lb.allocated_days,
+    'none', CONCAT('Seed initial annual allocation for year ', lb.year), 0
+FROM `leave_balances` lb
+INNER JOIN `leave_types` lt ON lt.id = lb.leave_type_id
+WHERE NOT EXISTS (
+    SELECT 1 FROM `leave_balance_transactions` lbt
+    WHERE lbt.leave_balance_id = lb.id AND lbt.transaction_type = 'initial_allocation'
+);
+
+-- -----------------------------------------------------------------------------
+-- 11. Help & Support Designated Confidential Handlers Seed
+-- -----------------------------------------------------------------------------
+INSERT INTO `support_ticket_handlers` (`user_id`, `can_handle_confidential`, `is_active`, `designation_notes`, `created_at`)
+SELECT u.id, 1, 1, 'Primary designated HR confidential complaint officer', NOW()
+FROM `users` u
+WHERE u.username = 'hr01' AND u.role = 'hr'
+LIMIT 1
+ON DUPLICATE KEY UPDATE `is_active` = VALUES(`is_active`);
 
 SET FOREIGN_KEY_CHECKS = 1;

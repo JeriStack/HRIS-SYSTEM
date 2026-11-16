@@ -1,0 +1,14 @@
+{
+  "files": [
+    "app/views/layouts/hr.php",
+    "app/views/layouts/app.php",
+    "app/views/layouts/main.php",
+    "app/views/layouts/auth.php"
+  ],
+  "exclude": [
+    "app/views/emails/**"
+  ],
+  "insertBefore": "</body>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}

@@ -29,7 +29,6 @@ storage/logs/*
 .tflint.d/
 backups/
 *.sql.gz
-scratch/cookie_*.txt
 cookies*.txt
 
 # Operating System Files
@@ -95,3 +94,10 @@ override.tf.json
 .terraform.rc
 terraform.rc
 # Note: terraform.lock.hcl is explicitly TRACKED (do not ignore)
+
+# ==============================================================================
+# Impeccable Local & Ephemeral State
+# ==============================================================================
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/live/inject-journal.json

@@ -1,13 +1,20 @@
+<?php
+$canCreateEmployee = can('employees.create');
+$canUpdateEmployee = !empty($canManageHrRecords) || can('employees.update');
+$canDeactivateEmployee = can('employees.deactivate');
+?>
 <div class="content-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
         <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">Employees Directory</h1>
         <p style="color: #64748B; margin: 0; font-size: 0.875rem;">Centralized workforce registry, demographic profiles, and status lifecycle management.</p>
     </div>
     <div>
-        <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>➕</span>
-            <span>Add New Employee</span>
-        </a>
+        <?php if ($canCreateEmployee): ?>
+            <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span>➕</span>
+                <span>Add New Employee</span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -119,29 +126,38 @@
             </thead>
             <tbody>
                 <?php if (!empty($employees)): ?>
-                    <?php foreach ($employees as $emp): 
-                        $initials = strtoupper(substr($emp['first_name'], 0, 1) . substr($emp['last_name'], 0, 1));
+                    <?php foreach ($employees as $emp):
+                        $initials = strtoupper(substr((string)$emp['first_name'], 0, 1) . substr((string)$emp['last_name'], 0, 1)) ?: 'E';
+                        $rowAvatarUrl = \App\Services\ProfilePictureService::avatarUrl((int)$emp['id'], $emp['profile_picture'] ?? null);
                     ?>
-                        <tr style="border-bottom: 1px solid #F1F5F9; transition: background 0.15s ease;">
+                        <tr style="border-bottom: 1px solid var(--color-border); transition: background 0.15s ease;">
                             <td style="padding: 0.875rem 1.25rem;">
-                                <code style="font-weight: 600; background: #EEF2FF; color: #4F46E5; padding: 0.2rem 0.45rem; border-radius: 0.25rem;"><?= e($emp['employee_no']) ?></code>
+                                <code style="font-weight: 600; background: var(--color-primary-light); color: var(--color-primary); padding: 0.2rem 0.45rem; border-radius: 0.25rem;"><?= e($emp['employee_no']) ?></code>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
-                                <div style="display: flex; align-items: center; gap: 0.65rem;">
-                                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #4F46E5; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold;">
-                                        <?= e($initials) ?>
+                                <div class="emp-directory-cell">
+                                    <div class="emp-table-avatar<?= $rowAvatarUrl ? ' has-photo' : '' ?>">
+                                        <?php if ($rowAvatarUrl): ?>
+                                            <img src="<?= e($rowAvatarUrl) ?>" alt="" class="avatar-img-cover" width="36" height="36" decoding="async">
+                                        <?php else: ?>
+                                            <?= e($initials) ?>
+                                        <?php endif; ?>
                                     </div>
                                     <div>
-                                        <a href="<?= url('/hr/employees/' . $emp['id']) ?>" style="font-weight: 600; color: #1E293B; text-decoration: none;">
+                                        <a href="<?= url('/hr/employees/' . $emp['id']) ?>" style="font-weight: 600; color: var(--color-text-main); text-decoration: none;">
                                             <?= e($emp['first_name'] . ' ' . $emp['last_name']) ?>
                                         </a>
-                                        <div style="font-size: 0.75rem; color: #64748B;"><?= e($emp['gender']) ?></div>
+                                        <div style="font-size: 0.75rem; color: var(--color-text-muted);">
+                                            <?= e($emp['gender']) ?> &middot; <?= e($emp['employment_type'] ?? 'Regular') ?>
+                                        </div>
                                     </div>
                                 </div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
                                 <div style="color: #334155;"><?= e($emp['email']) ?></div>
-                                <div style="font-size: 0.75rem; color: #94A3B8;"><?= e($emp['phone'] ?: 'No phone') ?></div>
+                                <div style="font-size: 0.75rem; color: #94A3B8;">
+                                    <?= $canUpdateEmployee ? e($emp['phone'] ?: 'No phone') : 'Restricted (HR Only)' ?>
+                                </div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
                                 <div style="font-weight: 500; color: #1E293B;"><?= e($emp['department_name'] ?? 'Unassigned') ?></div>
@@ -162,10 +178,12 @@
                                     <a href="<?= url('/hr/employees/' . $emp['id']) ?>" class="btn btn-secondary btn-sm" title="View Profile">
                                         👁️ View
                                     </a>
-                                    <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
-                                        ✏️ Edit
-                                    </a>
-                                    <?php if ($emp['employment_status'] === 'Active'): ?>
+                                    <?php if ($canUpdateEmployee): ?>
+                                        <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
+                                            ✏️ Edit
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($emp['employment_status'] === 'Active' && $canDeactivateEmployee): ?>
                                         <button type="button" 
                                                 class="btn btn-danger btn-sm" 
                                                 onclick="confirmDeactivation(<?= e($emp['id']) ?>, '<?= e(addslashes($emp['first_name'] . ' ' . $emp['last_name'])) ?>', '<?= e($emp['employee_no']) ?>')" 
@@ -187,7 +205,7 @@
                             </p>
                             <?php if (!empty($searchQuery) || !empty($selectedDept) || !empty($selectedStatus)): ?>
                                 <a href="<?= url('/hr/employees') ?>" class="btn btn-secondary btn-sm">Clear All Filters</a>
-                            <?php else: ?>
+                            <?php elseif ($canCreateEmployee): ?>
                                 <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary btn-sm">Register First Employee</a>
                             <?php endif; ?>
                         </td>
@@ -198,6 +216,7 @@
     </div>
 </div>
 
+<?php if ($canDeactivateEmployee): ?>
 <!-- Soft-Deactivation Confirmation Modal -->
 <div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
@@ -246,3 +265,4 @@
         closeModal('deactivateModal');
     }
 </script>
+<?php endif; ?>

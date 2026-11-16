@@ -57,7 +57,7 @@ class LeaveControllerAdapterIntegrationTest extends TestCase
             $this->testEmployeeId = (int) $emp['id'];
         }
 
-        $stmtLt = $this->pdo->query("SELECT id FROM leave_types LIMIT 1");
+        $stmtLt = $this->pdo->query("SELECT id FROM leave_types WHERE status = 'Active' ORDER BY id ASC LIMIT 1");
         $lt = $stmtLt->fetch(PDO::FETCH_ASSOC);
         if ($lt) {
             $this->testLeaveTypeId = (int) $lt['id'];

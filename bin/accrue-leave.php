@@ -50,9 +50,12 @@ echo "====================================================================\n\n";
 try {
     $db = Database::getInstance()->getConnection();
 
-    // 1. Fetch Active Leave Types
-    $typeStmt = $db->query("SELECT id, leave_name, default_days FROM leave_types WHERE status = 'Active'");
-    $leaveTypes = $typeStmt->fetchAll(PDO::FETCH_ASSOC);
+    $policyEngine = new \App\Services\LeavePolicyEngine($db);
+    $ledger = new \App\Services\LeaveLedgerService($db);
+    $asOfDate = sprintf('%04d-12-31', $targetYear);
+
+    // 1. Fetch Active Leave Types enriched with active policy versions
+    $leaveTypes = $policyEngine->getAllTypesWithActivePolicies(true, $asOfDate);
 
     if (empty($leaveTypes)) {
         echo "Notice: No active leave types found. No accrual required.\n";
@@ -60,7 +63,7 @@ try {
     }
 
     // 2. Fetch Active Employees
-    $empStmt = $db->query("SELECT id, employee_no, first_name, last_name FROM employees WHERE employment_status = 'Active'");
+    $empStmt = $db->query("SELECT id, employee_no, first_name, last_name, gender, date_hired, employment_type, employment_status FROM employees WHERE employment_status = 'Active'");
     $employees = $empStmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (empty($employees)) {
@@ -79,19 +82,23 @@ try {
     }
 
     $checkStmt = $db->prepare("
-        SELECT id, allocated_days, used_days, remaining_days 
-        FROM leave_balances 
+        SELECT id, allocated_days, used_days, remaining_days, COALESCE(converted_days, 0) AS converted_days, COALESCE(expired_days, 0) AS expired_days
+        FROM leave_balances
         WHERE employee_id = :employee_id AND leave_type_id = :leave_type_id AND year = :year
     ");
 
     $insertStmt = $db->prepare("
-        INSERT INTO leave_balances (employee_id, leave_type_id, year, allocated_days, used_days, remaining_days)
-        VALUES (:employee_id, :leave_type_id, :year, :allocated_days, 0, :remaining_days)
+        INSERT INTO leave_balances (employee_id, leave_type_id, year, allocated_days, used_days, remaining_days, policy_version_id, sil_credited_from_vl, eligibility_status, notes)
+        VALUES (:employee_id, :leave_type_id, :year, :allocated_days, 0, :remaining_days, :pv_id, :sil_vl, :elig_status, :notes)
     ");
 
     $updateStmt = $db->prepare("
-        UPDATE leave_balances 
-        SET allocated_days = :allocated_days, remaining_days = :allocated_days - used_days
+        UPDATE leave_balances
+        SET allocated_days = :allocated_days,
+            remaining_days = :remaining_days,
+            policy_version_id = COALESCE(:pv_id, policy_version_id),
+            eligibility_status = :elig_status,
+            notes = :notes
         WHERE id = :id
     ");
 
@@ -107,7 +114,23 @@ try {
         foreach ($leaveTypes as $leaveType) {
             $typeId      = (int)$leaveType['id'];
             $typeName    = $leaveType['leave_name'];
-            $defaultDays = (int)$leaveType['default_days'];
+            $code        = strtoupper((string)($leaveType['leave_code'] ?? ''));
+
+            // Skip event-based and unpaid leaves from annual balance accrual
+            if (($leaveType['entitlement_model'] ?? 'annual') !== 'annual') {
+                echo "  [SKIPPED] {$empName} -> {$typeName}: Non-annual ({$leaveType['entitlement_model']})\n";
+                $skippedCount++;
+                continue;
+            }
+
+            $eval = $policyEngine->evaluateEmployeeTypeEligibility($employee, $leaveType, $targetYear, $asOfDate);
+            if (in_array($code, [\App\Services\LeavePolicyEngine::CODE_SIL, \App\Services\LeavePolicyEngine::CODE_SOLO_PARENT], true) && empty($eval['eligible'])) {
+                echo "  [SKIPPED] {$empName} -> {$typeName}: {$eval['reason']}\n";
+                $skippedCount++;
+                continue;
+            }
+
+            $defaultDays = max(0, (int)round((float)($eval['entitled_days'] ?? $leaveType['default_days'])));
 
             $checkStmt->execute([
                 'employee_id'   => $empId,
@@ -117,7 +140,6 @@ try {
             $existing = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$existing) {
-                // Initial Allocation
                 if (!$isDryRun) {
                     $insertStmt->execute([
                         'employee_id'    => $empId,
@@ -125,8 +147,25 @@ try {
                         'year'           => $targetYear,
                         'allocated_days' => $defaultDays,
                         'remaining_days' => $defaultDays,
+                        'pv_id'          => $leaveType['policy_version_id'] ?? null,
+                        'sil_vl'         => !empty($eval['credited_via_vl']) ? 1 : 0,
+                        'elig_status'    => 'Available',
+                        'notes'          => substr((string)($eval['reason'] ?? ''), 0, 250) ?: null,
                     ]);
                     $newId = (int)$db->lastInsertId();
+
+                    $ledger->record([
+                        'employee_id'       => $empId,
+                        'leave_type_id'     => $typeId,
+                        'leave_balance_id'  => $newId,
+                        'policy_version_id' => $leaveType['policy_version_id'] ?? null,
+                        'balance_year'      => $targetYear,
+                        'transaction_type'  => 'annual_allocation',
+                        'days_delta'        => $defaultDays,
+                        'balance_before'    => 0,
+                        'balance_after'     => $defaultDays,
+                        'remarks'           => "Annual accrual: {$defaultDays} day(s) of {$typeName} for {$targetYear}",
+                    ]);
 
                     $logStmt->execute([
                         'description' => "Automated accrual: Allocated {$defaultDays} days of '{$typeName}' to {$empName} for {$targetYear}.",
@@ -136,11 +175,38 @@ try {
                 echo "  [CREATED] {$empName} -> {$typeName}: {$defaultDays} days\n";
                 $createdCount++;
             } elseif ($isForce) {
-                // Force Update
+                $used = (int)$existing['used_days'];
+                $converted = (int)round((float)$existing['converted_days']);
+                $expired = (int)round((float)$existing['expired_days']);
+                $minRequired = $used + $converted + $expired;
+                if ($defaultDays < $minRequired) {
+                    echo "  [SKIPPED] {$empName} -> {$typeName}: Cannot reset to {$defaultDays} (< {$minRequired} committed/used)\n";
+                    $skippedCount++;
+                    continue;
+                }
+                $newRemaining = $defaultDays - $minRequired;
+                $oldRemaining = (int)$existing['remaining_days'];
                 if (!$isDryRun) {
                     $updateStmt->execute([
                         'allocated_days' => $defaultDays,
+                        'remaining_days' => $newRemaining,
+                        'pv_id'          => $leaveType['policy_version_id'] ?? null,
+                        'elig_status'    => 'Available',
+                        'notes'          => substr((string)($eval['reason'] ?? ''), 0, 250) ?: null,
                         'id'             => $existing['id'],
+                    ]);
+
+                    $ledger->record([
+                        'employee_id'       => $empId,
+                        'leave_type_id'     => $typeId,
+                        'leave_balance_id'  => (int)$existing['id'],
+                        'policy_version_id' => $leaveType['policy_version_id'] ?? null,
+                        'balance_year'      => $targetYear,
+                        'transaction_type'  => 'adjustment',
+                        'days_delta'        => $newRemaining - $oldRemaining,
+                        'balance_before'    => $oldRemaining,
+                        'balance_after'     => $newRemaining,
+                        'remarks'           => "Force annual accrual reset to {$defaultDays} day(s) for {$typeName} ({$targetYear})",
                     ]);
 
                     $logStmt->execute([
@@ -151,7 +217,6 @@ try {
                 echo "  [UPDATED] {$empName} -> {$typeName}: Reset to {$defaultDays} days\n";
                 $updatedCount++;
             } else {
-                // Idempotent Skip
                 echo "  [SKIPPED] {$empName} -> {$typeName}: Already initialized ({$existing['remaining_days']} days remaining)\n";
                 $skippedCount++;
             }

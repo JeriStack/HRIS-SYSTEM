@@ -1,4 +1,5 @@
 <?php
+
 /**
  * API Employee Management Controller
  * Employee HRIS & Leave Management System
@@ -97,13 +98,23 @@ class EmployeeController extends ApiController
     )]
     public function index(): void
     {
-        $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['admin', 'hr']);
 
         $search = !empty($_GET['search']) ? trim((string)$_GET['search']) : (!empty($_GET['q']) ? trim((string)$_GET['q']) : null);
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $deptId = !empty($_GET['department_id']) ? (int)$_GET['department_id'] : (!empty($_GET['dept']) ? (int)$_GET['dept'] : null);
 
         $employees = $this->employeeModel->getAll($search, $status, $deptId);
+        if (strtolower((string)($currentUser['role'] ?? '')) === 'admin') {
+            $employees = array_map(static function (array $row): array {
+                foreach (['personal_email', 'phone', 'address', 'birth_date', 'civil_status'] as $sensitiveKey) {
+                    if (array_key_exists($sensitiveKey, $row)) {
+                        $row[$sensitiveKey] = null;
+                    }
+                }
+                return $row;
+            }, $employees);
+        }
 
         $this->success($employees, 'Employees retrieved successfully.');
     }
@@ -143,11 +154,19 @@ class EmployeeController extends ApiController
     )]
     public function show(int $id): void
     {
-        $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['admin', 'hr']);
 
         $employee = $this->employeeModel->findById($id);
         if (!$employee) {
             $this->error('Employee record not found.', 404);
+        }
+
+        if (strtolower((string)($currentUser['role'] ?? '')) === 'admin') {
+            foreach (['personal_email', 'phone', 'address', 'birth_date', 'civil_status'] as $sensitiveKey) {
+                if (array_key_exists($sensitiveKey, $employee)) {
+                    $employee[$sensitiveKey] = null;
+                }
+            }
         }
 
         $this->success($employee, 'Employee retrieved successfully.');
@@ -211,7 +230,7 @@ class EmployeeController extends ApiController
     )]
     public function store(): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = \App\Services\EmployeeValidator::sanitize($this->getJsonInput());
 
         $errors = $this->validateEmployeeData($input);
@@ -316,7 +335,7 @@ class EmployeeController extends ApiController
     )]
     public function update(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $existing = $this->employeeModel->findById($id);
         if (!$existing) {
             $this->error('Employee record not found.', 404);
@@ -419,7 +438,7 @@ class EmployeeController extends ApiController
     )]
     public function deactivate(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $employee = $this->employeeModel->findById($id);
 
         if (!$employee) {
@@ -484,7 +503,7 @@ class EmployeeController extends ApiController
     )]
     public function reactivate(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $employee = $this->employeeModel->findById($id);
 
         if (!$employee) {
@@ -565,9 +584,9 @@ class EmployeeController extends ApiController
     {
         return \App\Services\EmployeeValidator::validate(
             $data,
-            fn (string $empNo): bool => $this->employeeModel->isEmployeeNoUnique($empNo, $excludeId),
-            fn (string $email): bool => $this->employeeModel->isEmailUnique($email, $excludeId),
-            fn (int $positionId, int $departmentId): bool => $this->positionBelongsToDepartment($positionId, $departmentId)
+            fn(string $empNo): bool => $this->employeeModel->isEmployeeNoUnique($empNo, $excludeId),
+            fn(string $email): bool => $this->employeeModel->isEmailUnique($email, $excludeId),
+            fn(int $positionId, int $departmentId): bool => $this->positionBelongsToDepartment($positionId, $departmentId)
         );
     }
 
