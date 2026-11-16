@@ -59,6 +59,7 @@ class CronSchedulerTest extends TestCase
 
         $this->assertContains('cleanup-sessions', $taskNames);
         $this->assertContains('process-notifications', $taskNames);
+        $this->assertContains('process-announcements', $taskNames);
         $this->assertContains('send-leave-reminders', $taskNames);
         $this->assertContains('cleanup-temp-files', $taskNames);
     }

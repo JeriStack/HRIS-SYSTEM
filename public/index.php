@@ -371,6 +371,44 @@ try {
     $router->post('/admin/support/tickets/{ref}/triage', [\App\Controllers\AdminSupportController::class, 'updateTriage'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.admin_manage')]);
     $router->post('/admin/support/tickets/{ref}/respond', [\App\Controllers\AdminSupportController::class, 'respond'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.admin_manage')]);
 
+    // Group: HR Announcements Management System (HR Role + Explicit Permission Governance)
+    $router->get('/hr/announcements', [\App\Controllers\HrAnnouncementController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.view')]);
+    $router->get('/hr/announcements/create', [\App\Controllers\HrAnnouncementController::class, 'create'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.create')]);
+    $router->post('/hr/announcements', [\App\Controllers\HrAnnouncementController::class, 'store'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.create')]);
+    $router->get('/hr/announcements/{id}', [\App\Controllers\HrAnnouncementController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.view')]);
+    $router->get('/hr/announcements/{id}/edit', [\App\Controllers\HrAnnouncementController::class, 'edit'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.edit_own')]);
+    $router->post('/hr/announcements/{id}/edit', [\App\Controllers\HrAnnouncementController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.edit_own')]);
+    $router->post('/hr/announcements/{id}/publish', [\App\Controllers\HrAnnouncementController::class, 'publish'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.publish')]);
+    $router->post('/hr/announcements/{id}/schedule', [\App\Controllers\HrAnnouncementController::class, 'schedule'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.schedule')]);
+    $router->post('/hr/announcements/{id}/cancel-schedule', [\App\Controllers\HrAnnouncementController::class, 'cancelSchedule'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.schedule')]);
+    $router->post('/hr/announcements/{id}/archive', [\App\Controllers\HrAnnouncementController::class, 'archive'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.archive')]);
+    $router->post('/hr/announcements/{id}/delete', [\App\Controllers\HrAnnouncementController::class, 'deleteDraft'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.delete_draft')]);
+    $router->get('/hr/announcements/{id}/attachments/{attachmentId}', [\App\Controllers\HrAnnouncementController::class, 'downloadAttachment'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.view')]);
+
+    // Group: Employee Announcements Feed & Read Tracking (Strictly Employee Audience-Scoped)
+    $router->get('/employee/announcements', [\App\Controllers\EmployeeAnnouncementController::class, 'index'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->get('/employee/announcements/{id}', [\App\Controllers\EmployeeAnnouncementController::class, 'show'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->post('/employee/announcements/{id}/read', [\App\Controllers\EmployeeAnnouncementController::class, 'markRead'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->get('/employee/announcements/{id}/attachments/{attachmentId}', [\App\Controllers\EmployeeAnnouncementController::class, 'downloadAttachment'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+
+    // Group: REST API v1 — Announcements Management (HR) & Employee Announcements
+    $router->get('/api/v1/announcements', [\App\Controllers\Api\AnnouncementController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.view')]);
+    $router->post('/api/v1/announcements', [\App\Controllers\Api\AnnouncementController::class, 'store'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.create')]);
+    $router->get('/api/v1/announcements/{id}', [\App\Controllers\Api\AnnouncementController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.view')]);
+    $router->put('/api/v1/announcements/{id}', [\App\Controllers\Api\AnnouncementController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.edit_own')]);
+    $router->post('/api/v1/announcements/{id}', [\App\Controllers\Api\AnnouncementController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.edit_own')]);
+    $router->post('/api/v1/announcements/{id}/publish', [\App\Controllers\Api\AnnouncementController::class, 'publish'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.publish')]);
+    $router->post('/api/v1/announcements/{id}/schedule', [\App\Controllers\Api\AnnouncementController::class, 'schedule'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.schedule')]);
+    $router->post('/api/v1/announcements/{id}/archive', [\App\Controllers\Api\AnnouncementController::class, 'archive'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.archive')]);
+    $router->get('/api/v1/announcements/{id}/statistics', [\App\Controllers\Api\AnnouncementController::class, 'statistics'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.stats_own')]);
+    $router->get('/api/v1/announcements/{id}/reads', [\App\Controllers\Api\AnnouncementController::class, 'reads'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('announcements.stats_own')]);
+
+    $router->get('/api/v1/employee/announcements', [\App\Controllers\Api\EmployeeAnnouncementController::class, 'index'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->get('/api/v1/employee/announcements/unread-count', [\App\Controllers\Api\EmployeeAnnouncementController::class, 'unreadCount'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->get('/api/v1/employee/announcements/{id}', [\App\Controllers\Api\EmployeeAnnouncementController::class, 'show'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->post('/api/v1/employee/announcements/{id}/read', [\App\Controllers\Api\EmployeeAnnouncementController::class, 'markRead'], [AuthMiddleware::class, $employeeOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('announcements.feed')]);
+    $router->get('/api/v1/employee/announcements/{id}/attachments/{attachmentId}', [\App\Controllers\Api\EmployeeAnnouncementController::class, 'downloadAttachment'], [AuthMiddleware::class, $employeeOnly, new \Core\PermissionMiddleware('announcements.feed')]);
+
     // 4. Dispatch Request through the Router
     $router->dispatch();
 

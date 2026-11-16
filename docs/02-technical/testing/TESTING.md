@@ -14,11 +14,11 @@
 NEXORA HR maintains rigorous quality gates ensuring zero regressions across authentication, leave balance calculations, role-based authorization, and real-time WebSocket communications.
 
 ### Verified Test Metrics (Live Baseline)
-* **Total Automated Tests:** **742 tests** (739 passing, 3 live WebSocket E2E tests skipped unless `WS_E2E_URL` is configured)
-* **Total Assertions:** **3,937 assertions**
+* **Total Automated Tests:** **764 tests** (761 passing, 3 live WebSocket E2E tests skipped unless `WS_E2E_URL` is configured)
+* **Total Assertions:** **4,078 assertions**
 * **Failures & Errors:** **0 failures, 0 errors (100% pass rate)**
-* **Code Style:** **PSR-12 compliant (232 active legacy issues within 259 baseline limit; 0 new violations)**
-* **End-to-End Automation:** Selenium E2E suite covering full browser user journeys.
+* **Code Style:** **PSR-12 compliant (230 active legacy issues within 259 baseline limit; 0 new violations)**
+* **End-to-End Automation:** Selenium E2E suite covering full browser user journeys (`e2e-tests/tests/test_announcements_module.py`).
 
 ---
 

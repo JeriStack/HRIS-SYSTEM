@@ -187,6 +187,15 @@
   3. Open any ticket (`HR-SUP-YYYY-XXXXXXXX`) from **My Support Tickets** to view public history and Admin replies, post follow-up messages, **Confirm Resolution** (`Resolved -> Closed`), or **Request Reopen** (`Resolved -> Under Review` within 14 days).
 - **Expected Result:** A unique `HR-SUP-YYYY-XXXXXXXX` ticket is persisted, Administrators are notified, and private Admin internal notes are never exposed to HR.
 
+### 3.7 Company Announcements Management (`/hr/announcements`)
+- **Purpose:** Create, draft, schedule, publish, target, archive, and track read/acknowledgment analytics for official company announcements.
+- **Required Access / Permission:** `hr` role (`announcements.view_manage`, `announcements.create`, `announcements.edit`, `announcements.schedule`, `announcements.publish`, `announcements.archive`, `announcements.delete_draft`, `announcements.view_analytics`); routes `GET /hr/announcements`, `GET /hr/announcements/create`, `POST /hr/announcements`, `GET /hr/announcements/{id}`, `GET /hr/announcements/{id}/edit`, `POST /hr/announcements/{id}/update`, `POST /hr/announcements/{id}/publish`, `POST /hr/announcements/{id}/schedule`, `POST /hr/announcements/{id}/archive`, `POST /hr/announcements/{id}/delete`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Announcements** (`/hr/announcements`) from the HR Sidebar or HR Dashboard.
+  2. Click **Create Announcement** (`/hr/announcements/create`), fill in **Title**, **Category**, **Priority** (`Normal`, `Important`, `Urgent`), **Summary**, **Detailed Content**, **Target Audience** (`All Active Employees` or selected `Specific Departments`), optional **Pin to Top**, optional **Require Employee Acknowledgment**, optional **Expiration Date**, and optional supporting attachments (`PDF`, `PNG`, `JPG`, `WEBP`, up to 3 files, max 10 MB each).
+  3. Choose **Save as Draft**, **Schedule Publication** (with future date/time), or **Publish Immediately** (confirmed via modal dialog).
+  4. Open any announcement (`/hr/announcements/{id}`) to inspect delivery analytics (**Targeted Audience**, **Read Count**, **Read Rate %**, **Unread**, **Acknowledged**), employee read receipts, and audit history.
+
 ---
 
 ## 4. Employee Manual (`role = 'employee'`)
@@ -237,4 +246,13 @@
   1. Watch the notification bell badge in the top navigation bar update in real time over WebSocket (`/ws`).
   2. Click the notification bell or open `/notifications` to read full messages and click **Mark All as Read**.
 - **Expected Result:** `notifications.is_read` is updated to `1` and the unread badge counter resets to `0`.
+
+### 4.5 Company Announcements Center (`/employee/announcements`)
+- **Purpose:** Read official company announcements targeted to your active employee profile or department, download official attachments, and record read/acknowledgment receipts.
+- **Required Access / Permission:** `employee` role (`announcements.read`, `announcements.acknowledge`); routes `GET /employee/announcements`, `GET /employee/announcements/{id}`, `POST /employee/announcements/{id}/read`, `GET /employee/announcements/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. View pinned and recent announcements directly on the **Employee Dashboard** (`/employee/dashboard`) or click **Announcements** (`/employee/announcements`) in the sidebar (which displays your live unread badge count).
+  2. Filter announcements by **Category**, **Priority**, **Read Status** (`Unread Only` / `Read`), or keyword search.
+  3. Click **Read Announcement** (`/employee/announcements/{id}`) to automatically record your `read_at` receipt, download attachments, and click **Acknowledge Announcement** when `requires_acknowledgment` is enabled.
+
 

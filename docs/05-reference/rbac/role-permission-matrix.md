@@ -81,6 +81,17 @@ All application permissions are registered in `Core\PermissionRegistry` across 7
 | **Self-Service**      | `self.profile.view`           | View own profile information                                                             |         DENY          |       DENY        |           **ALLOW**           |
 | **Self-Service**      | `self.leave.apply`            | Submit own leave applications                                                            |         DENY          |       DENY        |           **ALLOW**           |
 | **Self-Service**      | `self.leave.cancel`           | Cancel own pending leave applications                                                    |         DENY          |       DENY        |           **ALLOW**           |
+| **Announcements**     | `announcements.view_manage`   | Access HR Announcements management workspace & metrics                                   |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.create`        | Create new company announcements and save drafts                                         |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.edit`          | Edit existing announcements and audience targets                                         |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.schedule`      | Schedule announcements for automated future publication                                  |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.publish`       | Immediately publish announcements and trigger distribution                               |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.archive`       | Archive announcements and remove them from active employee feeds                         |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.delete_draft`  | Permanently delete unpublished draft announcements                                       |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.view_analytics`| View announcement delivery, read-receipt, and unread analytics                           |         DENY          |     **ALLOW**     |             DENY              |
+| **Announcements**     | `announcements.admin_oversight`| View high-level announcement operational metrics and audit trail (Admin oversight)       | **ALLOW (Oversight)** |       DENY        |             DENY              |
+| **Announcements**     | `announcements.read`          | View published announcements targeted to own employee profile/department                 |         DENY          |       DENY        |           **ALLOW**           |
+| **Announcements**     | `announcements.acknowledge`   | Mark targeted announcements as read or acknowledged                                      |         DENY          |       DENY        |           **ALLOW**           |
 
 ---
 

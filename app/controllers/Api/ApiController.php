@@ -61,6 +61,14 @@ use OpenApi\Attributes as OA;
             description: "HR management review, approval, and rejection of employee leave applications"
         ),
         new OA\Tag(
+            name: "Announcements Management",
+            description: "HR announcements lifecycle management, audience targeting, scheduling, archiving, and read statistics"
+        ),
+        new OA\Tag(
+            name: "Employee Announcements",
+            description: "Employee self-service announcement feed, unread counts, read receipts, and attachment downloads"
+        ),
+        new OA\Tag(
             name: "Health and Diagnostics",
             description: "Operational status verification and health check telemetry"
         )

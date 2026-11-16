@@ -111,6 +111,21 @@
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">Maintain department-scoped job titles and responsibilities.</div>
             </a>
             <?php
+            $annPubCount = (int)(($announcementStats['published'] ?? 0));
+            $annSchedCount = (int)(($announcementStats['scheduled'] ?? 0));
+            ?>
+            <a href="<?= url('/hr/announcements') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
+                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem;"><?= icon('megaphone', 16) ?> Announcements Management</span>
+                    <?php if ($annSchedCount > 0): ?>
+                        <span class="badge badge-primary tabular-nums"><?= $annSchedCount ?> scheduled</span>
+                    <?php elseif ($annPubCount > 0): ?>
+                        <span class="badge badge-success tabular-nums"><?= $annPubCount ?> active</span>
+                    <?php endif; ?>
+                </div>
+                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Create, schedule, publish, and track official company announcements and read receipts.</div>
+            </a>
+            <?php
             $hrToAdminOpen = (int)(($hrAdminSupportStats['open'] ?? 0));
             $hrToAdminWaiting = (int)(($hrAdminSupportStats['waiting_for_hr'] ?? 0));
             ?>

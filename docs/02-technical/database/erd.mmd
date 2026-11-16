@@ -17,6 +17,12 @@ erDiagram
     USERS ||--o{ EMAIL_OTPS : "verifies_via"
     USERS ||--o| USER_TOTP : "enrolls_mfa"
     USERS ||--o{ REALTIME_TICKETS : "authenticates_ws"
+    USERS ||--o{ ANNOUNCEMENTS : "creates_updates"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_TARGETS : "targets"
+    DEPARTMENTS ||--o{ ANNOUNCEMENT_TARGETS : "scopes_department"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_READS : "tracks_receipts"
+    EMPLOYEES ||--o{ ANNOUNCEMENT_READS : "acknowledges"
+    ANNOUNCEMENTS ||--o{ ANNOUNCEMENT_ATTACHMENTS : "attaches"
 
     DEPARTMENTS {
         int_unsigned id PK
@@ -305,4 +311,57 @@ erDiagram
         text remarks "NULL"
         timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
     }
+
+    ANNOUNCEMENTS {
+        int_unsigned id PK
+        varchar_32 announcement_ref UK "NOT NULL (ANN-YYYY-XXXXXXXX)"
+        varchar_200 title "NOT NULL"
+        varchar_320 summary "NULL"
+        mediumtext content "NOT NULL"
+        varchar_60 category "NOT NULL"
+        enum priority "Normal | Important | Urgent"
+        enum status "Draft | Scheduled | Published | Expired | Archived"
+        enum audience_type "all_employees | departments"
+        tinyint_1 is_pinned "DEFAULT 0"
+        tinyint_1 requires_acknowledgment "DEFAULT 0"
+        datetime scheduled_publish_at "NULL"
+        datetime published_at "NULL"
+        datetime expires_at "NULL"
+        datetime archived_at "NULL"
+        int_unsigned created_by FK "NOT NULL -> users.id"
+        int_unsigned updated_by FK "NULL -> users.id"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    ANNOUNCEMENT_TARGETS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        enum target_type "all | department"
+        int_unsigned department_id FK "NULL -> departments.id"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    ANNOUNCEMENT_READS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        int_unsigned employee_id FK "NOT NULL -> employees.id"
+        datetime read_at "NOT NULL"
+        tinyint_1 acknowledged "DEFAULT 0"
+        datetime acknowledged_at "NULL"
+    }
+
+    ANNOUNCEMENT_ATTACHMENTS {
+        int_unsigned id PK
+        int_unsigned announcement_id FK "NOT NULL -> announcements.id"
+        int_unsigned uploaded_by_user_id FK "NULL -> users.id"
+        varchar_255 original_filename "NOT NULL"
+        varchar_255 stored_filename "NOT NULL"
+        varchar_255 storage_relative_path "NOT NULL"
+        varchar_100 mime_type "NOT NULL"
+        int_unsigned file_size_bytes "NOT NULL"
+        char_64 sha256_checksum "NOT NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
 

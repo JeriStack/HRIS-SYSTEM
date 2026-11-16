@@ -537,6 +537,75 @@ CREATE TABLE IF NOT EXISTS `leave_sensitive_access_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
+#### 29. `announcements` `[IMPLEMENTED]`
+Company announcements aggregate root (`ANN-YYYY-XXXXXXXX`) supporting draft, scheduled, published, expired, and archived lifecycle states.
+```sql
+CREATE TABLE IF NOT EXISTS `announcements` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_ref` VARCHAR(32) NOT NULL UNIQUE,
+    `title` VARCHAR(200) NOT NULL,
+    `summary` VARCHAR(320) NULL DEFAULT NULL,
+    `content` MEDIUMTEXT NOT NULL,
+    `category` VARCHAR(60) NOT NULL,
+    `priority` ENUM('Normal', 'Important', 'Urgent') NOT NULL DEFAULT 'Normal',
+    `status` ENUM('Draft', 'Scheduled', 'Published', 'Expired', 'Archived') NOT NULL DEFAULT 'Draft',
+    `audience_type` ENUM('all_employees', 'departments') NOT NULL DEFAULT 'all_employees',
+    `is_pinned` TINYINT(1) NOT NULL DEFAULT 0,
+    `requires_acknowledgment` TINYINT(1) NOT NULL DEFAULT 0,
+    `scheduled_publish_at` DATETIME NULL DEFAULT NULL,
+    `published_at` DATETIME NULL DEFAULT NULL,
+    `expires_at` DATETIME NULL DEFAULT NULL,
+    `archived_at` DATETIME NULL DEFAULT NULL,
+    `created_by` INT UNSIGNED NOT NULL,
+    `updated_by` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 30. `announcement_targets` `[IMPLEMENTED]`
+Normalized audience targeting rules (`all` or specific `department` IDs) for company announcements.
+```sql
+CREATE TABLE IF NOT EXISTS `announcement_targets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `target_type` ENUM('all', 'department') NOT NULL DEFAULT 'all',
+    `department_id` INT UNSIGNED NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 31. `announcement_reads` `[IMPLEMENTED]`
+Idempotent employee read and acknowledgment receipts (`UNIQUE KEY uq_ann_read_emp (announcement_id, employee_id)`).
+```sql
+CREATE TABLE IF NOT EXISTS `announcement_reads` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `employee_id` INT UNSIGNED NOT NULL,
+    `read_at` DATETIME NOT NULL,
+    `acknowledged` TINYINT(1) NOT NULL DEFAULT 0,
+    `acknowledged_at` DATETIME NULL DEFAULT NULL,
+    UNIQUE KEY `uq_ann_read_emp` (`announcement_id`, `employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+#### 32. `announcement_attachments` `[IMPLEMENTED]`
+Attachment metadata (`PDF`, `PNG`, `JPG`, `WEBP`, up to 10 MB, SHA-256 checksum) stored outside the public web root in `storage/uploads/announcement_attachments/`.
+```sql
+CREATE TABLE IF NOT EXISTS `announcement_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `announcement_id` INT UNSIGNED NOT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
 ---
 
 ## 3. Concurrency Control & Row-Level Locking
@@ -625,5 +694,6 @@ All migrations must adhere to the following naming pattern:
 * `database/migrations/2026_11_18_create_trusted_devices_and_auth_security.sql` — Creates `trusted_devices` and `user_auth_security_states` for Smart OTP trusted-browser rotation and step-up checks.
 * `database/migrations/2026_11_19_create_password_resets_and_public_support.sql` — Creates `password_resets`, `public_support_ticket_sequences`, and `public_support_tracking_tokens` for anti-enumeration password recovery and pre-login assistance (`AUTH-YYYY-NNNNN`).
 * `database/migrations/2026_11_20_create_hr_to_admin_support_module.sql` — Creates the 5 isolated HR-to-Admin Help & Support tables (`hr_support_tickets`, `hr_support_ticket_messages`, `hr_support_ticket_attachments`, `hr_support_ticket_assignments`, `hr_support_ticket_history`), registers the 6 `hr_support.*` permissions, and enforces least-privilege `role_permissions` defaults for `admin` and `hr`.
+* `database/migrations/2026_11_21_create_announcements_module.sql` — Creates the 4 Announcements Management tables (`announcements`, `announcement_targets`, `announcement_reads`, `announcement_attachments`), registers the 11 `announcements.*` permissions, and grants default RBAC policies to `hr`, `employee`, and `admin` (`announcements.admin_oversight`).
 
 

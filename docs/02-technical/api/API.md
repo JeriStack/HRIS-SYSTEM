@@ -298,3 +298,24 @@ All API responses follow a structured JSON response envelope:
   }
   ```
 
+---
+
+### 4.6 Company Announcements Management (`/api/v1/hr/announcements` & `/api/v1/employee/announcements`)
+
+#### HR Announcements Management Endpoints
+* **`GET /api/v1/hr/announcements`** — Paginated list of announcements with status, category, priority, audience, and search filters plus summary counts (`hr`, `announcements.view_manage`).
+* **`POST /api/v1/hr/announcements`** — Create draft, scheduled, or immediately published announcement (`hr`, `announcements.create`).
+* **`GET /api/v1/hr/announcements/{id}`** — Retrieve full announcement detail, targets, attachments, and delivery/read analytics (`hr`, `announcements.view_manage`).
+* **`PUT /api/v1/hr/announcements/{id}`** — Update announcement fields and audience targets (`hr`, `announcements.edit`).
+* **`POST /api/v1/hr/announcements/{id}/publish`** — Immediately publish a Draft or Scheduled announcement (`hr`, `announcements.publish`).
+* **`POST /api/v1/hr/announcements/{id}/schedule`** — Schedule a Draft or Scheduled announcement for future publication (`hr`, `announcements.schedule`).
+* **`POST /api/v1/hr/announcements/{id}/archive`** — Archive an announcement (`hr`, `announcements.archive`).
+* **`DELETE /api/v1/hr/announcements/{id}`** — Permanently delete an unpublished `Draft` announcement (`hr`, `announcements.delete_draft`).
+
+#### Employee Announcements Feed & Receipt Endpoints
+* **`GET /api/v1/employee/announcements`** — Paginated list of published, non-expired announcements targeted to the authenticated employee's active profile and department (`employee`, `announcements.read`).
+* **`GET /api/v1/employee/announcements/unread-count`** — Returns `{ "unread_count": N }` for targeted unread announcements (`employee`, `announcements.read`).
+* **`GET /api/v1/employee/announcements/{id}`** — Retrieve targeted announcement detail and automatically record `read_at` receipt (`employee`, `announcements.read`).
+* **`POST /api/v1/employee/announcements/{id}/read`** — Idempotently mark a targeted announcement as read or acknowledged (`employee`, `announcements.acknowledge`).
+
+

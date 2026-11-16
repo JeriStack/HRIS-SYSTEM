@@ -9,6 +9,13 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Outbox;
 
+use App\Domain\Announcement\Events\AnnouncementArchived;
+use App\Domain\Announcement\Events\AnnouncementCreated;
+use App\Domain\Announcement\Events\AnnouncementExpired;
+use App\Domain\Announcement\Events\AnnouncementPublished;
+use App\Domain\Announcement\Events\AnnouncementRead;
+use App\Domain\Announcement\Events\AnnouncementScheduled;
+use App\Domain\Announcement\Events\AnnouncementUpdated;
 use App\Domain\Common\DomainEventInterface;
 use App\Domain\Leave\Events\LeaveApprovedEvent;
 use App\Domain\Leave\Events\LeaveRejectedEvent;
@@ -47,7 +54,7 @@ final class OutboxEventSerializer
             ];
         }
 
-        // Generic fallback for any future DomainEventInterface implementation
+        // Generic fallback for any DomainEventInterface implementation (including Announcement* events)
         $props = get_object_vars($event);
         $payload = [];
         foreach ($props as $key => $value) {
@@ -91,6 +98,66 @@ final class OutboxEventSerializer
                 (int)($payload['numberOfDays'] ?? 0),
                 (int)($payload['approverUserId'] ?? 0),
                 (string)($payload['rejectionReason'] ?? ''),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementCreated::class || $eventType === 'AnnouncementCreated') {
+            return new AnnouncementCreated(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['authorUserId'] ?? 0),
+                (string)($payload['status'] ?? 'Draft'),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementUpdated::class || $eventType === 'AnnouncementUpdated') {
+            return new AnnouncementUpdated(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['actorUserId'] ?? 0),
+                (string)($payload['status'] ?? 'Draft'),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementScheduled::class || $eventType === 'AnnouncementScheduled') {
+            return new AnnouncementScheduled(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['actorUserId'] ?? 0),
+                (string)($payload['scheduledAt'] ?? ''),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementPublished::class || $eventType === 'AnnouncementPublished') {
+            return new AnnouncementPublished(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['actorUserId'] ?? 0),
+                (string)($payload['priority'] ?? 'Normal'),
+                (string)($payload['publishedAt'] ?? ''),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementArchived::class || $eventType === 'AnnouncementArchived') {
+            return new AnnouncementArchived(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['actorUserId'] ?? 0),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementExpired::class || $eventType === 'AnnouncementExpired') {
+            return new AnnouncementExpired(
+                (int)($payload['announcementId'] ?? 0),
+                $occurredAt
+            );
+        }
+
+        if ($eventType === AnnouncementRead::class || $eventType === 'AnnouncementRead') {
+            return new AnnouncementRead(
+                (int)($payload['announcementId'] ?? 0),
+                (int)($payload['employeeId'] ?? 0),
                 $occurredAt
             );
         }

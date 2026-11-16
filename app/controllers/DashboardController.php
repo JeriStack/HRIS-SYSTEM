@@ -18,17 +18,20 @@ class DashboardController extends Controller
     private ?\App\Models\Notification $notificationModel;
     private ?\App\Models\Leave $leaveModel;
     private ?\App\Models\SupportTicket $supportModel;
+    private ?\App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository $announcementRepo;
 
     public function __construct(
         ?PDO $pdo = null,
         ?\App\Models\Notification $notificationModel = null,
         ?\App\Models\Leave $leaveModel = null,
-        ?\App\Models\SupportTicket $supportModel = null
+        ?\App\Models\SupportTicket $supportModel = null,
+        ?\App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository $announcementRepo = null
     ) {
         $this->pdo = $pdo ?? Database::getInstance()->getConnection();
         $this->notificationModel = $notificationModel;
         $this->leaveModel = $leaveModel;
         $this->supportModel = $supportModel;
+        $this->announcementRepo = $announcementRepo;
     }
 
     private function getNotificationModel(): \App\Models\Notification
@@ -151,6 +154,16 @@ class DashboardController extends Controller
             ];
         }
 
+        if (
+            $eventType === \App\Realtime\EventAuthorizer::ANNOUNCEMENT_PUBLISHED
+            || $eventType === \App\Realtime\EventAuthorizer::ANNOUNCEMENT_URGENT
+        ) {
+            return [
+                'path'  => $entityId > 0 ? '/employee/announcements/' . $entityId : '/employee/announcements',
+                'label' => 'Read announcement',
+            ];
+        }
+
         return null;
     }
 
@@ -202,6 +215,23 @@ class DashboardController extends Controller
             error_log('[HrDashboard::hrAdminSupport] ' . $e->getMessage());
         }
 
+        $announcementStats = [
+            'total'     => 0,
+            'draft'     => 0,
+            'scheduled' => 0,
+            'published' => 0,
+            'archived'  => 0,
+            'expired'   => 0,
+        ];
+        try {
+            $uid = (int)currentUserId();
+            $canManageAll = \Core\Permission::can('hr', 'announcements.manage_all');
+            $announcementStats = (new \App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository($this->pdo))
+                ->getHrSummaryStats($uid, $canManageAll);
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::announcements] ' . $e->getMessage());
+        }
+
         // Fetch recent active employees
         $recentEmployees = $this->pdo->query("
             SELECT e.employee_no, e.first_name, e.last_name, e.email, d.department_name, p.position_name, e.date_hired
@@ -219,6 +249,7 @@ class DashboardController extends Controller
             'metrics'             => $metrics,
             'supportOverview'     => $supportOverview,
             'hrAdminSupportStats' => $hrAdminSupportStats,
+            'announcementStats'   => $announcementStats,
             'recentEmployees'     => $recentEmployees,
         ], 'hr');
     }
@@ -401,6 +432,28 @@ class DashboardController extends Controller
             }
         }
 
+        // 7. Fetch max 3 targeted published announcements for Employee Dashboard preview (Phase 5.2)
+        // Strictly does NOT record read receipts on dashboard preview.
+        $recentAnnouncements = [];
+        $unreadAnnouncementsCount = 0;
+        if (
+            $employeeId > 0
+            && ($this->announcementRepo !== null || $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'mysql')
+        ) {
+            try {
+                $annRepo = $this->announcementRepo
+                    ?? new \App\Infrastructure\Persistence\Announcement\MySqlAnnouncementRepository($this->pdo);
+                $empDeptId = isset($employeeRecord['department_id']) && $employeeRecord['department_id'] !== null
+                    ? (int)$employeeRecord['department_id']
+                    : null;
+                $empStatus = (string)($employeeRecord['employment_status'] ?? 'Active');
+                $recentAnnouncements = $annRepo->getDashboardPreviewForEmployee($employeeId, $empDeptId, $empStatus, 3);
+                $unreadAnnouncementsCount = $annRepo->countUnreadForEmployee($employeeId, $empDeptId, $empStatus);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeDashboard::announcements] ' . $e->getMessage());
+            }
+        }
+
         $this->view('dashboard.employee', [
             'pageTitle'                => 'Employee Dashboard',
             'user'                     => $user,
@@ -411,6 +464,8 @@ class DashboardController extends Controller
             'upcomingApprovedLeaves'   => $upcomingApprovedLeaves,
             'pendingRequestsCount'     => $pendingRequestsCount,
             'supportSummary'           => $supportSummary,
+            'recentAnnouncements'      => $recentAnnouncements,
+            'unreadAnnouncementsCount' => $unreadAnnouncementsCount,
             'recentNotifications'      => $recentNotifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
             'sectionErrors'            => $sectionErrors,

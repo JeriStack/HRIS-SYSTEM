@@ -123,6 +123,10 @@ class HomeController extends Controller
         $dbLatencySeconds = 0.0;
         $totalEmployees = 0;
         $pendingLeaves = 0;
+        $publishedAnnouncements = 0;
+        $scheduledAnnouncements = 0;
+        $failedQueueJobs = 0;
+        $pendingQueueJobs = 0;
 
         if ($dbConnected) {
             try {
@@ -138,6 +142,21 @@ class HomeController extends Controller
 
                     $leaveStmt = $db->getConnection()->query("SELECT COUNT(*) FROM leave_requests WHERE status = 'Pending'");
                     $pendingLeaves = (int)($leaveStmt ? $leaveStmt->fetchColumn() : 0);
+
+                    try {
+                        $annPubStmt = $db->getConnection()->query("SELECT COUNT(*) FROM announcements WHERE status = 'Published'");
+                        $publishedAnnouncements = (int)($annPubStmt ? $annPubStmt->fetchColumn() : 0);
+
+                        $annSchedStmt = $db->getConnection()->query("SELECT COUNT(*) FROM announcements WHERE status = 'Scheduled'");
+                        $scheduledAnnouncements = (int)($annSchedStmt ? $annSchedStmt->fetchColumn() : 0);
+
+                        $qPendStmt = $db->getConnection()->query("SELECT COUNT(*) FROM queue_jobs WHERE status = 'pending'");
+                        $pendingQueueJobs = (int)($qPendStmt ? $qPendStmt->fetchColumn() : 0);
+
+                        $qFailStmt = $db->getConnection()->query("SELECT COUNT(*) FROM failed_jobs");
+                        $failedQueueJobs = (int)($qFailStmt ? $qFailStmt->fetchColumn() : 0);
+                    } catch (\Throwable) {
+                    }
                 }
             } catch (\Throwable $e) {
                 $dbConnected = false;
@@ -182,6 +201,22 @@ class HomeController extends Controller
         $lines[] = "# HELP hris_leave_pending_requests Total pending leave requests awaiting approval";
         $lines[] = "# TYPE hris_leave_pending_requests gauge";
         $lines[] = "hris_leave_pending_requests {$pendingLeaves}";
+        $lines[] = "";
+        $lines[] = "# HELP hris_announcements_published_total Total active published announcements";
+        $lines[] = "# TYPE hris_announcements_published_total gauge";
+        $lines[] = "hris_announcements_published_total {$publishedAnnouncements}";
+        $lines[] = "";
+        $lines[] = "# HELP hris_announcements_scheduled_total Total scheduled announcements awaiting publication";
+        $lines[] = "# TYPE hris_announcements_scheduled_total gauge";
+        $lines[] = "hris_announcements_scheduled_total {$scheduledAnnouncements}";
+        $lines[] = "";
+        $lines[] = "# HELP hris_queue_jobs_pending_total Total pending background queue jobs";
+        $lines[] = "# TYPE hris_queue_jobs_pending_total gauge";
+        $lines[] = "hris_queue_jobs_pending_total {$pendingQueueJobs}";
+        $lines[] = "";
+        $lines[] = "# HELP hris_queue_jobs_failed_total Total failed dead-letter background queue jobs";
+        $lines[] = "# TYPE hris_queue_jobs_failed_total gauge";
+        $lines[] = "hris_queue_jobs_failed_total {$failedQueueJobs}";
         $lines[] = "";
 
         header('Content-Type: text/plain; version=0.0.4; charset=utf-8');

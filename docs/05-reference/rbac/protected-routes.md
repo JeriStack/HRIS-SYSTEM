@@ -51,6 +51,17 @@ All application routes, their HTTP methods, controllers, and authorization polic
 | `/hr/help/tickets/{ref}/confirm-resolution` | `POST` | `HrAdminSupportController::confirmResolution` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.reply_own')` | Confirm resolution (`Resolved -> Closed`) |
 | `/hr/help/tickets/{ref}/reopen` | `POST` | `HrAdminSupportController::reopen` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.reply_own')` | Request reopening of Resolved ticket within 14-day window |
 | `/hr/help/attachments/{id}` | `GET` | `HrAdminSupportController::downloadAttachment` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('hr_support.view_own')` | Download own non-internal attachment |
+| `/hr/announcements` | `GET` | `HrAnnouncementController::index` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('announcements.view_manage')` | HR Announcements Management list & summary metrics |
+| `/hr/announcements/create` | `GET` | `HrAnnouncementController::create` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('announcements.create')` | Create announcement form |
+| `/hr/announcements` | `POST` | `HrAnnouncementController::store` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.create')` | Store draft, schedule, or publish announcement |
+| `/hr/announcements/{id}` | `GET` | `HrAnnouncementController::show` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('announcements.view_manage')` | View announcement details, analytics & audit history |
+| `/hr/announcements/{id}/edit` | `GET` | `HrAnnouncementController::edit` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('announcements.edit')` | Edit announcement form |
+| `/hr/announcements/{id}/update` | `POST` | `HrAnnouncementController::update` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.edit')` | Update announcement details & targets |
+| `/hr/announcements/{id}/publish` | `POST` | `HrAnnouncementController::publish` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.publish')` | Immediately publish announcement |
+| `/hr/announcements/{id}/schedule` | `POST` | `HrAnnouncementController::schedule` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.schedule')` | Schedule announcement for future publication |
+| `/hr/announcements/{id}/archive` | `POST` | `HrAnnouncementController::archive` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.archive')` | Archive announcement |
+| `/hr/announcements/{id}/delete` | `POST` | `HrAnnouncementController::deleteDraft` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.delete_draft')` | Permanently delete Draft announcement |
+| `/hr/announcements/attachments/{id}` | `GET` | `HrAnnouncementController::downloadAttachment` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('announcements.view_manage')` | Download announcement attachment |
 
 ---
 
@@ -85,6 +96,10 @@ All application routes, their HTTP methods, controllers, and authorization polic
 | `/employee/profile` | `GET` | `DashboardController::employeeProfile` | `AuthMiddleware`, `RoleMiddleware('employee')` | Own personal demographic and job profile |
 | `/employee/leave-balances` | `GET` | `DashboardController::employeeLeaveBalances` | `AuthMiddleware`, `RoleMiddleware('employee')` | Personal leave balance API (JSON) |
 | `/employee/leave-requests` | `GET` | `DashboardController::employeeLeaveRequests` | `AuthMiddleware`, `RoleMiddleware('employee')` | Personal leave applications history (JSON) |
+| `/employee/announcements` | `GET` | `EmployeeAnnouncementController::index` | `AuthMiddleware`, `RoleMiddleware('employee')`, `PermissionMiddleware('announcements.read')` | Targeted Employee Announcements feed |
+| `/employee/announcements/{id}` | `GET` | `EmployeeAnnouncementController::show` | `AuthMiddleware`, `RoleMiddleware('employee')`, `PermissionMiddleware('announcements.read')` | Announcement detail view (auto-records read receipt) |
+| `/employee/announcements/{id}/read` | `POST` | `EmployeeAnnouncementController::markRead` | `AuthMiddleware`, `RoleMiddleware('employee')`, `CsrfMiddleware`, `PermissionMiddleware('announcements.acknowledge')` | Record read/acknowledgment receipt |
+| `/employee/announcements/attachments/{id}` | `GET` | `EmployeeAnnouncementController::downloadAttachment` | `AuthMiddleware`, `RoleMiddleware('employee')`, `PermissionMiddleware('announcements.read')` | Authorized targeted attachment download |
 
 ---
 

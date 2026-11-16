@@ -437,9 +437,10 @@ NEXORA HR implements a decoupled, production-ready background execution architec
 
 #### Registered Periodic Tasks
 1. `cleanup-sessions` (`*/15 * * * *`): Safely purges expired session storage files, stale realtime tickets, and expired OTP records.
-2. `process-notifications` (`* * * * *`): Claims and dispatches pending transactional outbox events.
-3. `send-leave-reminders` (`0 8 * * *`): Evaluates approved leaves beginning the following day and dispatches reminder notifications.
-4. `cleanup-temp-files` (`0 2 * * *`): Purges generated CSV report exports older than 24 hours.
+2. `process-notifications` (`* * * * *`): Claims and dispatches pending transactional outbox events and queued notification jobs.
+3. `process-announcements` (`* * * * *`): Publishes due `Scheduled` announcements (`scheduled_publish_at <= NOW()`) and transitions past-due `Published` announcements to `Expired` (`expires_at <= NOW()`).
+4. `send-leave-reminders` (`0 8 * * *`): Evaluates approved leaves beginning the following day and dispatches reminder notifications.
+5. `cleanup-temp-files` (`0 2 * * *`): Purges generated CSV report exports older than 24 hours.
 
 ### 9.2 MySQL-Backed Queue System & Queue Worker
 * **Service:** `hris_worker` (reusing `hris-system-app:latest` with non-root user `www-data`).
@@ -448,6 +449,6 @@ NEXORA HR implements a decoupled, production-ready background execution architec
 * **Exponential Backoff & Retries:** Failed jobs retry with exponential backoff and randomized jitter (`delay = min(3600, 2^attempts * 5 + jitter)`).
 * **Dead-Letter Storage:** Permanently failed jobs exceeding `max_attempts` transition to `failed_jobs` for forensic analysis.
 * **Abandoned Reservation Recovery:** Workers periodically scan for jobs reserved for longer than the lease window (default: 300s) and safely recover them to `pending`.
-* **Security Whitelist:** `App\Queue\JobRegistry` strictly whitelists permitted job types (`send_email`, `send_notification`, `leave_reminder`, `report_export`, `outbox_relay`), completely rejecting arbitrary class instantiation or unsanctioned code execution.
+* **Security Whitelist:** `App\Queue\JobRegistry` strictly whitelists permitted job types (`send_email`, `send_notification`, `leave_reminder`, `report_export`, `outbox_relay`, `distribute_announcement_notifications`), completely rejecting arbitrary class instantiation or unsanctioned code execution.
 
 

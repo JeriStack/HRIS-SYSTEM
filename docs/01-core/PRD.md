@@ -193,6 +193,7 @@ NEXORA HR strictly enforces **three application roles**: **`admin`**, **`hr`**, 
 | **FR-013** | Reporting & Export | `ReportController`, `CsvExportService` | `ReportExportTest`, `AnalyticsQueryTest` | **VERIFIED** |
 | **FR-014** | DSA Visualizers | `DsaController`, `MergeSort`, `BinarySearch` | `DsaAlgorithmBenchmarkTest`, `VisualizerTest` | **VERIFIED** |
 | **FR-015** | OpenAPI / Swagger | `ApiDocsController`, `openapi.yaml` | `SwaggerEndpointTest`, `ApiSchemaValidationTest`| **VERIFIED** |
+| **FR-016** | HR Announcements Management | `HrAnnouncementController`, `EmployeeAnnouncementController`, `AnnouncementControllerAdapter`, `MySqlAnnouncementRepository` | `AnnouncementDomainTest`, `AnnouncementLifecycleIntegrationTest`, `AnnouncementRbacAndSecurityTest` | **VERIFIED** |
 
 ---
 

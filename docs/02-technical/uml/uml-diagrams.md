@@ -423,3 +423,26 @@ flowchart TB
     GrafanaNode --> PromNode
 ```
 
+---
+
+## 9. Announcements Management Bounded Context & State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Draft : createDraft()
+    [*] --> Scheduled : schedule(futureAt)
+    [*] --> Published : publishNow()
+    Draft --> Scheduled : schedule(futureAt)
+    Scheduled --> Scheduled : reschedule(futureAt)
+    Scheduled --> Draft : unschedule()
+    Draft --> Published : publish()
+    Scheduled --> Published : CRON process-announcements / publish()
+    Published --> Expired : CRON process-announcements (expires_at <= NOW())
+    Draft --> Archived : archive()
+    Scheduled --> Archived : archive()
+    Published --> Archived : archive()
+    Expired --> Archived : archive()
+    Draft --> [*] : deleteDraft()
+```
+
+

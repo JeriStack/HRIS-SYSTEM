@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace App\Queue;
 
+use App\Queue\Handlers\DistributeAnnouncementNotificationsHandler;
 use App\Queue\Handlers\LeaveReminderHandler;
 use App\Queue\Handlers\OutboxRelayHandler;
 use App\Queue\Handlers\ReportExportHandler;
@@ -21,11 +22,12 @@ use InvalidArgumentException;
 
 class JobRegistry
 {
-    public const TYPE_SEND_EMAIL         = 'send_email';
-    public const TYPE_SEND_NOTIFICATION  = 'send_notification';
-    public const TYPE_LEAVE_REMINDER     = 'leave_reminder';
-    public const TYPE_REPORT_EXPORT      = 'report_export';
-    public const TYPE_OUTBOX_RELAY       = 'outbox_relay';
+    public const TYPE_SEND_EMAIL              = 'send_email';
+    public const TYPE_SEND_NOTIFICATION       = 'send_notification';
+    public const TYPE_LEAVE_REMINDER          = 'leave_reminder';
+    public const TYPE_REPORT_EXPORT           = 'report_export';
+    public const TYPE_OUTBOX_RELAY            = 'outbox_relay';
+    public const TYPE_DISTRIBUTE_ANNOUNCEMENT = 'distribute_announcement_notifications';
 
     /**
      * Whitelist mapping job types to concrete JobInterface handler class names.
@@ -33,11 +35,12 @@ class JobRegistry
      * @var array<string, class-string<JobInterface>>
      */
     private static array $handlers = [
-        self::TYPE_SEND_EMAIL        => SendEmailHandler::class,
-        self::TYPE_SEND_NOTIFICATION => SendNotificationHandler::class,
-        self::TYPE_LEAVE_REMINDER    => LeaveReminderHandler::class,
-        self::TYPE_REPORT_EXPORT     => ReportExportHandler::class,
-        self::TYPE_OUTBOX_RELAY      => OutboxRelayHandler::class,
+        self::TYPE_SEND_EMAIL              => SendEmailHandler::class,
+        self::TYPE_SEND_NOTIFICATION       => SendNotificationHandler::class,
+        self::TYPE_LEAVE_REMINDER          => LeaveReminderHandler::class,
+        self::TYPE_REPORT_EXPORT           => ReportExportHandler::class,
+        self::TYPE_OUTBOX_RELAY            => OutboxRelayHandler::class,
+        self::TYPE_DISTRIBUTE_ANNOUNCEMENT => DistributeAnnouncementNotificationsHandler::class,
     ];
 
     /**

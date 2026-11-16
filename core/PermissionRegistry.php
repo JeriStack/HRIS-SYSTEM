@@ -422,6 +422,76 @@ final class PermissionRegistry
         ],
 
         // -------------------------------------------------------------
+        // Module: Announcements Management
+        // -------------------------------------------------------------
+        'announcements.view' => [
+            'name'          => 'View Announcements Management',
+            'module'        => 'Announcements Management',
+            'description'   => 'Access the HR Announcements Management dashboard and inspect organizational announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.create' => [
+            'name'          => 'Create Announcements & Drafts',
+            'module'        => 'Announcements Management',
+            'description'   => 'Create announcements and save draft announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.edit_own' => [
+            'name'          => 'Edit Own Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Edit own draft, scheduled, or published announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.publish' => [
+            'name'          => 'Publish Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Publish announcements immediately to targeted employees',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.schedule' => [
+            'name'          => 'Schedule Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Schedule or cancel scheduled publication for announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.archive' => [
+            'name'          => 'Archive Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Archive announcements to remove them from active feeds while preserving audit history',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.delete_draft' => [
+            'name'          => 'Delete Draft Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Delete unpublished draft announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.stats_own' => [
+            'name'          => 'View Own Announcement Statistics',
+            'module'        => 'Announcements Management',
+            'description'   => 'View read statistics and targeted read receipts for own authored announcements',
+            'default_roles' => [self::ROLE_HR],
+        ],
+        'announcements.manage_all' => [
+            'name'          => 'Manage All HR Announcements',
+            'module'        => 'Announcements Management',
+            'description'   => 'Modify, publish, schedule, or archive announcements created by other HR personnel',
+            'default_roles' => [],
+        ],
+        'announcements.stats_all' => [
+            'name'          => 'View All Announcement Statistics',
+            'module'        => 'Announcements Management',
+            'description'   => 'View read statistics and read receipts for announcements created by any HR author',
+            'default_roles' => [],
+        ],
+        'announcements.feed' => [
+            'name'          => 'View Employee Announcement Feed',
+            'module'        => 'Employee Self-Service',
+            'description'   => 'View targeted published announcements, record read receipts, and download attachments',
+            'default_roles' => [self::ROLE_EMPLOYEE],
+        ],
+
+        // -------------------------------------------------------------
         // Module: Academic & Universal
         // -------------------------------------------------------------
         'dsa_laboratory' => [

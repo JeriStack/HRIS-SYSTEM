@@ -62,6 +62,11 @@ $upcomingApprovedSlice = array_slice($upcomingApprovedList, 0, 3);
 $recentNotifications = (isset($recentNotifications) && is_array($recentNotifications)) ? $recentNotifications : [];
 $recentNotificationsSlice = array_slice($recentNotifications, 0, 3);
 
+/** @var array<int, array<string, mixed>> $recentAnnouncements */
+$recentAnnouncements = (isset($recentAnnouncements) && is_array($recentAnnouncements)) ? $recentAnnouncements : [];
+$recentAnnouncementsSlice = array_slice($recentAnnouncements, 0, 3);
+$unreadAnnouncementsCount = max(0, (int)($unreadAnnouncementsCount ?? 0));
+
 $unreadCount = max(0, (int)($unreadNotificationsCount ?? 0));
 
 // Combined leave totals strictly from database balance records
@@ -678,6 +683,82 @@ $todayImmutable = DateTimeImmutable::createFromFormat('Y-m-d', $todayDate) ?: ne
                         <span class="badge <?= $stBadge ?>"><?= e($stStatus) ?></span>
                     </a>
                 <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<!-- Section 5b: Company Announcements Preview (Max 3, Pinned & Priority Ordered, No Auto-Read) -->
+<section class="card emp-announcements-card mb-6" aria-labelledby="recentAnnouncementsHeading">
+    <div class="card-header">
+        <div class="card-title-group">
+            <h2 class="card-title" id="recentAnnouncementsHeading">
+                <span>Company Announcements</span>
+                <?php if ($unreadAnnouncementsCount > 0) : ?>
+                    <span class="badge badge-primary tabular-nums"><?= $unreadAnnouncementsCount ?> unread</span>
+                <?php endif; ?>
+            </h2>
+            <p class="card-subtitle">Official organizational updates and departmental advisories addressed to you</p>
+        </div>
+        <a href="<?= url('/employee/announcements') ?>" class="emp-quiet-action">
+            <span>View All</span>
+            <?= icon('chevron-right', 16) ?>
+        </a>
+    </div>
+    <div class="card-body <?= !empty($recentAnnouncementsSlice) ? 'p-0' : '' ?>">
+        <?php if (!empty($recentAnnouncementsSlice)) : ?>
+            <div class="emp-notif-list">
+                <?php foreach ($recentAnnouncementsSlice as $annItem) :
+                    $annId = (int)($annItem['id'] ?? 0);
+                    $annUnread = empty($annItem['is_read']);
+                    $annPinned = !empty($annItem['is_pinned']);
+                    $annPrio = (string)($annItem['priority'] ?? 'Normal');
+                    $annPrioBadge = match ($annPrio) {
+                        'Urgent'    => 'badge-danger',
+                        'Important' => 'badge-warning',
+                        default     => 'badge-neutral',
+                    };
+                    $annPubDate = !empty($annItem['published_at'])
+                        ? date('M j, Y', strtotime((string)$annItem['published_at']))
+                        : '';
+                ?>
+                    <div class="emp-notif-item <?= $annUnread ? 'is-unread' : '' ?>">
+                        <div class="emp-notif-icon <?= $annPrio === 'Urgent' ? 'emp-notif-icon-warning' : 'emp-notif-icon-info' ?>" aria-hidden="true">
+                            <?= icon('megaphone', 18) ?>
+                        </div>
+                        <div class="emp-notif-content">
+                            <div class="emp-notif-title-row">
+                                <span class="emp-notif-title">
+                                    <?php if ($annUnread) : ?>
+                                        <span class="emp-unread-dot" aria-hidden="true" title="Unread announcement"></span>
+                                        <span class="sr-only">Unread: </span>
+                                    <?php endif; ?>
+                                    <?php if ($annPinned) : ?>
+                                        <span class="badge badge-primary" style="font-size: 0.75rem; margin-right: 0.25rem;">Pinned</span>
+                                    <?php endif; ?>
+                                    <span class="badge <?= $annPrioBadge ?>" style="font-size: 0.75rem; margin-right: 0.25rem;"><?= e($annPrio) ?></span>
+                                    <?= e((string)($annItem['title'] ?? 'Announcement')) ?>
+                                </span>
+                                <?php if ($annPubDate !== '') : ?>
+                                    <span class="emp-notif-time tabular-nums"><?= e($annPubDate) ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <p class="emp-notif-msg"><?= e((string)($annItem['content_preview'] ?? '')) ?></p>
+                        </div>
+                        <div class="emp-notif-actions">
+                            <a href="<?= url('/employee/announcements/' . $annId) ?>" class="emp-quiet-action" aria-label="Read <?= e((string)($annItem['title'] ?? 'announcement')) ?>">
+                                <span>Read Notice</span>
+                                <?= icon('chevron-right', 14) ?>
+                            </a>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php else : ?>
+            <div class="empty-state">
+                <div class="empty-state-icon"><?= icon('megaphone', 36) ?></div>
+                <h3 class="empty-state-title">No Active Announcements</h3>
+                <p class="empty-state-desc">Official company updates, HR policy notices, and departmental advisories addressed to you will appear here.</p>
             </div>
         <?php endif; ?>
     </div>

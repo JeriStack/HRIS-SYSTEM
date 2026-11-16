@@ -118,6 +118,16 @@ final class NotificationPayload
             'message' => 'HR requested reopening of support ticket %s.',
             'level'   => 'warning',
         ],
+        EventAuthorizer::ANNOUNCEMENT_PUBLISHED => [
+            'title'   => 'New company announcement',
+            'message' => 'Official announcement %s has been published. Open Announcements to read it.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::ANNOUNCEMENT_URGENT => [
+            'title'   => 'Urgent company announcement',
+            'message' => 'Urgent advisory %s requires your attention in Announcements.',
+            'level'   => 'warning',
+        ],
     ];
 
     /**
@@ -157,6 +167,8 @@ final class NotificationPayload
             $reference = $entityId > 0 ? 'PCR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
         } elseif (str_starts_with($event, 'support_')) {
             $reference = $entityId > 0 ? 'SUP-' . str_pad((string)$entityId, 5, '0', STR_PAD_LEFT) : null;
+        } elseif (str_starts_with($event, 'announcement.')) {
+            $reference = $entityId > 0 ? 'ANN-' . str_pad((string)$entityId, 4, '0', STR_PAD_LEFT) : null;
         } else {
             $reference = $entityId > 0 ? 'LR-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
         }
@@ -218,6 +230,11 @@ final class NotificationPayload
         if (str_starts_with($event, 'support_')) {
             $isStaff = in_array(strtolower($recipientRole), ['hr', 'admin'], true);
             $base = $isStaff ? 'hr/support' : 'support';
+            return $entityId > 0 ? $base . '/' . $entityId : $base;
+        }
+
+        if (str_starts_with($event, 'announcement.')) {
+            $base = strtolower($recipientRole) === 'hr' ? 'hr/announcements' : 'employee/announcements';
             return $entityId > 0 ? $base . '/' . $entityId : $base;
         }
 

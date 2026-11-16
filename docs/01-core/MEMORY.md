@@ -40,6 +40,7 @@
 | **Session & Guards** | `core/Session.php`, `core/AuthMiddleware.php`, `core/RoleMiddleware.php`, `core/CsrfMiddleware.php` |
 | **Leave Engine & Locking** | `app/controllers/LeaveController.php`, `app/models/Leave.php`, `app/services/LeaveApprovalService.php` |
 | **Workforce Administration** | `app/controllers/EmployeeController.php`, `app/controllers/DepartmentController.php`, `app/models/Employee.php` |
+| **Announcements (DDD)** | `app/Domain/Announcement/`, `app/Application/Announcement/`, `app/Infrastructure/Persistence/Announcement/`, `app/controllers/HrAnnouncementController.php`, `app/controllers/EmployeeAnnouncementController.php` |
 | **Dashboards & Profiles** | `app/controllers/DashboardController.php`, `app/views/dashboard/` |
 | **Real-time WebSockets** | `app/realtime/WebSocketServer.php`, `app/realtime/OutboxService.php`, `public/assets/js/realtime.js` |
 | **Database & Schema** | `database/schema.sql` (13 InnoDB tables), `database/migrations/`, `core/Database.php` |

@@ -130,6 +130,14 @@
 - [x] Implement `HrSupportTicket`, `HrSupportAccessService`, `HrSupportNotificationService`, `HrSupportWorkflowService`, `HrAdminSupportController` (`/hr/help*`), and `AdminSupportController` (`/admin/support*`) with `HR-SUP-YYYY-XXXXXXXX` references, private Admin internal notes, redacted SMTP/Mailpit notifications, and real-time `hr_support.*` WebSocket events.
 - [x] Verify with `InitSchemaParityTest`, `HrSupportAccessUnitTest`, `HrSupportLifecycleAndSecurityTest`, Impeccable craft-floor UI audit, PSR-12 baseline check, and full PHPUnit suite.
 
+### Phase 11F: HR Announcements Management System (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.3 — see [ANNOUNCEMENTS-MODULE-SPEC.md](ANNOUNCEMENTS-MODULE-SPEC.md).*
+- [x] Author idempotent migration (`2026_11_21_create_announcements_module.sql`) creating `announcements`, `announcement_targets`, `announcement_reads`, and `announcement_attachments`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Implement DDD Announcement bounded context (`App\Domain\Announcement` entities, value objects, domain events, repository contract), `MySqlAnnouncementRepository`, `AnnouncementControllerAdapter` (ACL), and `AnnouncementAttachmentService`.
+- [x] Integrate post-commit Domain Events (`AnnouncementEventHandler`), Transactional Outbox (`OutboxEventSerializer`), Queue Worker (`DistributeAnnouncementNotificationsHandler`), Scheduled CRON Kernel (`process-announcements`), and Real-Time WebSockets (`announcement.published`, `announcement.urgent`).
+- [x] Implement HR Announcements Management UI (`/hr/announcements*`), Employee Announcement Feed & Dashboard Preview (`/employee/announcements*`), REST API v1 endpoints (`/api/v1/announcements*`, `/api/v1/employee/announcements*`), and OpenAPI specification.
+- [x] Verify with `AnnouncementDomainTest`, `AnnouncementLifecycleIntegrationTest`, `AnnouncementRbacAndSecurityTest`, `test_announcements_module.py`, Impeccable design detector, PSR-12 baseline check, and PHPStan.
+
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
 - [ ] Configure production domain DNS and Let's Encrypt automated SSL renewal.

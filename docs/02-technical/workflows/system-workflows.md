@@ -235,3 +235,22 @@ flowchart LR
     Job1 & Job2 & Job3 & Job4 --> Deploy["Docker Compose Stack Startup\n(nginx, app, realtime, worker, scheduler,\ndb, prometheus, grafana, swagger-ui, mailpit)"]
 ```
 
+---
+
+## 11. HR Announcements Lifecycle, Distribution & Employee Read Receipt Workflow
+
+Traces `AnnouncementControllerAdapter`, `scripts/scheduled/process-announcements.php`, `DistributeAnnouncementNotificationsHandler`, and `EmployeeAnnouncementController`.
+
+```mermaid
+flowchart TD
+    A(["HR Creates / Updates Announcement\n(/hr/announcements)"]) --> B{"Workflow Action"}
+    B -- "Save Draft" --> C["Status = Draft\nPersist announcement + targets + attachments\nRecord Audit Log (announcement.created)"]
+    B -- "Schedule Publication" --> D["Status = Scheduled (scheduled_publish_at > NOW())\nPersist + Emit AnnouncementScheduled"]
+    B -- "Publish Immediately" --> E["Status = Published (published_at = NOW())\nPersist + Emit AnnouncementPublished to outbox_events"]
+    D --> F["CRON (process-announcements * * * * *)\nFinds Scheduled <= NOW() -> Transitions to Published\nFinds Published expires_at <= NOW() -> Transitions to Expired"]
+    E & F --> G["Outbox Relay -> AnnouncementEventHandler\nEnqueues distribute_announcement_notifications Job"]
+    G --> H["DistributeAnnouncementNotificationsHandler:\nResolve Active Targeted Employees (All or Department IDs)\nInsert Idempotent In-App Notification (event_key)\nBroadcast WebSocket Frame (announcement.published / announcement.urgent)"]
+    H --> I["Employee Opens /employee/announcements/{id}\nOR Submits POST /employee/announcements/{id}/read\nUpsert announcement_reads (read_at, acknowledged_at)\nEmit AnnouncementRead + Update HR Read Analytics"]
+```
+
+

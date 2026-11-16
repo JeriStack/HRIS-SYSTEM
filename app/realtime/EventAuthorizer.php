@@ -33,6 +33,8 @@ final class EventAuthorizer
     public const HR_SUPPORT_STATUS_CHANGED = 'hr_support.status_changed';
     public const HR_SUPPORT_ASSIGNED       = 'hr_support.assigned';
     public const HR_SUPPORT_REOPENED       = 'hr_support.reopened';
+    public const ANNOUNCEMENT_PUBLISHED    = 'announcement.published';
+    public const ANNOUNCEMENT_URGENT       = 'announcement.urgent';
     public const SECURITY_DEVICE_ALERT   = 'security_device.alert';
     public const UNREAD_COUNT          = 'notification.unread_count';
 
@@ -88,6 +90,8 @@ final class EventAuthorizer
                 && (!array_key_exists('hr_support_owner_matches', $row) || (int)$row['hr_support_owner_matches'] === 1),
             self::HR_SUPPORT_ASSIGNED => $recipient->isAdmin()
                 || ($recipient->isHr() && (!array_key_exists('hr_support_owner_matches', $row) || (int)$row['hr_support_owner_matches'] === 1)),
+            self::ANNOUNCEMENT_PUBLISHED, self::ANNOUNCEMENT_URGENT => $recipient->isEmployee()
+                && (!array_key_exists('announcement_targeted', $row) || (int)$row['announcement_targeted'] === 1),
             self::SECURITY_DEVICE_ALERT => true,
             default => false,
         };
