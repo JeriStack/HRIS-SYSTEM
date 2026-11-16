@@ -34,7 +34,7 @@ if (is_array($ticket)) {
 
         <section class="ps-hero">
             <h1>Track Public Login Support Request</h1>
-            <p class="ps-hero-desc">
+            <p class="ps-hero-desc ps-hero-desc--wide">
                 Access your redacted ticket status and official HR responses using the private tracking link or token emailed after submission.
             </p>
         </section>
