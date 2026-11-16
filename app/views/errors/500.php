@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>500 Internal Error - <?= e(config('config.app_name', 'NEXORA HR')) ?></title>
+    <meta name="color-scheme" content="light dark">
+    <script src="<?= asset('js/theme-init.js') ?>"></script>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <style>
@@ -28,15 +30,15 @@
         .error-icon {
             width: 64px;
             height: 64px;
-            background: #FEF2F2;
-            color: #B91C1C;
+            background: var(--color-error-bg, #FEF2F2);
+            color: var(--color-error, #B91C1C);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
             margin-bottom: 1.25rem;
-            border: 2px solid #FECACA;
+            border: 2px solid var(--color-error-border, #FECACA);
         }
         .error-title {
             font-size: 1.5rem;

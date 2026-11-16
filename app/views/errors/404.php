@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 Not Found - <?= e(config('config.app_name', 'NEXORA HR')) ?></title>
+    <meta name="color-scheme" content="light dark">
+    <script src="<?= asset('js/theme-init.js') ?>"></script>
     <link rel="stylesheet" href="<?= asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= asset('css/components.css') ?>">
     <style>
@@ -28,15 +30,15 @@
         .error-icon {
             width: 64px;
             height: 64px;
-            background: #EFF6FF;
-            color: #1D4ED8;
+            background: var(--color-primary-light, #EFF6FF);
+            color: var(--color-primary, #1D4ED8);
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
             margin-bottom: 1.25rem;
-            border: 2px solid #BFDBFE;
+            border: 2px solid var(--color-primary-border, #BFDBFE);
         }
         .error-title {
             font-size: 1.5rem;

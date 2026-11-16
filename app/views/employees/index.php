@@ -5,8 +5,8 @@ $canDeactivateEmployee = can('employees.deactivate');
 ?>
 <div class="content-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
     <div>
-        <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0 0 0.25rem 0;">Employees Directory</h1>
-        <p style="color: #64748B; margin: 0; font-size: 0.875rem;">Centralized workforce registry, demographic profiles, and status lifecycle management.</p>
+        <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-main, #1E293B); margin: 0 0 0.25rem 0;">Employees Directory</h1>
+        <p style="color: var(--color-text-muted, #64748B); margin: 0; font-size: 0.875rem;">Centralized workforce registry, demographic profiles, and status lifecycle management.</p>
     </div>
     <div>
         <?php if ($canCreateEmployee): ?>
@@ -20,31 +20,31 @@ $canDeactivateEmployee = can('employees.deactivate');
 
 <!-- Workforce Metrics Bar -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-    <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Total Workforce</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #1E293B;"><?= e((string)($counts['total'] ?? 0)) ?></div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted, #64748B); text-transform: uppercase;">Total Workforce</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-main, #1E293B);"><?= e((string)($counts['total'] ?? 0)) ?></div>
         </div>
         <span style="font-size: 1.5rem;">👥</span>
     </div>
-    <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Active Employees</div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted, #64748B); text-transform: uppercase;">Active Employees</div>
             <div style="font-size: 1.5rem; font-weight: 700; color: #059669;"><?= e((string)($counts['active'] ?? 0)) ?></div>
         </div>
         <span style="font-size: 1.5rem;">🟢</span>
     </div>
-    <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+    <div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.5rem; padding: 1rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <div style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Inactive / On Leave</div>
-            <div style="font-size: 1.5rem; font-weight: 700; color: #DC2626;"><?= e((string)($counts['inactive'] ?? 0)) ?></div>
+            <div style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted, #64748B); text-transform: uppercase;">Inactive / On Leave</div>
+            <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-error, #DC2626);"><?= e((string)($counts['inactive'] ?? 0)) ?></div>
         </div>
         <span style="font-size: 1.5rem;">🔴</span>
     </div>
 </div>
 
 <!-- Search & Filtering Hub -->
-<div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+<div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
     <form method="GET" action="<?= url('/hr/employees') ?>" class="search-bar-wrap">
         <div style="flex: 1; min-width: 240px; position: relative;">
             <input type="text" 
@@ -52,11 +52,11 @@ $canDeactivateEmployee = can('employees.deactivate');
                    class="form-input" 
                    placeholder="Search by Employee ID, Name, or Email..." 
                    value="<?= e($searchQuery ?? '') ?>"
-                   style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
+                   style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;">
         </div>
 
         <div style="min-width: 180px;">
-            <select name="dept" class="form-input" style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;">
+            <select name="dept" class="form-input" style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.375rem; font-size: 0.875rem; background: var(--color-bg-surface, #FFFFFF); box-sizing: border-box;">
                 <option value="">All Departments</option>
                 <?php foreach ($departments as $d): ?>
                     <option value="<?= e($d['id']) ?>" <?= (!empty($selectedDept) && $selectedDept == $d['id']) ? 'selected' : '' ?>>
@@ -67,7 +67,7 @@ $canDeactivateEmployee = can('employees.deactivate');
         </div>
 
         <div style="min-width: 150px;">
-            <select name="status" class="form-input" style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;">
+            <select name="status" class="form-input" style="width: 100%; padding: 0.55rem 0.85rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.375rem; font-size: 0.875rem; background: var(--color-bg-surface, #FFFFFF); box-sizing: border-box;">
                 <option value="">All Statuses</option>
                 <option value="Active" <?= (!empty($selectedStatus) && $selectedStatus === 'Active') ? 'selected' : '' ?>>Active Only</option>
                 <option value="Inactive" <?= (!empty($selectedStatus) && $selectedStatus === 'Inactive') ? 'selected' : '' ?>>Inactive Only</option>
@@ -87,10 +87,10 @@ $canDeactivateEmployee = can('employees.deactivate');
 
         <!-- Sort controls (plain field + direction; ordering is an internal implementation detail). -->
         <div style="flex-basis: 100%; height: 0;"></div>
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%; padding-top: 0.75rem; margin-top: 0.25rem; border-top: 1px dashed #E2E8F0;">
-            <span style="font-size: 0.75rem; font-weight: 600; color: #64748B; text-transform: uppercase;">Sort by:</span>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: 100%; padding-top: 0.75rem; margin-top: 0.25rem; border-top: 1px dashed var(--color-border, #E2E8F0);">
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--color-text-muted, #64748B); text-transform: uppercase;">Sort by:</span>
 
-            <select name="sort" class="form-input" aria-label="Sort field" style="min-width: 160px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+            <select name="sort" class="form-input" aria-label="Sort field" style="min-width: 160px; padding: 0.45rem 0.7rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.375rem; font-size: 0.8125rem; background: var(--color-bg-surface, #FFFFFF);">
                 <option value="">Default (Name)</option>
                 <?php foreach (($sortFields ?? []) as $key => $col): ?>
                     <option value="<?= e($key) ?>" <?= (($sortField ?? '') === $key) ? 'selected' : '' ?>>
@@ -99,7 +99,7 @@ $canDeactivateEmployee = can('employees.deactivate');
                 <?php endforeach; ?>
             </select>
 
-            <select name="dir" class="form-input" aria-label="Sort direction" style="min-width: 120px; padding: 0.45rem 0.7rem; border: 1px solid #CBD5E1; border-radius: 0.375rem; font-size: 0.8125rem; background: #FFFFFF;">
+            <select name="dir" class="form-input" aria-label="Sort direction" style="min-width: 120px; padding: 0.45rem 0.7rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.375rem; font-size: 0.8125rem; background: var(--color-bg-surface, #FFFFFF);">
                 <option value="asc" <?= (($sortDir ?? 'asc') === 'asc') ? 'selected' : '' ?>>Ascending</option>
                 <option value="desc" <?= (($sortDir ?? 'asc') === 'desc') ? 'selected' : '' ?>>Descending</option>
             </select>
@@ -110,11 +110,11 @@ $canDeactivateEmployee = can('employees.deactivate');
 </div>
 
 <!-- Employees Directory Table -->
-<div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+<div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
     <div class="table-responsive">
         <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
             <thead>
-                <tr style="background: #F8FAFC; border-bottom: 1px solid #E2E8F0; color: #475569; text-align: left;">
+                <tr style="background: var(--color-bg-subtle, #F8FAFC); border-bottom: 1px solid var(--color-border, #E2E8F0); color: var(--color-text-body, #475569); text-align: left;">
                     <th style="padding: 0.875rem 1.25rem; font-weight: 600;">Employee No</th>
                     <th style="padding: 0.875rem 1.25rem; font-weight: 600;">Full Name</th>
                     <th style="padding: 0.875rem 1.25rem; font-weight: 600;">Email & Contact</th>
@@ -154,14 +154,14 @@ $canDeactivateEmployee = can('employees.deactivate');
                                 </div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
-                                <div style="color: #334155;"><?= e($emp['email']) ?></div>
-                                <div style="font-size: 0.75rem; color: #94A3B8;">
+                                <div style="color: var(--color-text-body, #334155);"><?= e($emp['email']) ?></div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-muted, #94A3B8);">
                                     <?= $canUpdateEmployee ? e($emp['phone'] ?: 'No phone') : 'Restricted (HR Only)' ?>
                                 </div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem;">
-                                <div style="font-weight: 500; color: #1E293B;"><?= e($emp['department_name'] ?? 'Unassigned') ?></div>
-                                <div style="font-size: 0.75rem; color: #64748B;"><?= e($emp['position_name'] ?? 'Unassigned') ?></div>
+                                <div style="font-weight: 500; color: var(--color-text-main, #1E293B);"><?= e($emp['department_name'] ?? 'Unassigned') ?></div>
+                                <div style="font-size: 0.75rem; color: var(--color-text-muted, #64748B);"><?= e($emp['position_name'] ?? 'Unassigned') ?></div>
                             </td>
                             <td style="padding: 0.875rem 1.25rem; text-align: center;">
                                 <?php if ($emp['employment_status'] === 'Active'): ?>
@@ -170,7 +170,7 @@ $canDeactivateEmployee = can('employees.deactivate');
                                     <span class="badge badge-danger">Inactive</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="padding: 0.875rem 1.25rem; color: #475569;">
+                            <td style="padding: 0.875rem 1.25rem; color: var(--color-text-body, #475569);">
                                 <?= e($emp['date_hired']) ?>
                             </td>
                             <td style="padding: 0.875rem 1.25rem; text-align: right;">
@@ -197,9 +197,9 @@ $canDeactivateEmployee = can('employees.deactivate');
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="7" style="padding: 3.5rem 1rem; text-align: center; color: #94A3B8;">
+                        <td colspan="7" style="padding: 3.5rem 1rem; text-align: center; color: var(--color-text-muted, #94A3B8);">
                             <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👥</div>
-                            <div style="font-size: 1.1rem; font-weight: 600; color: #475569;">No Matching Employee Records Found</div>
+                            <div style="font-size: 1.1rem; font-weight: 600; color: var(--color-text-body, #475569);">No Matching Employee Records Found</div>
                             <p style="margin: 0.25rem 0 1.25rem 0; font-size: 0.875rem;">
                                 <?= !empty($searchQuery) ? "No employees match your search query '<strong>" . e($searchQuery) . "</strong>'." : "There are currently no employees registered in this category." ?>
                             </p>
@@ -221,17 +221,17 @@ $canDeactivateEmployee = can('employees.deactivate');
 <div id="deactivateModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-card">
         <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: #FEE2E2; color: #DC2626; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">⚠️</div>
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-error-bg, #FEE2E2); color: var(--color-error, #DC2626); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">⚠️</div>
             <div>
-                <h3 id="modalTitle" style="margin: 0; font-size: 1.15rem; color: #0F172A;">Confirm Employee Deactivation</h3>
-                <div style="font-size: 0.8125rem; color: #64748B;">Soft deactivation preserves all historical leave & audit logs.</div>
+                <h3 id="modalTitle" style="margin: 0; font-size: 1.15rem; color: var(--color-text-main, #0F172A);">Confirm Employee Deactivation</h3>
+                <div style="font-size: 0.8125rem; color: var(--color-text-muted, #64748B);">Soft deactivation preserves all historical leave & audit logs.</div>
             </div>
         </div>
 
-        <p style="font-size: 0.875rem; color: #475569; line-height: 1.5; margin-bottom: 1.5rem;">
+        <p style="font-size: 0.875rem; color: var(--color-text-body, #475569); line-height: 1.5; margin-bottom: 1.5rem;">
             Are you sure you want to change the employment status of <strong id="deactivateEmpName"></strong> (<code id="deactivateEmpNo"></code>) to <strong>Inactive</strong>?
             <br><br>
-            <span style="font-size: 0.8125rem; color: #94A3B8;">
+            <span style="font-size: 0.8125rem; color: var(--color-text-muted, #94A3B8);">
                 Note: Inactive employees are blocked from system login. Historical leave balance and activity logs will NOT be deleted.
             </span>
         </p>

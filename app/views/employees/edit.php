@@ -3,10 +3,10 @@
         <a href="<?= url('/hr/employees/' . $employee['id']) ?>" style="text-decoration: none; color: #4F46E5; font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
             ← Back to Employee Profile
         </a>
-        <h1 style="font-size: 1.5rem; font-weight: 700; color: #1E293B; margin: 0.5rem 0 0.25rem 0;">
+        <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--color-text-main, #1E293B); margin: 0.5rem 0 0.25rem 0;">
             Edit Employee: <?= e($employee['first_name'] . ' ' . $employee['last_name']) ?> (<?= e($employee['employee_no']) ?>)
         </h1>
-        <p style="color: #64748B; margin: 0; font-size: 0.875rem;">
+        <p style="color: var(--color-text-muted, #64748B); margin: 0; font-size: 0.875rem;">
             Update employee demographic, contact, and organizational details below. Required fields are marked with an asterisk (*).
         </p>
     </div>
@@ -15,8 +15,8 @@
         <?= csrf_field() ?>
 
         <!-- Section 1: Demographic & Personal Information -->
-        <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <h2 style="font-size: 1.15rem; font-weight: 600; color: #1E293B; margin: 0 0 1.25rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid #F1F5F9; display: flex; align-items: center; gap: 0.5rem;">
+        <div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.75rem; padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h2 style="font-size: 1.15rem; font-weight: 600; color: var(--color-text-main, #1E293B); margin: 0 0 1.25rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border-subtle, #F1F5F9); display: flex; align-items: center; gap: 0.5rem;">
                 <span>👤</span>
                 <span>Section 1: Personal & Demographic Information</span>
             </h2>
@@ -24,7 +24,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
                 <!-- Employee Number -->
                 <div class="form-group">
-                    <label for="empNo" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="empNo" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Employee Number
                     </label>
                     <input type="text" 
@@ -41,7 +41,7 @@
 
                 <!-- Email Address -->
                 <div class="form-group">
-                    <label for="empEmail" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="empEmail" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Email Address
                     </label>
                     <input type="email" 
@@ -58,7 +58,7 @@
 
                 <!-- First Name -->
                 <div class="form-group">
-                    <label for="firstName" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="firstName" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         First Name
                     </label>
                     <input type="text" 
@@ -75,20 +75,20 @@
 
                 <!-- Middle Name -->
                 <div class="form-group">
-                    <label for="middleName" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="middleName" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Middle Name (Optional)
                     </label>
                     <input type="text" 
                            id="middleName" 
                            name="middle_name" 
                            class="form-input" 
-                           style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #CBD5E1; border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
+                           style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
                            value="<?= e($old['middle_name'] ?? $employee['middle_name'] ?? '') ?>">
                 </div>
 
                 <!-- Last Name -->
                 <div class="form-group">
-                    <label for="lastName" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="lastName" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Last Name
                     </label>
                     <input type="text" 
@@ -188,21 +188,21 @@
 
             <!-- Address -->
             <div class="form-group" style="margin-top: 1.25rem;">
-                <label for="empAddress" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                <label for="empAddress" class="form-label" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                     Residential Address (Optional)
                 </label>
                 <textarea id="empAddress" 
                           name="address" 
                           class="form-input" 
                           rows="2" 
-                          style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #CBD5E1; border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
+                          style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid var(--color-border-dark, #CBD5E1); border-radius: 0.5rem; font-size: 0.875rem; box-sizing: border-box;"
                           placeholder="Street, Barangay, City, Province..."><?= e($old['address'] ?? $employee['address'] ?? '') ?></textarea>
             </div>
         </div>
 
         <!-- Section 2: Employment & Hierarchy Information -->
-        <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <h2 style="font-size: 1.15rem; font-weight: 600; color: #1E293B; margin: 0 0 1.25rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid #F1F5F9; display: flex; align-items: center; gap: 0.5rem;">
+        <div class="card" style="background: var(--color-bg-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 0.75rem; padding: 1.75rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <h2 style="font-size: 1.15rem; font-weight: 600; color: var(--color-text-main, #1E293B); margin: 0 0 1.25rem 0; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border-subtle, #F1F5F9); display: flex; align-items: center; gap: 0.5rem;">
                 <span>🏢</span>
                 <span>Section 2: Employment & Organizational Alignment</span>
             </h2>
@@ -210,14 +210,14 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
                 <!-- Department Selection -->
                 <div class="form-group">
-                    <label for="deptSelect" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="deptSelect" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Department
                     </label>
                     <?php $selectedDeptId = $old['department_id'] ?? $employee['department_id']; ?>
                     <select id="deptSelect" 
                             name="department_id" 
                             class="form-input" 
-                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['department_id']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;"
+                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['department_id']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; background: var(--color-bg-surface, #FFFFFF); box-sizing: border-box;"
                             required>
                         <option value="">-- Select Department --</option>
                         <?php foreach ($departments as $dept): ?>
@@ -233,14 +233,14 @@
 
                 <!-- Position Selection -->
                 <div class="form-group">
-                    <label for="posSelect" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="posSelect" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Job Position
                     </label>
                     <?php $selectedPosId = $old['position_id'] ?? $employee['position_id']; ?>
                     <select id="posSelect" 
                             name="position_id" 
                             class="form-input" 
-                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['position_id']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; background: #FFFFFF; box-sizing: border-box;"
+                            style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid <?= !empty($errors['position_id']) ? '#EF4444' : '#CBD5E1' ?>; border-radius: 0.5rem; font-size: 0.875rem; background: var(--color-bg-surface, #FFFFFF); box-sizing: border-box;"
                             required>
                         <option value="">-- Select Department First --</option>
                         <?php foreach ($positions as $pos): ?>
@@ -258,7 +258,7 @@
 
                 <!-- Date Hired -->
                 <div class="form-group">
-                    <label for="dateHired" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: #1E293B;">
+                    <label for="dateHired" class="form-label required" style="display: block; font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; color: var(--color-text-main, #1E293B);">
                         Date Hired
                     </label>
                     <input type="date" 
