@@ -157,6 +157,21 @@ class TestSupportModuleEndToEnd:
         TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=30)
 
     @staticmethod
+    def _submit_hr_status(driver, base, status: str, remarks: str) -> None:
+        """Change ticket status as HR and wait for the redirected page, surfacing any server-side error."""
+        Select(base.find((By.ID, "hrStatusSelect"))).select_by_value(status)
+        remarks_box = base.find((By.ID, "hrResolutionRemarks"))
+        remarks_box.clear()
+        remarks_box.send_keys(remarks)
+        submit_btn = base.find((By.XPATH, '//form[contains(@action, "/status")]//button[@type="submit"]'))
+        TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
+        # Wait for the POST -> redirect cycle to replace the old page before reading it.
+        WebDriverWait(driver, 30).until(EC.staleness_of(remarks_box))
+        errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
+        assert not errors, f"Status change to {status} was rejected: {errors[0].text}"
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=30)
+
+    @staticmethod
     def _sign_out(driver) -> None:
         logout_btns = driver.find_elements(By.XPATH, "//form[contains(@action, '/logout')]//button")
         assert logout_btns, "Expected logout button in layout"
@@ -301,12 +316,7 @@ class TestSupportModuleEndToEnd:
             self._submit_hr_response(driver, base, "internal_note", internal_secret)
             self._submit_hr_response(driver, base, "public_reply", public_reply)
 
-            Select(base.find((By.ID, "hrStatusSelect"))).select_by_value("Resolved")
-            remarks_box = base.find((By.ID, "hrResolutionRemarks"))
-            remarks_box.clear()
-            remarks_box.send_keys(f"Resolved export pagination quirk in Leave Balances ({tag}).")
-            self._scroll_click(driver, base.find((By.XPATH, '//form[contains(@action, "/status")]//button[@type="submit"]')))
-            self._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), "Resolved")
+            self._submit_hr_status(driver, base, "Resolved", f"Resolved export pagination quirk in Leave Balances ({tag}).")
             self._capture_light_and_dark(driver, "hr_support_detail")
 
             # Also confirm hr01 can open Confidential Complaint detail
