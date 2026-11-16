@@ -316,15 +316,15 @@ class LeaveDocumentSecurityTest extends TestCase
         $this->assertTrue($ownerAttempt['ok']);
         $this->assertSame(200, $ownerAttempt['status']);
 
-        // Cleared Admin -> 200
+        // Admin -> 403 under least-privilege confidential HR leave doc separation
         if ($this->adminUserId > 0) {
             $adminAttempt = $docService->resolveAuthorizedDownload(
                 $this->pdo,
                 $docId,
                 ['id' => $this->adminUserId, 'role' => 'admin', 'employee_id' => null]
             );
-            $this->assertTrue($adminAttempt['ok']);
-            $this->assertSame(200, $adminAttempt['status']);
+            $this->assertFalse($adminAttempt['ok']);
+            $this->assertSame(403, $adminAttempt['status']);
         }
     }
 }

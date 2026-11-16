@@ -56,6 +56,7 @@ flowchart TD
     R2 -- "No (hr or employee)" --> R4["Validate Permission Slugs against PermissionRegistry\nTransactionally Replace role_permissions\nInvalidate Cache & Record Diff in Audit Trail"]
 
     Nav -- "Admin Provisioning (/admin/provisioning)" --> P1["Verify Current Admin Password + Validate New Admin Details\nCreate Linked Admin Account + Log ADMIN_PROVISIONED"]
+    Nav -- "HR Support Management (/admin/support)" --> SUP1["Inspect HR Support Inbox & Live DB KPIs\nAssign Active Admin, Change Priority/Status, Reply to HR,\nRequest Info, or Log Private Internal Note (Hidden from HR)"]
     Nav -- "My Account (/admin/account)" --> A1["Verify Current Password (findByIdWithAuthState)\nUpdate Email/Password via User::update()\nRefresh Session auth_fingerprint & Regenerate Session ID"]
     Nav -- "Security & Health (/admin/security-events, /admin/system-health)" --> S1["Inspect Security Events & Run Live Socket/DB Health Probes"]
 ```
@@ -64,7 +65,7 @@ flowchart TD
 
 ## 3. HR Officer Operational Workflow
 
-Traces `DashboardController`, `EmployeeController`, `DepartmentController`, `PositionController`, `LeaveController`, and `ReportController`.
+Traces `DashboardController`, `EmployeeController`, `DepartmentController`, `PositionController`, `LeaveController`, `ReportController`, and `HrAdminSupportController`.
 
 ```mermaid
 flowchart TD
@@ -74,6 +75,7 @@ flowchart TD
     Task -- "Leave Review Queue (/leaves)" --> L1["Inspect Pending Leave Requests or Process Next in FIFO Queue"]
     L1 --> L2["Approve, Reject (with Reason), or Cancel Approved Leave (with Reason)"]
     Task -- "Leave Policies & Balances (/leaves/types, /leaves/balances)" --> B1["Create Leave Types or Adjust Individual Employee Leave Balances"]
+    Task -- "Help & Support to Admin (/hr/help)" --> H1["Submit Technical/Operational Ticket (HR-SUP-YYYY-XXXXXXXX)\nTrack Own Tickets, Reply, Confirm Resolution, or Reopen within 14d"]
     Task -- "Analytics & Audit (/reports, /activity-logs)" --> R1["Filter Workforce/Leave Analytics, Export Sanitized CSV,\nor Inspect Hash-Chained Audit Trail"]
 ```
 

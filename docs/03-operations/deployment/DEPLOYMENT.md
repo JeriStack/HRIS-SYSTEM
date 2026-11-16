@@ -75,8 +75,11 @@ All containers (`web`, `app`, `db`, `realtime`, `nginx-exporter`, `mysqld-export
 
 ### 2.5 Running Database Migrations & Seeds
 ```bash
-# Run schema migrations
+# Run schema migrations (including 2026_11_20_create_hr_to_admin_support_module.sql)
 docker compose exec app php bin/migrate.php
+
+# Ensure private attachment directories are writable by www-data and protected by .htaccess
+docker compose exec app mkdir -p storage/uploads/support_attachments storage/uploads/hr_support_attachments
 
 # (Optional) Seed initial demo workforce
 docker compose exec app php database/seeds/DatabaseSeeder.php

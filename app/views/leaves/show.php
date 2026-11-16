@@ -7,6 +7,7 @@
 $leave = $req ?? $leave ?? [];
 $userRole = strtolower((string)($user['role'] ?? ''));
 $isHrOrAdmin = in_array($userRole, ['admin', 'hr'], true);
+$canReviewLeave = ($userRole === 'hr') && can('leave.approve');
 $isOwner = !empty($user['employee_id']) && (int)$user['employee_id'] === (int)($leave['employee_id'] ?? 0);
 $canViewUnmasked = $canViewUnmasked ?? true;
 $isConfidential = $isConfidential ?? !empty($leave['is_confidential']);
@@ -212,9 +213,9 @@ $maxMb = number_format(((int)($maxDocBytes ?? 5242880)) / (1024 * 1024), 0);
                 <?php endif; ?>
 
                 <!-- HR Actions: Request Info, Approve, Reject -->
-                <?php if ($status === 'Pending'): ?>
+                <?php if ($status === 'Pending' && ($canReviewLeave || $isOwner)): ?>
                     <div style="display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--color-border-subtle);">
-                        <?php if ($isHrOrAdmin): ?>
+                        <?php if ($canReviewLeave): ?>
                             <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center;">
                                 <form method="POST" action="<?= url('/leaves/' . $id . '/approve') ?>" style="display:inline;">
                                     <?= csrf_field() ?>

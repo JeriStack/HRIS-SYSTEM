@@ -171,11 +171,11 @@ All API responses follow a structured JSON response envelope:
 
 #### Show Employee Details
 * **`GET /api/v1/employees/{id}`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** Admin & HR (`admin`, `hr` — personal contact PII masked for non-HR)
 
 #### Create Employee
 * **`POST /api/v1/employees`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`)
 * **Payload:**
   ```json
   {
@@ -193,15 +193,15 @@ All API responses follow a structured JSON response envelope:
 
 #### Update Employee Record
 * **`PUT /api/v1/employees/{id}`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`)
 
 #### Deactivate Employee
 * **`POST /api/v1/employees/{id}/deactivate`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`)
 
 #### Reactivate Employee
 * **`POST /api/v1/employees/{id}/reactivate`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`)
 
 #### List Departments / Positions
 * **`GET /api/v1/departments`**
@@ -239,11 +239,11 @@ All API responses follow a structured JSON response envelope:
 
 #### Approve Leave Request (Pessimistic Locking)
 * **`POST /api/v1/hr/leaves/{id}/approve`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`, requires `leave.approve`)
 
 #### Reject Leave Request
 * **`POST /api/v1/hr/leaves/{id}/reject`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`, requires `leave.reject`)
 * **Payload:**
   ```json
   {
@@ -253,7 +253,7 @@ All API responses follow a structured JSON response envelope:
 
 #### Request Additional Info (HR Clarification)
 * **`POST /api/v1/hr/leaves/{id}/request-info`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`, requires `leave.approve`)
 * **Payload:**
   ```json
   {
@@ -273,12 +273,12 @@ All API responses follow a structured JSON response envelope:
 
 #### List Statutory Leave Qualifications
 * **`GET /api/v1/hr/leave-qualifications`**
-* **Access:** Admin & HR (`admin`, `hr`)
+* **Access:** HR Only (`hr`, requires `leave_qualifications.verify`)
 * **Query Params (Optional):** `status`, `qualification_type`
 
 #### List / Create Leave Policies (`hr/leave-types`)
 * **`GET /api/v1/hr/leave-types`** — Returns active and inactive leave types merged with active `leave_policy_versions` metadata. Access: `admin`, `hr`.
-* **`POST /api/v1/hr/leave-types`** — Creates a leave type and initializes policy version 1 (`leave_name`, `default_days`, optional `leave_code`, `classification`, `benefit_category`, `entitlement_model`, `legal_reference`, `default_unit`, `is_paid`, `is_confidential`, `statutory_protected`, `status`). Access: `admin`, `hr`.
+* **`POST /api/v1/hr/leave-types`** — Creates a leave type and initializes policy version 1 (`leave_name`, `default_days`, optional `leave_code`, `classification`, `benefit_category`, `entitlement_model`, `legal_reference`, `default_unit`, `is_paid`, `is_confidential`, `statutory_protected`, `status`). Access: `hr` (`leave_types.manage`).
 
 > **Confidentiality Masking:** Requests flagged `is_confidential = 1` (e.g., RA 9262 VAWC Leave and RA 9710 Special Leave for Women) redact sensitive reason text and metadata unless the viewer is the owner or holds `leave_confidential.view`.
 

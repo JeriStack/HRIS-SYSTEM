@@ -136,6 +136,24 @@ class AdminController extends Controller
         // 9. Live System Health Probe
         $systemHealth = $this->probeLiveHealth();
 
+        // 10. Live HR-to-Admin Support Management Summary & Recent Queue
+        $hrSupportStats = [
+            'total_open'        => 0,
+            'newly_submitted'   => 0,
+            'critical_and_high' => 0,
+            'awaiting_hr'       => 0,
+            'in_progress'       => 0,
+            'recently_resolved' => 0,
+        ];
+        $recentHrSupportTickets = [];
+        try {
+            $hrSupportModel = new \App\Models\HrSupportTicket($this->getPdo());
+            $hrSupportStats = $hrSupportModel->getAdminDashboardStats();
+            $recentHrSupportTickets = $hrSupportModel->findForAdminInbox(['limit' => 5]);
+        } catch (\Throwable $e) {
+            error_log('[AdminController::hrSupport] ' . $e->getMessage());
+        }
+
         $metrics = [
             'total_employees'    => (int)($empStats['total'] ?? 0),
             'active_employees'   => (int)($empStats['active'] ?? 0),
@@ -148,14 +166,16 @@ class AdminController extends Controller
         ];
 
         $this->view('dashboard.admin', [
-            'pageTitle'         => 'System Overview',
-            'user'              => currentUser(),
-            'metrics'           => $metrics,
-            'deptDistribution'  => $deptDistribution,
-            'leaveDistribution' => $leaveDistribution,
-            'monthlyTrends'     => array_reverse($monthlyTrends),
-            'recentLogs'        => $recentLogs,
-            'systemHealth'      => $systemHealth,
+            'pageTitle'              => 'System Overview',
+            'user'                   => currentUser(),
+            'metrics'                => $metrics,
+            'deptDistribution'       => $deptDistribution,
+            'leaveDistribution'      => $leaveDistribution,
+            'monthlyTrends'          => array_reverse($monthlyTrends),
+            'recentLogs'             => $recentLogs,
+            'systemHealth'           => $systemHealth,
+            'hrSupportStats'         => $hrSupportStats,
+            'recentHrSupportTickets' => $recentHrSupportTickets,
         ], 'hr');
     }
 

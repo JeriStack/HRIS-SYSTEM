@@ -57,26 +57,31 @@ class AdminRoleRbacTest extends TestCase
 
     public function test_admin_role_capabilities_matrix(): void
     {
-        // Admin specific capabilities
+        // Admin specific governance capabilities
         $this->assertTrue(Permission::can('admin', 'admin_dashboard'));
         $this->assertTrue(Permission::can('admin', 'manage_users'));
         $this->assertTrue(Permission::can('admin', 'assign_roles'));
         $this->assertTrue(Permission::can('admin', 'system_settings'));
         $this->assertTrue(Permission::can('admin', 'view_monitoring'));
 
-        // Shared workforce & governance capabilities
-        $this->assertTrue(Permission::can('admin', 'manage_employees'));
-        $this->assertTrue(Permission::can('admin', 'manage_departments'));
-        $this->assertTrue(Permission::can('admin', 'manage_positions'));
-        $this->assertTrue(Permission::can('admin', 'manage_leave_types'));
-        $this->assertTrue(Permission::can('admin', 'review_leave_requests'));
-        $this->assertTrue(Permission::can('admin', 'manage_leave_balances'));
+        // Restricted read oversight & Admin support/audit capabilities
+        $this->assertTrue(Permission::can('admin', 'view_employee_records'));
         $this->assertTrue(Permission::can('admin', 'view_reports'));
         $this->assertTrue(Permission::can('admin', 'view_activity_logs'));
         $this->assertTrue(Permission::can('admin', 'dsa_laboratory'));
+        $this->assertTrue(Permission::can('admin', 'hr_support.admin_inbox'));
+        $this->assertTrue(Permission::can('admin', 'hr_support.admin_manage'));
+        $this->assertTrue(Permission::can('admin', 'hr_support.internal_notes'));
         $this->assertTrue(Permission::can('admin', 'logout'));
 
-        // Admin does NOT have HR or Employee specific dashboard views
+        // Least-privilege separations: Admin does NOT hold HR operational mutations or Employee self-service
+        $this->assertFalse(Permission::can('admin', 'manage_departments'));
+        $this->assertFalse(Permission::can('admin', 'manage_positions'));
+        $this->assertFalse(Permission::can('admin', 'manage_leave_types'));
+        $this->assertFalse(Permission::can('admin', 'review_leave_requests'));
+        $this->assertFalse(Permission::can('admin', 'manage_leave_balances'));
+        $this->assertFalse(Permission::can('admin', 'leave_confidential.view'));
+        $this->assertFalse(Permission::can('admin', 'hr_support.submit'));
         $this->assertFalse(Permission::can('admin', 'hr_dashboard'));
         $this->assertFalse(Permission::can('admin', 'employee_dashboard'));
     }

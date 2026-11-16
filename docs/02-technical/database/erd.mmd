@@ -230,3 +230,79 @@ erDiagram
         timestamp failed_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
+    USERS ||--o{ HR_SUPPORT_TICKETS : "submits (submitted_by_user_id)"
+    USERS ||--o{ HR_SUPPORT_TICKETS : "assigned_to (assigned_admin_id)"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_MESSAGES : "contains"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_ATTACHMENTS : "has_files"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_ASSIGNMENTS : "tracks_assignments"
+    HR_SUPPORT_TICKETS ||--o{ HR_SUPPORT_TICKET_HISTORY : "tracks_transitions"
+
+    HR_SUPPORT_TICKETS {
+        int_unsigned id PK
+        varchar_32 ticket_ref UK "NOT NULL (HR-SUP-YYYY-XXXXXXXX)"
+        int_unsigned submitted_by_user_id FK "NOT NULL -> users.id"
+        varchar_200 subject "NOT NULL"
+        text description "NOT NULL"
+        varchar_80 category "NOT NULL"
+        enum priority "Low | Medium | High | Critical"
+        enum status "Submitted | Under Review | In Progress | Waiting for HR | Resolved | Closed"
+        int_unsigned assigned_admin_id FK "NULL -> users.id"
+        text resolution_summary "NULL"
+        smallint_unsigned reopen_count "DEFAULT 0"
+        datetime last_activity_at "NOT NULL"
+        datetime resolved_at "NULL"
+        datetime closed_at "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamp updated_at "ON UPDATE CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_MESSAGES {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned sender_user_id FK "NULL -> users.id"
+        enum sender_role "hr | admin | system"
+        enum message_type "initial_submission | hr_reply | admin_response | info_request | internal_note | reopen_request | resolution_confirmation | status_change"
+        tinyint_1 is_internal_note "DEFAULT 0 (1 = Admin-only)"
+        text body "NOT NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_ATTACHMENTS {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned message_id FK "NULL -> hr_support_ticket_messages.id"
+        int_unsigned uploaded_by_user_id FK "NULL -> users.id"
+        varchar_255 original_filename "NOT NULL"
+        varchar_255 stored_filename "NOT NULL"
+        varchar_255 storage_relative_path "NOT NULL"
+        varchar_100 mime_type "NOT NULL"
+        int_unsigned file_size_bytes "NOT NULL"
+        char_64 sha256_checksum "NOT NULL"
+        tinyint_1 is_internal_only "DEFAULT 0 (1 = Admin-only)"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_ASSIGNMENTS {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        int_unsigned assigned_to_admin_id FK "NULL -> users.id"
+        int_unsigned assigned_by_user_id FK "NULL -> users.id"
+        enum action "assigned | reassigned | unassigned"
+        varchar_255 notes "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    HR_SUPPORT_TICKET_HISTORY {
+        int_unsigned id PK
+        int_unsigned ticket_id FK "NOT NULL -> hr_support_tickets.id"
+        enum event_kind "created | status_changed | priority_changed | assigned | reopened | resolved | closed"
+        varchar_40 from_status "NULL"
+        varchar_40 to_status "NULL"
+        varchar_20 from_priority "NULL"
+        varchar_20 to_priority "NULL"
+        int_unsigned changed_by_user_id FK "NULL -> users.id"
+        enum actor_role "hr | admin | system"
+        text remarks "NULL"
+        timestamp created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+

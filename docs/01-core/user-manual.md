@@ -98,6 +98,16 @@
   2. Open **Security Events** (`/admin/security-events`) to inspect failed logins, OTP lockouts, and portal mismatches.
   3. Open **My Account Settings** (`/admin/account`) to update your administrator email address or password (requires entering your **Current Password**).
 - **Expected Result:** Updating credentials on `/admin/account` updates `users`, refreshes your session `auth_fingerprint` so you remain signed in, rotates your session ID, and logs `ADMIN_ACCOUNT_UPDATED`.
+
+### 2.6 HR Support Management (`/admin/support`)
+- **Purpose:** Triage, investigate, assign, and resolve technical issues, system errors, and access problems submitted by HR personnel (`HR-SUP-YYYY-XXXXXXXX`), and record private Admin-only investigation notes.
+- **Required Access / Permission:** `admin` role (`hr_support.admin_inbox`, `hr_support.admin_manage`, `hr_support.internal_notes`); routes `GET /admin/support`, `GET /admin/support/tickets/{ref}`, `POST /admin/support/tickets/{ref}/assign`, `POST /admin/support/tickets/{ref}/triage`, `POST /admin/support/tickets/{ref}/respond`, `GET /admin/support/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Support Management** (`/admin/support`) from the Admin Sidebar or System Overview.
+  2. Review the 6 live database KPI cards (`Total Open Tickets`, `Newly Submitted`, `Critical & High Priority`, `Awaiting HR Response`, `In Progress`, `Recently Resolved`).
+  3. Filter by status, priority, category, date range, or assigned administrator, and click **Manage** on a ticket.
+  4. Use **Assign Administrator** to assign the ticket to an active Admin user, **Status, Priority & Resolution** to transition statuses (`Submitted`, `Under Review`, `In Progress`, `Waiting for HR`, `Resolved`, `Closed`), or **Respond to HR or Add Internal Admin Note** to send an HR-visible reply, request info, or save a private internal note (hidden from HR).
+- **Expected Result:** Status transitions, assignments, responses, and redacted internal note metadata are logged in `activity_logs`; HR receives in-app, WebSocket, and redacted SMTP/Mailpit notifications (internal notes never notify or appear to HR).
 - **Screenshot Reference:** `docs/screenshots/admin/admin-system-health.png`, `docs/screenshots/admin/admin-security-events.png`
 
 ---
@@ -167,6 +177,15 @@
   2. Open **Audit Trail** (`/activity-logs`) to filter security and operational events and verify SHA-256 hash-chain integrity.
   3. Open **DSA Laboratory** (`/dsa`) to run Searching, Sorting, Stack, Queue, Linked List, Hash Table, and Binary Search Tree demonstrations on live HRIS data.
 - **Screenshot Reference:** `docs/screenshots/reports/hr-reports.png`, `docs/screenshots/dsa/dsa-visualizer.png`
+
+### 3.6 Help & Support Center for Reporting Issues to Administrators (`/hr/help`)
+- **Purpose:** Report technical errors, login/access issues, leave/employee module defects, or data discrepancies directly to System Administrators, track own submitted tickets, reply with supporting screenshots, confirm resolution, or request reopening.
+- **Required Access / Permission:** `hr` role (`hr_support.submit`, `hr_support.view_own`, `hr_support.reply_own`); routes `GET /hr/help`, `GET /hr/help/create`, `POST /hr/help/tickets`, `GET /hr/help/tickets/{ref}`, `POST /hr/help/tickets/{ref}/reply`, `POST /hr/help/tickets/{ref}/confirm-resolution`, `POST /hr/help/tickets/{ref}/reopen`, `GET /hr/help/attachments/{id}`.
+- **Step-by-Step Instructions:**
+  1. Navigate to **Help & Support (Admin)** (`/hr/help`) from the HR Sidebar or Daily HR Workflows.
+  2. Click **Submit Support Ticket** (`/hr/help/create`), enter **Subject**, **Issue Category**, **Priority** (`Low`, `Medium`, `High`, `Critical`), **Detailed Description**, and optional screenshots/files (`PNG`, `JPG`, `WEBP`, `PDF`, `TXT`, up to 3 files, max 5 MB each), review the confirmation dialog, and click **Confirm & Submit**.
+  3. Open any ticket (`HR-SUP-YYYY-XXXXXXXX`) from **My Support Tickets** to view public history and Admin replies, post follow-up messages, **Confirm Resolution** (`Resolved -> Closed`), or **Request Reopen** (`Resolved -> Under Review` within 14 days).
+- **Expected Result:** A unique `HR-SUP-YYYY-XXXXXXXX` ticket is persisted, Administrators are notified, and private Admin internal notes are never exposed to HR.
 
 ---
 

@@ -30,13 +30,27 @@ All application routes, their HTTP methods, controllers, and authorization polic
 | `/admin/users` | `GET` | `UserController::index` | `AuthMiddleware`, `RoleMiddleware('admin')` | Directory of registered user accounts and roles |
 | `/admin/users/{id}/edit` | `GET` | `UserController::edit` | `AuthMiddleware`, `RoleMiddleware('admin')` | Edit user role and account status form |
 | `/admin/users/{id}/edit` | `POST` | `UserController::update` | `AuthMiddleware`, `RoleMiddleware('admin')`, `CsrfMiddleware` | Update user role and status (lockout-protected) |
+| `/admin/support` | `GET` | `AdminSupportController::index` | `AuthMiddleware`, `RoleMiddleware('admin')`, `PermissionMiddleware('hr_support.admin_inbox')` | Admin Support Management Inbox & live DB metrics |
+| `/admin/support/tickets/{ref}` | `GET` | `AdminSupportController::show` | `AuthMiddleware`, `RoleMiddleware('admin')`, `PermissionMiddleware('hr_support.admin_inbox')` | Ticket investigation, conversation & private internal notes |
+| `/admin/support/tickets/{ref}/assign` | `POST` | `AdminSupportController::assign` | `AuthMiddleware`, `RoleMiddleware('admin')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.admin_manage')` | Assign or reassign ticket to active Administrator |
+| `/admin/support/tickets/{ref}/triage` | `POST` | `AdminSupportController::updateTriage` | `AuthMiddleware`, `RoleMiddleware('admin')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.admin_manage')` | Update ticket priority, status, or resolution summary |
+| `/admin/support/tickets/{ref}/respond` | `POST` | `AdminSupportController::respond` | `AuthMiddleware`, `RoleMiddleware('admin')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.admin_manage')` | Post HR-visible reply, request info, or private Admin internal note |
+| `/admin/support/attachments/{id}` | `GET` | `AdminSupportController::downloadAttachment` | `AuthMiddleware`, `RoleMiddleware('admin')`, `PermissionMiddleware('hr_support.admin_inbox')` | Authorized Admin attachment download |
 
 ---
 
-### C. Dedicated HR Operational Routes (HR Role Only)
+### C. Dedicated HR Operational & HR Support Routes (HR Role Only)
 | Route | Method | Controller Action | Middleware Stack | Description |
 | :--- | :---: | :--- | :--- | :--- |
 | `/hr/dashboard` | `GET` | `DashboardController::hrDashboard` | `AuthMiddleware`, `RoleMiddleware('hr')` | HR operational dashboard & leave overview |
+| `/hr/help` | `GET` | `HrAdminSupportController::index` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('hr_support.view_own')` | HR Help & Support Center ("My Support Tickets") |
+| `/hr/help/create` | `GET` | `HrAdminSupportController::create` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('hr_support.submit')` | Submit HR support ticket form |
+| `/hr/help/tickets` | `POST` | `HrAdminSupportController::store` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.submit')` | Create HR-to-Admin support ticket (`HR-SUP-YYYY-XXXXXXXX`) |
+| `/hr/help/tickets/{ref}` | `GET` | `HrAdminSupportController::show` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('hr_support.view_own')` | Own ticket details & public conversation (internal notes stripped) |
+| `/hr/help/tickets/{ref}/reply` | `POST` | `HrAdminSupportController::reply` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.reply_own')` | Send follow-up reply & attachments |
+| `/hr/help/tickets/{ref}/confirm-resolution` | `POST` | `HrAdminSupportController::confirmResolution` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.reply_own')` | Confirm resolution (`Resolved -> Closed`) |
+| `/hr/help/tickets/{ref}/reopen` | `POST` | `HrAdminSupportController::reopen` | `AuthMiddleware`, `RoleMiddleware('hr')`, `CsrfMiddleware`, `PermissionMiddleware('hr_support.reply_own')` | Request reopening of Resolved ticket within 14-day window |
+| `/hr/help/attachments/{id}` | `GET` | `HrAdminSupportController::downloadAttachment` | `AuthMiddleware`, `RoleMiddleware('hr')`, `PermissionMiddleware('hr_support.view_own')` | Download own non-internal attachment |
 
 ---
 

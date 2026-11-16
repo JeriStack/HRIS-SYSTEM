@@ -72,7 +72,10 @@ class HrSupportController extends Controller
     {
         $user = currentUser();
         $role = strtolower((string)($user['role'] ?? ''));
-        if (!$user || !in_array($role, ['hr', 'admin'], true) || !$this->access->hasCapability($user, 'support.inbox_view', $this->pdo)) {
+        $canViewInbox = $role === 'hr'
+            ? $this->access->hasCapability($user, 'support.inbox_view', $this->pdo)
+            : ($role === 'admin' && $this->access->hasCapability($user, 'support.manage_handlers', $this->pdo));
+        if (!$user || !$canViewInbox) {
             $this->forbid('You do not have permission to access the HR Support Inbox.');
             return;
         }
@@ -177,9 +180,15 @@ class HrSupportController extends Controller
             'eligibleHandlers'        => $eligibleHandlers,
             'allowedNextStatuses'     => $allowedNextStatuses,
             'priorities'              => (array)config('support.priorities', []),
-            'canRespond'              => $this->access->hasCapability($user, 'support.respond', $this->pdo),
-            'canAssign'               => $this->access->hasCapability($user, 'support.assign', $this->pdo),
-            'canManageStatus'         => $this->access->hasCapability($user, 'support.manage_status', $this->pdo),
+            'canRespond'              => !empty($ticket['escalated_flag']) && strtolower((string)($user['role'] ?? '')) === 'admin'
+                ? $this->access->hasCapability($user, 'support.manage_handlers', $this->pdo)
+                : $this->access->hasCapability($user, 'support.respond', $this->pdo),
+            'canAssign'               => !empty($ticket['escalated_flag']) && strtolower((string)($user['role'] ?? '')) === 'admin'
+                ? $this->access->hasCapability($user, 'support.manage_handlers', $this->pdo)
+                : $this->access->hasCapability($user, 'support.assign', $this->pdo),
+            'canManageStatus'         => !empty($ticket['escalated_flag']) && strtolower((string)($user['role'] ?? '')) === 'admin'
+                ? $this->access->hasCapability($user, 'support.manage_handlers', $this->pdo)
+                : $this->access->hasCapability($user, 'support.manage_status', $this->pdo),
             'maxBytes'                => $this->attachments->getMaxBytes(),
             'maxFiles'                => $this->attachments->getMaxFilesPerSubmission(),
             'escalationPolicySummary' => (string)config('support.escalation_policy_summary', ''),

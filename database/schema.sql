@@ -1078,5 +1078,126 @@ CREATE TABLE IF NOT EXISTS `public_support_tracking_tokens` (
     INDEX `idx_pstt_ticket_active` (`ticket_id`, `revoked_at`, `expires_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- -----------------------------------------------------------------------------
+-- 41. HR-to-Admin Support Tickets Table
+-- Isolated technical & operational escalations submitted by HR to Administrators
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_tickets` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_ref` VARCHAR(32) NOT NULL COMMENT 'Unique non-guessable tracking reference (e.g. HR-SUP-2026-8F3K9C2M)',
+    `submitted_by_user_id` INT UNSIGNED NOT NULL,
+    `subject` VARCHAR(200) NOT NULL,
+    `description` TEXT NOT NULL,
+    `category` VARCHAR(80) NOT NULL,
+    `priority` ENUM('Low', 'Medium', 'High', 'Critical') NOT NULL DEFAULT 'Medium',
+    `status` ENUM('Submitted', 'Under Review', 'In Progress', 'Waiting for HR', 'Resolved', 'Closed') NOT NULL DEFAULT 'Submitted',
+    `assigned_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `resolution_summary` TEXT NULL DEFAULT NULL,
+    `reopen_count` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    `last_activity_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at` DATETIME NULL DEFAULT NULL,
+    `closed_at` DATETIME NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT `uq_hst_admin_ticket_ref` UNIQUE (`ticket_ref`),
+    CONSTRAINT `fk_hst_admin_submitted_by` FOREIGN KEY (`submitted_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_hst_admin_assigned_to` FOREIGN KEY (`assigned_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_submitter_status` (`submitted_by_user_id`, `status`, `last_activity_at`),
+    INDEX `idx_hst_status_prio_activity` (`status`, `priority`, `last_activity_at`),
+    INDEX `idx_hst_assigned_status` (`assigned_admin_id`, `status`),
+    INDEX `idx_hst_category_status` (`category`, `status`),
+    INDEX `idx_hst_created` (`created_at`),
+    INDEX `idx_hst_resolved` (`resolved_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 42. HR-to-Admin Ticket Conversation Messages & Admin-Only Internal Notes
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_messages` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `sender_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `sender_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `message_type` ENUM('initial_submission', 'hr_reply', 'admin_response', 'info_request', 'internal_note', 'reopen_request', 'resolution_confirmation', 'status_change') NOT NULL,
+    `is_internal_note` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Admin-only confidential note; never returned to HR',
+    `body` TEXT NOT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hstm_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hstm_sender` FOREIGN KEY (`sender_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hstm_ticket_vis` (`ticket_id`, `is_internal_note`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 43. HR-to-Admin Ticket Attachments Table (Private Storage)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_attachments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `message_id` INT UNSIGNED NULL DEFAULT NULL,
+    `uploaded_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `original_filename` VARCHAR(255) NOT NULL,
+    `stored_filename` VARCHAR(255) NOT NULL,
+    `storage_relative_path` VARCHAR(255) NOT NULL,
+    `mime_type` VARCHAR(100) NOT NULL,
+    `file_size_bytes` INT UNSIGNED NOT NULL,
+    `sha256_checksum` CHAR(64) NOT NULL,
+    `is_internal_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = Attached to Admin-only internal note',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_message` FOREIGN KEY (`message_id`)
+        REFERENCES `hr_support_ticket_messages` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_uploader` FOREIGN KEY (`uploaded_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsta_ticket` (`ticket_id`),
+    INDEX `idx_hsta_message` (`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 44. HR-to-Admin Ticket Assignment Audit Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_assignments` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `assigned_to_admin_id` INT UNSIGNED NULL DEFAULT NULL,
+    `assigned_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `action` ENUM('assigned', 'reassigned', 'unassigned') NOT NULL DEFAULT 'assigned',
+    `notes` VARCHAR(255) NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsta_assign_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_admin` FOREIGN KEY (`assigned_to_admin_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsta_assign_actor` FOREIGN KEY (`assigned_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hst_assign_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- -----------------------------------------------------------------------------
+-- 45. HR-to-Admin Ticket Transition History Table
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `hr_support_ticket_history` (
+    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `ticket_id` INT UNSIGNED NOT NULL,
+    `event_kind` ENUM('created', 'status_changed', 'priority_changed', 'assigned', 'reopened', 'resolved', 'closed') NOT NULL DEFAULT 'status_changed',
+    `from_status` VARCHAR(40) NULL DEFAULT NULL,
+    `to_status` VARCHAR(40) NULL DEFAULT NULL,
+    `from_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `to_priority` VARCHAR(20) NULL DEFAULT NULL,
+    `changed_by_user_id` INT UNSIGNED NULL DEFAULT NULL,
+    `actor_role` ENUM('hr', 'admin', 'system') NOT NULL DEFAULT 'hr',
+    `remarks` TEXT NULL DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_hsth_ticket` FOREIGN KEY (`ticket_id`)
+        REFERENCES `hr_support_tickets` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_hsth_actor` FOREIGN KEY (`changed_by_user_id`)
+        REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    INDEX `idx_hsth_ticket` (`ticket_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 SET FOREIGN_KEY_CHECKS = 1;
 

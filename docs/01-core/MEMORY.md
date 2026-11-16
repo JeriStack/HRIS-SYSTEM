@@ -10,10 +10,10 @@
 
 ## 1. Core Identity & Architectural Rules
 * **Brand:** NEXORA HR — *People. Processes. Progress.*
-* **Role Boundary:** Exactly 3 application roles under ADR-012: **`admin`**, **`hr`**, and **`employee`**.
-  * **`admin`**: System-wide administrative governance, user account provisioning (`/admin/users*`), role assignment, account deactivation/reactivation, system settings, security audits, admin dashboard (`/admin/dashboard`), and full workforce/leave oversight.
-  * **`hr`**: Human Resources operational workforce management (employee directory, departments, positions, leave review queue, approvals/rejections, reports). Strictly segregated from application-wide role assignment or admin provisioning.
-  * **`employee`**: Self-service workspace strictly isolated to personal profile (`/employee/profile`), personal leave filing, entitlements, and notifications.
+* **Role Boundary:** Exactly 3 application roles under ADR-012 & v3.2 least-privilege hardening: **`admin`**, **`hr`**, and **`employee`**.
+  * **`admin`**: System-wide administrative governance, user account provisioning (`/admin/users*`), role assignment, HR-to-Admin Support Management (`/admin/support*`), private Admin internal notes, system settings, security audits, admin dashboard (`/admin/dashboard`), and restricted non-confidential workforce/leave read oversight (denied HR operational mutations, confidential leave documents, and Employee `/support`).
+  * **`hr`**: Human Resources operational workforce management (employee directory, departments, positions, leave review queue, approvals/rejections, Employee Support Inbox `/hr/support*`, and submitting HR-to-Admin support tickets `/hr/help*`). Strictly segregated from application-wide role assignment, Admin provisioning, or Admin internal notes.
+  * **`employee`**: Self-service workspace strictly isolated to personal profile (`/employee/profile`), personal leave filing, entitlements, Employee Help & Support (`/support*`), and notifications.
 * **Controlled Admin Provisioning:** Admin accounts cannot be self-registered or created via public endpoints. The initial Administrator is bootstrapped via `bin/create_admin_user.php`.
 * **Last Active Admin Protection:** System-level lockout prevention prohibits deleting, demoting, or deactivating the last remaining active Administrator. Self-demotion is strictly disallowed.
 * **Stack:** Native PHP 8.5.12 MVC (no heavy external framework), MySQL 8.0 (InnoDB), Ratchet WebSocket (:8090), Docker Compose (Nginx :8080 edge proxy, Apache/PHP :80, MySQL :3306/3307).

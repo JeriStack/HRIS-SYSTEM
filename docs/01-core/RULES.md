@@ -12,11 +12,11 @@
 ## 1. Core Identity & Architectural Constraints
 
 1. **Brand Identity:** The application name is **NEXORA HR**; its official tagline is **People. Processes. Progress.**
-2. **Strict 3-Role Model:**
+2. **Strict Least-Privilege 3-Role Model:**
    * Exactly three application roles are supported: **`admin`**, **`hr`**, and **`employee`**.
-   * `admin` possesses full system-wide administrative authority, user account provisioning, role assignment, account deactivation/reactivation, application settings, and audit monitoring.
-   * `hr` retains workforce operational responsibilities (employee directory, departments, positions, leave review queue, approvals/rejections, leave balances, and reports). HR is strictly prohibited from managing application-wide role assignments, Admin provisioning, or security configurations.
-   * `employee` retains isolated self-service capabilities (profile, leave filing, balance tracking, notifications) with ownership enforcement.
+   * `admin` possesses system-level administrative authority, user account provisioning, role assignment, HR support ticket management (`/admin/support*`), private Admin internal notes, application settings, and audit monitoring — with restricted non-confidential workforce/leave read oversight and no blanket wildcard access to HR mutations or confidential employee/leave records.
+   * `hr` retains workforce operational responsibilities (employee directory, departments, positions, leave review queue, approvals/rejections, leave balances, Employee Support Inbox `/hr/support*`, and reporting HR support tickets to Admin via `/hr/help*`). HR is strictly prohibited from managing application-wide role assignments, Admin provisioning, Admin internal notes, or security configurations.
+   * `employee` retains isolated self-service capabilities (profile, leave filing, balance tracking, Employee Help & Support `/support*`, notifications) with ownership enforcement.
    * **Last Active Admin Protection:** Accidental deletion, deactivation, or demotion of the last active Administrator is strictly blocked at the model/controller level.
    * **Controlled Admin Provisioning:** Public registration of Admin accounts is prohibited; the initial Admin account is bootstrapped exclusively via the CLI provisioning tool (`bin/create_admin_user.php`).
 3. **Single Source of Truth:**

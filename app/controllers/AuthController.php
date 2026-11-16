@@ -2,7 +2,7 @@
 /**
  * Authentication Controller
  * Manages login, two-factor Email OTP verification, logout, session lifecycle,
- * and strict role-directed dashboard routing (HR and Employee only)
+ * and strict role-directed dashboard routing (Admin, HR, and Employee)
  * Employee HRIS & Leave Management System
  */
 

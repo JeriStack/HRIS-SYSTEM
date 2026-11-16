@@ -59,14 +59,16 @@ flowchart LR
         UC_ProvisionAdmin("Provision Additional Administrator Account")
         UC_SecEvents("Monitor Security Events & System Health")
         UC_SysSettings("Manage Auth, General & Notification Settings")
+        UC_AdminSupport("Manage HR Support Tickets & Private Internal Notes")
     end
 
-    subgraph WorkforceBoundary["Workforce & Leave Operations (HR & Admin)"]
+    subgraph WorkforceBoundary["Workforce & Leave Operations (HR Operations / Restricted Admin Oversight)"]
         UC_HRDash("View HR Operational Dashboard")
-        UC_EmpCRUD("Create, View, Edit & Deactivate Employee Records")
-        UC_DeptPos("Manage Departments & Job Positions")
-        UC_LeaveReview("Approve / Reject Leave Requests (FIFO & Pessimistic Lock)")
-        UC_LeaveBal("Manage Leave Types & Adjust Annual Balances")
+        UC_EmpCRUD("Create, View, Edit & Deactivate Employee Records (HR)")
+        UC_DeptPos("Manage Departments & Job Positions (HR)")
+        UC_LeaveReview("Approve / Reject Leave Requests (FIFO & Pessimistic Lock, HR)")
+        UC_LeaveBal("Manage Leave Types & Adjust Annual Balances (HR)")
+        UC_HrSupportSubmit("Submit & Track HR-to-Admin Support Tickets (HR)")
         UC_Reports("Generate Analytics & Export Sanitized CSV Reports")
         UC_Audit("Inspect Tamper-Evident Hash-Chained Audit Trail")
         UC_DSA("Execute DSA Laboratory & Algorithm Visualizers")
@@ -78,6 +80,7 @@ flowchart LR
         UC_FileLeave("Submit Leave Application (Working-Day Calculation)")
         UC_CancelOwn("Withdraw Own Pending Leave Request")
         UC_OwnHistory("View Own Leave Balances, History & Notifications")
+        UC_EmpSupport("Submit & Track Employee Help & Support / Complaints")
     end
 
     Admin --> UC_Login
@@ -88,10 +91,7 @@ flowchart LR
     Admin --> UC_ProvisionAdmin
     Admin --> UC_SecEvents
     Admin --> UC_SysSettings
-    Admin --> UC_EmpCRUD
-    Admin --> UC_DeptPos
-    Admin --> UC_LeaveReview
-    Admin --> UC_LeaveBal
+    Admin --> UC_AdminSupport
     Admin --> UC_Reports
     Admin --> UC_Audit
     Admin --> UC_DSA

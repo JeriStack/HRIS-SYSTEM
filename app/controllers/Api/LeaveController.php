@@ -177,7 +177,7 @@ class LeaveController extends ApiController
     )]
     public function storeType(): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
 
         $name = trim((string)($input['leave_name'] ?? ''));
@@ -350,7 +350,7 @@ class LeaveController extends ApiController
     )]
     public function adjustBalance(): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
 
         $empId         = (int)($input['employee_id'] ?? 0);
@@ -722,7 +722,7 @@ class LeaveController extends ApiController
     )]
     public function approve(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
 
         $result = $this->leaveAdapter->approve($id, (int)$currentUser['id']);
 
@@ -784,7 +784,7 @@ class LeaveController extends ApiController
     )]
     public function reject(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
         $reason = trim((string)($input['rejection_reason'] ?? ''));
         if (empty($reason)) {
@@ -854,7 +854,7 @@ class LeaveController extends ApiController
     )]
     public function requestInfo(int $id): void
     {
-        $currentUser = $this->requireRole(['admin', 'hr']);
+        $currentUser = $this->requireRole(['hr']);
         $input = $this->getJsonInput();
         $note = trim((string)($input['note'] ?? ($input['hr_info_request_note'] ?? '')));
 
@@ -961,7 +961,7 @@ class LeaveController extends ApiController
     )]
     public function hrQualifications(): void
     {
-        $this->requireRole(['admin', 'hr']);
+        $this->requireRole(['hr']);
         $status = !empty($_GET['status']) ? trim((string)$_GET['status']) : null;
         $qtype = !empty($_GET['qualification_type']) ? trim((string)$_GET['qualification_type']) : null;
 

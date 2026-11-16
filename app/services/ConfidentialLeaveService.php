@@ -132,7 +132,7 @@ final class ConfidentialLeaveService
             }
         }
 
-        return in_array($roleSlug, ['admin', 'hr'], true);
+        return $roleSlug === 'hr';
     }
 
     /**

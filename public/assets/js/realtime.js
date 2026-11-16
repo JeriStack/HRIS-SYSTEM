@@ -208,7 +208,9 @@
                p.indexOf('/employee/profile') !== -1 ||
                p.indexOf('/activity-logs') !== -1 ||
                p.indexOf('/reports') !== -1 ||
-               p.indexOf('/notifications') !== -1;
+               p.indexOf('/notifications') !== -1 ||
+               p.indexOf('/admin/support') !== -1 ||
+               p.indexOf('/hr/help') !== -1;
     }
 
     function isUserActivelyInputting() {

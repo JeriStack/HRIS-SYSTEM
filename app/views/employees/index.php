@@ -4,10 +4,12 @@
         <p style="color: #64748B; margin: 0; font-size: 0.875rem;">Centralized workforce registry, demographic profiles, and status lifecycle management.</p>
     </div>
     <div>
-        <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>➕</span>
-            <span>Add New Employee</span>
-        </a>
+        <?php if (can('employees.create')): ?>
+            <a href="<?= url('/hr/employees/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span>➕</span>
+                <span>Add New Employee</span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -169,10 +171,12 @@
                                     <a href="<?= url('/hr/employees/' . $emp['id']) ?>" class="btn btn-secondary btn-sm" title="View Profile">
                                         👁️ View
                                     </a>
-                                    <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
-                                        ✏️ Edit
-                                    </a>
-                                    <?php if ($emp['employment_status'] === 'Active'): ?>
+                                    <?php if (can('employees.update')): ?>
+                                        <a href="<?= url('/hr/employees/' . $emp['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Employee">
+                                            ✏️ Edit
+                                        </a>
+                                    <?php endif; ?>
+                                    <?php if ($emp['employment_status'] === 'Active' && can('employees.deactivate')): ?>
                                         <button type="button" 
                                                 class="btn btn-danger btn-sm" 
                                                 onclick="confirmDeactivation(<?= e($emp['id']) ?>, '<?= e(addslashes($emp['first_name'] . ' ' . $emp['last_name'])) ?>', '<?= e($emp['employee_no']) ?>')" 

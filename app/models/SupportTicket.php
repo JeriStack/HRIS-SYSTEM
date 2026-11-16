@@ -551,8 +551,13 @@ class SupportTicket extends Model
 
         $canHandleConf = !empty($viewerContext['can_handle_confidential']);
         $isAdmin = !empty($viewerContext['is_admin']);
+        $hasStandardInbox = array_key_exists('has_standard_inbox', $viewerContext)
+            ? !empty($viewerContext['has_standard_inbox'])
+            : true;
 
-        if (!$canHandleConf) {
+        if ($isAdmin && !$hasStandardInbox && !$canHandleConf) {
+            $conditions[] = "t.escalated_flag = 1";
+        } elseif (!$canHandleConf) {
             if ($isAdmin) {
                 $conditions[] = "(t.is_confidential = 0 OR t.escalated_flag = 1)";
             } else {

@@ -80,7 +80,7 @@
                 <strong>Action Required:</strong> You have <strong><?= (int)$metrics['pending_leaves'] ?> pending leave application(s)</strong> awaiting management decision.
             </div>
         </div>
-        <a href="<?= url('/leaves') ?>" class="btn btn-warning btn-sm" style="background-color: #D97706; color: white;">
+        <a href="<?= url('/leaves') ?>" class="btn btn-warning btn-sm" style="background-color: #B45309; color: #FFFFFF;">
             Open Review Queue &rarr;
         </a>
     </div>
@@ -110,12 +110,23 @@
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">💼 Job Positions</div>
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">Maintain department-scoped job titles and responsibilities.</div>
             </a>
-            <a href="<?= url('/hr/users') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
-                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">👥 User Accounts & Roles</div>
-                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Manage login credentials, roles (HR / Employee), and status.</div>
+            <?php
+            $hrToAdminOpen = (int)(($hrAdminSupportStats['open'] ?? 0));
+            $hrToAdminWaiting = (int)(($hrAdminSupportStats['waiting_for_hr'] ?? 0));
+            ?>
+            <a href="<?= url('/hr/help') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
+                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem;"><?= icon('alert-circle', 16) ?> Help &amp; Support (Admin)</span>
+                    <?php if ($hrToAdminWaiting > 0): ?>
+                        <span class="badge badge-warning tabular-nums"><?= $hrToAdminWaiting ?> awaiting reply</span>
+                    <?php elseif ($hrToAdminOpen > 0): ?>
+                        <span class="badge badge-primary tabular-nums"><?= $hrToAdminOpen ?> open</span>
+                    <?php endif; ?>
+                </div>
+                <div style="font-size: 0.775rem; color: var(--color-text-muted);">Report technical issues, system errors, or access problems directly to Administrators.</div>
             </a>
             <a href="<?= url('/reports') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
-                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem;">📈 Workforce Reports</div>
+                <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;"><?= icon('bar-chart', 16) ?> Workforce Reports</div>
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">Inspect leave summaries, rosters, and analytics.</div>
             </a>
             <?php
@@ -125,9 +136,9 @@
             ?>
             <a href="<?= url('/hr/support') ?>" class="card" style="padding: 1rem; margin: 0; text-decoration: none; border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: transform 0.15s ease;">
                 <div style="font-weight: 600; color: var(--color-text-main); margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                    <span style="display: inline-flex; align-items: center; gap: 0.4rem;"><?= icon('shield', 16) ?> Help &amp; Support Inbox</span>
+                    <span style="display: inline-flex; align-items: center; gap: 0.4rem;"><?= icon('shield', 16) ?> Employee Support Inbox</span>
                     <?php if ($hrSupportOpen > 0): ?>
-                        <span class="badge badge-primary"><?= $hrSupportOpen ?> open</span>
+                        <span class="badge badge-primary tabular-nums"><?= $hrSupportOpen ?> open</span>
                     <?php endif; ?>
                 </div>
                 <div style="font-size: 0.775rem; color: var(--color-text-muted);">

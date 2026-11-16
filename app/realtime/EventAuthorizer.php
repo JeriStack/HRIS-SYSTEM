@@ -26,6 +26,13 @@ final class EventAuthorizer
     public const SUPPORT_STATUS_CHANGED = 'support_ticket.status_changed';
     public const SUPPORT_ASSIGNED       = 'support_ticket.assigned';
     public const SUPPORT_COMPLAINT_ALERT = 'support_complaint.confidential';
+    public const HR_SUPPORT_SUBMITTED      = 'hr_support.submitted';
+    public const HR_SUPPORT_ADMIN_RESPONDED = 'hr_support.admin_responded';
+    public const HR_SUPPORT_INFO_REQUESTED = 'hr_support.info_requested';
+    public const HR_SUPPORT_HR_REPLIED     = 'hr_support.hr_replied';
+    public const HR_SUPPORT_STATUS_CHANGED = 'hr_support.status_changed';
+    public const HR_SUPPORT_ASSIGNED       = 'hr_support.assigned';
+    public const HR_SUPPORT_REOPENED       = 'hr_support.reopened';
     public const SECURITY_DEVICE_ALERT   = 'security_device.alert';
     public const UNREAD_COUNT          = 'notification.unread_count';
 
@@ -76,6 +83,11 @@ final class EventAuthorizer
             self::SUPPORT_COMPLAINT_ALERT => ($recipient->isHr() || $recipient->isAdmin())
                 && (int)($row['support_coi_blocked'] ?? 0) === 0
                 && (!array_key_exists('support_confidential_authorized', $row) || (int)$row['support_confidential_authorized'] === 1),
+            self::HR_SUPPORT_SUBMITTED, self::HR_SUPPORT_HR_REPLIED, self::HR_SUPPORT_REOPENED => $recipient->isAdmin(),
+            self::HR_SUPPORT_ADMIN_RESPONDED, self::HR_SUPPORT_INFO_REQUESTED, self::HR_SUPPORT_STATUS_CHANGED => $recipient->isHr()
+                && (!array_key_exists('hr_support_owner_matches', $row) || (int)$row['hr_support_owner_matches'] === 1),
+            self::HR_SUPPORT_ASSIGNED => $recipient->isAdmin()
+                || ($recipient->isHr() && (!array_key_exists('hr_support_owner_matches', $row) || (int)$row['hr_support_owner_matches'] === 1)),
             self::SECURITY_DEVICE_ALERT => true,
             default => false,
         };

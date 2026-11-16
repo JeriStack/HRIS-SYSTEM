@@ -39,6 +39,8 @@ $sidebarUnreadCount = 0;
 $sidebarPendingCount = 0;
 $sidebarCorrectionPendingCount = 0;
 $sidebarSupportOpenCount = 0;
+$sidebarHrSupportOpenCount = 0;
+$sidebarHrToAdminOpenCount = 0;
 if (isAuthenticated()) {
     try {
         $sidebarUnreadCount = (new \App\Models\Notification())->getUnreadCount((int)currentUserId());
@@ -71,8 +73,19 @@ if (isAuthenticated()) {
             $sidebarViewerCtx = $sidebarSupportAccess->buildViewerContext($user, $sidebarHandlers, $sidebarSupportPdo);
             $sidebarHrStats = $sidebarSupportModel->getHrOverviewStats($sidebarViewerCtx);
             $sidebarSupportOpenCount = (int)($sidebarHrStats['total_open'] ?? 0);
+
+            $hrSupportSidebarModel = new \App\Models\HrSupportTicket($sidebarSupportPdo);
+            if ($rawRole === 'admin') {
+                $admSupStats = $hrSupportSidebarModel->getAdminDashboardStats();
+                $sidebarHrSupportOpenCount = (int)($admSupStats['total_open'] ?? 0);
+            } else {
+                $hrSupStats = $hrSupportSidebarModel->getHrUserSummaryStats((int)currentUserId());
+                $sidebarHrToAdminOpenCount = (int)($hrSupStats['open'] ?? 0);
+            }
         } catch (\Throwable $e) {
             $sidebarSupportOpenCount = 0;
+            $sidebarHrSupportOpenCount = 0;
+            $sidebarHrToAdminOpenCount = 0;
         }
     } elseif (!empty($user['employee_id'])) {
         try {
@@ -175,6 +188,7 @@ if ($rawRole === 'admin') {
             $isAdmSettings  = ($currentPath === '/admin/settings');
             $isAdmHealth    = ($currentPath === '/admin/system-health');
             $isAdmNotifCfg  = ($currentPath === '/admin/settings/notifications');
+            $isAdmHrSupport = ($currentPath === '/admin/support' || str_starts_with($currentPath, '/admin/support/'));
             $isAdmSupport   = ($currentPath === '/hr/support' || (str_starts_with($currentPath, '/hr/support/') && !str_starts_with($currentPath, '/hr/support/handlers')));
             $isAdmHandlers  = str_starts_with($currentPath, '/hr/support/handlers');
             $isAdmAccount   = ($currentPath === '/admin/account');
@@ -233,6 +247,7 @@ if ($rawRole === 'admin') {
                         <span class="icon" aria-hidden="true"><?= icon('briefcase', 18) ?></span>
                         <span class="nav-item-label">Positions</span>
                     </a>
+                    <?php if (function_exists('can') && can('employees.update')): ?>
                     <a href="<?= url('/hr/correction-requests') ?>" class="nav-item <?= $isAdmCorrections ? 'active' : '' ?>"<?= $isAdmCorrections ? ' aria-current="page"' : '' ?> title="Profile Corrections" data-tooltip="Profile Corrections<?= $sidebarCorrectionPendingCount > 0 ? ' (' . (int)$sidebarCorrectionPendingCount . ' pending)' : '' ?>" data-keywords="correction requests profile edits approvals">
                         <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
                         <span class="nav-item-label">Profile Corrections</span>
@@ -240,6 +255,7 @@ if ($rawRole === 'admin') {
                             <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarCorrectionPendingCount ?> pending profile corrections"><?= $sidebarCorrectionPendingCount > 99 ? '99+' : (int)$sidebarCorrectionPendingCount ?></span>
                         <?php endif; ?>
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -265,10 +281,12 @@ if ($rawRole === 'admin') {
                         <span class="icon" aria-hidden="true"><?= icon('balances', 18) ?></span>
                         <span class="nav-item-label">Leave Balances</span>
                     </a>
+                    <?php if (function_exists('can') && can('leave_qualifications.verify')): ?>
                     <a href="<?= url('/hr/leave-qualifications') ?>" class="nav-item <?= $isAdmQuals ? 'active' : '' ?>"<?= $isAdmQuals ? ' aria-current="page"' : '' ?> title="Leave Qualifications" data-tooltip="Leave Qualifications" data-keywords="spic solo parent paternity sil exclusion">
                         <span class="icon" aria-hidden="true"><?= icon('check-circle', 18) ?></span>
                         <span class="nav-item-label">Leave Qualifications</span>
                     </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -309,13 +327,22 @@ if ($rawRole === 'admin') {
                         <span class="icon" aria-hidden="true"><?= icon('lock', 18) ?></span>
                         <span class="nav-item-label">Authentication Settings</span>
                     </a>
-                    <a href="<?= url('/hr/support') ?>" class="nav-item <?= $isAdmSupport ? 'active' : '' ?>"<?= $isAdmSupport ? ' aria-current="page"' : '' ?> title="Support Inbox" data-tooltip="Support Inbox<?= $sidebarSupportOpenCount > 0 ? ' (' . (int)$sidebarSupportOpenCount . ' open)' : '' ?>" data-keywords="support tickets complaints help">
+                    <a href="<?= url('/admin/support') ?>" class="nav-item <?= $isAdmHrSupport ? 'active' : '' ?>"<?= $isAdmHrSupport ? ' aria-current="page"' : '' ?> title="Support Management" data-tooltip="Support Management<?= $sidebarHrSupportOpenCount > 0 ? ' (' . (int)$sidebarHrSupportOpenCount . ' open)' : '' ?>" data-keywords="hr support management tickets errors helpdesk">
                         <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
-                        <span class="nav-item-label">Support Inbox</span>
-                        <?php if ($sidebarSupportOpenCount > 0): ?>
-                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarSupportOpenCount ?> open support tickets"><?= $sidebarSupportOpenCount > 99 ? '99+' : (int)$sidebarSupportOpenCount ?></span>
+                        <span class="nav-item-label">Support Management</span>
+                        <?php if ($sidebarHrSupportOpenCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarHrSupportOpenCount ?> open HR support tickets"><?= $sidebarHrSupportOpenCount > 99 ? '99+' : (int)$sidebarHrSupportOpenCount ?></span>
                         <?php endif; ?>
                     </a>
+                    <?php if (function_exists('can') && can('support.manage_handlers')): ?>
+                    <a href="<?= url('/hr/support') ?>" class="nav-item <?= $isAdmSupport ? 'active' : '' ?>"<?= $isAdmSupport ? ' aria-current="page"' : '' ?> title="Escalated Complaints" data-tooltip="Escalated Complaints<?= $sidebarSupportOpenCount > 0 ? ' (' . (int)$sidebarSupportOpenCount . ' open)' : '' ?>" data-keywords="escalated confidential complaints coi">
+                        <span class="icon" aria-hidden="true"><?= icon('alert-circle', 18) ?></span>
+                        <span class="nav-item-label">Escalated Complaints</span>
+                        <?php if ($sidebarSupportOpenCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarSupportOpenCount ?> escalated complaint tickets"><?= $sidebarSupportOpenCount > 99 ? '99+' : (int)$sidebarSupportOpenCount ?></span>
+                        <?php endif; ?>
+                    </a>
+                    <?php endif; ?>
                     <a href="<?= url('/hr/support/handlers') ?>" class="nav-item <?= $isAdmHandlers ? 'active' : '' ?>"<?= $isAdmHandlers ? ' aria-current="page"' : '' ?> title="Complaint Handlers" data-tooltip="Complaint Handlers" data-keywords="confidential handlers clearance coi">
                         <span class="icon" aria-hidden="true"><?= icon('lock', 18) ?></span>
                         <span class="nav-item-label">Complaint Handlers</span>
@@ -390,6 +417,7 @@ if ($rawRole === 'admin') {
             $isHrQuals       = str_starts_with($currentPath, '/hr/leave-qualifications');
             $isHrReports     = str_starts_with($currentPath, '/reports');
             $isHrAuditLogs   = str_starts_with($currentPath, '/activity-logs');
+            $isHrHelpAdmin   = ($currentPath === '/hr/help' || str_starts_with($currentPath, '/hr/help/'));
             $isHrSupport     = ($currentPath === '/hr/support' || (str_starts_with($currentPath, '/hr/support/') && !str_starts_with($currentPath, '/hr/support/handlers')));
             $isHrNotifs      = str_starts_with($currentPath, '/notifications');
             $isHrDevSec      = str_starts_with($currentPath, '/account/security');
@@ -483,11 +511,18 @@ if ($rawRole === 'admin') {
                     <span class="nav-section-chevron" aria-hidden="true"><?= icon('chevron-right', 12) ?></span>
                 </button>
                 <div class="nav-section-items" id="navGroupHrComms">
-                    <a href="<?= url('/hr/support') ?>" class="nav-item <?= $isHrSupport ? 'active' : '' ?>"<?= $isHrSupport ? ' aria-current="page"' : '' ?> title="Support Inbox" data-tooltip="Support Inbox<?= $sidebarSupportOpenCount > 0 ? ' (' . (int)$sidebarSupportOpenCount . ' open)' : '' ?>" data-keywords="help support tickets complaints inbox">
+                    <a href="<?= url('/hr/help') ?>" class="nav-item <?= $isHrHelpAdmin ? 'active' : '' ?>"<?= $isHrHelpAdmin ? ' aria-current="page"' : '' ?> title="Help &amp; Support (Admin)" data-tooltip="Help &amp; Support (Admin)<?= $sidebarHrToAdminOpenCount > 0 ? ' (' . (int)$sidebarHrToAdminOpenCount . ' open)' : '' ?>" data-keywords="help support admin errors issues tickets">
+                        <span class="icon" aria-hidden="true"><?= icon('alert-circle', 18) ?></span>
+                        <span class="nav-item-label">Help &amp; Support (Admin)</span>
+                        <?php if ($sidebarHrToAdminOpenCount > 0): ?>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarHrToAdminOpenCount ?> open HR support tickets"><?= $sidebarHrToAdminOpenCount > 99 ? '99+' : (int)$sidebarHrToAdminOpenCount ?></span>
+                        <?php endif; ?>
+                    </a>
+                    <a href="<?= url('/hr/support') ?>" class="nav-item <?= $isHrSupport ? 'active' : '' ?>"<?= $isHrSupport ? ' aria-current="page"' : '' ?> title="Employee Support Inbox" data-tooltip="Employee Support Inbox<?= $sidebarSupportOpenCount > 0 ? ' (' . (int)$sidebarSupportOpenCount . ' open)' : '' ?>" data-keywords="help support tickets complaints inbox">
                         <span class="icon" aria-hidden="true"><?= icon('shield', 18) ?></span>
-                        <span class="nav-item-label">Support Inbox</span>
+                        <span class="nav-item-label">Employee Support Inbox</span>
                         <?php if ($sidebarSupportOpenCount > 0): ?>
-                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarSupportOpenCount ?> open support tickets"><?= $sidebarSupportOpenCount > 99 ? '99+' : (int)$sidebarSupportOpenCount ?></span>
+                            <span class="nav-badge nav-badge-pending" aria-label="<?= (int)$sidebarSupportOpenCount ?> open employee support tickets"><?= $sidebarSupportOpenCount > 99 ? '99+' : (int)$sidebarSupportOpenCount ?></span>
                         <?php endif; ?>
                     </a>
                     <a href="<?= url('/notifications') ?>" class="nav-item <?= $isHrNotifs ? 'active' : '' ?>"<?= $isHrNotifs ? ' aria-current="page"' : '' ?> title="Notifications" data-tooltip="Notifications" data-keywords="alerts inbox messages">

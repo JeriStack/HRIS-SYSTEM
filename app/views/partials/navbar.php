@@ -31,8 +31,12 @@ if (str_contains($currentPath, '/users') || str_contains($currentPath, '/roles')
     $sectionTitle = 'Leave Administration';
 } elseif (str_contains($currentPath, '/reports')) {
     $sectionTitle = 'Reports & Analytics';
+} elseif (str_contains($currentPath, '/admin/support')) {
+    $sectionTitle = 'Support Management';
+} elseif (str_contains($currentPath, '/hr/help')) {
+    $sectionTitle = 'Help & Support (Admin)';
 } elseif (str_contains($currentPath, '/hr/support')) {
-    $sectionTitle = 'HR Support Inbox';
+    $sectionTitle = 'Employee Support Inbox';
 } elseif (str_contains($currentPath, '/support')) {
     $sectionTitle = 'Help & Support';
 } elseif (str_contains($currentPath, '/security') || str_contains($currentPath, '/activity-logs')) {

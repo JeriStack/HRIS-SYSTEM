@@ -121,6 +121,36 @@ class DashboardController extends Controller
             ];
         }
 
+        $hrSupportEvents = [
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_SUBMITTED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_ADMIN_RESPONDED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_INFO_REQUESTED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_HR_REPLIED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_STATUS_CHANGED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_ASSIGNED,
+            \App\Realtime\EventAuthorizer::HR_SUPPORT_REOPENED,
+        ];
+        if (in_array($eventType, $hrSupportEvents, true)) {
+            $role = function_exists('currentUserRole') ? strtolower((string)(currentUserRole() ?? 'employee')) : 'employee';
+            $base = $role === 'admin' ? '/admin/support' : '/hr/help';
+            $notifText = trim((string)($notification['title'] ?? '')) . ' ' . trim((string)($notification['message'] ?? ''));
+            $ticketRef = null;
+            if (preg_match('/HR-SUP-\d{4}-[A-Z0-9]{8}/', $notifText, $match) === 1) {
+                $ticketRef = $match[0];
+            } elseif ($entityId > 0) {
+                try {
+                    $ticketRef = (new \App\Models\HrSupportTicket())->findRefById($entityId);
+                } catch (\Throwable) {
+                    $ticketRef = null;
+                }
+            }
+
+            return [
+                'path'  => $ticketRef !== null ? $base . '/tickets/' . rawurlencode($ticketRef) : $base,
+                'label' => 'Open HR ticket',
+            ];
+        }
+
         return null;
     }
 
@@ -157,6 +187,21 @@ class DashboardController extends Controller
             error_log('[HrDashboard::support] ' . $e->getMessage());
         }
 
+        $hrAdminSupportStats = [
+            'total'          => 0,
+            'open'           => 0,
+            'waiting_for_hr' => 0,
+            'resolved'       => 0,
+        ];
+        try {
+            $uid = (int)currentUserId();
+            if ($uid > 0) {
+                $hrAdminSupportStats = (new \App\Models\HrSupportTicket($this->pdo))->getHrUserSummaryStats($uid);
+            }
+        } catch (\Throwable $e) {
+            error_log('[HrDashboard::hrAdminSupport] ' . $e->getMessage());
+        }
+
         // Fetch recent active employees
         $recentEmployees = $this->pdo->query("
             SELECT e.employee_no, e.first_name, e.last_name, e.email, d.department_name, p.position_name, e.date_hired
@@ -169,11 +214,12 @@ class DashboardController extends Controller
         ")->fetchAll(PDO::FETCH_ASSOC);
 
         $this->view('dashboard.hr', [
-            'pageTitle'       => 'HR Dashboard - Employee HRIS',
-            'user'            => currentUser(),
-            'metrics'         => $metrics,
-            'supportOverview' => $supportOverview,
-            'recentEmployees' => $recentEmployees,
+            'pageTitle'           => 'HR Dashboard - Employee HRIS',
+            'user'                => currentUser(),
+            'metrics'             => $metrics,
+            'supportOverview'     => $supportOverview,
+            'hrAdminSupportStats' => $hrAdminSupportStats,
+            'recentEmployees'     => $recentEmployees,
         ], 'hr');
     }
 

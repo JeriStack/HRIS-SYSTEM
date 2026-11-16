@@ -46,17 +46,19 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
         <p class="page-subtitle">Comprehensive workforce record, identity verification, and chronological employment history.</p>
     </div>
     <div class="page-actions">
-        <a href="<?= url('/hr/employees/' . (int)$employee['id'] . '/edit') ?>" class="btn btn-primary">
-            <span>Edit Employee</span>
-        </a>
-        <?php if ($empStatus === 'Active'): ?>
-            <button type="button" class="btn btn-danger" onclick="openModal('deactivateModal')">
-                <span>Deactivate</span>
-            </button>
-        <?php else: ?>
-            <button type="button" class="btn btn-primary" onclick="openModal('reactivateModal')">
-                <span>Reactivate</span>
-            </button>
+        <?php if (!empty($canManageHrRecords)): ?>
+            <a href="<?= url('/hr/employees/' . (int)$employee['id'] . '/edit') ?>" class="btn btn-primary">
+                <span>Edit Employee</span>
+            </a>
+            <?php if ($empStatus === 'Active'): ?>
+                <button type="button" class="btn btn-danger" onclick="openModal('deactivateModal')">
+                    <span>Deactivate</span>
+                </button>
+            <?php else: ?>
+                <button type="button" class="btn btn-primary" onclick="openModal('reactivateModal')">
+                    <span>Reactivate</span>
+                </button>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
@@ -99,15 +101,17 @@ $historyOld = is_array($historyOld ?? null) ? $historyOld : [];
                 </div>
             </div>
 
-            <div class="profile-photo-actions">
-                <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="addMilestoneDialog">
-                    <?= icon('plus', 15) ?>
-                    <span>Record Milestone</span>
-                </button>
-                <a href="<?= url('/hr/correction-requests') ?>" class="btn btn-secondary btn-sm">
-                    Correction Queue
-                </a>
-            </div>
+            <?php if (!empty($canManageHrRecords)): ?>
+                <div class="profile-photo-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" data-open-dialog="addMilestoneDialog">
+                        <?= icon('plus', 15) ?>
+                        <span>Record Milestone</span>
+                    </button>
+                    <a href="<?= url('/hr/correction-requests') ?>" class="btn btn-secondary btn-sm">
+                        Correction Queue
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="profile-hero-strip">

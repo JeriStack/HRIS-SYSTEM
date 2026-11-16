@@ -147,59 +147,59 @@ try {
         redirect('/admin/users/' . (int)$id . '/edit');
     }, [AuthMiddleware::class, $adminOnly]);
 
-    // Phase 7: Employee Management Routes (Administrator & HR Access)
-    $router->get('/hr/employees', [EmployeeController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/employees/create', [EmployeeController::class, 'create'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/employees', [EmployeeController::class, 'store'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/employees/{id}', [EmployeeController::class, 'show'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/employees/{id}/edit', [EmployeeController::class, 'edit'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/employees/{id}/edit', [EmployeeController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/employees/{id}/deactivate', [EmployeeController::class, 'deactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/employees/{id}/reactivate', [EmployeeController::class, 'reactivate'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/employees/{id}/history', [EmployeeController::class, 'storeHistory'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/correction-requests', [EmployeeController::class, 'correctionRequests'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/correction-requests/{id}/approve', [EmployeeController::class, 'approveCorrection'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/correction-requests/{id}/reject', [EmployeeController::class, 'rejectCorrection'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    // Phase 7: Employee Directory Oversight (Restricted Read: Admin & HR) & Mutations (HR Only)
+    $router->get('/hr/employees', [EmployeeController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('employees.view')]);
+    $router->get('/hr/employees/create', [EmployeeController::class, 'create'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('employees.create')]);
+    $router->post('/hr/employees', [EmployeeController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.create')]);
+    $router->get('/hr/employees/{id}', [EmployeeController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('employees.view')]);
+    $router->get('/hr/employees/{id}/edit', [EmployeeController::class, 'edit'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/hr/employees/{id}/edit', [EmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/hr/employees/{id}/deactivate', [EmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.deactivate')]);
+    $router->post('/hr/employees/{id}/reactivate', [EmployeeController::class, 'reactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/hr/employees/{id}/history', [EmployeeController::class, 'storeHistory'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->get('/hr/correction-requests', [EmployeeController::class, 'correctionRequests'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/hr/correction-requests/{id}/approve', [EmployeeController::class, 'approveCorrection'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/hr/correction-requests/{id}/reject', [EmployeeController::class, 'rejectCorrection'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
 
-    // Phase 7: Department Management Routes (Administrator & HR Access)
-    $router->get('/hr/departments', [DepartmentController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/departments/create', [DepartmentController::class, 'create'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/departments', [DepartmentController::class, 'store'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/departments/{id}/edit', [DepartmentController::class, 'edit'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/departments/{id}/edit', [DepartmentController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    // Phase 7: Department Management Routes (Read Oversight: Admin & HR; Mutations: HR Only)
+    $router->get('/hr/departments', [DepartmentController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('departments.view')]);
+    $router->get('/hr/departments/create', [DepartmentController::class, 'create'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('departments.manage')]);
+    $router->post('/hr/departments', [DepartmentController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('departments.manage')]);
+    $router->get('/hr/departments/{id}/edit', [DepartmentController::class, 'edit'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('departments.manage')]);
+    $router->post('/hr/departments/{id}/edit', [DepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('departments.manage')]);
 
-    // Phase 7: Position Management Routes (Administrator & HR Access)
-    $router->get('/hr/positions', [PositionController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/positions/create', [PositionController::class, 'create'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/positions', [PositionController::class, 'store'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/positions/{id}/edit', [PositionController::class, 'edit'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/positions/{id}/edit', [PositionController::class, 'update'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/api/positions-by-department/{id}', [PositionController::class, 'getByDepartment'], [AuthMiddleware::class, $workforceRoles]);
+    // Phase 7: Position Management Routes (Read Oversight: Admin & HR; Mutations: HR Only)
+    $router->get('/hr/positions', [PositionController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('positions.view')]);
+    $router->get('/hr/positions/create', [PositionController::class, $hrOnly, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->post('/hr/positions', [PositionController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->get('/hr/positions/{id}/edit', [PositionController::class, 'edit'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->post('/hr/positions/{id}/edit', [PositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->get('/hr/api/positions-by-department/{id}', [PositionController::class, 'getByDepartment'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('positions.view')]);
 
-    // Leave Management Routes (Administrator & HR Access)
-    $router->get('/leaves', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/leave-requests', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
+    // Leave Management Routes (Restricted Read Oversight: Admin & HR; Leave Adjudication/Config Mutations: HR Only)
+    $router->get('/leaves', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
+    $router->get('/hr/leave-requests', [LeaveController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
     $router->get('/hr/leave-requests/pending', function () {
         redirect('/leaves?status=Pending');
-    }, [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/leaves/balances', [LeaveController::class, 'balances'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/leaves/balances/adjust', [LeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/leaves/balances/initialize', [LeaveController::class, 'initializeBalances'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/leaves/sil-conversion', [LeaveController::class, 'recordSilConversion'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/leave-qualifications', [LeaveController::class, 'qualifications'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/leave-qualifications/verify', [LeaveController::class, 'verifyQualification'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/leave-types', [LeaveController::class, 'types'], [AuthMiddleware::class, $workforceRoles]);
-    $router->get('/hr/leave-types/create', [LeaveController::class, 'createType'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/leave-types', [LeaveController::class, 'storeType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->get('/hr/leave-types/{id}/edit', [LeaveController::class, 'editType'], [AuthMiddleware::class, $workforceRoles]);
-    $router->post('/hr/leave-types/{id}/edit', [LeaveController::class, 'updateType'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/leave-types/{id}/toggle-status', [LeaveController::class, 'toggleTypeStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/leave-types/{id}/policies', [LeaveController::class, 'storePolicyVersion'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/hr/leave-policies/{id}/activate', [LeaveController::class, 'activatePolicy'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/leaves/{id}/approve', [LeaveController::class, 'approve'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/leaves/{id}/reject', [LeaveController::class, 'reject'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/leaves/{id}/request-info', [LeaveController::class, 'requestInfo'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
-    $router->post('/leaves/queue/next', [LeaveController::class, 'processNextQueue'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    }, [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
+    $router->get('/leaves/balances', [LeaveController::class, 'balances'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave_balances.view')]);
+    $router->post('/hr/leaves/balances/adjust', [LeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_balances.manage')]);
+    $router->post('/hr/leaves/balances/initialize', [LeaveController::class, 'initializeBalances'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_balances.manage')]);
+    $router->post('/hr/leaves/sil-conversion', [LeaveController::class, 'recordSilConversion'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_balances.manage')]);
+    $router->get('/hr/leave-qualifications', [LeaveController::class, 'qualifications'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('leave_qualifications.verify')]);
+    $router->post('/hr/leave-qualifications/verify', [LeaveController::class, 'verifyQualification'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_qualifications.verify')]);
+    $router->get('/hr/leave-types', [LeaveController::class, 'types'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
+    $router->get('/hr/leave-types/create', [LeaveController::class, 'createType'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('leave_types.manage')]);
+    $router->post('/hr/leave-types', [LeaveController::class, 'storeType'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_types.manage')]);
+    $router->get('/hr/leave-types/{id}/edit', [LeaveController::class, 'editType'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('leave_types.manage')]);
+    $router->post('/hr/leave-types/{id}/edit', [LeaveController::class, 'updateType'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_types.manage')]);
+    $router->post('/hr/leave-types/{id}/toggle-status', [LeaveController::class, 'toggleTypeStatus'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_types.manage')]);
+    $router->post('/hr/leave-types/{id}/policies', [LeaveController::class, 'storePolicyVersion'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_policies.manage')]);
+    $router->post('/hr/leave-policies/{id}/activate', [LeaveController::class, 'activatePolicy'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_policies.manage')]);
+    $router->post('/leaves/{id}/approve', [LeaveController::class, 'approve'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.approve')]);
+    $router->post('/leaves/{id}/reject', [LeaveController::class, 'reject'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.reject')]);
+    $router->post('/leaves/{id}/request-info', [LeaveController::class, 'requestInfo'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.approve')]);
+    $router->post('/leaves/queue/next', [LeaveController::class, 'processNextQueue'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.approve')]);
 
     // Leave Application, Protected Documents, Clarification & Self-Service (Authenticated)
     $router->get('/leaves/apply', [LeaveController::class, 'apply'], [AuthMiddleware::class]);
@@ -287,36 +287,36 @@ try {
     $router->post('/api/v1/notifications/{id}/read', [ApiProfileController::class, 'markRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
     $router->post('/api/v1/notifications/mark-all-read', [ApiProfileController::class, 'markAllRead'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
-    // Group: Employee Management (HR Role Only)
-    $router->get('/api/v1/employees', [ApiEmployeeController::class, 'index'], [AuthMiddleware::class, $hrOnly]);
-    $router->get('/api/v1/employees/{id}', [ApiEmployeeController::class, 'show'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/api/v1/employees', [ApiEmployeeController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->put('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/employees/{id}/deactivate', [ApiEmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/employees/{id}/reactivate', [ApiEmployeeController::class, 'reactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    // Group: Employee Management (Restricted Oversight Read: Admin & HR; Mutations: HR Only)
+    $router->get('/api/v1/employees', [ApiEmployeeController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('employees.view')]);
+    $router->get('/api/v1/employees/{id}', [ApiEmployeeController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('employees.view')]);
+    $router->post('/api/v1/employees', [ApiEmployeeController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.create')]);
+    $router->put('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/api/v1/employees/{id}', [ApiEmployeeController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
+    $router->post('/api/v1/employees/{id}/deactivate', [ApiEmployeeController::class, 'deactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.deactivate')]);
+    $router->post('/api/v1/employees/{id}/reactivate', [ApiEmployeeController::class, 'reactivate'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('employees.update')]);
 
     // Group: Department Management
     $router->get('/api/v1/departments', [ApiDepartmentController::class, 'index'], [AuthMiddleware::class]);
     $router->get('/api/v1/departments/{id}', [ApiDepartmentController::class, 'show'], [AuthMiddleware::class]);
-    $router->post('/api/v1/departments', [ApiDepartmentController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->put('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/departments', [ApiDepartmentController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('departments.manage')]);
+    $router->put('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('departments.manage')]);
+    $router->post('/api/v1/departments/{id}', [ApiDepartmentController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('departments.manage')]);
 
     // Group: Position Management
     $router->get('/api/v1/positions', [ApiPositionController::class, 'index'], [AuthMiddleware::class]);
     $router->get('/api/v1/positions/{id}', [ApiPositionController::class, 'show'], [AuthMiddleware::class]);
-    $router->post('/api/v1/positions', [ApiPositionController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->put('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->post('/api/v1/positions', [ApiPositionController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->put('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('positions.manage')]);
+    $router->post('/api/v1/positions/{id}', [ApiPositionController::class, 'update'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('positions.manage')]);
 
     // Group: Leave Types and Balances
     $router->get('/api/v1/leave-types', [ApiLeaveController::class, 'types'], [AuthMiddleware::class]);
-    $router->get('/api/v1/hr/leave-types', [ApiLeaveController::class, 'hrTypes'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/api/v1/hr/leave-types', [ApiLeaveController::class, 'storeType'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->get('/api/v1/hr/leave-types', [ApiLeaveController::class, 'hrTypes'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
+    $router->post('/api/v1/hr/leave-types', [ApiLeaveController::class, 'storeType'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_types.manage')]);
     $router->get('/api/v1/leave-balances/my', [ApiLeaveController::class, 'myBalances'], [AuthMiddleware::class]);
-    $router->get('/api/v1/hr/leave-balances', [ApiLeaveController::class, 'hrBalances'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/api/v1/hr/leave-balances/adjust', [ApiLeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
+    $router->get('/api/v1/hr/leave-balances', [ApiLeaveController::class, 'hrBalances'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave_balances.view')]);
+    $router->post('/api/v1/hr/leave-balances/adjust', [ApiLeaveController::class, 'adjustBalance'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave_balances.manage')]);
 
     // Group: Leave Requests
     $router->get('/api/v1/leaves/my', [ApiLeaveController::class, 'myLeaves'], [AuthMiddleware::class]);
@@ -326,11 +326,11 @@ try {
     $router->post('/api/v1/leaves/{id}/respond-info', [ApiLeaveController::class, 'respondInfo'], [AuthMiddleware::class, CsrfMiddleware::class]);
 
     // Group: HR Approvals
-    $router->get('/api/v1/hr/leaves', [ApiLeaveController::class, 'hrLeaves'], [AuthMiddleware::class, $hrOnly]);
-    $router->post('/api/v1/hr/leaves/{id}/approve', [ApiLeaveController::class, 'approve'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/hr/leaves/{id}/reject', [ApiLeaveController::class, 'reject'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->post('/api/v1/hr/leaves/{id}/request-info', [ApiLeaveController::class, 'requestInfo'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class]);
-    $router->get('/api/v1/hr/leave-qualifications', [ApiLeaveController::class, 'hrQualifications'], [AuthMiddleware::class, $hrOnly]);
+    $router->get('/api/v1/hr/leaves', [ApiLeaveController::class, 'hrLeaves'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('leave.view')]);
+    $router->post('/api/v1/hr/leaves/{id}/approve', [ApiLeaveController::class, 'approve'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.approve')]);
+    $router->post('/api/v1/hr/leaves/{id}/reject', [ApiLeaveController::class, 'reject'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.reject')]);
+    $router->post('/api/v1/hr/leaves/{id}/request-info', [ApiLeaveController::class, 'requestInfo'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('leave.approve')]);
+    $router->get('/api/v1/hr/leave-qualifications', [ApiLeaveController::class, 'hrQualifications'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('leave_qualifications.verify')]);
 
     // Group: Help & Support and Confidential Workplace Complaints
     $router->get('/support', [\App\Controllers\SupportController::class, 'index'], [AuthMiddleware::class, new \Core\PermissionMiddleware('support.view_own')]);
@@ -344,14 +344,32 @@ try {
     $router->post('/support/{id}/reopen', [\App\Controllers\SupportController::class, 'reopen'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
     $router->post('/support/{id}/close', [\App\Controllers\SupportController::class, 'confirmClose'], [AuthMiddleware::class, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.reply_own')]);
 
-    // Group: HR Support Inbox & Confidential Handler Governance
-    $router->get('/hr/support', [\App\Controllers\HrSupportController::class, 'index'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('support.inbox_view')]);
+    // Group: HR Employee Support Inbox (HR Operations + Escalated COI Oversight for Admin Governance)
+    $router->get('/hr/support', [\App\Controllers\HrSupportController::class, 'index'], [AuthMiddleware::class, $workforceRoles]);
     $router->get('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'handlers'], [AuthMiddleware::class, $adminOnly, new \Core\PermissionMiddleware('support.manage_handlers')]);
     $router->post('/hr/support/handlers', [\App\Controllers\HrSupportController::class, 'updateHandler'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_handlers')]);
-    $router->get('/hr/support/{id}', [\App\Controllers\HrSupportController::class, 'show'], [AuthMiddleware::class, $workforceRoles, new \Core\PermissionMiddleware('support.inbox_view')]);
-    $router->post('/hr/support/{id}/respond', [\App\Controllers\HrSupportController::class, 'respond'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.respond')]);
-    $router->post('/hr/support/{id}/assign', [\App\Controllers\HrSupportController::class, 'assign'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.assign')]);
-    $router->post('/hr/support/{id}/status', [\App\Controllers\HrSupportController::class, 'updateStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class, new \Core\PermissionMiddleware('support.manage_status')]);
+    $router->get('/hr/support/{id}', [\App\Controllers\HrSupportController::class, 'show'], [AuthMiddleware::class, $workforceRoles]);
+    $router->post('/hr/support/{id}/respond', [\App\Controllers\HrSupportController::class, 'respond'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/support/{id}/assign', [\App\Controllers\HrSupportController::class, 'assign'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+    $router->post('/hr/support/{id}/status', [\App\Controllers\HrSupportController::class, 'updateStatus'], [AuthMiddleware::class, $workforceRoles, CsrfMiddleware::class]);
+
+    // Group: HR-to-Admin Help & Support Center (Strictly HR Own-Scope)
+    $router->get('/hr/help', [\App\Controllers\HrAdminSupportController::class, 'index'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('hr_support.view_own')]);
+    $router->get('/hr/help/create', [\App\Controllers\HrAdminSupportController::class, 'create'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('hr_support.submit')]);
+    $router->post('/hr/help/tickets', [\App\Controllers\HrAdminSupportController::class, 'store'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.submit')]);
+    $router->get('/hr/help/attachments/{id}', [\App\Controllers\HrAdminSupportController::class, 'downloadAttachment'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('hr_support.view_own')]);
+    $router->get('/hr/help/tickets/{ref}', [\App\Controllers\HrAdminSupportController::class, 'show'], [AuthMiddleware::class, $hrOnly, new \Core\PermissionMiddleware('hr_support.view_own')]);
+    $router->post('/hr/help/tickets/{ref}/reply', [\App\Controllers\HrAdminSupportController::class, 'reply'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.reply_own')]);
+    $router->post('/hr/help/tickets/{ref}/confirm-resolution', [\App\Controllers\HrAdminSupportController::class, 'confirmResolution'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.reply_own')]);
+    $router->post('/hr/help/tickets/{ref}/reopen', [\App\Controllers\HrAdminSupportController::class, 'reopen'], [AuthMiddleware::class, $hrOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.reply_own')]);
+
+    // Group: Admin Support Management Inbox (Strictly Admin Only + Internal Note Isolation)
+    $router->get('/admin/support', [\App\Controllers\AdminSupportController::class, 'index'], [AuthMiddleware::class, $adminOnly, new \Core\PermissionMiddleware('hr_support.admin_inbox')]);
+    $router->get('/admin/support/attachments/{id}', [\App\Controllers\AdminSupportController::class, 'downloadAttachment'], [AuthMiddleware::class, $adminOnly, new \Core\PermissionMiddleware('hr_support.admin_inbox')]);
+    $router->get('/admin/support/tickets/{ref}', [\App\Controllers\AdminSupportController::class, 'show'], [AuthMiddleware::class, $adminOnly, new \Core\PermissionMiddleware('hr_support.admin_inbox')]);
+    $router->post('/admin/support/tickets/{ref}/assign', [\App\Controllers\AdminSupportController::class, 'assign'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.admin_manage')]);
+    $router->post('/admin/support/tickets/{ref}/triage', [\App\Controllers\AdminSupportController::class, 'updateTriage'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.admin_manage')]);
+    $router->post('/admin/support/tickets/{ref}/respond', [\App\Controllers\AdminSupportController::class, 'respond'], [AuthMiddleware::class, $adminOnly, CsrfMiddleware::class, new \Core\PermissionMiddleware('hr_support.admin_manage')]);
 
     // 4. Dispatch Request through the Router
     $router->dispatch();

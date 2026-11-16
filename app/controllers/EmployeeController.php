@@ -152,28 +152,39 @@ class EmployeeController extends Controller
 
         $tenure = EmployeeTenureCalculator::calculate($employee['date_hired'] ?? null);
         $avatarUrl = ProfilePictureService::avatarUrl((int)$employee['id'], $employee['profile_picture'] ?? null);
+        $canManageHrRecords = can('employees.update');
 
         $emergencyContacts = [];
-        try {
-            $emergencyContacts = $this->emergencyModel->getByEmployee($id);
-        } catch (\Throwable $e) {
-            error_log('[EmployeeController::show] Emergency contacts query skipped: ' . $e->getMessage());
-        }
-
         $employmentHistory = [];
         $lastPromotion = null;
+        $correctionRequests = [];
+
+        if ($canManageHrRecords) {
+            try {
+                $emergencyContacts = $this->emergencyModel->getByEmployee($id);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController::show] Emergency contacts query skipped: ' . $e->getMessage());
+            }
+
+            try {
+                $correctionRequests = $this->correctionModel->getByEmployee($id, 20);
+            } catch (\Throwable $e) {
+                error_log('[EmployeeController::show] Correction requests query skipped: ' . $e->getMessage());
+            }
+        } else {
+            // Least-privilege Admin directory oversight: mask personal contact, residential, and demographic fields.
+            $employee['personal_email'] = null;
+            $employee['phone'] = null;
+            $employee['address'] = null;
+            $employee['birth_date'] = null;
+            $employee['civil_status'] = null;
+        }
+
         try {
             $employmentHistory = $this->historyModel->getByEmployee($id);
             $lastPromotion = $this->historyModel->getLastPromotion($id);
         } catch (\Throwable $e) {
             error_log('[EmployeeController::show] Employment history query skipped: ' . $e->getMessage());
-        }
-
-        $correctionRequests = [];
-        try {
-            $correctionRequests = $this->correctionModel->getByEmployee($id, 20);
-        } catch (\Throwable $e) {
-            error_log('[EmployeeController::show] Correction requests query skipped: ' . $e->getMessage());
         }
 
         $this->view('employees.show', [
@@ -185,6 +196,7 @@ class EmployeeController extends Controller
             'emergencyContacts'  => $emergencyContacts,
             'employmentHistory'  => $employmentHistory,
             'correctionRequests' => $correctionRequests,
+            'canManageHrRecords' => $canManageHrRecords,
             'departments'        => $this->fetchDepartmentsList(),
             'positions'          => $this->fetchPositionsList(),
             'employmentTypes'    => (array)config('profile.employment_types', []),

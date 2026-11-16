@@ -86,7 +86,7 @@ final class SupportAccessService
 
         $role = strtolower((string)($user['role'] ?? ''));
         if ($role === 'admin') {
-            return true;
+            return \Core\PermissionRegistry::defaultRoleHas('admin', $permissionSlug);
         }
 
         $roleId = isset($user['role_id']) && $user['role_id'] !== null ? (int)$user['role_id'] : 0;
@@ -179,6 +179,7 @@ final class SupportAccessService
             'role'                    => $role,
             'employee_id'             => $empId,
             'is_admin'                => $role === 'admin',
+            'has_standard_inbox'      => $this->hasCapability($viewerUser, 'support.inbox_view', $pdo),
             'can_handle_confidential' => $this->canHandleConfidential($viewerUser, $handlerModel, $pdo),
         ];
     }
@@ -237,12 +238,20 @@ final class SupportAccessService
             return false;
         }
 
-        if (!$this->hasCapability($viewerUser, 'support.inbox_view', $pdo)) {
+        // Strict COI check: subjects of a complaint are ALWAYS excluded (including HR and Admin).
+        if ($this->isConflicted($viewerUser, $ticket)) {
             return false;
         }
 
-        // Strict COI check: subjects of a complaint are ALWAYS excluded (including HR and Admin).
-        if ($this->isConflicted($viewerUser, $ticket)) {
+        // Administrators hold oversight ONLY on COI-escalated cases (or if explicitly granted inbox capability)
+        if ($role === 'admin') {
+            if (!empty($ticket['escalated_flag']) && $this->hasCapability($viewerUser, 'support.manage_handlers', $pdo)) {
+                return true;
+            }
+            if (!$this->hasCapability($viewerUser, 'support.inbox_view', $pdo)) {
+                return false;
+            }
+        } elseif (!$this->hasCapability($viewerUser, 'support.inbox_view', $pdo)) {
             return false;
         }
 
@@ -276,6 +285,11 @@ final class SupportAccessService
     ): bool {
         if (!$this->canViewTicketAsHr($viewerUser, $ticket, $handlerModel, $pdo)) {
             return false;
+        }
+
+        $role = strtolower((string)($viewerUser['role'] ?? ''));
+        if ($role === 'admin' && !empty($ticket['escalated_flag']) && $this->hasCapability($viewerUser, 'support.manage_handlers', $pdo)) {
+            return true;
         }
 
         return $this->hasCapability($viewerUser, $requiredPermission, $pdo);

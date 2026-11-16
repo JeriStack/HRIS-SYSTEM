@@ -144,9 +144,10 @@ class SystemAuditFixesTest extends TestCase
     }
 
     /**
-     * BUG-004: Verify LeaveController and Api\LeaveController authorize both admin and hr roles.
+     * BUG-004: Verify LeaveController enforces HR operational governance on leave mutations
+     * while Api\LeaveController::show permits restricted non-confidential oversight.
      */
-    public function testBug004LeaveControllersAllowBothAdminAndHrRoles(): void
+    public function testBug004LeaveControllersAllowHrGovernanceAndRestrictedAdminOversight(): void
     {
         $webLeaveSource = (string)file_get_contents(
             dirname(__DIR__, 2) . '/app/controllers/LeaveController.php'
@@ -163,10 +164,9 @@ class SystemAuditFixesTest extends TestCase
             );
             $methodBody = implode("\n", $lines);
 
-            $this->assertStringContainsString(
-                "['admin', 'hr']",
-                $methodBody,
-                "LeaveController::{$methodName}() must authorize both 'admin' and 'hr' roles."
+            $this->assertTrue(
+                str_contains($methodBody, "!== 'hr'") || str_contains($methodBody, "=== 'hr'"),
+                "LeaveController::{$methodName}() must enforce HR-only leave governance under least privilege."
             );
         }
 
@@ -182,7 +182,7 @@ class SystemAuditFixesTest extends TestCase
         $this->assertStringContainsString(
             "['admin', 'hr']",
             implode("\n", $apiLines),
-            'Api\LeaveController::show() must authorize both admin and hr roles.'
+            'Api\LeaveController::show() must authorize non-confidential admin and hr read oversight.'
         );
     }
 

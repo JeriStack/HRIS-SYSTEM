@@ -15,7 +15,7 @@ use OpenApi\Attributes as OA;
     info: new OA\Info(
         version: "1.0.0",
         title: "Employee HRIS & Leave Management System REST API",
-        description: "Official enterprise REST API specification for the Employee HRIS & Leave Management System. Features role-based access control (strictly 'hr' and 'employee' roles), two-factor email OTP authentication, session cookie security with CSRF mitigation, workforce directory management, and full lifecycle leave request processing."
+        description: "Official enterprise REST API specification for the Employee HRIS & Leave Management System. Features strict three-role least-privilege access control ('admin', 'hr', and 'employee' roles), two-factor email OTP authentication, session cookie security with CSRF mitigation, workforce directory management, and full lifecycle leave request processing."
     ),
     servers: [
         new OA\Server(

@@ -83,6 +83,41 @@ final class NotificationPayload
             'message' => 'A confidential workplace complaint record %s requires authorized review in NEXORA HR.',
             'level'   => 'warning',
         ],
+        EventAuthorizer::HR_SUPPORT_SUBMITTED => [
+            'title'   => 'New HR Support Ticket',
+            'message' => 'An HR support ticket %s was submitted for Administrator review.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::HR_SUPPORT_ADMIN_RESPONDED => [
+            'title'   => 'Administrator Response Posted',
+            'message' => 'An Administrator posted a response on HR support ticket %s.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::HR_SUPPORT_INFO_REQUESTED => [
+            'title'   => 'Additional Information Requested',
+            'message' => 'An Administrator requested additional details on HR support ticket %s.',
+            'level'   => 'warning',
+        ],
+        EventAuthorizer::HR_SUPPORT_HR_REPLIED => [
+            'title'   => 'HR Follow-Up Received',
+            'message' => 'HR posted a follow-up update on support ticket %s.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::HR_SUPPORT_STATUS_CHANGED => [
+            'title'   => 'HR Support Ticket Updated',
+            'message' => 'The status of HR support ticket %s was updated.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::HR_SUPPORT_ASSIGNED => [
+            'title'   => 'HR Support Ticket Assigned',
+            'message' => 'Assignment was updated for HR support ticket %s.',
+            'level'   => 'info',
+        ],
+        EventAuthorizer::HR_SUPPORT_REOPENED => [
+            'title'   => 'HR Ticket Reopen Requested',
+            'message' => 'HR requested reopening of support ticket %s.',
+            'level'   => 'warning',
+        ],
     ];
 
     /**
@@ -103,7 +138,8 @@ final class NotificationPayload
         $message = $template['message'];
 
         $role = strtolower((string)($row['recipient_role'] ?? ''));
-        $link = self::linkFor($event, $entityId, $role);
+        $hrSupportRef = !empty($row['hr_support_ref']) ? (string)$row['hr_support_ref'] : null;
+        $link = self::linkFor($event, $entityId, $role, $hrSupportRef);
 
         if ($event === EventAuthorizer::PROFILE_UPDATED) {
             $reference = $entityId > 0 ? 'EMP-' . str_pad((string)$entityId, 3, '0', STR_PAD_LEFT) : null;
@@ -111,6 +147,8 @@ final class NotificationPayload
                 $title = 'Employee record updated';
                 $message = 'Employee record %s was updated.';
             }
+        } elseif (str_starts_with($event, 'hr_support.')) {
+            $reference = $hrSupportRef;
         } elseif (
             $event === EventAuthorizer::CORRECTION_REQUESTED
             || $event === EventAuthorizer::CORRECTION_APPROVED
@@ -146,11 +184,18 @@ final class NotificationPayload
      * App-relative path (no leading slash) that a notification should open, or null
      * when the event has no dedicated page.
      */
-    public static function linkFor(?string $event, int $entityId, string $recipientRole = ''): ?string
+    public static function linkFor(?string $event, int $entityId, string $recipientRole = '', ?string $ticketRef = null): ?string
     {
         $event = (string)$event;
         if (!isset(self::TEMPLATES[$event])) {
             return null;
+        }
+
+        if (str_starts_with($event, 'hr_support.')) {
+            $base = strtolower($recipientRole) === 'admin' ? 'admin/support' : 'hr/help';
+            return ($ticketRef !== null && $ticketRef !== '')
+                ? $base . '/tickets/' . rawurlencode($ticketRef)
+                : $base;
         }
 
         if ($event === EventAuthorizer::PROFILE_UPDATED) {

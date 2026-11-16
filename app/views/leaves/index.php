@@ -10,7 +10,7 @@
         <p>Review, approve, or reject employee absence applications. Manage workforce availability.</p>
     </div>
     <div class="page-actions">
-        <?php if (!empty($nextInLine)): ?>
+        <?php if (!empty($nextInLine) && can('leave.approve')): ?>
             <form method="POST" action="<?= url('/leaves/queue/next') ?>" style="display: inline-block; margin: 0;">
                 <?= csrf_field() ?>
                 <?php if (!empty($selectedDept)): ?>
@@ -213,7 +213,7 @@
                                         View
                                     </a>
 
-                                    <?php if ($status === 'Pending'): ?>
+                                    <?php if ($status === 'Pending' && can('leave.approve')): ?>
                                         <!-- Approve Action -->
                                         <form method="POST" action="<?= url('/leaves/' . $req['id'] . '/approve') ?>" style="display: inline;" onsubmit="return confirm('Confirm approval of leave request #<?= $req['id'] ?> for <?= addslashes($req['first_name'] . ' ' . $req['last_name']) ?>?');">
                                             <?= csrf_field() ?>

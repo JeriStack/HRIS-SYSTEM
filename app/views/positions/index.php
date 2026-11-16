@@ -16,10 +16,12 @@
             </select>
         </form>
 
-        <a href="<?= url('/hr/positions/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <span>➕</span>
-            <span>Add Position</span>
-        </a>
+        <?php if (can('positions.manage')): ?>
+            <a href="<?= url('/hr/positions/create') ?>" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <span>➕</span>
+                <span>Add Position</span>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -55,9 +57,13 @@
                             </td>
                             <td style="padding: 0.875rem 1.25rem; text-align: right;">
                                 <div class="action-btns" style="justify-content: flex-end;">
-                                    <a href="<?= url('/hr/positions/' . $pos['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Position">
-                                        ✏️ Edit
-                                    </a>
+                                    <?php if (can('positions.manage')): ?>
+                                        <a href="<?= url('/hr/positions/' . $pos['id'] . '/edit') ?>" class="btn btn-secondary btn-sm" title="Edit Position">
+                                            ✏️ Edit
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="badge badge-neutral">Read-Only</span>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

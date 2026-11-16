@@ -202,7 +202,11 @@ class AuditService
             return self::CATEGORY_LEAVE;
         }
 
-        if (str_starts_with($actionUpper, 'SUPPORT_') || str_starts_with($actionUpper, 'COMPLAINT_')) {
+        if (
+            str_starts_with($actionUpper, 'SUPPORT_') ||
+            str_starts_with($actionUpper, 'HR_SUPPORT_') ||
+            str_starts_with($actionUpper, 'COMPLAINT_')
+        ) {
             return self::CATEGORY_SUPPORT;
         }
 

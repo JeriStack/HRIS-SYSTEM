@@ -21,9 +21,13 @@ Essential architectural, design, user manual, and product specifications governi
 * **[UI/UX Design](01-core/DESIGN.md)** (`01-core/DESIGN.md`)  
   Design tokens, Cobalt Blue / Slate palette, typography, spatial grid, responsive App Shell, component library, and WCAG 2.1 AA accessibility guidelines.
 * **[Development Roadmap](01-core/TASK.md)** (`01-core/TASK.md`)  
-  Comprehensive phase breakdown (Phases 1–16), verified test metrics (669 passing tests, 0 new PSR-12 violations), and live pre-release task tracking.
+  Comprehensive phase breakdown (Phases 1–16), verified test metrics (742automated tests, 0 new PSR-12 violations), and live pre-release task tracking.
 * **[AI Agent Memory](01-core/MEMORY.md)** (`01-core/MEMORY.md`)  
   High-density context primer, key file paths, core business rules, and essential CLI commands for AI assistants and context engineering.
+* **[Employee Help & Support & Complaint Spec](01-core/HELP-AND-SUPPORT-MODULE-SPEC.md)** (`01-core/HELP-AND-SUPPORT-MODULE-SPEC.md`)  
+  Employee-to-HR general support (`SUP-YYYY-NNNNN`), permission-bounded confidential workplace complaints, and COI exclusions.
+* **[Admin Least-Privilege & HR-to-Admin Help & Support Spec](01-core/HR-ADMIN-HELP-SUPPORT-SPEC.md)** (`01-core/HR-ADMIN-HELP-SUPPORT-SPEC.md`)  
+  Least-privilege 3-role separation, HR-to-Admin technical support (`HR-SUP-YYYY-XXXXXXXX`), Admin Support Management Inbox, and private Admin internal notes.
 * **[Smart OTP & Trusted Devices Specification](01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md)** (`01-core/SMART-OTP-TRUSTED-DEVICES-SPEC.md`)  
   Architecture, token/cookie cryptography, single-use rotation, risk-based step-up rules, and self-service `/account/security` design.
 * **[Public Help, Password Recovery & Login Assistance Spec](01-core/PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md)** (`01-core/PUBLIC-HELP-AND-PASSWORD-RECOVERY-SPEC.md`)  
@@ -38,7 +42,7 @@ Deep technical guides, verified diagrams, and formal specifications:
 * **[System Architecture & Components](02-technical/architecture/system-architecture.md)** (`02-technical/architecture/system-architecture.md`)  
   Verified container architecture, Clean Architecture domain layer, component responsibilities, and end-to-end request/data flows.
 * **[Database Documentation](02-technical/database/DATABASE.md)** & **[Editable Mermaid ERD](02-technical/database/erd.mmd)** (`02-technical/database/`)  
-  18-table InnoDB schema catalog, relationships, composite indexes, foreign key constraints, migrations, transactions, and data integrity.
+  45-table InnoDB schema catalog, relationships, composite indexes, foreign key constraints, migrations, transactions, and data integrity.
 * **[UML Diagrams Catalog](02-technical/uml/uml-diagrams.md)** (`02-technical/uml/uml-diagrams.md`)  
   System Context, UML Use Case, Class, Sequence, Activity, Component, and Deployment diagrams reconciled with the actual codebase.
 * **[System Workflows & Flowcharts](02-technical/workflows/system-workflows.md)** (`02-technical/workflows/system-workflows.md`)  

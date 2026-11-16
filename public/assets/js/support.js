@@ -219,7 +219,54 @@
                         liveRegion.textContent = invalidControls.length + ' required field(s) need attention before submitting.';
                     }
                     invalidControls[0].focus();
-                } else if (liveRegion) {
+                    return;
+                }
+
+                var confirmDialogId = form.getAttribute('data-confirm-dialog');
+                if (confirmDialogId && form.dataset.confirmedSubmit !== '1') {
+                    var dialog = document.getElementById(confirmDialogId);
+                    if (dialog && typeof dialog.showModal === 'function') {
+                        event.preventDefault();
+                        var subjEl = document.getElementById('confirmTicketSubject');
+                        var catEl = document.getElementById('confirmTicketCategory');
+                        var prioEl = document.getElementById('confirmTicketPriority');
+                        var filesEl = document.getElementById('confirmTicketFiles');
+
+                        var subjInput = form.querySelector('[name="subject"]');
+                        var catInput = form.querySelector('[name="category"]');
+                        var prioInput = form.querySelector('[name="priority"]');
+                        var fileInput = form.querySelector('input[type="file"]');
+
+                        if (subjEl && subjInput) {
+                            subjEl.textContent = subjInput.value.trim() || '—';
+                        }
+                        if (catEl && catInput) {
+                            catEl.textContent = catInput.value || '—';
+                        }
+                        if (prioEl && prioInput) {
+                            prioEl.textContent = prioInput.value || 'Medium';
+                        }
+                        if (filesEl && fileInput) {
+                            var count = fileInput.files ? fileInput.files.length : 0;
+                            filesEl.textContent = count === 0 ? 'None' : count + ' file' + (count === 1 ? '' : 's') + ' selected';
+                        }
+
+                        var confirmBtn = dialog.querySelector('[data-confirm-submit-action]');
+                        if (confirmBtn && !confirmBtn.dataset.bound) {
+                            confirmBtn.dataset.bound = '1';
+                            confirmBtn.addEventListener('click', function () {
+                                form.dataset.confirmedSubmit = '1';
+                                dialog.close();
+                                form.submit();
+                            });
+                        }
+
+                        dialog.showModal();
+                        return;
+                    }
+                }
+
+                if (liveRegion) {
                     liveRegion.textContent = '';
                 }
             });
@@ -307,11 +354,59 @@
         });
     }
 
+    function initAdminSupportResponseModeCue() {
+        var modeRadios = document.querySelectorAll('input[name="response_mode"][data-admin-mode-radio]');
+        var modeNotice = document.getElementById('adminResponseModeNotice');
+        var submitBtn = document.getElementById('adminResponseSubmitBtn');
+        var targetStatusGroup = document.getElementById('adminReplyTargetStatusGroup');
+        if (modeRadios.length === 0) {
+            return;
+        }
+
+        function syncCue() {
+            var checked = document.querySelector('input[name="response_mode"][data-admin-mode-radio]:checked');
+            var val = checked ? checked.value : 'reply';
+
+            if (modeNotice) {
+                if (val === 'internal_note') {
+                    modeNotice.textContent = 'Private Internal Note: Visible ONLY to Administrators. Never exposed to HR or sent in emails.';
+                    modeNotice.className = 'support-mode-cue is-internal';
+                } else if (val === 'info_request') {
+                    modeNotice.textContent = 'Request Information: Visible to HR, notifies the submitter, and sets status to Waiting for HR.';
+                    modeNotice.className = 'support-mode-cue is-warning';
+                } else {
+                    modeNotice.textContent = 'Official Admin Response: Visible to the submitting HR member on the shared ticket thread.';
+                    modeNotice.className = 'support-mode-cue is-public';
+                }
+            }
+
+            if (targetStatusGroup) {
+                targetStatusGroup.hidden = val === 'internal_note';
+            }
+
+            if (submitBtn) {
+                if (val === 'internal_note') {
+                    submitBtn.textContent = 'Save Internal Admin Note';
+                } else if (val === 'info_request') {
+                    submitBtn.textContent = 'Request Additional Info from HR';
+                } else {
+                    submitBtn.textContent = 'Send Response to HR';
+                }
+            }
+        }
+
+        syncCue();
+        modeRadios.forEach(function (radio) {
+            radio.addEventListener('change', syncCue);
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initCategoryFields();
         initAttachmentPickers();
         initAccessibleFormValidation();
         initNativeDialogs();
         initHrResponseModeCue();
+        initAdminSupportResponseModeCue();
     });
 })();

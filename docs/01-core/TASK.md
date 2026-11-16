@@ -13,10 +13,10 @@
 
 | Metric | Measured Value | Standard / Target | Status |
 |---|---|---|---|
-| **PHPUnit Test Suite** | 600 tests, 2,152 assertions | 100% Passing (0 failures, 0 errors, 94 skipped) | `DONE` |
-| **PSR-12 Code Style** | 235 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
-| **Database Schema** | 13 InnoDB tables, 7 core migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
-| **Role Model** | 3 Roles (`admin`, `hr`, `employee`) | Strict 3-role RBAC under ADR-012 | `DONE` |
+| **PHPUnit Test Suite** | 742 tests (739 passing, 3 WS E2E skipped), 3,937 assertions | 100% Passing (0 failures, 0 errors) | `DONE` |
+| **PSR-12 Code Style** | 232 baseline issues (0 new violations) | Baseline limit: 259 | `DONE` |
+| **Database Schema** | 45 InnoDB tables, 16 migrations | MySQL 8.0 InnoDB, zero corruption | `DONE` |
+| **Role Model** | 3 Roles (`admin`, `hr`, `employee`) | Least-privilege 3-role RBAC + HR-to-Admin Support | `DONE` |
 | **Multi-Factor Auth** | Email OTP (6-digit) + TOTP Authenticator | Mandatory 2FA, 10m TTL | `DONE` |
 | **Real-time Pipeline** | Ratchet WebSocket (:8090) + Outbox Worker | Transactional Outbox, sub-100ms dispatch | `DONE` |
 | **Documentation** | 5 Numbered Pillars (01-core to 05-reference) | Unified single source of truth | `DONE` |
@@ -122,6 +122,13 @@
 - [x] Implement `PasswordPolicy` recovery checks, `PasswordReset`, and `PasswordRecoveryService` (15-min MySQL clock CSPRNG split tokens, HMAC-SHA256 at rest, timing-equalized anti-enumeration, atomic single-use consumption, trusted-device/session/OTP revocation, mandatory fresh OTP step-up).
 - [x] Implement `PublicSupportTrackingToken`, `PublicAuthSupportService`, and `PublicAuthSupportController` for `/auth/help`, `/auth/help/otp`, `/forgot-password`, `/reset-password`, `/auth/support/report` (`AUTH-YYYY-NNNNN`), redacted `/auth/support/track`, and HR inbox integration (`/hr/support?scope=public_auth`).
 - [x] Integrate accessible Light/Dark public assistance views, entry points (`/`, `/login`, `/verify-otp`), and security controls validated via `PasswordRecoveryServiceTest`, `PublicAuthSupportAndRecoveryTest`, Selenium + Mailpit E2E (`test_public_auth_support_and_recovery.py`), PHPCS, PHPStan, and PHPUnit.
+
+### Phase 11E: Least-Privilege Admin Governance & HR-to-Admin Help & Support Module (`DONE`)
+*Scope Addendum under Comprehensive Development Plan v3.2 — see [HR-ADMIN-HELP-SUPPORT-SPEC.md](HR-ADMIN-HELP-SUPPORT-SPEC.md).*
+- [x] Author idempotent migration (`2026_11_20_create_hr_to_admin_support_module.sql`) creating `hr_support_tickets`, `hr_support_ticket_messages`, `hr_support_ticket_attachments`, `hr_support_ticket_assignments`, and `hr_support_ticket_history`, synchronized across `database/schema.sql` and `docker/mysql/init/01-schema.sql`.
+- [x] Enforce least-privilege Admin boundaries across `PermissionRegistry`, `AuthorizationService`, `Permission`, `ConfidentialLeaveService`, `LeaveDocumentService`, `EmployeeController`, `LeaveController`, `HrSupportController`, and REST API v1 controllers.
+- [x] Implement `HrSupportTicket`, `HrSupportAccessService`, `HrSupportNotificationService`, `HrSupportWorkflowService`, `HrAdminSupportController` (`/hr/help*`), and `AdminSupportController` (`/admin/support*`) with `HR-SUP-YYYY-XXXXXXXX` references, private Admin internal notes, redacted SMTP/Mailpit notifications, and real-time `hr_support.*` WebSocket events.
+- [x] Verify with `InitSchemaParityTest`, `HrSupportAccessUnitTest`, `HrSupportLifecycleAndSecurityTest`, Impeccable craft-floor UI audit, PSR-12 baseline check, and full PHPUnit suite.
 
 ### Phase 12: Production Deployment & VPS Release (`PENDING`)
 - [ ] Provision production cloud VPS (Ubuntu 24.04 LTS).
