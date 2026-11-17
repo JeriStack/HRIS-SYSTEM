@@ -166,9 +166,9 @@ def _scroll_click(driver, element) -> None:
     driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", element)
     time.sleep(0.12)
     try:
-        element.click()
-    except Exception:
         driver.execute_script("arguments[0].click();", element)
+    except Exception:
+        element.click()
 
 
 def _sign_out(driver) -> None:
