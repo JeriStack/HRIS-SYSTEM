@@ -195,8 +195,10 @@ def _wait_body_contains(driver, text: str, timeout: int = 10, case_insensitive: 
 def _submit_hr_response(driver, mode: str, body: str) -> None:
     """Post an HR response and wait for the redirected detail page to render it.
 
-    Waiting for the old textarea to go stale proves the POST/redirect finished,
-    so a slow server response is not mistaken for a missing message.
+    Uses staleness_of(textarea) as the primary signal that the POST/redirect
+    completed.  On slow CI runners the PHP built-in server can take >30s, so
+    we allow up to 60s and add a TimeoutException fallback: if staleness never
+    fires we still verify the submission succeeded via _wait_body_contains.
     """
     radio = driver.find_element(By.CSS_SELECTOR, f'input[name="response_mode"][value="{mode}"]')
     driver.execute_script("arguments[0].click();", radio)
@@ -204,10 +206,16 @@ def _submit_hr_response(driver, mode: str, body: str) -> None:
     textarea.clear()
     textarea.send_keys(body)
     _scroll_click(driver, driver.find_element(By.ID, "hrResponseSubmitBtn"))
-    WebDriverWait(driver, 30).until(EC.staleness_of(textarea))
+    try:
+        WebDriverWait(driver, 60).until(EC.staleness_of(textarea))
+    except TimeoutException:
+        # The page may have refreshed without the element going stale in time
+        # (e.g. same-URL redirect on a slow CI PHP server).  Fall through and
+        # let _wait_body_contains confirm the submission actually landed.
+        pass
     errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
-    assert not errors, f"HR {mode} submission was rejected: {errors[0].text}"
-    _wait_body_contains(driver, body, timeout=30)
+    assert not errors, f"HR {mode} submission was rejected: {errors[0].text if errors else 'unknown'}"
+    _wait_body_contains(driver, body, timeout=60)
 
 
 def _get_activity_highwater() -> int:

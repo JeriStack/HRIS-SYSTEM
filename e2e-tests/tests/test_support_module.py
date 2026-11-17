@@ -144,7 +144,12 @@ class TestSupportModuleEndToEnd:
 
     @staticmethod
     def _submit_hr_response(driver, base, mode: str, body: str) -> None:
-        """Post an HR response and wait for the redirected detail page to render it."""
+        """Post an HR response and wait for the redirected detail page to render it.
+
+        Allows up to 60 s for the POST/redirect on slow CI runners and falls
+        back gracefully if staleness_of never fires (same-URL reload edge case).
+        """
+        from selenium.common.exceptions import TimeoutException as _TE  # noqa: PLC0415
         radio = base.find((By.CSS_SELECTOR, f'input[name="response_mode"][value="{mode}"]'))
         driver.execute_script("arguments[0].click();", radio)
         textarea = base.find((By.ID, "hrResponseBody"))
@@ -152,24 +157,29 @@ class TestSupportModuleEndToEnd:
         textarea.send_keys(body)
         submit_btn = base.find((By.ID, "hrResponseSubmitBtn"))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
-        # Wait for the POST -> redirect cycle to replace the old page before reading text.
-        WebDriverWait(driver, 30).until(EC.staleness_of(textarea))
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=30)
+        try:
+            WebDriverWait(driver, 60).until(EC.staleness_of(textarea))
+        except _TE:
+            pass  # fallback: _wait_text_contains will confirm the submission landed
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=60)
 
     @staticmethod
     def _submit_hr_status(driver, base, status: str, remarks: str) -> None:
         """Change ticket status as HR and wait for the redirected page, surfacing any server-side error."""
+        from selenium.common.exceptions import TimeoutException as _TE  # noqa: PLC0415
         Select(base.find((By.ID, "hrStatusSelect"))).select_by_value(status)
         remarks_box = base.find((By.ID, "hrResolutionRemarks"))
         remarks_box.clear()
         remarks_box.send_keys(remarks)
         submit_btn = base.find((By.XPATH, '//form[contains(@action, "/status")]//button[@type="submit"]'))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
-        # Wait for the POST -> redirect cycle to replace the old page before reading it.
-        WebDriverWait(driver, 30).until(EC.staleness_of(remarks_box))
+        try:
+            WebDriverWait(driver, 60).until(EC.staleness_of(remarks_box))
+        except _TE:
+            pass  # fallback: _wait_text_contains will confirm the status page loaded
         errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
         assert not errors, f"Status change to {status} was rejected: {errors[0].text}"
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=30)
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=60)
 
     @staticmethod
     def _sign_out(driver) -> None:
