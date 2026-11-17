@@ -377,7 +377,7 @@ if (!empty($ticket['category_metadata_json'])) {
                             <textarea id="hrResolutionRemarks" name="resolution_remarks" class="form-control" rows="3" maxlength="5000" placeholder="Required when resolving or closing a ticket..."><?= e((string)($ticket['resolution_remarks'] ?? '')) ?></textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">Save Status &amp; Priority</button>
+                        <button type="submit" id="hrStatusSubmitBtn" class="btn btn-primary btn-sm" style="width: 100%;">Save Status &amp; Priority</button>
                     </form>
                 </div>
             </section>

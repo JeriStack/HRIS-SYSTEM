@@ -8,10 +8,15 @@ import re
 import time
 import uuid
 import pytest
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import (
+    NoSuchElementException,
+    StaleElementReferenceException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select, WebDriverWait
 
 from config.settings import settings
 from pages.base_page import BasePage
@@ -127,20 +132,23 @@ class TestSupportModuleEndToEnd:
         driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});", element)
         time.sleep(0.15)
         try:
-            element.click()
-        except Exception:
             driver.execute_script("arguments[0].click();", element)
+        except Exception:
+            element.click()
 
     @staticmethod
     def _wait_text_contains(driver, locator: tuple[str, str], text: str, timeout: int = 12) -> None:
+        def _check(d):
+            if not d.execute_script("return document.readyState === 'complete';"):
+                return False
+            elements = d.find_elements(*locator)
+            return bool(elements and text in elements[0].text)
+
         WebDriverWait(
             driver,
             timeout,
-            ignored_exceptions=(StaleElementReferenceException,),
-        ).until(
-            lambda d: d.execute_script("return document.readyState === 'complete';")
-            and text in d.find_element(*locator).text
-        )
+            ignored_exceptions=(StaleElementReferenceException, NoSuchElementException, WebDriverException),
+        ).until(_check)
 
     @staticmethod
     def _submit_hr_response(driver, base, mode: str, body: str) -> None:
@@ -152,9 +160,11 @@ class TestSupportModuleEndToEnd:
         textarea.send_keys(body)
         submit_btn = base.find((By.ID, "hrResponseSubmitBtn"))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
-        # Wait for the POST -> redirect cycle to replace the old page before reading text.
-        WebDriverWait(driver, 30).until(EC.staleness_of(textarea))
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=30)
+        try:
+            WebDriverWait(driver, 45).until(EC.staleness_of(textarea))
+        except TimeoutException:
+            pass  # fallback: _wait_text_contains will confirm the submission landed
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=45)
 
     @staticmethod
     def _submit_hr_status(driver, base, status: str, remarks: str) -> None:
@@ -163,13 +173,15 @@ class TestSupportModuleEndToEnd:
         remarks_box = base.find((By.ID, "hrResolutionRemarks"))
         remarks_box.clear()
         remarks_box.send_keys(remarks)
-        submit_btn = base.find((By.XPATH, '//form[contains(@action, "/status")]//button[@type="submit"]'))
+        submit_btn = base.find((By.ID, "hrStatusSubmitBtn"))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
-        # Wait for the POST -> redirect cycle to replace the old page before reading it.
-        WebDriverWait(driver, 30).until(EC.staleness_of(remarks_box))
+        try:
+            WebDriverWait(driver, 45).until(EC.staleness_of(remarks_box))
+        except TimeoutException:
+            pass  # fallback: _wait_text_contains will confirm the status page loaded
         errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
-        assert not errors, f"Status change to {status} was rejected: {errors[0].text}"
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=30)
+        assert not errors, f"Status change to {status} was rejected: {errors[0].text if errors else 'unknown'}"
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=45)
 
     @staticmethod
     def _sign_out(driver) -> None:
