@@ -48,6 +48,8 @@ Thumbs.db
 !.vscode/extensions.json
 *.sublime-project
 *.sublime-workspace
+# SQLTools per-connection scratch query files
+*.session.sql
 
 # Python & End-to-End Testing
 .venv/
@@ -56,12 +58,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
-reports/
-screenshots/
+# Generated test reports and screenshots. Anchored with "/" so source folders
+# such as app/views/reports/ and docs/screenshots/ are NOT ignored.
+/reports/
+/screenshots/
 e2e-tests/reports/
 e2e-tests/screenshots/
 e2e-tests/.env
-
 
 # Node & Composer Dependencies
 node_modules/
