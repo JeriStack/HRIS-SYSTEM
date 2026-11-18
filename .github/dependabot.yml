@@ -1,0 +1,200 @@
+# ==============================================================================
+# Dependabot Configuration
+# Employee HRIS & Leave Management System (NEXORA HR)
+#
+# Configured for GitHub Dependabot Version Updates across:
+#   - PHP Composer dependencies (root /)
+#   - Python pytest/Selenium E2E automation dependencies (/e2e-tests)
+#   - GitHub Actions CI/CD workflows (/.github/workflows)
+#   - Docker base container images (/ and /docker/scheduler)
+#   - Terraform Infrastructure as Code (/terraform and environments)
+#
+# Target Branch:
+#   Configured to target 'development' (active integration branch).
+#   Update or remove 'target-branch' if targeting the repository default branch.
+#
+# Reference:
+#   https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# ==============================================================================
+
+version: 2
+
+updates:
+  # ----------------------------------------------------------------------------
+  # 1. PHP Composer Dependencies (App & Development Tooling)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "composer"
+    directory: "/"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "php"
+      - "composer"
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+      production-dependencies:
+        dependency-type: "production"
+
+  # ----------------------------------------------------------------------------
+  # 2. Python E2E Testing & UI Automation Dependencies
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "pip"
+    directory: "/e2e-tests"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps-e2e)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+      - "e2e-tests"
+    groups:
+      e2e-dependencies:
+        patterns:
+          - "*"
+
+  # ----------------------------------------------------------------------------
+  # 3. GitHub Actions Workflows (CI/CD Pipelines)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci-cd"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ----------------------------------------------------------------------------
+  # 4. Docker Base Images (Application Container & Docker Compose)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+    groups:
+      docker-images:
+        patterns:
+          - "*"
+
+  # ----------------------------------------------------------------------------
+  # 5. Docker Base Images (Cron Scheduler Container)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "docker"
+    directory: "/docker/scheduler"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "scheduler"
+
+  # ----------------------------------------------------------------------------
+  # 6. Terraform Infrastructure as Code (Root Configuration)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "terraform"
+    directory: "/terraform"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(terraform)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "terraform"
+    groups:
+      terraform-providers:
+        patterns:
+          - "*"
+
+  # ----------------------------------------------------------------------------
+  # 7. Terraform Infrastructure as Code (Dev Environment)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "terraform"
+    directory: "/terraform/environments/dev"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(terraform)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "dev-env"
+
+  # ----------------------------------------------------------------------------
+  # 8. Terraform Infrastructure as Code (Prod Environment)
+  # ----------------------------------------------------------------------------
+  - package-ecosystem: "terraform"
+    directory: "/terraform/environments/prod"
+    target-branch: "development"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "Asia/Manila"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(terraform)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "terraform"
+      - "prod-env"
