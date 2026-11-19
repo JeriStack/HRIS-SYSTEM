@@ -4,6 +4,7 @@ Manages WebDriver lifecycle, temporary profile cleanup, screenshot capture on fa
 and test credentials injection.
 """
 
+import base64
 import os
 import shutil
 import sys
@@ -160,12 +161,12 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
                 driver_instance.save_screenshot(str(screenshot_path))
                 print(f"\n[Screenshot] Saved failure evidence to: {screenshot_path}")
 
-                # Attach to pytest-html report if plugin is active (pytest-html 4.x uses report.extras)
+                # Attach to pytest-html report as embedded base64 PNG (avoids self-contained external-link warnings)
                 extras = list(getattr(report, "extras", []))
                 pytest_html = item.config.pluginmanager.getplugin("html")
                 if pytest_html is not None:
-                    relative_path = os.path.relpath(screenshot_path, settings.REPORTS_DIR)
-                    extras.append(pytest_html.extras.image(relative_path))
+                    encoded_png = base64.b64encode(screenshot_path.read_bytes()).decode("ascii")
+                    extras.append(pytest_html.extras.png(encoded_png))
                     report.extras = extras
             except Exception as e:
                 print(f"[conftest] Failed to capture screenshot on test failure: {e}", file=sys.stderr)

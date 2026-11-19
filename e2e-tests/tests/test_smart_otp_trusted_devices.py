@@ -23,11 +23,25 @@ from pages.login_page import LoginPage
 from utils.auth_helper import AuthHelper
 
 
+def _mailpit_get_json(path: str, timeout: int = 15, attempts: int = 3) -> Dict[str, Any]:
+    """Fetch JSON from Mailpit with retry resilience against transient Docker/WSL2 port-forward latency."""
+    url = f"{settings.MAILPIT_API_URL}/{path.lstrip('/')}"
+    last_exc: Optional[Exception] = None
+    for attempt in range(attempts):
+        try:
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as exc:
+            last_exc = exc
+            if attempt + 1 < attempts:
+                time.sleep(1.0)
+    raise last_exc  # type: ignore[misc]
+
+
 def _fetch_mailpit_messages_for(email: str) -> List[Dict[str, Any]]:
     """Return Mailpit message summaries addressed to `email`, newest first."""
-    resp = requests.get(f"{settings.MAILPIT_API_URL}/messages", timeout=5)
-    resp.raise_for_status()
-    payload = resp.json()
+    payload = _mailpit_get_json("messages")
     messages = payload.get("messages") or []
     target = email.lower()
     matched = []
@@ -62,12 +76,7 @@ def _wait_for_new_otp_code(
             msg_id = str(msg.get("ID") or "")
             if not msg_id or msg_id in known_message_ids:
                 continue
-            detail_resp = requests.get(
-                f"{settings.MAILPIT_API_URL}/message/{msg_id}",
-                timeout=5,
-            )
-            detail_resp.raise_for_status()
-            detail = detail_resp.json()
+            detail = _mailpit_get_json(f"message/{msg_id}")
             text_body = detail.get("Text") or ""
             html_body = detail.get("HTML") or ""
             combined = f"{text_body}\n{html_body}"

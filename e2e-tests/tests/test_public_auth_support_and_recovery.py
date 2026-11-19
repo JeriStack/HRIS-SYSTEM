@@ -33,10 +33,24 @@ MINIMAL_PNG_BYTES = base64.b64decode(
 )
 
 
+def _mailpit_get_json(path: str, timeout: int = 15, attempts: int = 3) -> Dict[str, Any]:
+    """Fetch JSON from Mailpit with retry resilience against transient Docker/WSL2 port-forward latency."""
+    url = f"{settings.MAILPIT_API_URL}/{path.lstrip('/')}"
+    last_exc: Optional[Exception] = None
+    for attempt in range(attempts):
+        try:
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.RequestException as exc:
+            last_exc = exc
+            if attempt + 1 < attempts:
+                time.sleep(1.0)
+    raise last_exc  # type: ignore[misc]
+
+
 def _fetch_mailpit_messages_for(email: str) -> List[Dict[str, Any]]:
-    resp = requests.get(f"{settings.MAILPIT_API_URL}/messages", timeout=5)
-    resp.raise_for_status()
-    payload = resp.json()
+    payload = _mailpit_get_json("messages")
     messages = payload.get("messages") or []
     target = email.lower()
     matched = []
@@ -66,12 +80,7 @@ def _wait_for_mail_matching(
             subject = str(msg.get("Subject") or "")
             if needle not in subject.lower():
                 continue
-            detail_resp = requests.get(
-                f"{settings.MAILPIT_API_URL}/message/{msg_id}",
-                timeout=5,
-            )
-            detail_resp.raise_for_status()
-            return detail_resp.json(), msg_id
+            return _mailpit_get_json(f"message/{msg_id}"), msg_id
         time.sleep(0.4)
     raise TimeoutError(
         f"Timed out after {timeout}s waiting for Mailpit email matching '{subject_substring}' to {email}."
