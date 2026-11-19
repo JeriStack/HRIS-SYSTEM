@@ -98,7 +98,11 @@ class BrowserFactory:
             options.add_argument(f"--user-data-dir={temp_profile_dir}")
 
             cls._apply_common_chrome_options(options, is_headless)
-            driver = webdriver.Chrome(options=options)
+            try:
+                driver = webdriver.Chrome(options=options)
+            except Exception:
+                shutil.rmtree(temp_profile_dir, ignore_errors=True)
+                raise
 
         elif browser_type == "chrome":
             options = ChromeOptions()
@@ -106,7 +110,11 @@ class BrowserFactory:
             options.add_argument(f"--user-data-dir={temp_profile_dir}")
 
             cls._apply_common_chrome_options(options, is_headless)
-            driver = webdriver.Chrome(options=options)
+            try:
+                driver = webdriver.Chrome(options=options)
+            except Exception:
+                shutil.rmtree(temp_profile_dir, ignore_errors=True)
+                raise
 
         elif browser_type == "remote":
             options = ChromeOptions()

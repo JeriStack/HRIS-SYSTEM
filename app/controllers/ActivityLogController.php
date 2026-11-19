@@ -66,6 +66,7 @@ class ActivityLogController extends Controller
             AuditService::CATEGORY_ORGANIZATION => 'Departments & Positions',
             AuditService::CATEGORY_LEAVE        => 'Leave Administration',
             AuditService::CATEGORY_SUPPORT      => 'Help & Support Operations',
+            AuditService::CATEGORY_ANNOUNCEMENT => 'Announcements',
             AuditService::CATEGORY_REPORTS      => 'Reports & Exports',
             AuditService::CATEGORY_SYSTEM       => 'System Configuration',
         ];
@@ -123,6 +124,8 @@ class ActivityLogController extends Controller
 
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-store, no-cache, must-revalidate, private');
+        header('X-Content-Type-Options: nosniff');
         header('Pragma: no-cache');
         header('Expires: 0');
 

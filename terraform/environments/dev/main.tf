@@ -19,4 +19,9 @@ module "dev_sandbox" {
   image_name     = var.test_image_name
   network_name   = module.dev_network.name
   environment    = var.environment
+
+  # Opt-in Nginx integration (default off keeps the sandbox fully isolated).
+  external_network_name    = var.attach_to_hris_network ? var.hris_network_name : ""
+  external_network_aliases = var.attach_to_hris_network ? ["tf-sandbox"] : []
+  serve_http               = var.attach_to_hris_network
 }

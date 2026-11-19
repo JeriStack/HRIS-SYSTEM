@@ -260,6 +260,22 @@ To prevent catastrophic resource contention, an explicit ownership model is esta
 - **Option A (Hybrid Architecture — Recommended for Local Dev):** Compose manages fast-reloading application services (`app`, `realtime`, `nginx`); Terraform manages shared auxiliary infrastructure (monitoring networks, shared logging endpoints).
 - **Option B (Full IaC Migration — Staging & Production):** Gradual migration of services into modular Terraform definitions after formal staging validation. Never execute Option B without a verified migration plan and tested backups.
 
+### Opt-in Nginx Integration (Hybrid, implemented)
+
+By default the sandbox stays isolated on `hris_tf_test_network`. Setting `attach_to_hris_network=true` additionally:
+
+1. **Network (read-only):** looks up Compose's `hris_network` with a `data "docker_network"` source and attaches the sandbox with the DNS alias `tf-sandbox`. Terraform never creates, changes, or destroys that network (`terraform destroy` leaves it intact).
+2. **Responder:** runs a static busybox `httpd` on port `8081` as user `nobody`.
+3. **Nginx:** `docker/nginx/default.conf` proxies `/terraform-sandbox/` to `http://tf-sandbox:8081` (resolved at request time, so Nginx still starts if the sandbox is absent and simply returns 502). Access is limited to loopback/private ranges.
+
+```powershell
+docker compose up -d                                   # hris_network must exist first
+terraform -chdir=terraform apply -var attach_to_hris_network=true
+curl http://localhost:8080/terraform-sandbox/          # -> "hris terraform sandbox ok"
+```
+
+> **Security:** attaching removes the sandbox's isolation from `hris_db` and other services on `hris_network`. Keep it off unless you are testing this integration; do not enable it in both the root and `environments/dev` at once (shared alias). Production Nginx (`nginx.prod.conf`) is intentionally not changed.
+
 ---
 
 ## 10. Security & State File Hygiene

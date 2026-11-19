@@ -28,3 +28,16 @@ variable "test_network_name" {
   default     = "hris_dev_test_network"
 }
 
+variable "attach_to_hris_network" {
+  type        = bool
+  description = "Opt-in: also attach the dev sandbox to the Compose-owned hris_network (read-only lookup) and serve a demo HTTP page for Nginx. Removes network isolation from hris_db. Do not enable together with the root configuration (shared alias)."
+  default     = false
+}
+
+variable "hris_network_name" {
+  type        = string
+  description = "Name of the Compose-owned network to attach to when attach_to_hris_network is true."
+  default     = "hris_network"
+}
+
+

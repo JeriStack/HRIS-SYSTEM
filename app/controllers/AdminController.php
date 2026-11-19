@@ -441,6 +441,20 @@ class AdminController extends Controller
     {
         $health = $this->probeLiveHealth();
 
+        $wantsJson = (($_GET['format'] ?? '') === 'json')
+            || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+        if ($wantsJson) {
+            if (!headers_sent()) {
+                header('Cache-Control: no-store, no-cache, must-revalidate, private');
+                header('X-Content-Type-Options: nosniff');
+            }
+            json_response([
+                'status' => 'success',
+                'code'   => 200,
+                'data'   => $health,
+            ], 200);
+        }
+
         $this->view('admin.system_health', [
             'pageTitle' => 'System Health',
             'health'    => $health,
@@ -605,14 +619,20 @@ class AdminController extends Controller
      */
     private function probeLiveHealth(): array
     {
-        // 1. Database Probe
+        $inDocker = file_exists('/.dockerenv');
+
+        // 1. Database Probe (with live version introspection)
         $dbStatus = 'Healthy';
         $dbLatency = 0.0;
+        $dbDriver = 'MySQL 8.0';
         try {
             if (Database::getInstance()->isConnected()) {
                 $t0 = microtime(true);
-                $this->getPdo()->query("SELECT 1");
+                $ver = $this->getPdo()->query("SELECT VERSION()")->fetchColumn();
                 $dbLatency = round((microtime(true) - $t0) * 1000, 2);
+                if (is_string($ver) && $ver !== '') {
+                    $dbDriver = 'MySQL ' . explode('-', $ver)[0];
+                }
             } else {
                 $dbStatus = 'Standby / Offline';
             }
@@ -620,33 +640,37 @@ class AdminController extends Controller
             $dbStatus = 'Degraded';
         }
 
-        // 2. WebSocket Daemon Probe (Port 8080)
-        $wsOnline = false;
-        $wsErr = '';
-        $fpWs = @fsockopen('127.0.0.1', 8080, $errno, $errstr, 0.2);
-        if ($fpWs) {
-            $wsOnline = true;
-            fclose($fpWs);
-        } else {
-            $wsErr = $errstr ?: 'Socket refused connection';
-        }
+        // 2. WebSocket Daemon Probe (uses real WS_PORT and Docker service name when in container)
+        $wsHost = getenv('WS_HEALTH_HOST') ?: ($inDocker ? 'realtime' : '127.0.0.1');
+        $wsPort = (int)(getenv('WS_PORT') ?: 8090);
+        $wsProbe = $this->probeTcpEndpoint($wsHost, $wsPort, 0.25);
 
-        // 3. SMTP Mailpit Probe (Port 1025)
-        $smtpOnline = false;
-        $fpSmtp = @fsockopen('127.0.0.1', 1025, $errno, $errstr, 0.2);
-        if ($fpSmtp) {
-            $smtpOnline = true;
-            fclose($fpSmtp);
-        }
+        // 3. SMTP Probe (uses configured mail host & port)
+        $mailCfg = config('mail', []);
+        $smtpHost = (string)($mailCfg['host'] ?? ($inDocker ? 'mailpit' : '127.0.0.1'));
+        $smtpPort = (int)($mailCfg['port'] ?? 1025);
+        $smtpProbe = $this->probeTcpEndpoint($smtpHost, $smtpPort, 0.25);
+        $isMailpit = in_array(strtolower($smtpHost), ['mailpit', '127.0.0.1', 'localhost'], true) && $smtpPort === 1025;
 
-        // 4. Memory & Disk Diagnostics
+        // 4. Observability Stack Probes (Prometheus & Grafana)
+        $promHost = $inDocker ? 'prometheus' : '127.0.0.1';
+        $promPort = (int)(getenv('PROMETHEUS_PORT') ?: 9090);
+        $promProbe = $this->probeTcpEndpoint($promHost, $promPort, 0.2);
+
+        $grafanaHost = $inDocker ? 'grafana' : '127.0.0.1';
+        $grafanaPort = $inDocker ? 3000 : (int)(getenv('GRAFANA_PORT') ?: 3100);
+        $grafanaProbe = $this->probeTcpEndpoint($grafanaHost, $grafanaPort, 0.2);
+
+        // 5. Memory & Disk Diagnostics
         $memUsage = round(memory_get_usage(true) / (1024 * 1024), 2);
-        $memLimit = ini_get('memory_limit');
+        $memPeak = round(memory_get_peak_usage(true) / (1024 * 1024), 2);
+        $memLimit = (string)ini_get('memory_limit');
         $diskFree = @disk_free_space('.');
         $diskTotal = @disk_total_space('.');
-        $diskPercent = ($diskTotal > 0 && $diskFree !== false) ? round((($diskTotal - $diskFree) / $diskTotal) * 100, 1) : 0;
+        $diskPercent = ($diskTotal > 0 && $diskFree !== false) ? round((($diskTotal - $diskFree) / $diskTotal) * 100, 1) : 0.0;
+        $diskStatus = $diskPercent >= 90.0 ? 'Critical' : ($diskPercent >= 80.0 ? 'Warning' : 'Storage OK');
 
-        // 5. Queue & Asynchronous Worker Telemetry
+        // 6. Queue & Asynchronous Worker Telemetry
         $queueMetrics = [
             'pending' => 0, 'reserved' => 0, 'completed' => 0, 'failed' => 0, 'total_failed' => 0, 'oldest_pending_s' => 0
         ];
@@ -658,11 +682,25 @@ class AdminController extends Controller
             }
         }
 
+        // 7. Live Console Scheduler Task Introspection
+        $schedulerTasks = [];
+        if (class_exists(\App\Console\Kernel::class)) {
+            try {
+                foreach ((new \App\Console\Kernel())->getTasks() as $task) {
+                    $schedulerTasks[] = $task->getName();
+                }
+            } catch (\Throwable) {
+                // Non-fatal fallback
+            }
+        }
+        $schedulerTaskCount = count($schedulerTasks);
+
         return [
+            'checked_at' => date('Y-m-d H:i:s'),
             'database' => [
                 'status'  => $dbStatus,
                 'latency' => "{$dbLatency} ms",
-                'driver'  => 'MySQL 8.0',
+                'driver'  => $dbDriver,
             ],
             'queue' => [
                 'status'           => ($queueMetrics['failed'] > 0 || $queueMetrics['total_failed'] > 10) ? 'Attention Required' : 'Operational',
@@ -674,24 +712,61 @@ class AdminController extends Controller
                 'oldest_pending_s' => $queueMetrics['oldest_pending_s'],
             ],
             'scheduler' => [
-                'status'       => 'Operational',
-                'active_tasks' => 4,
+                'status'       => $schedulerTaskCount > 0 ? 'Operational' : 'Standby',
+                'active_tasks' => $schedulerTaskCount,
+                'tasks'        => $schedulerTasks,
             ],
             'websocket' => [
-                'status' => $wsOnline ? 'Operational' : 'Idle / Offline',
-                'port'   => 8080,
-                'error'  => $wsErr,
+                'status' => $wsProbe['online'] ? 'Operational' : 'Idle / Offline',
+                'host'   => $wsHost,
+                'port'   => $wsPort,
+                'error'  => $wsProbe['error'],
             ],
             'smtp' => [
-                'status' => $smtpOnline ? 'Operational' : 'Standby / Offline',
-                'port'   => 1025,
+                'status'     => $smtpProbe['online'] ? 'Operational' : 'Standby / Offline',
+                'host'       => $smtpHost,
+                'port'       => $smtpPort,
+                'is_mailpit' => $isMailpit,
+                'error'      => $smtpProbe['error'],
+            ],
+            'monitoring' => [
+                'prometheus' => [
+                    'status' => $promProbe['online'] ? 'Operational' : 'Standby / Offline',
+                    'host'   => $promHost,
+                    'port'   => $promPort,
+                ],
+                'grafana' => [
+                    'status' => $grafanaProbe['online'] ? 'Operational' : 'Standby / Offline',
+                    'host'   => $grafanaHost,
+                    'port'   => $grafanaPort,
+                ],
             ],
             'runtime' => [
-                'php_version' => PHP_VERSION,
-                'memory_used' => "{$memUsage} MB",
+                'php_version'  => PHP_VERSION,
+                'memory_used'  => "{$memUsage} MB",
+                'memory_peak'  => "{$memPeak} MB",
                 'memory_limit' => $memLimit,
-                'disk_used'   => "{$diskPercent}%",
+                'disk_used'    => "{$diskPercent}%",
+                'disk_status'  => $diskStatus,
             ],
         ];
+    }
+
+    /**
+     * Lightweight non-blocking TCP socket reachability probe.
+     *
+     * @return array{online: bool, error: string}
+     */
+    private function probeTcpEndpoint(string $host, int $port, float $timeoutSeconds = 0.25): array
+    {
+        $errno = 0;
+        $errstr = '';
+        $fp = @fsockopen($host, $port, $errno, $errstr, $timeoutSeconds);
+        if ($fp !== false) {
+            fclose($fp);
+            return ['online' => true, 'error' => ''];
+        }
+
+        return ['online' => false, 'error' => $errstr !== '' ? $errstr : 'Socket refused connection'];
     }
 }

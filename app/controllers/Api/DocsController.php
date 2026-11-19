@@ -21,20 +21,37 @@ class DocsController extends Controller
     }
 
     /**
+     * Send a consistent JSON 403 response when documentation is disabled.
+     */
+    private function denyDocumentationAccess(): never
+    {
+        http_response_code(403);
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-store, no-cache, must-revalidate, private');
+            header('X-Content-Type-Options: nosniff');
+        }
+        echo json_encode([
+            'status'  => 'error',
+            'code'    => 403,
+            'message' => 'API documentation is disabled in production environments unless explicitly authorized.',
+        ]);
+        exit;
+    }
+
+    /**
      * Render the interactive Swagger UI interface.
      * Route: GET /docs or GET /api/docs
      */
     public function index(): void
     {
         if (!$this->isDocumentationAllowed()) {
-            http_response_code(403);
-            header('Content-Type: application/json; charset=UTF-8');
-            echo json_encode([
-                'status'  => 'error',
-                'code'    => 403,
-                'message' => 'API documentation is disabled in production environments unless explicitly authorized.',
-            ]);
-            exit;
+            $this->denyDocumentationAccess();
+        }
+
+        if (!headers_sent()) {
+            header('Cache-Control: no-store, no-cache, must-revalidate, private');
+            header('X-Content-Type-Options: nosniff');
         }
 
         $specUrl = url('/api/docs/openapi.yaml');
@@ -106,8 +123,8 @@ class DocsController extends Controller
                     <span class="badge">OpenAPI 3.0</span>
                 </div>
                 <div class="links">
-                    <a href="<?= e(url('/api/docs/openapi.yaml')) ?>" target="_blank">Download YAML</a>
-                    <a href="<?= e(url('/api/docs/openapi.json')) ?>" target="_blank">Download JSON</a>
+                    <a href="<?= e(url('/api/docs/openapi.yaml')) ?>" target="_blank" rel="noopener noreferrer">Download YAML</a>
+                    <a href="<?= e(url('/api/docs/openapi.json')) ?>" target="_blank" rel="noopener noreferrer">Download JSON</a>
                     <a href="<?= e(url('/dashboard')) ?>">Back to HRIS</a>
                 </div>
             </div>
@@ -133,7 +150,8 @@ class DocsController extends Controller
                         requestInterceptor: (req) => {
                             req.credentials = 'include';
                             const csrf = "<?= e($csrfToken) ?>";
-                            if (csrf && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+                            const method = String(req.method || '').toUpperCase();
+                            if (csrf && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
                                 req.headers['X-CSRF-Token'] = csrf;
                             }
                             return req;
@@ -155,8 +173,7 @@ class DocsController extends Controller
     public function yamlSpec(): void
     {
         if (!$this->isDocumentationAllowed()) {
-            http_response_code(403);
-            exit;
+            $this->denyDocumentationAccess();
         }
 
         $filePath = __DIR__ . '/../../../docs/api/openapi.yaml';
@@ -183,8 +200,7 @@ class DocsController extends Controller
     public function jsonSpec(): void
     {
         if (!$this->isDocumentationAllowed()) {
-            http_response_code(403);
-            exit;
+            $this->denyDocumentationAccess();
         }
 
         $filePath = __DIR__ . '/../../../docs/api/openapi.json';

@@ -48,6 +48,11 @@ class AuditService
         'api_key',
         'private_key',
         'credit_card',
+        'authorization',
+        'bearer',
+        'csrf',
+        'pepper',
+        'recovery_code',
     ];
 
     private static ?self $instance = null;
@@ -665,11 +670,20 @@ class AuditService
     }
 
     /**
-     * Neutralize formula injection in CSV exports (=, +, -, @, tab, carriage return).
+     * Neutralize formula injection in CSV exports (=, +, -, @, tab, CR, LF, or leading whitespace before a formula).
      */
     public static function sanitizeCsvField(string $value): string
     {
-        if ($value !== '' && in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+        if ($value === '') {
+            return $value;
+        }
+
+        if (in_array($value[0], ['=', '+', '-', '@', "\t", "\r", "\n"], true)) {
+            return "'" . $value;
+        }
+
+        $trimmed = ltrim($value, " \t\r\n");
+        if ($trimmed !== '' && in_array($trimmed[0], ['=', '+', '-', '@'], true)) {
             return "'" . $value;
         }
 

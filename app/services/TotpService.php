@@ -33,7 +33,26 @@ class TotpService
             ?? (string)config('config.totp_encryption_key', getenv('TOTP_ENCRYPTION_KEY') ?: '');
 
         if ($rawKey === '') {
-            // Default deterministic fallback derived from app secret or safe machine identifier
+            // Fall back to domain-separated OTP_PEPPER_SECRET when configured (always required in production)
+            $pepper = getenv('OTP_PEPPER_SECRET');
+            if ($pepper === false || $pepper === '') {
+                $pepper = $_ENV['OTP_PEPPER_SECRET'] ?? '';
+            }
+            $pepper = (string)$pepper;
+            if (strlen($pepper) >= 16) {
+                $rawKey = 'totp_aes256_gcm:' . $pepper;
+            }
+        }
+
+        if ($rawKey === '') {
+            $appEnv = strtolower(trim((string)(getenv('APP_ENV') ?: ($_ENV['APP_ENV'] ?? config('config.app_env', 'production')))));
+            if ($appEnv === 'production') {
+                throw new RuntimeException(
+                    'TOTP_ENCRYPTION_KEY (or OTP_PEPPER_SECRET >= 16 chars) must be configured in production.'
+                );
+            }
+
+            // Local/dev/testing deterministic fallback
             $rawKey = 'hris_default_totp_aes256_gcm_master_key_v1';
         }
 

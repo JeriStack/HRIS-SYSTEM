@@ -60,10 +60,12 @@ echo "    - SMTP Password:   {$maskedPass}\n";
 echo "    - From Address:    {$fromEmail}\n";
 echo "    - From Name:       {$fromName}\n\n";
 
-// Check if credentials are empty
-$hasCredentials = (!empty($username) && !empty($password));
+// Check if credentials are configured and whether unauthenticated local relay (e.g., Mailpit) is in use
+$hasUsername    = ($username !== '');
+$hasCredentials = ($hasUsername && $password !== '');
+$isUnauthRelay  = (!$hasUsername && $encryption === 'none');
 
-if (!$hasCredentials) {
+if (!$hasCredentials && !$isUnauthRelay) {
     echo "⚠️  [WARNING] SMTP credentials are not fully configured in your .env file!\n";
     echo "    To enable real email OTP delivery:\n";
     echo "    1. Copy .env.example to .env (if not already done)\n";
@@ -71,6 +73,8 @@ if (!$hasCredentials) {
     echo "    3. Set SMTP_PASSWORD to a Google App Password (16 characters)\n";
     echo "       (Generate one at: https://myaccount.google.com/apppasswords)\n";
     echo "    4. Set MAIL_FROM_ADDRESS to your sender email\n\n";
+} elseif ($isUnauthRelay) {
+    echo "ℹ️  [INFO] Unauthenticated SMTP relay mode detected (encryption=none, e.g., Mailpit).\n\n";
 }
 
 // Step 2: Test TCP Socket Reachability
@@ -117,9 +121,9 @@ if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
 
 echo "[3] Dispatching Live OTP Test Email to: {$recipient}...\n";
 
-if (!$hasCredentials) {
+if (!$hasCredentials && !$isUnauthRelay) {
     echo "    ❌ Cannot dispatch email: SMTP_USERNAME or SMTP_PASSWORD is empty in .env.\n";
-    echo "    Please configure real SMTP credentials before attempting live delivery.\n\n";
+    echo "    Please configure real SMTP credentials (or set SMTP_ENCRYPTION=none for Mailpit) before attempting live delivery.\n\n";
     exit(1);
 }
 
@@ -128,19 +132,24 @@ $mail = new PHPMailer(true);
 try {
     $mail->isSMTP();
     $mail->Host       = $host;
-    $mail->SMTPAuth   = true;
+    $mail->SMTPAuth   = $hasUsername;
     $mail->Username   = $username;
     $mail->Password   = str_contains(strtolower($host), 'gmail') ? str_replace(' ', '', $password) : $password;
     $mail->Port       = $port;
     $mail->Timeout    = 15;
+    $mail->CharSet    = PHPMailer::CHARSET_UTF8;
 
     if ($encryption === 'ssl' || $port === 465) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
-    } else {
+    } elseif ($encryption === 'tls' || $port === 587) {
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    } else {
+        $mail->SMTPSecure  = '';
+        $mail->SMTPAutoTLS = false;
     }
 
-    $mail->setFrom($fromEmail !== '' ? $fromEmail : $username, $fromName);
+    $resolvedFrom = $fromEmail !== '' ? $fromEmail : ($username !== '' ? $username : 'no-reply@hris-system.local');
+    $mail->setFrom($resolvedFrom, $fromName);
     $mail->addAddress($recipient);
     $mail->isHTML(true);
 

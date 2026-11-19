@@ -7,7 +7,7 @@ groups:
   - name: hris_system_alerts
     rules:
       # -------------------------------------------------------------------------
-      # 1. Service Availability Alert
+      # 1. Service & Exporter Availability Alerts
       # -------------------------------------------------------------------------
       - alert: ServiceDown
         expr: up == 0
@@ -15,8 +15,35 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Service {{ $labels.instance }} ({{ $labels.job }}) is down"
+          summary: "Scrape target {{ $labels.instance }} ({{ $labels.job }}) is down"
           description: "Target {{ $labels.instance }} has been unreachable for more than 1 minute."
+
+      - alert: NginxDown
+        expr: nginx_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nginx reverse proxy is down"
+          description: "nginx-exporter cannot scrape Nginx stub_status for more than 1 minute."
+
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MySQL database is down"
+          description: "mysqld-exporter cannot connect to MySQL for more than 1 minute."
+
+      - alert: PrometheusConfigReloadFailed
+        expr: prometheus_config_last_reload_successful == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus configuration reload failed"
+          description: "The last Prometheus config reload via /-/reload failed; check prometheus.yml and alert_rules.yml."
 
       # -------------------------------------------------------------------------
       # 2. MySQL Database Health Alerts
@@ -42,12 +69,41 @@ groups:
       # -------------------------------------------------------------------------
       # 3. Nginx Web Server Alerts
       # -------------------------------------------------------------------------
-      - alert: NginxHigh5xxErrorRate
-        expr: rate(nginx_connections_accepted[5m]) > 0 and (rate(nginx_connections_active[5m]) > 200)
+      - alert: NginxHighActiveConnections
+        expr: nginx_connections_active > 200
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: "Elevated active connections or possible traffic spike on Nginx"
-          description: "Active connections on front reverse proxy exceeded threshold."
+          summary: "Elevated active connections on Nginx"
+          description: "Nginx active connections have remained above 200 for more than 2 minutes."
 
+      # -------------------------------------------------------------------------
+      # 4. HRIS Application & Queue Health Alerts (/metrics)
+      # -------------------------------------------------------------------------
+      - alert: HRISAppDatabaseDisconnected
+        expr: hris_app_database_connected == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HRIS PHP application lost database connectivity"
+          description: "The /metrics endpoint reports hris_app_database_connected == 0 for more than 1 minute."
+
+      - alert: HRISHighDatabaseLatency
+        expr: hris_app_database_latency_seconds > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High HRIS database ping latency"
+          description: "HRIS application database ping latency has exceeded 1 second for 2 minutes."
+
+      - alert: HRISFailedQueueJobsDetected
+        expr: hris_queue_jobs_failed_total > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Failed background queue jobs detected"
+          description: "There are {{ $value }} failed dead-letter job(s) in failed_jobs for more than 5 minutes."
