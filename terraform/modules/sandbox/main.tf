@@ -61,7 +61,13 @@ resource "docker_container" "container" {
     }
   }
 
-  privileged = false
+  privileged    = false
+  memory        = 64
+  security_opts = ["no-new-privileges:true"]
+
+  capabilities {
+    drop = ["ALL"]
+  }
 
   labels {
     label = "managed_by"

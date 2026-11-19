@@ -37,6 +37,10 @@ resource "docker_volume" "db_data" {
     label = "workload"
     value = "mysql"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # 3. Production Monitoring Storage Volume (Prometheus TSDB)
@@ -46,6 +50,10 @@ resource "docker_volume" "prometheus_data" {
   labels {
     label = "environment"
     value = var.environment
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
@@ -57,6 +65,10 @@ resource "docker_volume" "grafana_data" {
     label = "environment"
     value = var.environment
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # 5. Production SSL/TLS Certificate Volume (Let's Encrypt / Certbot)
@@ -66,6 +78,10 @@ resource "docker_volume" "certbot_certs" {
   labels {
     label = "environment"
     value = var.environment
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
