@@ -280,6 +280,8 @@ services:
       --innodb-flush-log-at-trx-commit=1
       --innodb-flush-method=O_DIRECT
       --max-connections=150
+      --slow-query-log=1
+      --long-query-time=1
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in the production .env}"
       MYSQL_DATABASE: "${DB_DATABASE:-hris_db}"
