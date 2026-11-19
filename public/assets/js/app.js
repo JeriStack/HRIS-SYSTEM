@@ -203,10 +203,19 @@ function showToast(message, type = 'info') {
     if (type === 'error')   icon = '✕';
     if (type === 'warning') icon = '⚠';
 
-    toast.innerHTML = `
-        <span style="font-weight: bold; font-size: 1.1rem;" aria-hidden="true">${icon}</span>
-        <div style="flex: 1;">${message}</div>
-    `;
+    // Build with DOM nodes + textContent so the message is never parsed as HTML.
+    const iconEl = document.createElement('span');
+    iconEl.style.fontWeight = 'bold';
+    iconEl.style.fontSize = '1.1rem';
+    iconEl.setAttribute('aria-hidden', 'true');
+    iconEl.textContent = icon;
+
+    const messageEl = document.createElement('div');
+    messageEl.style.flex = '1';
+    messageEl.textContent = String(message);
+
+    toast.appendChild(iconEl);
+    toast.appendChild(messageEl);
 
     container.appendChild(toast);
 

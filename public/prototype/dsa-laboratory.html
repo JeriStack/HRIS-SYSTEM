@@ -496,14 +496,14 @@
 
                 container.innerHTML = `
                     <div style="color: #4ADE80; font-weight: bold; margin-bottom: 0.5rem;">✓ KEY MATCH FOUND IN O(1) CONSTANT TIME:</div>
-                    <div><strong>Key:</strong> "${key}" ➔ <strong>Computed Hash Bucket:</strong> [Bucket #${hash}]</div>
-                    <div><strong>Resolved Record:</strong> ${emp.firstName} ${emp.lastName} (${emp.position}, ${emp.department})</div>
-                    <div><strong>Email:</strong> ${emp.email} | <strong>Status:</strong> ${emp.status}</div>
+                    <div><strong>Key:</strong> "${escapeHtml(key)}" ➔ <strong>Computed Hash Bucket:</strong> [Bucket #${hash}]</div>
+                    <div><strong>Resolved Record:</strong> ${escapeHtml(emp.firstName)} ${escapeHtml(emp.lastName)} (${escapeHtml(emp.position)}, ${escapeHtml(emp.department)})</div>
+                    <div><strong>Email:</strong> ${escapeHtml(emp.email)} | <strong>Status:</strong> ${escapeHtml(emp.status)}</div>
                     <div style="margin-top: 0.5rem; color: #94A3B8; font-size: 0.75rem;">Collision Resolution Method: Chained LinkedList in Hash Bucket</div>
                 `;
                 showToast(`Hash Table direct hit: Key "${key}" found in bucket #${hash}!`, 'success');
             } else {
-                container.innerHTML = `<span style="color: #EF4444;">✕ Key "${key}" not found in employee hash index.</span>`;
+                container.innerHTML = `<span style="color: #EF4444;">✕ Key "${escapeHtml(key)}" not found in employee hash index.</span>`;
                 showToast(`Key "${key}" not found!`, 'error');
             }
         }
@@ -528,7 +528,7 @@
             const target = document.getElementById('targetSearchId').value.trim().toUpperCase();
             const log = document.getElementById('searchTraceLog');
             log.innerHTML = `
-                <div><strong>Target Employee ID:</strong> ${target}</div>
+                <div><strong>Target Employee ID:</strong> ${escapeHtml(target)}</div>
                 <div style="color: #38BDF8; margin-top: 0.5rem;">[1] Linear Search Trace (Unordered Sequential Scan):</div>
                 <div>Examining Index [0] (EMP001)... No match</div>
                 <div>Examining Index [1] (EMP002)... No match</div>
