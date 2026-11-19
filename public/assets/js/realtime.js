@@ -120,10 +120,11 @@
         return cfg.baseUrl + '/' + link;
     }
 
-    // Final sink guard: only same-origin http(s) URLs may reach an href (blocks javascript:/data: URLs).
-    function sinkSafeHref(url) {
+    // Parses a candidate URL and returns it only if it is a same-origin http(s) URL
+    // (blocks javascript:/data:/vbscript: and cross-origin targets). Returns '' otherwise.
+    function sameOriginHttpUrl(url) {
         if (typeof url !== 'string' || url === '') {
-            return cfg.inboxUrl;
+            return '';
         }
         try {
             var parsed = new URL(url, window.location.href);
@@ -131,9 +132,16 @@
                 return parsed.href;
             }
         } catch (e) {
-            // fall through to the safe default
+            // invalid URL: rejected below
         }
-        return cfg.inboxUrl;
+        return '';
+    }
+
+    // Final sink guard for every href. Both the requested URL and the configured inbox
+    // fallback (which originates from a DOM data-* attribute) are validated; if neither
+    // passes, a constant inert value is used so DOM text can never reach the sink unchecked.
+    function sinkSafeHref(url) {
+        return sameOriginHttpUrl(url) || sameOriginHttpUrl(cfg.inboxUrl) || '#';
     }
 
     function buildItem(item) {
