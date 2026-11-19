@@ -272,6 +272,7 @@ class AnnouncementControllerAdapter
             /** @var list<DomainEventInterface> $events */
             $events = [];
             $storedFiles = [];
+            $removedAttachmentPaths = [];
             $finalStatus = '';
 
             try {
@@ -293,6 +294,7 @@ class AnnouncementControllerAdapter
                     $input,
                     &$events,
                     &$storedFiles,
+                    &$removedAttachmentPaths,
                     &$finalStatus
                 ): void {
                     $announcement = $this->repository->findByIdForUpdate($announcementId);
@@ -325,7 +327,7 @@ class AnnouncementControllerAdapter
                         if ($remId > 0) {
                             $deleted = $this->repository->deleteAttachment($remId, $announcementId);
                             if ($deleted !== null) {
-                                $this->attachmentService->rollbackStoredFiles([(string)$deleted['storage_relative_path']]);
+                                $removedAttachmentPaths[] = (string)$deleted['storage_relative_path'];
                                 $this->auditService->record([
                                     'action'        => 'ANNOUNCEMENT_ATTACHMENT_REMOVED',
                                     'category'      => AuditService::CATEGORY_ANNOUNCEMENT,
@@ -399,6 +401,11 @@ class AnnouncementControllerAdapter
                     $this->attachmentService->rollbackStoredFiles(array_column($storedFiles, 'storage_relative_path'));
                 }
                 throw $txErr;
+            }
+
+            // Delete removed attachment files from disk only after the DB transaction commits
+            if (!empty($removedAttachmentPaths)) {
+                $this->attachmentService->rollbackStoredFiles($removedAttachmentPaths);
             }
 
             foreach ($events as $event) {
