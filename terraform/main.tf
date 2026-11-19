@@ -6,7 +6,9 @@
 # state inspection, destroy) using reusable child modules.
 #
 # Boundary Safeguards:
-# - Connects exclusively to dedicated test network 'hris_tf_test_network'
+# - Connects to dedicated test network 'hris_tf_test_network' (default: exclusively)
+# - Opt-in only (attach_to_hris_network=true): also joins Compose's 'hris_network' via a
+#   read-only data lookup so Nginx can proxy /terraform-sandbox/ to the sandbox
 # - Does NOT publish host ports (zero collision with hris_nginx:8080, db:3307, etc.)
 # - Does NOT mount host filesystem or database persistent volumes
 # - Operates with restart="no" and unprivileged execution
@@ -28,6 +30,12 @@ module "sandbox" {
   image_name     = var.test_image_name
   network_name   = module.network.name
   environment    = var.environment
+
+  # Opt-in Nginx integration (default off keeps the sandbox fully isolated).
+  # Alias 'tf-sandbox' and port 8081 are the contract with docker/nginx/default.conf.
+  external_network_name    = var.attach_to_hris_network ? var.hris_network_name : ""
+  external_network_aliases = var.attach_to_hris_network ? ["tf-sandbox"] : []
+  serve_http               = var.attach_to_hris_network
 }
 
 # ==============================================================================
