@@ -41,6 +41,22 @@ class AuthHelper:
         return "test" in settings.DB_NAME.lower()
 
     @classmethod
+    def _is_local_dev_seeded_account(cls, user_email: str) -> bool:
+        """
+        Allow clearing ephemeral email_otps rows for the seeded local test accounts when
+        running E2E against a strictly local Docker dev stack (localhost/127.0.0.1),
+        matching sync_active_otp_challenge() without ever touching remote/production DBs
+        or non-test user accounts.
+        """
+        local_db = settings.DB_HOST.lower() in ("127.0.0.1", "localhost")
+        local_app = settings.BASE_URL.startswith(("http://localhost", "http://127.0.0.1"))
+        seeded_test_user = user_email.lower() in (
+            settings.HR_EMAIL.lower(),
+            settings.EMP_EMAIL.lower(),
+        )
+        return local_db and local_app and seeded_test_user
+
+    @classmethod
     def reset_otp_history(cls, user_email: str) -> None:
         """
         Clears the user's prior OTP challenges before a fresh login.
@@ -51,9 +67,10 @@ class AuthHelper:
         one account inside 15 minutes is refused at /login. Clearing the history per test keeps
         every test independent while leaving the production limits untouched.
 
-        Skipped unless connected to a test database, so it can never purge development data.
+        Permitted on isolated test databases, or for the seeded HR/Employee test accounts
+        against a strictly local (127.0.0.1/localhost) development stack.
         """
-        if not cls._is_test_database():
+        if not cls._is_test_database() and not cls._is_local_dev_seeded_account(user_email):
             print(
                 f"[AuthHelper] Skipping OTP history reset: database '{settings.DB_NAME}' "
                 "is not a test database."
