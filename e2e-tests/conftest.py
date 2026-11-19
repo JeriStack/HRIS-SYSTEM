@@ -45,6 +45,17 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def pytest_configure(config: pytest.Config) -> None:
+    """Sync CLI --app-url into settings.BASE_URL and anchor HTML report path under e2e-tests/reports/."""
+    app_url = config.getoption("--app-url", default=None)
+    if app_url:
+        settings.BASE_URL = str(app_url).rstrip("/")
+
+    if hasattr(config.option, "htmlpath") and not config.option.htmlpath:
+        settings.REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        config.option.htmlpath = str(settings.REPORTS_DIR / "report.html")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_directories() -> None:
     """Ensure artifacts directories exist."""
@@ -149,12 +160,23 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
                 driver_instance.save_screenshot(str(screenshot_path))
                 print(f"\n[Screenshot] Saved failure evidence to: {screenshot_path}")
 
-                # Attach to pytest-html report if plugin is active
-                extra = getattr(report, "extra", [])
+                # Attach to pytest-html report if plugin is active (pytest-html 4.x uses report.extras)
+                extras = list(getattr(report, "extras", []))
                 pytest_html = item.config.pluginmanager.getplugin("html")
                 if pytest_html is not None:
                     relative_path = os.path.relpath(screenshot_path, settings.REPORTS_DIR)
-                    extra.append(pytest_html.extras.image(relative_path))
-                    report.extra = extra
+                    extras.append(pytest_html.extras.image(relative_path))
+                    report.extras = extras
             except Exception as e:
                 print(f"[conftest] Failed to capture screenshot on test failure: {e}", file=sys.stderr)
+
+            # Best-effort capture of severe browser console errors for faster CI diagnosis
+            try:
+                logs = driver_instance.get_log("browser")
+                severe = [entry for entry in logs if entry.get("level") == "SEVERE"]
+                if severe:
+                    print("\n[Browser Console SEVERE]", file=sys.stderr)
+                    for entry in severe[:10]:
+                        print(f"  - {entry.get('message', '')}", file=sys.stderr)
+            except Exception:
+                pass
