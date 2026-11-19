@@ -84,4 +84,26 @@ class EventDispatcherTest extends TestCase
         $event = new LeaveApprovedEvent(101, 5, 1, 3, 99, new DateTimeImmutable());
         $this->dispatcher->dispatch($event);
     }
+
+    public function test_subsequent_handlers_still_execute_when_earlier_handler_throws(): void
+    {
+        $secondHandlerRan = false;
+
+        $this->dispatcher->subscribe(LeaveApprovedEvent::class, function () {
+            throw new RuntimeException('First handler failed');
+        });
+        $this->dispatcher->subscribe(LeaveApprovedEvent::class, function () use (&$secondHandlerRan) {
+            $secondHandlerRan = true;
+        });
+
+        $event = new LeaveApprovedEvent(101, 5, 1, 3, 99, new DateTimeImmutable());
+
+        try {
+            $this->dispatcher->dispatch($event);
+            $this->fail('Expected RuntimeException to be re-thrown.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('First handler failed', $e->getMessage());
+            $this->assertTrue($secondHandlerRan, 'Subsequent handler must still run when an earlier handler fails.');
+        }
+    }
 }
