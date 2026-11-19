@@ -4,6 +4,12 @@
  * Breakpoints: Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+)
  */
 
+/* Prevent horizontal viewport bleed while preserving position: sticky */
+html,
+body {
+  overflow-x: clip;
+}
+
 /* ==========================================================================
    1. Laptop / Small Desktop Breakpoint (1024px - 1280px)
    ========================================================================== */
@@ -312,8 +318,40 @@
 
   /* Table Horizontal Scrolling */
   .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-md);
     margin-bottom: var(--space-4);
+  }
+
+  /* Card Headers & Pagination Wrap Cleanly on Mobile */
+  .card-header {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .pagination,
+  .pagination-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+  }
+
+  /* Native Dialog & Realtime Notification Mobile Bounds */
+  dialog {
+    max-width: calc(100vw - 1.5rem);
+    max-height: calc(100dvh - 2rem);
+  }
+
+  .rt-panel {
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .rt-toasts {
+    left: 0.75rem;
+    right: 0.75rem;
+    max-width: none;
   }
 
   .table th,

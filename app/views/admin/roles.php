@@ -234,7 +234,7 @@ $targetRoleName = $matrixRole === 'hr' ? 'Human Resources' : 'Employee';
         </p>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-5); margin-bottom: var(--space-6);">
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--space-5); margin-bottom: var(--space-6);">
         <!-- Administrator Role Card -->
         <div class="stat-card accent-purple" style="display: flex; flex-direction: column; justify-content: space-between; min-height: 260px;">
             <div>

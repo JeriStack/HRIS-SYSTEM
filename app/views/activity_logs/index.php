@@ -217,7 +217,7 @@ $exportUrl = url('/activity-logs/export' . ($exportQueryParams !== '' ? '?' . $e
         <form method="GET" action="<?= url('/activity-logs') ?>" style="display: flex; flex-direction: column; gap: var(--space-3);">
             <div style="display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: center;">
                 <!-- Full Text Query Input -->
-                <div style="position: relative; flex: 2; min-width: 260px;">
+                <div style="position: relative; flex: 2; min-width: min(260px, 100%);">
                     <span style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--color-text-muted); font-size: 0.875rem;" aria-hidden="true">🔍</span>
                     <input type="text" 
                            name="q" 
