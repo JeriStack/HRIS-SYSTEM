@@ -70,6 +70,8 @@ services:
       # Required: OTP hashing pepper (>= 32 random chars). Only the variable reference lives
       # here; the value must be set in the server-side .env next to this file.
       OTP_PEPPER_SECRET: "${OTP_PEPPER_SECRET:?OTP_PEPPER_SECRET must be set in the production .env}"
+      # Optional dedicated AES-256-GCM key for TOTP secrets (falls back to domain-separated OTP_PEPPER_SECRET)
+      TOTP_ENCRYPTION_KEY: "${TOTP_ENCRYPTION_KEY:-}"
       TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
       SESSION_ABSOLUTE_LIFETIME: "${SESSION_ABSOLUTE_LIFETIME:-43200}"
       STEP_UP_WINDOW: "${STEP_UP_WINDOW:-900}"
