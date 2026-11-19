@@ -403,6 +403,212 @@ HRIS-SYSTEM/
 
 ---
 
+<h2 id="-role-workflows--uml-diagrams" align="center">🔄 Role Workflows &amp; UML Diagrams</h2>
+
+<p align="justify">
+  This section summarizes how each of the three roles (<strong>Employee</strong>, <strong>HR Officer</strong>, <strong>Administrator</strong>) uses the system, followed by UML diagrams of the shared model. Full catalogs are in <a href="docs/02-technical/system-workflows.md">System Workflows</a> and <a href="docs/02-technical/uml-diagrams.md">UML Diagrams</a>.
+</p>
+
+### Employee Workflow (`/employee/*`)
+
+```mermaid
+flowchart TD
+    Start(["Employee signs in (Password + Email OTP / TOTP)"]) --> Dash["/employee/dashboard"]
+    Dash --> Action{"Select action"}
+    Action -- "My Profile" --> P["View employment details, department, position, status"]
+    Action -- "Leave Balances" --> B["View allocated, used and remaining days per leave type"]
+    Action -- "Apply for Leave" --> L["Choose type and dates, preview working days, submit"]
+    L --> Pending["Status: Pending (enters HR FIFO queue)"]
+    Pending --> Decision{"HR decision"}
+    Decision -- "Approved" --> Appr["Balance deducted, employee notified"]
+    Decision -- "Rejected" --> Rej["Reason shown, employee notified"]
+    Pending -- "Employee withdraws" --> Can["Status: Cancelled"]
+    Action -- "Announcements" --> A["Read and acknowledge company announcements"]
+    Action -- "Help &amp; Support" --> S["File a ticket or confidential complaint (SUP-YYYY-NNNNN)"]
+    Action -- "Notifications" --> N["Receive live WebSocket alerts, mark as read"]
+    Action -- "Account Security" --> Sec["Manage MFA and revoke trusted devices"]
+```
+
+### HR Officer Workflow (`/hr/*`)
+
+```mermaid
+flowchart TD
+    Start(["HR Officer signs in"]) --> Dash["/hr/dashboard"]
+    Dash --> Task{"Select HR operation"}
+    Task -- "Employees" --> E["Search, create, edit, change employment status"]
+    E --> E2["On create: optional linked user account + annual leave balances initialized"]
+    Task -- "Departments and Positions" --> O["Create, edit, delete (blocked if employees are assigned)"]
+    Task -- "Leave Review Queue" --> Q["Process next pending request in FIFO order"]
+    Q --> Q2{"Decision"}
+    Q2 -- "Approve" --> Q3["Row locks (SELECT ... FOR UPDATE), deduct balance, notify employee"]
+    Q2 -- "Reject" --> Q4["Record reason, notify employee"]
+    Q2 -- "Cancel approved leave" --> Q5["Record reason, refund balance"]
+    Task -- "Leave Types and Balances" --> B["Create leave types, adjust employee balances"]
+    Task -- "Announcements" --> An["Draft, schedule, publish, pin, archive; track read receipts"]
+    Task -- "Employee Support" --> Su["Reply to tickets and complaints (conflict-of-interest handlers excluded)"]
+    Task -- "Help to Admin" --> H["Escalate technical issue (HR-SUP-YYYY-XXXXXXXX), reply, confirm resolution"]
+    Task -- "Reports and Activity Logs" --> R["Filter analytics, export CSV, inspect audit trail"]
+```
+
+### Administrator Workflow (`/admin/*`)
+
+```mermaid
+flowchart TD
+    Start(["Administrator signs in (account created via CLI)"]) --> Dash["/admin/dashboard"]
+    Dash --> Nav{"Select governance action"}
+    Nav -- "User Accounts" --> U["Provision user, change role, activate or deactivate"]
+    U --> U2{"Step-up auth valid, and not self-demotion or last active admin?"}
+    U2 -- "No" --> U3["Operation blocked"]
+    U2 -- "Yes" --> U4["Update user, revoke sessions and WebSocket tickets, write audit log"]
+    Nav -- "Roles and Permissions" --> R{"Target role is admin?"}
+    R -- "Yes" --> R1["Blocked: admin role is immutable"]
+    R -- "No" --> R2["Replace hr/employee permissions, audit the diff"]
+    Nav -- "Admin Provisioning" --> P["Confirm own password, create another admin, log ADMIN_PROVISIONED"]
+    Nav -- "HR Support Inbox" --> S["Assign, set priority/status, reply to HR, add private internal notes"]
+    Nav -- "Security and Health" --> H["Review security events and system health probes"]
+    Nav -- "My Account" --> A["Update email/password, refresh session fingerprint"]
+```
+
+### UML Use Case Diagram
+
+```mermaid
+flowchart LR
+    Emp(["Employee"])
+    HR(["HR Officer"])
+    Adm(["Administrator"])
+
+    subgraph System["NEXORA HR"]
+        UC1("Sign in with OTP/TOTP MFA")
+        UC2("View profile and leave balances")
+        UC3("File / cancel leave request")
+        UC4("Read and acknowledge announcements")
+        UC5("Submit support ticket or complaint")
+        UC6("Manage employees, departments, positions")
+        UC7("Approve / reject / cancel leave")
+        UC8("Manage leave types and balances")
+        UC9("Publish announcements")
+        UC10("Reply to employee tickets")
+        UC11("Escalate ticket to Admin")
+        UC12("View reports and audit trail")
+        UC13("Manage users and roles")
+        UC14("Manage role permissions")
+        UC15("Handle HR support tickets")
+        UC16("Monitor security events and system health")
+    end
+
+    Emp --- UC1 & UC2 & UC3 & UC4 & UC5
+    HR --- UC1 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12
+    Adm --- UC1 & UC13 & UC14 & UC15 & UC16
+```
+
+### UML Class Diagram (Simplified)
+
+```mermaid
+classDiagram
+    class User {
+        +int id
+        +string username
+        +string email
+        +string role
+        +string status
+    }
+    class Role {
+        +int id
+        +string name
+    }
+    class Permission {
+        +string slug
+    }
+    class Employee {
+        +int id
+        +string employeeNo
+        +string status
+    }
+    class Department
+    class Position
+    class LeaveType
+    class LeaveBalance {
+        +float allocated
+        +float used
+    }
+    class LeaveRequest {
+        +date startDate
+        +date endDate
+        +string status
+        +approve()
+        +reject()
+        +cancel()
+    }
+    class Announcement {
+        +string status
+        +publish()
+        +archive()
+    }
+    class SupportTicket {
+        +string reference
+        +string status
+    }
+    class AuditLog {
+        +string action
+        +string hash
+    }
+
+    User "*" --> "1" Role
+    Role "*" -- "*" Permission
+    User "1" -- "0..1" Employee
+    Employee "*" --> "1" Department
+    Employee "*" --> "1" Position
+    Employee "1" --> "*" LeaveBalance
+    LeaveBalance "*" --> "1" LeaveType
+    Employee "1" --> "*" LeaveRequest
+    LeaveRequest "*" --> "1" LeaveType
+    Employee "1" --> "*" SupportTicket
+    Announcement "*" -- "*" Employee : read receipts
+    User "1" --> "*" AuditLog
+```
+
+### UML Sequence Diagram: Leave Filing and Approval
+
+```mermaid
+sequenceDiagram
+    actor Emp as Employee
+    actor HR as HR Officer
+    participant Web as LeaveController
+    participant UC as Leave Use Cases
+    participant DB as MySQL (InnoDB)
+    participant Out as Outbox / Queue
+    participant WS as WebSocket Server
+
+    Emp->>Web: POST /leaves/store
+    Web->>UC: FileLeaveRequestUseCase
+    UC->>DB: Validate balance, insert request (Pending)
+    UC->>Out: Write outbox event
+    Out-->>WS: Notify HR
+    HR->>Web: Approve next in queue
+    Web->>UC: ApproveLeaveRequestUseCase
+    UC->>DB: BEGIN, SELECT ... FOR UPDATE (request, balance)
+    UC->>DB: Deduct balance, set Approved, audit log, COMMIT
+    UC->>Out: Write outbox event
+    Out-->>WS: Notify Employee
+    WS-->>Emp: Live toast: leave approved
+```
+
+### UML State Diagram: Leave Request
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending : Employee files
+    Pending --> Approved : HR approves
+    Pending --> Rejected : HR rejects
+    Pending --> Cancelled : Employee withdraws
+    Approved --> Cancelled : HR cancels (balance refunded)
+    Rejected --> [*]
+    Cancelled --> [*]
+    Approved --> [*]
+```
+
+---
+
 <h2 id="-quick-start-guide--essential-cli-commands" align="center">🚀 Quick-Start Guide &amp; Essential CLI Commands</h2>
 
 <p align="justify">

@@ -120,12 +120,36 @@
         return cfg.baseUrl + '/' + link;
     }
 
+    // Parses a candidate URL and returns it only if it is a same-origin http(s) URL
+    // (blocks javascript:/data:/vbscript: and cross-origin targets). Returns '' otherwise.
+    function sameOriginHttpUrl(url) {
+        if (typeof url !== 'string' || url === '') {
+            return '';
+        }
+        try {
+            var parsed = new URL(url, window.location.href);
+            if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.origin === window.location.origin) {
+                return parsed.href;
+            }
+        } catch (e) {
+            // invalid URL: rejected below
+        }
+        return '';
+    }
+
+    // Final sink guard for every href. Both the requested URL and the configured inbox
+    // fallback (which originates from a DOM data-* attribute) are validated; if neither
+    // passes, a constant inert value is used so DOM text can never reach the sink unchecked.
+    function sinkSafeHref(url) {
+        return sameOriginHttpUrl(url) || sameOriginHttpUrl(cfg.inboxUrl) || '#';
+    }
+
     function buildItem(item) {
         var li = document.createElement('li');
         li.className = 'rt-item' + (item.unread ? ' is-unread' : '') + (item.level ? ' rt-level-' + item.level : '');
 
         var a = document.createElement('a');
-        a.href = item.href || cfg.inboxUrl;
+        a.href = sinkSafeHref(item.href);
 
         // Opening an unread notification marks it read; keepalive lets the request finish during navigation.
         if (item.unread && item.id) {
@@ -250,7 +274,7 @@
         var msg = document.createElement('p');
         msg.textContent = item.message;
         var link = document.createElement('a');
-        link.href = item.href;
+        link.href = sinkSafeHref(item.href);
         link.textContent = 'View';
         body.appendChild(title);
         body.appendChild(msg);
