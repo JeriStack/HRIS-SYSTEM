@@ -447,7 +447,7 @@
                 html += `
                     <div class="dsa-node" style="min-width: 130px; text-align: center;">
                         <div style="font-size: 0.7rem; color: #94A3B8;">Node [${idx}]</div>
-                        <div style="font-weight: 600;">${node}</div>
+                        <div style="font-weight: 600;">${escapeHtml(node)}</div>
                     </div>
                 `;
                 html += '<div class="dsa-pointer-arrow">➔</div>';
@@ -526,19 +526,20 @@
 
         function runSearchComparison() {
             const target = document.getElementById('targetSearchId').value.trim().toUpperCase();
+            const safeTarget = escapeHtml(target);
             const log = document.getElementById('searchTraceLog');
             log.innerHTML = `
-                <div><strong>Target Employee ID:</strong> ${escapeHtml(target)}</div>
+                <div><strong>Target Employee ID:</strong> ${safeTarget}</div>
                 <div style="color: #38BDF8; margin-top: 0.5rem;">[1] Linear Search Trace (Unordered Sequential Scan):</div>
                 <div>Examining Index [0] (EMP001)... No match</div>
                 <div>Examining Index [1] (EMP002)... No match</div>
                 <div>Examining Index [2] (EMP003)... No match</div>
                 <div>...</div>
-                <div>Examining Index [6] (${target})... <strong>MATCH FOUND! Total Comparisons = 7</strong></div>
+                <div>Examining Index [6] (${safeTarget})... <strong>MATCH FOUND! Total Comparisons = 7</strong></div>
                 <div style="color: #4ADE80; margin-top: 0.75rem;">[2] Binary Search Trace (Sorted Array Divide & Conquer):</div>
-                <div>Step 1: Check Midpoint Index [3] (EMP004) ➔ ${target} &gt; EMP004. Discard left half.</div>
-                <div>Step 2: Check Midpoint Index [5] (EMP006) ➔ ${target} &gt; EMP006. Discard left half.</div>
-                <div>Step 3: Check Midpoint Index [6] (${target}) ➔ <strong>MATCH FOUND! Total Comparisons = 3</strong></div>
+                <div>Step 1: Check Midpoint Index [3] (EMP004) ➔ ${safeTarget} &gt; EMP004. Discard left half.</div>
+                <div>Step 2: Check Midpoint Index [5] (EMP006) ➔ ${safeTarget} &gt; EMP006. Discard left half.</div>
+                <div>Step 3: Check Midpoint Index [6] (${safeTarget}) ➔ <strong>MATCH FOUND! Total Comparisons = 3</strong></div>
                 <div style="color: #FACC15; margin-top: 0.5rem;">Efficiency Gain: Binary Search achieved target in 3 steps vs 7 steps!</div>
             `;
             showToast('Search algorithm benchmark comparison executed!', 'success');
