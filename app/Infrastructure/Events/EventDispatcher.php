@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace App\Infrastructure\Events;
 
 use App\Domain\Common\EventDispatcherInterface;
+use Throwable;
 
 class EventDispatcher implements EventDispatcherInterface
 {
@@ -28,7 +29,9 @@ class EventDispatcher implements EventDispatcherInterface
 
     /**
      * Dispatch an event to all registered handlers.
-     * Re-throws any exception thrown by a handler explicitly.
+     * Isolates per-handler failures so every subscribed handler still runs,
+     * then re-throws the first exception encountered so failures are never
+     * silently swallowed.
      */
     public function dispatch(object $event): void
     {
@@ -38,8 +41,26 @@ class EventDispatcher implements EventDispatcherInterface
             return;
         }
 
+        $firstFailure = null;
+
         foreach ($this->handlers[$class] as $handler) {
-            $handler($event);
+            try {
+                $handler($event);
+            } catch (Throwable $e) {
+                if ($firstFailure === null) {
+                    $firstFailure = $e;
+                } else {
+                    error_log(sprintf(
+                        '[EventDispatcher::dispatch] Secondary handler failure for %s: %s',
+                        $class,
+                        $e->getMessage()
+                    ));
+                }
+            }
+        }
+
+        if ($firstFailure !== null) {
+            throw $firstFailure;
         }
     }
 }

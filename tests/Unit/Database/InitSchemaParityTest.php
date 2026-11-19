@@ -84,6 +84,32 @@ class InitSchemaParityTest extends TestCase
         );
     }
 
+    public function test_mysql_exporter_init_script_follows_least_privilege(): void
+    {
+        $sql = $this->read('docker/mysql/init/03-create-exporter.sql');
+
+        $this->assertStringNotContainsStringIgnoringCase(
+            'SELECT ON *.*',
+            $sql,
+            'Exporter account must not have global SELECT ON *.* access to HRIS tables.'
+        );
+        $this->assertStringContainsStringIgnoringCase(
+            'GRANT SELECT ON performance_schema.*',
+            $sql
+        );
+    }
+
+    public function test_database_config_enforces_safe_pdo_options(): void
+    {
+        $config = require $this->path('config/database.php');
+
+        $this->assertIsArray($config['options'] ?? null);
+        $this->assertSame(\PDO::ERRMODE_EXCEPTION, $config['options'][\PDO::ATTR_ERRMODE] ?? null);
+        $this->assertSame(\PDO::FETCH_ASSOC, $config['options'][\PDO::ATTR_DEFAULT_FETCH_MODE] ?? null);
+        $this->assertFalse($config['options'][\PDO::ATTR_EMULATE_PREPARES] ?? true);
+        $this->assertGreaterThan(0, (int)($config['options'][\PDO::ATTR_TIMEOUT] ?? 0));
+    }
+
     private function read(string $relativePath): string
     {
         $contents = file_get_contents($this->path($relativePath));

@@ -30,5 +30,5 @@ override.tf.json
 *_override.tf.json
 
 # Explicitly track dependency lock file (REQUIRED for reproducibility)
-!terraform.lock.hcl
+!.terraform.lock.hcl
 

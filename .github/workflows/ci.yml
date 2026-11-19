@@ -119,6 +119,13 @@ jobs:
             echo "No composer.json found; skipping dependency installation."
           fi
 
+      - name: Audit Composer dependencies for security advisories
+        shell: bash
+        run: |
+          if [ -f composer.lock ]; then
+            composer audit --locked --no-interaction
+          fi
+
       - name: Check PHP syntax
         shell: bash
         run: |
@@ -305,10 +312,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Run Hadolint Dockerfile Linter
+      - name: Run Hadolint Dockerfile Linter (App)
         uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: error
+
+      - name: Run Hadolint Dockerfile Linter (Scheduler)
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: docker/scheduler/Dockerfile
           config: .hadolint.yaml
           failure-threshold: error
 

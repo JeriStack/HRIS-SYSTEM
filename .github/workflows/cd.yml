@@ -123,7 +123,7 @@ jobs:
             scp dist/*.tar.gz "${SSH_USER}@${SSH_HOST}:${SERVER_PATH}/"
             
             # shellcheck disable=SC2029
-            ssh "${SSH_USER}@${SSH_HOST}" "set -e; cd ${SERVER_PATH} && tar -xzf hris-system-release-*.tar.gz && rm -f hris-system-release-*.tar.gz && chown -R www-data:www-data ${SERVER_PATH} && find ${SERVER_PATH} -type d -exec chmod 755 {} + && find ${SERVER_PATH} -type f -exec chmod 644 {} + && [ -f .env ] && chmod 600 .env; chmod 700 config && chmod +x scripts/deploy/*.sh scripts/backup/*.sh scripts/restore/*.sh && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans && docker exec hris_app php bin/migrate.php && bash scripts/deploy/smoke-test.sh http://127.0.0.1:80 && echo 'Deployment, migrations, and smoke tests completed successfully!'"
+            ssh "${SSH_USER}@${SSH_HOST}" "set -e; cd ${SERVER_PATH} && tar -xzf hris-system-release-*.tar.gz && rm -f hris-system-release-*.tar.gz && chown -R www-data:www-data ${SERVER_PATH} && find ${SERVER_PATH} -type d -exec chmod 755 {} + && find ${SERVER_PATH} -type f -exec chmod 644 {} + && [ -f .env ] && chmod 600 .env; chmod 700 config && chmod +x scripts/deploy/*.sh scripts/backup/*.sh scripts/restore/*.sh && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans && docker exec hris_app php bin/migrate.php && SMOKE_ENV=production bash scripts/deploy/smoke-test.sh http://127.0.0.1:80 && echo 'Deployment, migrations, and smoke tests completed successfully!'"
 
             echo "Deployment to $SSH_HOST succeeded!"
           else

@@ -17,3 +17,8 @@ output "dev_network_name" {
   description = "Name of the Docker network in development environment"
   value       = module.dev_network.name
 }
+
+output "dev_hris_network_attached" {
+  description = "Whether the dev sandbox is attached to the Compose hris_network for Nginx proxying"
+  value       = var.attach_to_hris_network
+}

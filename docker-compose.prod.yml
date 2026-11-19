@@ -70,6 +70,8 @@ services:
       # Required: OTP hashing pepper (>= 32 random chars). Only the variable reference lives
       # here; the value must be set in the server-side .env next to this file.
       OTP_PEPPER_SECRET: "${OTP_PEPPER_SECRET:?OTP_PEPPER_SECRET must be set in the production .env}"
+      # Optional dedicated AES-256-GCM key for TOTP secrets (falls back to domain-separated OTP_PEPPER_SECRET)
+      TOTP_ENCRYPTION_KEY: "${TOTP_ENCRYPTION_KEY:-}"
       TRUSTED_PROXIES: "${TRUSTED_PROXIES:-127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}"
       SESSION_ABSOLUTE_LIFETIME: "${SESSION_ABSOLUTE_LIFETIME:-43200}"
       STEP_UP_WINDOW: "${STEP_UP_WINDOW:-900}"
@@ -280,6 +282,8 @@ services:
       --innodb-flush-log-at-trx-commit=1
       --innodb-flush-method=O_DIRECT
       --max-connections=150
+      --slow-query-log=1
+      --long-query-time=1
     environment:
       MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD must be set in the production .env}"
       MYSQL_DATABASE: "${DB_DATABASE:-hris_db}"
@@ -357,6 +361,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+      - --storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-2GB}
       - --web.enable-lifecycle
     ports:
       - "127.0.0.1:9090:9090"
@@ -368,6 +373,12 @@ services:
       - nginx-exporter
       - mysqld-exporter
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     networks:
       - hris_network
     logging:
@@ -389,13 +400,24 @@ services:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-hris_admin}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in the production .env}"
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     networks:
       - hris_network
     logging:

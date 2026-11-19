@@ -13,3 +13,6 @@ datasources:
     jsonData:
       httpMethod: POST
       timeInterval: 15s
+      prometheusType: Prometheus
+      prometheusVersion: 2.51.0
+      manageAlerts: true

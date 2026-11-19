@@ -33,3 +33,16 @@ variable "test_network_name" {
   default     = "hris_tf_test_network"
 }
 
+variable "attach_to_hris_network" {
+  type        = bool
+  description = "Opt-in: also attach the sandbox to the Compose-owned hris_network (read-only lookup) and serve a demo HTTP page so Nginx can proxy /terraform-sandbox/ to it. WARNING: this removes the sandbox's network isolation from hris_db and other services. Requires the Compose stack to be running."
+  default     = false
+}
+
+variable "hris_network_name" {
+  type        = string
+  description = "Name of the Compose-owned network to attach to when attach_to_hris_network is true."
+  default     = "hris_network"
+}
+
+

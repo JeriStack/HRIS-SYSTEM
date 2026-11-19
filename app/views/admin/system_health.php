@@ -18,7 +18,10 @@
             Real-time diagnostics and availability telemetry across database engines, daemon listeners, and PHP runtime.
         </p>
     </div>
-    <div class="page-actions">
+    <div class="page-actions" style="display: flex; gap: 0.5rem;">
+        <a href="<?= url('/admin/system-health?format=json') ?>" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+            JSON Telemetry
+        </a>
         <a href="<?= url('/admin/system-health') ?>" class="btn btn-primary btn-sm">
             <span>🔄</span> Refresh Diagnostics
         </a>
@@ -46,10 +49,10 @@
         <div class="stat-info">
             <span class="stat-label">WebSocket Daemon</span>
             <span class="stat-value" style="font-size: 1.25rem; font-weight: 700; color: var(--color-text-main); margin-top: 0.25rem;">
-                Port <?= (int)($health['websocket']['port'] ?? 8080) ?>
+                Port <?= (int)($health['websocket']['port'] ?? 8090) ?>
             </span>
             <span class="stat-subtext">
-                <?= e($health['websocket']['status'] ?? 'Operational') ?>
+                <?= e($health['websocket']['status'] ?? 'Idle / Offline') ?>
             </span>
         </div>
         <div class="stat-icon-wrapper icon-purple" aria-hidden="true">⚡</div>
@@ -63,7 +66,7 @@
                 Port <?= (int)($health['smtp']['port'] ?? 1025) ?>
             </span>
             <span class="stat-subtext">
-                <?= e($health['smtp']['status'] ?? 'Operational') ?> &bull; <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">Web UI: 8025 &nearr;</a>
+                <?= e($health['smtp']['status'] ?? 'Standby / Offline') ?><?php if (!empty($health['smtp']['is_mailpit'])) : ?> &bull; <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">Web UI: 8025 &nearr;</a><?php endif; ?>
             </span>
         </div>
         <div class="stat-icon-wrapper icon-amber" aria-hidden="true">✉️</div>
@@ -105,9 +108,10 @@
             <tbody>
                 <tr>
                     <td><strong>MySQL Server Connection</strong></td>
-                    <td>Pdo Connection: Verified (Round-trip ping: <code><?= e($health['database']['latency'] ?? '0 ms') ?></code>)</td>
+                    <td>PDO Connection: <code><?= e($health['database']['driver'] ?? 'MySQL 8.0') ?></code> (Round-trip ping: <code><?= e($health['database']['latency'] ?? '0 ms') ?></code>)</td>
                     <td>
-                        <span class="badge badge-success">
+                        <?php $dbBadge = ($health['database']['status'] ?? '') === 'Healthy' ? 'badge-success' : 'badge-danger'; ?>
+                        <span class="badge <?= $dbBadge ?>">
                             <span class="badge-dot" aria-hidden="true"></span>
                             <?= e($health['database']['status'] ?? 'Healthy') ?>
                         </span>
@@ -131,9 +135,12 @@
                 </tr>
                 <tr>
                     <td><strong>Cron Scheduler (Option A)</strong></td>
-                    <td>4 Registered Periodic Tasks (Sessions, Notifications, Leave Reminders, Temporary File Cleanup)</td>
                     <td>
-                        <span class="badge badge-success">
+                        <?= (int)($health['scheduler']['active_tasks'] ?? 0) ?> Registered Periodic Task(s)<?php if (!empty($health['scheduler']['tasks'])) : ?>:
+                        <code><?= e(implode(', ', $health['scheduler']['tasks'])) ?></code><?php endif; ?>
+                    </td>
+                    <td>
+                        <span class="badge <?= ($health['scheduler']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-neutral' ?>">
                             <span class="badge-dot" aria-hidden="true"></span>
                             <?= e($health['scheduler']['status'] ?? 'Operational') ?>
                         </span>
@@ -141,7 +148,7 @@
                 </tr>
                 <tr>
                     <td><strong>Ratchet WebSocket Server</strong></td>
-                    <td>TCP Listener: <code>127.0.0.1:8080</code> (Event Authorizer &amp; Channel Policy)</td>
+                    <td>TCP Listener: <code><?= e(($health['websocket']['host'] ?? '127.0.0.1') . ':' . (int)($health['websocket']['port'] ?? 8090)) ?></code> (Event Authorizer &amp; Channel Policy)</td>
                     <td>
                         <span class="badge <?= ($health['websocket']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-neutral' ?>">
                             <span class="badge-dot" aria-hidden="true"></span>
@@ -150,12 +157,35 @@
                     </td>
                 </tr>
                 <tr>
-                    <td><strong>Mailpit SMTP Server</strong></td>
-                    <td>TCP Listener: <code>127.0.0.1:1025</code> (SMTP Mail Transfer Agent) &bull; <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); font-weight: 500;">Mailpit Web UI (Port 8025) &nearr;</a></td>
+                    <td><strong>SMTP Mail Server</strong></td>
+                    <td>
+                        TCP Listener: <code><?= e(($health['smtp']['host'] ?? '127.0.0.1') . ':' . (int)($health['smtp']['port'] ?? 1025)) ?></code> (SMTP Mail Transfer Agent)<?php if (!empty($health['smtp']['is_mailpit'])) : ?> &bull;
+                        <a href="http://localhost:8025" target="_blank" rel="noopener noreferrer" style="color: var(--color-primary); font-weight: 500;">Mailpit Web UI (Port 8025) &nearr;</a><?php endif; ?>
+                    </td>
                     <td>
                         <span class="badge <?= ($health['smtp']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-neutral' ?>">
                             <span class="badge-dot" aria-hidden="true"></span>
-                            <?= e($health['smtp']['status'] ?? 'Operational') ?>
+                            <?= e($health['smtp']['status'] ?? 'Standby / Offline') ?>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Prometheus Metrics Engine</strong></td>
+                    <td>TCP Listener: <code><?= e(($health['monitoring']['prometheus']['host'] ?? '127.0.0.1') . ':' . (int)($health['monitoring']['prometheus']['port'] ?? 9090)) ?></code> (TSDB &amp; Alert Rules)</td>
+                    <td>
+                        <span class="badge <?= ($health['monitoring']['prometheus']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-neutral' ?>">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <?= e($health['monitoring']['prometheus']['status'] ?? 'Standby / Offline') ?>
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Grafana Dashboards</strong></td>
+                    <td>TCP Listener: <code><?= e(($health['monitoring']['grafana']['host'] ?? '127.0.0.1') . ':' . (int)($health['monitoring']['grafana']['port'] ?? 3100)) ?></code> (Provisioned HRIS Stack Dashboards)</td>
+                    <td>
+                        <span class="badge <?= ($health['monitoring']['grafana']['status'] ?? '') === 'Operational' ? 'badge-success' : 'badge-neutral' ?>">
+                            <span class="badge-dot" aria-hidden="true"></span>
+                            <?= e($health['monitoring']['grafana']['status'] ?? 'Standby / Offline') ?>
                         </span>
                     </td>
                 </tr>
@@ -166,13 +196,19 @@
                 </tr>
                 <tr>
                     <td><strong>Server Memory Usage</strong></td>
-                    <td>Allocated: <code><?= e($health['runtime']['memory_used'] ?? '0 MB') ?></code> of <code><?= e($health['runtime']['memory_limit'] ?? '512M') ?></code> max</td>
+                    <td>Allocated: <code><?= e($health['runtime']['memory_used'] ?? '0 MB') ?></code> (Peak: <code><?= e($health['runtime']['memory_peak'] ?? '0 MB') ?></code>) of <code><?= e($health['runtime']['memory_limit'] ?? '512M') ?></code> max</td>
                     <td><span class="badge badge-success">Nominal</span></td>
                 </tr>
                 <tr>
                     <td><strong>Server Disk Utilization</strong></td>
                     <td>Disk Space Used: <code><?= e($health['runtime']['disk_used'] ?? '0%') ?></code></td>
-                    <td><span class="badge badge-neutral">Storage OK</span></td>
+                    <td>
+                        <?php
+                            $diskStatus = (string)($health['runtime']['disk_status'] ?? 'Storage OK');
+                            $diskBadge = $diskStatus === 'Critical' ? 'badge-danger' : ($diskStatus === 'Warning' ? 'badge-warning' : 'badge-success');
+                        ?>
+                        <span class="badge <?= $diskBadge ?>"><?= e($diskStatus) ?></span>
+                    </td>
                 </tr>
             </tbody>
         </table>

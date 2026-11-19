@@ -5,7 +5,7 @@ Encapsulates common WebDriver operations, robust explicit waits, and page assert
 
 import time
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from selenium import webdriver
 from selenium.common.exceptions import (
     NoSuchElementException,
@@ -24,9 +24,9 @@ from config.settings import settings
 class BasePage:
     """Base class for all Page Objects in the HRIS testing framework."""
 
-    def __init__(self, driver: webdriver.Remote, base_url: str = settings.BASE_URL):
+    def __init__(self, driver: webdriver.Remote, base_url: Optional[str] = None):
         self.driver = driver
-        self.base_url = base_url.rstrip("/")
+        self.base_url = (base_url or settings.BASE_URL).rstrip("/")
         self.timeout = settings.EXPLICIT_WAIT
 
     def open(self, path: str = "") -> "BasePage":

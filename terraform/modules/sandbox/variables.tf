@@ -37,3 +37,33 @@ variable "keep_image_locally" {
   default     = true
 }
 
+variable "external_network_name" {
+  type        = string
+  description = "Name of an existing, externally owned Docker network (e.g. Compose's hris_network) to also attach to. Empty string disables the attachment."
+  default     = ""
+}
+
+variable "external_network_aliases" {
+  type        = list(string)
+  description = "DNS aliases the container answers to on the external network (used by Nginx upstream resolution)."
+  default     = []
+}
+
+variable "serve_http" {
+  type        = bool
+  description = "Run a static read-only demo HTTP responder (busybox httpd, user nobody) instead of the default command."
+  default     = false
+}
+
+variable "http_port" {
+  type        = number
+  description = "Unprivileged port for the demo HTTP responder. Must match the upstream port in docker/nginx/default.conf."
+  default     = 8081
+
+  validation {
+    condition     = var.http_port >= 1024 && var.http_port <= 65535
+    error_message = "http_port must be an unprivileged port between 1024 and 65535."
+  }
+}
+
+

@@ -12,6 +12,8 @@
 # Configurable Executables
 DOCKER_COMPOSE ?= docker compose
 PYTEST         ?= pytest
+E2E_BROWSER    ?= chrome
+TERRAFORM      ?= terraform
 
 # Auto-detect container environment:
 # If running inside the container (/.dockerenv exists), run tools directly.
@@ -22,7 +24,7 @@ else
     EXEC_APP :=
 endif
 
-.PHONY: help up down restart ps logs build install migrate test test-realtime lint e2e clean
+.PHONY: help up down restart ps logs build install migrate test test-realtime lint audit swagger tf-validate e2e clean
 
 help: ## Display available commands and targets
 	@echo "======================================================================"
@@ -31,22 +33,26 @@ help: ## Display available commands and targets
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Docker & Environment:"
-	@echo "  up         Start all Docker services in background"
-	@echo "  down       Stop all Docker services safely (preserves database volume)"
-	@echo "  restart    Restart all Docker services"
-	@echo "  ps         Display status of all running containers"
-	@echo "  logs       Follow application container logs"
-	@echo "  build      Build or rebuild Docker application images"
+	@echo "  up            Start all Docker services in background"
+	@echo "  down          Stop all Docker services safely (preserves database volume)"
+	@echo "  restart       Restart all Docker services"
+	@echo "  ps            Display status of all running containers"
+	@echo "  logs          Follow application container logs"
+	@echo "  build         Build or rebuild Docker application images"
 	@echo ""
-	@echo "Dependencies & Migrations:"
-	@echo "  install    Install Composer dependencies inside app container"
-	@echo "  migrate    Execute pending database migrations inside app container"
+	@echo "Dependencies, Docs & Migrations:"
+	@echo "  install       Install Composer dependencies inside app container"
+	@echo "  migrate       Execute pending database migrations inside app container"
+	@echo "  swagger       Regenerate OpenAPI 3.0 YAML & JSON specifications"
 	@echo ""
-	@echo "Testing & Quality Assurance:"
-	@echo "  test       Execute PHPUnit backend test suite inside app container"
-	@echo "  lint       Run PHP_CodeSniffer and PHPStan static analysis"
-	@echo "  e2e        Run Selenium browser UI tests in headless mode"
-	@echo "  clean      Safely purge disposable test caches, reports, and screenshots"
+	@echo "Testing, Security & Quality Assurance:"
+	@echo "  test          Execute PHPUnit backend test suite inside app container"
+	@echo "  test-realtime Run live WebSocket E2E tests on the isolated test DB"
+	@echo "  lint          Run PHP_CodeSniffer baseline and PHPStan static analysis"
+	@echo "  audit         Run Composer security advisory audit (--locked)"
+	@echo "  tf-validate   Check Terraform formatting and validate root & dev configs"
+	@echo "  e2e           Run Selenium browser UI tests in headless mode"
+	@echo "  clean         Safely purge disposable test caches, reports, and screenshots"
 	@echo "======================================================================"
 
 up: ## Start Docker services
@@ -82,8 +88,19 @@ test-realtime: ## Run live WebSocket E2E tests (throwaway realtime server on the
 lint: ## Run PHP linting & static analysis inside app container
 	$(EXEC_APP) composer lint
 
+audit: ## Run Composer security advisory audit inside app container
+	$(EXEC_APP) composer audit --locked
+
+swagger: ## Regenerate OpenAPI 3.0 specifications inside app container
+	$(EXEC_APP) composer swagger:generate
+
+tf-validate: ## Check Terraform formatting and validate root & dev configurations
+	$(TERRAFORM) fmt -check -recursive terraform
+	$(TERRAFORM) -chdir=terraform validate
+	$(TERRAFORM) -chdir=terraform/environments/dev validate
+
 e2e: ## Run Selenium UI tests
-	$(PYTEST) e2e-tests/tests/ -v --headless
+	$(PYTEST) e2e-tests/tests/ -v --browser=$(E2E_BROWSER) --headless
 
 clean: ## Safely purge disposable test caches and generated reports
 ifeq ($(OS),Windows_NT)

@@ -242,8 +242,12 @@ class LeaveControllerAdapter
         } catch (InvalidStatusTransitionException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'invalid_status');
         } catch (DomainException $e) {
-            $code = str_contains(strtolower($e->getMessage()), 'unauthorized') ? 403 : 400;
-            return LeaveOperationResult::fail($e->getMessage(), $code, 'unauthorized');
+            $isUnauthorized = str_contains(strtolower($e->getMessage()), 'unauthorized');
+            return LeaveOperationResult::fail(
+                $e->getMessage(),
+                $isUnauthorized ? 403 : 400,
+                $isUnauthorized ? 'unauthorized' : 'validation_error'
+            );
         } catch (InvalidArgumentException $e) {
             return LeaveOperationResult::fail($e->getMessage(), 400, 'validation_error');
         } catch (Throwable $e) {

@@ -17,12 +17,12 @@ output "vps_target_specifications" {
 
 output "production_network_id" {
   description = "Production Docker network ID."
-  value       = docker_network.production_network.id
+  value       = module.prod_network.id
 }
 
 output "production_network_name" {
   description = "Production Docker network name."
-  value       = docker_network.production_network.name
+  value       = module.prod_network.name
 }
 
 output "production_volumes" {

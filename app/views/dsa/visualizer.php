@@ -187,7 +187,7 @@
     <!-- Complexity Profile Card -->
     <div class="card" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
         <h3 style="font-size: 0.95rem; font-weight: 700; color: #1E293B; margin: 0 0 0.75rem 0;">Complexity Profile</h3>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; margin-bottom: 0.75rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; text-align: center; margin-bottom: 0.75rem;">
             <div style="background: #F8FAFC; padding: 0.4rem; border-radius: 0.375rem; border: 1px solid #E2E8F0;">
                 <div style="font-size: 0.6rem; color: #64748B; font-weight: 600;">BEST</div>
                 <div style="font-size: 0.8rem; font-weight: 700; color: #059669;" id="visCmpBest"><?= e($complexity['best']) ?></div>

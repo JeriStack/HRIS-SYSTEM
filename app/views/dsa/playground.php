@@ -127,7 +127,7 @@
                 <h3 style="font-size: 0.95rem; font-weight: 700; color: #1E293B; margin: 0;" id="complexityTitle">Complexity Profile</h3>
                 <span class="badge badge-info" id="complexityBadge" style="font-size: 0.7rem;">Time & Space</span>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; margin-bottom: 0.75rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; text-align: center; margin-bottom: 0.75rem;">
                 <div style="background: #F8FAFC; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #E2E8F0;">
                     <div style="font-size: 0.65rem; color: #64748B; font-weight: 600;">BEST</div>
                     <div style="font-size: 0.875rem; font-weight: 700; color: #059669;" id="cmpBest"><?= e($complexity['best']) ?></div>

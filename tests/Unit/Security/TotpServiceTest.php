@@ -104,4 +104,39 @@ class TotpServiceTest extends TestCase
         $this->assertStringContainsString('digits=6', $uri);
         $this->assertStringContainsString('period=30', $uri);
     }
+
+    public function test_refuses_hardcoded_fallback_key_in_production(): void
+    {
+        $prevAppEnv = getenv('APP_ENV');
+        $prevTotpKey = getenv('TOTP_ENCRYPTION_KEY');
+        $prevPepper = getenv('OTP_PEPPER_SECRET');
+        $prevEnvAppEnv = $_ENV['APP_ENV'] ?? null;
+        $prevEnvPepper = $_ENV['OTP_PEPPER_SECRET'] ?? null;
+
+        try {
+            putenv('APP_ENV=production');
+            $_ENV['APP_ENV'] = 'production';
+            putenv('TOTP_ENCRYPTION_KEY=');
+            putenv('OTP_PEPPER_SECRET=');
+            $_ENV['OTP_PEPPER_SECRET'] = '';
+
+            $this->expectException(\RuntimeException::class);
+            $this->expectExceptionMessage('TOTP_ENCRYPTION_KEY');
+            new TotpService('');
+        } finally {
+            putenv($prevAppEnv === false ? 'APP_ENV' : "APP_ENV={$prevAppEnv}");
+            putenv($prevTotpKey === false ? 'TOTP_ENCRYPTION_KEY' : "TOTP_ENCRYPTION_KEY={$prevTotpKey}");
+            putenv($prevPepper === false ? 'OTP_PEPPER_SECRET' : "OTP_PEPPER_SECRET={$prevPepper}");
+            if ($prevEnvAppEnv === null) {
+                unset($_ENV['APP_ENV']);
+            } else {
+                $_ENV['APP_ENV'] = $prevEnvAppEnv;
+            }
+            if ($prevEnvPepper === null) {
+                unset($_ENV['OTP_PEPPER_SECRET']);
+            } else {
+                $_ENV['OTP_PEPPER_SECRET'] = $prevEnvPepper;
+            }
+        }
+    }
 }

@@ -31,7 +31,7 @@ test_endpoint() {
     echo -n "Testing ${description} (${endpoint})... "
     
     local http_code
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" -k --connect-timeout 5 --max-time 10 "${TARGET_URL}${endpoint}")
+    http_code=$(curl -s -L -o /dev/null -w "%{http_code}" -k --connect-timeout 5 --max-time 10 "${TARGET_URL}${endpoint}")
 
     if [ "${http_code}" -eq "${expected_code}" ]; then
         echo "PASS [HTTP ${http_code}] ✅"
@@ -49,8 +49,13 @@ test_endpoint "/api/v1/health" 200 "REST API v1 Health Check"
 # 2. Authentication & Views
 test_endpoint "/login" 200 "Web Login Form"
 
-# 3. Observability
-test_endpoint "/metrics" 200 "Prometheus Application Metrics"
+# 3. Observability & Docs Hardening
+if [[ "${TARGET_URL}" == https://* ]] || [ "${SMOKE_ENV:-}" = "production" ]; then
+    test_endpoint "/metrics" 403 "Blocked Public /metrics Endpoint (Internal Scrape Only)"
+    test_endpoint "/api/docs" 403 "Blocked Production Swagger UI"
+else
+    test_endpoint "/metrics" 200 "Prometheus Application Metrics (Local/Dev)"
+fi
 
 # 4. Security: Blocked Sensitive Endpoints
 test_endpoint "/.env" 403 "Blocked .env Security Rule"

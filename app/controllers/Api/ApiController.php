@@ -111,7 +111,11 @@ abstract class ApiController extends Controller
     protected function respond(mixed $data, int $statusCode = 200): void
     {
         http_response_code($statusCode);
-        header('Content-Type: application/json; charset=UTF-8');
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-store, no-cache, must-revalidate, private');
+            header('X-Content-Type-Options: nosniff');
+        }
         echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
