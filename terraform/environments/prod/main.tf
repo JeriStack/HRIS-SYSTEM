@@ -8,20 +8,17 @@
 # - Ingress: Ports 80 (HTTP) and 443 (HTTPS)
 # ==============================================================================
 
-# 1. Production Isolated Bridge Network
-resource "docker_network" "production_network" {
-  name   = var.production_network_name
-  driver = "bridge"
+# 1. Production Isolated Bridge Network (Reusable Network Child Module)
+module "prod_network" {
+  source = "../../modules/network"
 
-  labels {
-    label = "environment"
-    value = var.environment
-  }
+  network_name = var.production_network_name
+  environment  = var.environment
+}
 
-  labels {
-    label = "managed_by"
-    value = "terraform"
-  }
+moved {
+  from = docker_network.production_network
+  to   = module.prod_network.docker_network.network
 }
 
 # 2. Production Database Storage Volume (InnoDB Data Preservation)
