@@ -64,7 +64,21 @@
             var revokeUrl = btn.getAttribute("data-revoke-url") || "";
             var isCurrent = btn.getAttribute("data-is-current") === "1";
 
-            singleForm.setAttribute("action", revokeUrl);
+            // Only same-origin http(s) URLs may become the form action (blocks javascript:/data: URLs).
+            var safeAction = "";
+            try {
+                var parsedUrl = new URL(revokeUrl, window.location.href);
+                if ((parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") && parsedUrl.origin === window.location.origin) {
+                    safeAction = parsedUrl.href;
+                }
+            } catch (e) {
+                safeAction = "";
+            }
+            if (safeAction === "") {
+                return;
+            }
+
+            singleForm.setAttribute("action", safeAction);
             if (singleMessage) {
                 singleMessage.textContent =
                     'Revoking "' +

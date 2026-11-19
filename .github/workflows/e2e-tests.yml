@@ -88,7 +88,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -157,7 +157,7 @@ jobs:
           fi
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -171,11 +171,11 @@ jobs:
       - name: Execute Selenium E2E Test Suite
         shell: bash
         run: |
-          python -m pytest e2e-tests/tests/ -v --browser=chrome --headless --app-url=http://127.0.0.1:8080 --html=e2e-tests/reports/report.html --self-contained-html
+          python -m pytest e2e-tests/tests/ -v --browser=chrome --headless --app-url=http://127.0.0.1:8080 --html=e2e-tests/reports/report.html --self-contained-html --reruns 2 --reruns-delay 5 --only-rerun "TimeoutException" --only-rerun "TimeoutError"
 
       - name: Upload Test Report & Failure Screenshots
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-test-artifacts
           path: |

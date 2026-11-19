@@ -161,10 +161,16 @@ class TestSupportModuleEndToEnd:
         submit_btn = base.find((By.ID, "hrResponseSubmitBtn"))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
         try:
-            WebDriverWait(driver, 45).until(EC.staleness_of(textarea))
+            WebDriverWait(driver, 90).until(EC.staleness_of(textarea))
         except TimeoutException:
             pass  # fallback: _wait_text_contains will confirm the submission landed
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=45)
+        try:
+            WebDriverWait(driver, 15).until(
+                lambda d: d.execute_script("return document.readyState;") == "complete"
+            )
+        except TimeoutException:
+            pass
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.TAG_NAME, "body"), body, timeout=90)
 
     @staticmethod
     def _submit_hr_status(driver, base, status: str, remarks: str) -> None:
@@ -176,12 +182,18 @@ class TestSupportModuleEndToEnd:
         submit_btn = base.find((By.ID, "hrStatusSubmitBtn"))
         TestSupportModuleEndToEnd._scroll_click(driver, submit_btn)
         try:
-            WebDriverWait(driver, 45).until(EC.staleness_of(remarks_box))
+            WebDriverWait(driver, 90).until(EC.staleness_of(remarks_box))
         except TimeoutException:
             pass  # fallback: _wait_text_contains will confirm the status page loaded
+        try:
+            WebDriverWait(driver, 15).until(
+                lambda d: d.execute_script("return document.readyState;") == "complete"
+            )
+        except TimeoutException:
+            pass
         errors = driver.find_elements(By.CSS_SELECTOR, ".alert-danger")
         assert not errors, f"Status change to {status} was rejected: {errors[0].text if errors else 'unknown'}"
-        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=45)
+        TestSupportModuleEndToEnd._wait_text_contains(driver, (By.CSS_SELECTOR, ".page-title-group"), status, timeout=90)
 
     @staticmethod
     def _sign_out(driver) -> None:

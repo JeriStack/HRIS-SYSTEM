@@ -120,12 +120,28 @@
         return cfg.baseUrl + '/' + link;
     }
 
+    // Final sink guard: only same-origin http(s) URLs may reach an href (blocks javascript:/data: URLs).
+    function sinkSafeHref(url) {
+        if (typeof url !== 'string' || url === '') {
+            return cfg.inboxUrl;
+        }
+        try {
+            var parsed = new URL(url, window.location.href);
+            if ((parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.origin === window.location.origin) {
+                return parsed.href;
+            }
+        } catch (e) {
+            // fall through to the safe default
+        }
+        return cfg.inboxUrl;
+    }
+
     function buildItem(item) {
         var li = document.createElement('li');
         li.className = 'rt-item' + (item.unread ? ' is-unread' : '') + (item.level ? ' rt-level-' + item.level : '');
 
         var a = document.createElement('a');
-        a.href = item.href || cfg.inboxUrl;
+        a.href = sinkSafeHref(item.href);
 
         // Opening an unread notification marks it read; keepalive lets the request finish during navigation.
         if (item.unread && item.id) {
@@ -250,7 +266,7 @@
         var msg = document.createElement('p');
         msg.textContent = item.message;
         var link = document.createElement('a');
-        link.href = item.href;
+        link.href = sinkSafeHref(item.href);
         link.textContent = 'View';
         body.appendChild(title);
         body.appendChild(msg);
