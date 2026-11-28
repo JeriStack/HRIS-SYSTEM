@@ -94,6 +94,13 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
+    ignore:
+      # Keep PHP on the 8.5.x branch (matching composer.json, CI, and Xdebug 3.5);
+      # allow patch security releases automatically, upgrade minor/major deliberately.
+      - dependency-name: "php"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"
     groups:
       docker-images:
         patterns:
@@ -114,3 +121,8 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
+    ignore:
+      - dependency-name: "php"
+        update-types:
+          - "version-update:semver-minor"
+          - "version-update:semver-major"

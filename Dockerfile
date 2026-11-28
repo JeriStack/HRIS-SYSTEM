@@ -7,7 +7,7 @@
 # (see https://www.php.net/supported-versions.php), rebuild, and run the tests.
 # =============================================================================
 
-FROM php:8.6.0-apache-trixie
+FROM php:8.5.12-apache-trixie
 
 # Set non-interactive debian frontend
 ENV DEBIAN_FRONTEND=noninteractive

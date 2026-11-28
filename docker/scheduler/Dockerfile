@@ -3,7 +3,7 @@
 # Base: PHP 8.5.12 CLI (Debian 13 "trixie")
 # =============================================================================
 
-FROM php:8.6.0-cli-trixie
+FROM php:8.5.12-cli-trixie
 
 ENV DEBIAN_FRONTEND=noninteractive
 
