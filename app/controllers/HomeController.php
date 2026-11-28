@@ -14,57 +14,12 @@ class HomeController extends Controller
 {
     /**
      * Display the public welcome landing page.
+     * Kept free of unauthenticated DB count queries to minimize TTFB and DB load.
      */
     public function index(): void
     {
-        $db = Database::getInstance();
-        $dbConnected = $db->isConnected();
-        $dbStatus = $dbConnected ? "Database Connected" : "Database Offline: " . ($db->getLastError() ?? 'Unreachable');
-
-        $stats = [
-            'total_employees'   => 248,
-            'active_employees'  => 236,
-            'pending_leaves'    => 12,
-            'approved_leaves'   => 185,
-            'departments'       => 8,
-            'total_departments' => 8,
-        ];
-
-        // If database is live, attempt a safe lightweight query to verify live table statistics
-        if ($dbConnected) {
-            try {
-                $pdo = $db->getConnection();
-
-                // Safe read counts if tables are populated
-                $empStmt = $pdo->query("SELECT COUNT(*) AS total, SUM(CASE WHEN employment_status='Active' THEN 1 ELSE 0 END) AS active FROM employees");
-                if ($empRow = $empStmt->fetch()) {
-                    $stats['total_employees'] = (int)$empRow['total'];
-                    $stats['active_employees'] = (int)($empRow['active'] ?? 0);
-                }
-
-                $leaveStmt = $pdo->query("SELECT SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending, SUM(CASE WHEN status = 'Approved' THEN 1 ELSE 0 END) AS approved FROM leave_requests");
-                if ($leaveRow = $leaveStmt->fetch()) {
-                    $stats['pending_leaves'] = (int)($leaveRow['pending'] ?? 0);
-                    $stats['approved_leaves'] = (int)($leaveRow['approved'] ?? 0);
-                }
-
-                $deptStmt = $pdo->query("SELECT COUNT(*) AS depts FROM departments");
-                if ($deptRow = $deptStmt->fetch()) {
-                    $stats['departments'] = (int)$deptRow['depts'];
-                    $stats['total_departments'] = (int)$deptRow['depts'];
-                }
-            } catch (PDOException $e) {
-                // Fail gracefully and retain baseline synthetic counts
-                error_log("[HomeController Notice] Query fallback: " . $e->getMessage());
-            }
-        }
-
         $this->view('home.index', [
-            'appName'     => config('config.app_name', 'NEXORA HR'),
-            'dbConnected' => $dbConnected,
-            'dbStatus'    => $dbStatus,
-            'dbName'      => config('database.database', 'hris_db'),
-            'stats'       => $stats,
+            'appName' => config('config.app_name', 'NEXORA HR'),
         ], null); // Render full landing page without extra outer layout
     }
 

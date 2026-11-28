@@ -309,7 +309,9 @@ The palette pairs restrained slate neutrals with authoritative Cobalt and Azure 
 ### Named Rules
 **The Tabular Ledger Rule.** Every element displaying a leave balance, working-day count, utilization percentage, date range, phone number, or reference ID must apply `font-variant-numeric: tabular-nums` so figures align vertically down columns and never jitter during live calculation.
 
-**The No-Kicker Rule.** Never stack an uppercase eyebrow label (`EMPLOYEE SELF-SERVICE`, `OVERVIEW`) immediately above a page heading or card title; let the heading and its concise subtitle speak for themselves.
+**The No-Kicker Rule.** Never stack an uppercase eyebrow label (`EMPLOYEE SELF-SERVICE`, `OVERVIEW`, `HUMAN RESOURCE INFORMATION SYSTEM`) immediately above a page heading, hero headline, or card title; let the heading and its concise subtitle speak for themselves.
+
+**The Card Prose Alignment Rule.** On authenticated operational screens, keep labels, checklists, and table cells left-aligned with `text-wrap: balance` on headings; on the public landing page, multi-line card summaries (`.role-summary`, `.security-card-desc`, `.workflow-step-desc`) use justified inter-word alignment (`text-align: justify; text-justify: inter-word`).
 
 ## Layout
 
@@ -396,6 +398,28 @@ Every component is built to feel **refined, tactile, and unambiguous**, with exp
 - **Live Working-Day Calculator Box (`.emp-calc-box`):** Real-time `aria-live="polite"` feedback panel inside the File Leave Request form that computes business days (excluding Saturdays and Sundays), checks remaining quota, and warns immediately on invalid or weekend-only ranges.
 - **Accessible Confirmation Modal (`.modal-backdrop` & `.modal-content`):** Dialog (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`) used for confirming pending leave cancellation (`#cancelLeaveModal`), featuring `12px` radius, `--shadow-xl` elevation, clear consequence copy, `Keep Request` secondary dismissal, and a CSRF-protected `POST` confirmation button.
 
+## Public Landing & Entry Surface (Persuade Mode)
+
+While authenticated dashboards run in **Operate Mode**, the public landing page (`app/views/home/index.php` + `public/assets/css/landing.css` + `public/assets/js/landing.js`) runs in **Persuade Mode**—welcoming prospective HR evaluators and returning staff with the exact same **Executive Ledger** visual authority so signing in feels seamless with zero visual whiplash.
+
+### Token & Brand Parity
+- **Unified Palette:** Landing surfaces and controls must use the exact `DESIGN.md` tokens (`#1D4ED8` Cobalt Authority primary, `#1E40AF` Cobalt Deep hover, `#0D9488` Operational Teal accent, `#F8FAFC` Cool Alabaster canvas, `#FFFFFF` Pure Ledger White cards, `#0F172A` Deep Slate Ink headings, `#334155` Charcoal Reading Slate body, `#E2E8F0` / `#CBD5E1` slate hairlines; and `#0B1120` / `#1E293B` / `#334155` / `#3B82F6` in Dark Mode). Rogue off-palette hexes (such as `#153D70`, `#F4F7FB`, or `#1F2937`) are prohibited.
+- **Native System Typography:** Use the zero-latency native system sans stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`) without external font CDN imports or unhosted web-font names.
+- **Wordmark Consistency:** The header and footer lockup uses `--logo-word-nexora` (`#04132A` light / `#F8FAFC` dark) for `NEXORA` and `--logo-word-hr` (`#0066EB` light / `#38BDF8` dark) for `HR`.
+
+### Section Architecture & Content Discipline
+- **Preserved Vertical Cadence:** Fixed header → Centered Hero (headline, lead copy, primary/secondary CTA pair, brand pillars) → Core Features (4×2 grid covering real shipped modules: Employees, Leave Management, Leave Balances, Departments & Positions, Announcements, Help & Support, Real-Time Notifications, Reporting & Audit Trail) → Product Introduction (3 pillars) → Role Workspaces (2 cards covering HR/Admin Governance and Employee Self-Service, each with a collapsed-by-default capability dropdown) → Security & Reliability (2×2 grid) → How It Works (3 sequential steps without duplicate numbering) → Final CTA Banner → 4-Column Footer.
+- **Collapsible Capability Dropdowns (Default Pattern):** Multi-item role or feature checklists inside summary cards use native `<details>`/`<summary>` disclosures **collapsed by default** (non-exclusive, no `name` attribute so users can compare cards side by side; no headings inside `<summary>`). Style the disclosure marker adjacent to the label via a rotating `::before` chevron (`-90deg` closed → `0deg` open) and animate expansion progressively via `::details-content` (`interpolate-size: allow-keywords`, `transition-behavior: allow-discrete`) gated under `@media (prefers-reduced-motion: no-preference)`.
+- **Truthful Product Copy:** Every feature and role claim must correspond to live shipped capabilities (Smart OTP & Trusted Devices, Dynamic RBAC, Announcements, Confidential Support Desk, Ratchet WebSocket Notifications, Immutable Audit Trail). Avoid vague placeholders or unauthenticated DB count queries on `/`.
+
+### Performance, Motion & Accessibility Standards
+- **LCP & Resource Prioritization:** Keep the hero canvas CSS-native (no heavy hero background raster image), defer non-critical scripts (`defer`), set explicit `width`/`height` + `decoding="async"` on images, and apply `loading="lazy"` on below-the-fold images (such as footer emblems). Never lazy-load above-the-fold hero media.
+- **Below-the-Fold Rendering Containment:** Apply `content-visibility: auto` paired with `contain-intrinsic-size` strictly on below-the-fold sections (never on the hero or initial viewport) to reduce initial layout/paint cost without scrollbar jumping.
+- **Scroll & Interaction Efficiency (INP):** Throttle scroll-spy updates via `requestAnimationFrame`, avoid duplicate document/window scroll listeners, batch DOM reads before writes, and only update active indicator geometry when the active section changes.
+- **Native Browser Surface Theming:** Synchronize `<meta name="color-scheme">` and CSS `color-scheme` with `[data-theme]` (plus cross-tab `storage` event sync) so scrollbars, text selection, and carets match Light/Dark mode immediately without FOUC.
+- **Opt-In Motion (WCAG 2.3.3):** Gate spatial entrance and scroll-reveal animations inside `@media (prefers-reduced-motion: no-preference)` rather than forcing global `animation-duration: 0.01ms !important`, keeping subtle color/border hover transitions smooth and ensuring content starts visible when reduced motion is active.
+- **Accessible Navigation & Drawer:** Keep `<nav>` `aria-label` concise without repeating the word "navigation" (`Primary`, `Mobile`); apply the `inert` attribute to the closed mobile drawer so hidden links are excluded from keyboard Tab order; return focus to `#mobileMenuBtn` on `Escape`; include both Sign In and Help & Support inside the mobile drawer.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -404,10 +428,13 @@ Every component is built to feel **refined, tactile, and unambiguous**, with exp
 - **Do** display each metric or profile field once per screen (e.g., `remaining`, `used of allocated`, and a progress bar on leave cards without repeating the same figures in sub-boxes).
 - **Do** keep one primary `.btn-primary` action per view and use `.btn-secondary` or `.btn-outline-danger` for supporting or destructive actions.
 - **Do** test every view and brand asset across both `[data-theme="light"]` and `[data-theme="dark"]` to guarantee WCAG 2.2 AA contrast.
+- **Do** gate spatial animations behind `@media (prefers-reduced-motion: no-preference)` and mark closed off-canvas drawers with `inert`.
 
 ### Don't:
 - **Don't** use emoji characters (`📊`, `👤`, `⚖️`, `📅`, `🔔`, `🌙`, `☀️`, `⏳`) anywhere in navigation, buttons, alerts, badges, or headings.
 - **Don't** apply thick left accent borders (`border-left: 3px` or `4px solid`) to cards, notification items, or toast alerts.
-- **Don't** place uppercase kicker/eyebrow badges (`EMPLOYEE SELF-SERVICE`, `EMPLOYEE ACCESS`) above page headings or in the top bar when the breadcrumb already establishes context.
+- **Don't** place uppercase kicker/eyebrow badges (`EMPLOYEE SELF-SERVICE`, `EMPLOYEE ACCESS`, `HUMAN RESOURCE INFORMATION SYSTEM`) above page headings, hero headlines, or card titles.
+- **Don't** repeat step numbers inside headings when a `Step N` badge is already rendered.
 - **Don't** expose developer-facing controls (such as `JSON API View` buttons or raw internal status type pills) on Employee Workspace screens.
 - **Don't** use bare CSS `:invalid` selectors that paint required inputs red before the user has interacted with the form; always use `:user-invalid` or `[aria-invalid="true"]`.
+- **Don't** use global `animation-duration: 0.01ms !important` reduced-motion overrides or apply `content-visibility: auto` to above-the-fold hero content.

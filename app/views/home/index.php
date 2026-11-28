@@ -6,40 +6,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta
     name="description"
-    content="NEXORA HR — People. Processes. Progress. A modern enterprise Human Resource Information System that centralizes employee information and organizes essential HR operations.">
+    content="NEXORA HR — People. Processes. Progress. A centralized enterprise Human Resource Information System for employee records, policy-driven leave administration, announcements, and role-based governance.">
+  <meta name="color-scheme" content="light dark">
 
-  <title>NEXORA &mdash; People. Processes. Progress.</title>
+  <title>NEXORA HR &mdash; People. Processes. Progress.</title>
 
-  <link rel="icon" type="image/png" href="<?= e(asset('img/nexora-logo-icon.png')) ?>">
-
-  <!-- Prevent FOUC: Set White Mode (Light) as default, clear legacy dark cache, and restore user theme if explicitly set -->
+  <!-- Prevent FOUC: Light Mode default on first visit; restore saved user preference and sync color-scheme immediately -->
   <script>
     (function() {
+      var theme = 'light';
       try {
-        // Guarantee white mode by clearing legacy test key
         localStorage.removeItem('hris_landing_theme');
-        var savedTheme = localStorage.getItem('nexora_theme');
-        if (savedTheme === 'dark') {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-          document.documentElement.setAttribute('data-theme', 'light');
+        if (localStorage.getItem('nexora_theme') === 'dark') {
+          theme = 'dark';
         }
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'light');
+      } catch (e) {}
+      document.documentElement.setAttribute('data-theme', theme);
+      var meta = document.querySelector('meta[name="color-scheme"]');
+      if (meta) {
+        meta.setAttribute('content', theme);
       }
     })();
   </script>
 
+  <link rel="icon" type="image/png" href="<?= e(asset('img/nexora-logo-icon.png')) ?>">
+
   <?php
   $cssPath = __DIR__ . '/../../../public/assets/css/landing.css';
-  $cssVer = file_exists($cssPath) ? filemtime($cssPath) : '2.0';
+  $cssVer = file_exists($cssPath) ? filemtime($cssPath) : '3.0';
   $jsPath = __DIR__ . '/../../../public/assets/js/landing.js';
-  $jsVer = file_exists($jsPath) ? filemtime($jsPath) : '2.0';
-  $totalEmployees = (int)($stats['total_employees'] ?? 248);
-  $activeEmployees = (int)($stats['active_employees'] ?? 236);
-  $pendingLeaves = (int)($stats['pending_leaves'] ?? 12);
-  $approvedLeaves = (int)($stats['approved_leaves'] ?? 185);
-  $totalDepartments = (int)($stats['total_departments'] ?? $stats['departments'] ?? 8);
+  $jsVer = file_exists($jsPath) ? filemtime($jsPath) : '3.0';
   ?>
 
   <link
@@ -63,9 +59,10 @@
         <img
           class="brand-symbol"
           src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
-          alt="NEXORA HR emblem"
+          alt=""
           width="42"
-          height="42">
+          height="42"
+          decoding="async">
         <span class="brand-text-block">
           <span class="brand-title">
             <span class="brand-title-navy">NEXORA</span>
@@ -74,7 +71,7 @@
         </span>
       </a>
 
-      <nav class="desktop-nav" aria-label="Main navigation">
+      <nav class="desktop-nav" aria-label="Primary">
         <ul class="site-nav-links" id="desktopNavLinks">
           <li>
             <a class="nav-link active" href="#home" aria-current="page">
@@ -157,7 +154,7 @@
           id="mobileMenuBtn"
           class="mobile-menu-btn"
           type="button"
-          aria-label="Open navigation"
+          aria-label="Open menu"
           aria-controls="mobileDrawer"
           aria-expanded="false">
           <span></span>
@@ -172,7 +169,8 @@
     <nav
       id="mobileDrawer"
       class="mobile-drawer"
-      aria-label="Mobile navigation">
+      aria-label="Mobile"
+      inert>
       <a class="mobile-nav-link active" href="#home">
         Home
       </a>
@@ -191,6 +189,12 @@
           class="btn btn-primary mobile-drawer-cta"
           href="<?= e(url('/login')) ?>">
           Login to NEXORA HR
+        </a>
+
+        <a
+          class="btn btn-secondary mobile-drawer-cta"
+          href="<?= e(url('/auth/help')) ?>">
+          Help &amp; Support
         </a>
 
         <button
@@ -216,24 +220,20 @@
     </nav>
   </header>
 
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
 
     <!-- B. Hero Section -->
     <section id="home" data-nav-section="home" class="hero-section">
       <div class="container hero-grid">
 
-        <!-- Left Column: Brand Messaging & Actions -->
+        <!-- Brand Messaging & Actions -->
         <div class="hero-content">
-          <p class="hero-eyebrow">
-            HUMAN RESOURCE INFORMATION SYSTEM
-          </p>
-
           <h1 class="hero-title">
             People Management, Made More Organized.
           </h1>
 
           <p class="hero-paragraph">
-            NEXORA HR brings essential human resource operations together in one centralized platform. Manage employee information, simplify leave administration, and make everyday HR processes more organized.
+            NEXORA HR brings employee records, policy-driven leave administration, workplace announcements, and secure role-based governance together in one centralized platform.
           </p>
 
           <div class="hero-actions">
@@ -254,18 +254,18 @@
             </a>
           </div>
 
-          <div class="hero-brand-pillars" aria-label="Brand pillars">
+          <div class="hero-brand-pillars">
             <span class="pillar-pill">
-              <span class="pillar-dot"></span>
-              Employee Management
+              <span class="pillar-dot" aria-hidden="true"></span>
+              Employee Records
             </span>
             <span class="pillar-pill">
-              <span class="pillar-dot teal"></span>
-              Leave Administration
+              <span class="pillar-dot teal" aria-hidden="true"></span>
+              Leave Governance
             </span>
             <span class="pillar-pill">
-              <span class="pillar-dot navy"></span>
-              HR Operations
+              <span class="pillar-dot navy" aria-hidden="true"></span>
+              Real-Time Operations
             </span>
           </div>
         </div>
@@ -282,7 +282,7 @@
             Everything Essential for Organized HR Operations
           </h2>
           <p class="section-desc">
-            Designed around the core workflows that HR teams and employees rely on every day.
+            Designed around the core workflows that HR teams, system administrators, and employees rely on every day.
           </p>
         </div>
 
@@ -300,7 +300,7 @@
             </span>
             <h3 class="feature-title">Employee Management</h3>
             <p class="feature-desc">
-              Create, update, search, and maintain complete employee profiles including employee codes, contact records, and active employment status.
+              Create, search, and maintain complete employee profiles including employee codes, tenure history, emergency contacts, and employment status.
             </p>
           </article>
 
@@ -316,11 +316,11 @@
             </span>
             <h3 class="feature-title">Leave Management</h3>
             <p class="feature-desc">
-              Submit, review, approve, or reject leave applications with working-day calculations, overlap detection, and documented review remarks.
+              Submit, review, and adjudicate leave requests with automatic business-day calculations, overlap detection, attachments, and review remarks.
             </p>
           </article>
 
-          <!-- 3. Leave Balances -->
+          <!-- 3. Leave Balances & Ledger -->
           <article class="feature-card">
             <span class="feature-icon-box navy" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -328,13 +328,13 @@
                 <polyline points="12 6 12 12 16 14"></polyline>
               </svg>
             </span>
-            <h3 class="feature-title">Leave Balances</h3>
+            <h3 class="feature-title">Leave Balances &amp; Ledger</h3>
             <p class="feature-desc">
-              Monitor annual leave allocations, used credits, and remaining days across leave types with automatic balance updates upon approval.
+              Monitor annual allocations, used credits, and remaining days per leave type with automatic, atomic balance updates upon HR approval.
             </p>
           </article>
 
-          <!-- 4. Department Management -->
+          <!-- 4. Departments & Positions -->
           <article class="feature-card">
             <span class="feature-icon-box blue" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -343,41 +343,40 @@
                 <path d="M19 21V11l-6-4"></path>
               </svg>
             </span>
-            <h3 class="feature-title">Department Management</h3>
+            <h3 class="feature-title">Departments &amp; Positions</h3>
             <p class="feature-desc">
-              Structure your organization into departments, track assigned workforce counts, and protect referential integrity across employee records.
+              Organize departments and linked job titles with active headcount visibility and database-enforced referential integrity across records.
             </p>
           </article>
 
-          <!-- 5. Position Management -->
+          <!-- 5. Company Announcements -->
           <article class="feature-card">
             <span class="feature-icon-box teal" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                <path d="M3 11l18-5v12L3 13v-2z"></path>
+                <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"></path>
               </svg>
             </span>
-            <h3 class="feature-title">Position Management</h3>
+            <h3 class="feature-title">Company Announcements</h3>
             <p class="feature-desc">
-              Define job titles and organizational roles linked to departments so every employee record reflects accurate position assignments.
+              Draft, schedule, and publish targeted workplace announcements with automatic expiration lifecycles and verifiable employee read receipts.
             </p>
           </article>
 
-          <!-- 6. Employee Self-Service -->
+          <!-- 6. Help & Support Desk -->
           <article class="feature-card">
             <span class="feature-icon-box navy" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
               </svg>
             </span>
-            <h3 class="feature-title">Employee Self-Service</h3>
+            <h3 class="feature-title">Help &amp; Support Desk</h3>
             <p class="feature-desc">
-              Provide employees with a dedicated portal to view their personal HR profile, check available leave credits, and submit or cancel pending requests.
+              Manage employee support inquiries, confidential HR complaints, and public sign-in recovery tickets with strict internal-note isolation.
             </p>
           </article>
 
-          <!-- 7. Notifications -->
+          <!-- 7. Real-Time Notifications -->
           <article class="feature-card">
             <span class="feature-icon-box blue" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -385,13 +384,13 @@
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
               </svg>
             </span>
-            <h3 class="feature-title">Notifications</h3>
+            <h3 class="feature-title">Real-Time Notifications</h3>
             <p class="feature-desc">
-              Keep both HR personnel and employees informed with in-app notifications whenever leave requests are submitted, approved, or rejected.
+              Deliver instant WebSocket push alerts and inbox updates whenever leave requests, announcements, or support ticket responses occur.
             </p>
           </article>
 
-          <!-- 8. Reporting and Records -->
+          <!-- 8. Reporting & Audit Trail -->
           <article class="feature-card">
             <span class="feature-icon-box teal" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -401,9 +400,9 @@
                 <line x1="16" y1="17" x2="8" y2="17"></line>
               </svg>
             </span>
-            <h3 class="feature-title">Reporting and Records</h3>
+            <h3 class="feature-title">Reporting &amp; Audit Trail</h3>
             <p class="feature-desc">
-              Access workforce summaries, department distributions, leave utilization reports, and recorded system activity logs for operational accountability.
+              Generate workforce summaries and CSV leave reports alongside immutable, secret-redacted activity logs for governance accountability.
             </p>
           </article>
 
@@ -437,7 +436,7 @@
               </div>
               <h3 class="pillar-card-title">Centralized Employee Records</h3>
               <p class="pillar-card-desc">
-                Keep employee profiles, contact details, department placements, job positions, and employment status organized in a single authoritative directory.
+                Keep employee profiles, contact details, department placements, job positions, and employment history organized in one authoritative directory.
               </p>
             </article>
 
@@ -451,9 +450,9 @@
                   <path d="M9 16l2 2 4-4"></path>
                 </svg>
               </div>
-              <h3 class="pillar-card-title">Structured Leave Administration</h3>
+              <h3 class="pillar-card-title">Policy-Driven Leave Ledger</h3>
               <p class="pillar-card-desc">
-                Streamline the complete leave lifecycle from employee request submission and date validation to HR decision making and automated balance adjustments.
+                Streamline the full leave lifecycle from business-day validation and overlap checks to FIFO HR review and transaction-safe credit deductions.
               </p>
             </article>
 
@@ -465,7 +464,7 @@
               </div>
               <h3 class="pillar-card-title">Clear Operational Visibility</h3>
               <p class="pillar-card-desc">
-                Give HR personnel immediate insight into workforce distribution, pending leave queues, and recorded system activities while empowering employees with self-service access.
+                Give HR and administrators real-time insight into pending queues, system health, and audit trails while empowering staff with self-service access.
               </p>
             </article>
           </div>
@@ -483,13 +482,13 @@
             The Right Experience for Every User
           </h2>
           <p class="section-desc">
-            NEXORA HR provides dedicated, role-appropriate workspaces tailored to the responsibilities of HR personnel and employees.
+            NEXORA HR delivers dedicated, role-appropriate workspaces tailored to HR &amp; System Administrators and Employees.
           </p>
         </div>
 
         <div class="roles-grid">
 
-          <!-- HR Experience -->
+          <!-- HR & Administration Experience -->
           <article class="role-card role-card-hr">
             <div class="role-card-body">
               <div class="role-card-header">
@@ -500,47 +499,53 @@
                   </svg>
                 </span>
                 <div>
-                  <span class="role-tag">Administrative Role</span>
-                  <h3 class="role-title">HR</h3>
+                  <h3 class="role-title">HR &amp; Administration</h3>
+                  <p class="role-subtitle">Operational &amp; Governance Portals</p>
                 </div>
               </div>
 
               <p class="role-summary">
-                Full operational control over workforce records, organizational structure, and leave administration.
+                End-to-end operational control over workforce records, leave adjudication, announcements, support triage, and security governance.
               </p>
 
-              <ul class="role-checklist">
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Manage employee information.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Maintain departments and positions.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Review leave requests.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Process approvals and rejections.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Access available HR information.</span>
-                </li>
-              </ul>
+              <details class="role-capabilities-dropdown">
+                <summary class="role-capabilities-trigger">
+                  <span class="role-capabilities-label">Key Capabilities</span>
+                  <span class="role-capabilities-count">5</span>
+                </summary>
+                <ul class="role-checklist" role="list">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Manage employee profiles, departments, and job positions.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Review FIFO leave queues and process approvals atomically.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Publish scheduled announcements and monitor read receipts.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Triage HR support tickets and confidential employee complaints.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Oversee dynamic RBAC permissions, system health, and audit logs.</span>
+                  </li>
+                </ul>
+              </details>
             </div>
 
             <div class="role-card-footer">
@@ -565,41 +570,53 @@
                   </svg>
                 </span>
                 <div>
-                  <span class="role-tag teal">Self-Service Role</span>
                   <h3 class="role-title">Employees</h3>
+                  <p class="role-subtitle">Self-Service Workspace</p>
                 </div>
               </div>
 
               <p class="role-summary">
-                Streamlined self-service access to personal employment records, leave balances, and request tracking.
+                Focused self-service access to personal employment records, leave entitlements, workplace updates, and account security controls.
               </p>
 
-              <ul class="role-checklist">
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>View authorized employee information.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Submit leave requests.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Track request status.</span>
-                </li>
-                <li>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>Access available personal information.</span>
-                </li>
-              </ul>
+              <details class="role-capabilities-dropdown">
+                <summary class="role-capabilities-trigger">
+                  <span class="role-capabilities-label">Key Capabilities</span>
+                  <span class="role-capabilities-count">5</span>
+                </summary>
+                <ul class="role-checklist" role="list">
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Inspect personal employment details and leave credit balances.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>File leave applications with instant business-day calculation.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Track request statuses and receive live approval notifications.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Read company announcements and submit HR help requests.</span>
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    <span>Manage two-factor security and trusted browser sessions.</span>
+                  </li>
+                </ul>
+              </details>
             </div>
 
             <div class="role-card-footer">
@@ -626,7 +643,7 @@
             Built Around Responsible Information Management
           </h2>
           <p class="section-desc">
-            Every layer of NEXORA HR is engineered to safeguard employee records, enforce role boundaries, and maintain accurate leave data.
+            Every layer of NEXORA HR is engineered to safeguard employee records, enforce strict role boundaries, and preserve accurate leave data.
           </p>
         </div>
 
@@ -640,9 +657,9 @@
               </svg>
             </span>
             <div>
-              <h3 class="security-card-title">Authenticated Access &amp; Session Security</h3>
+              <h3 class="security-card-title">Smart OTP &amp; Session Security</h3>
               <p class="security-card-desc">
-                Protects accounts with bcrypt password hashing, session identifier regeneration upon login, configurable two-factor authentication, and automatic idle timeout controls.
+                Protects accounts with bcrypt password hashing, Email OTP and TOTP two-factor authentication, revocable trusted devices, and automatic idle timeout controls.
               </p>
             </div>
           </article>
@@ -654,9 +671,9 @@
               </svg>
             </span>
             <div>
-              <h3 class="security-card-title">Strict Three-Role Authorization</h3>
+              <h3 class="security-card-title">Dynamic Three-Role Authorization</h3>
               <p class="security-card-desc">
-                Server-side middleware enforces clear separation between Admin, HR, and Employee permissions on every route, ensuring users only access authorized records and actions.
+                Server-side RBAC middleware enforces strict separation across Admin, HR, and Employee permissions with record-level ownership checks on every route and WebSocket channel.
               </p>
             </div>
           </article>
@@ -669,9 +686,9 @@
               </svg>
             </span>
             <div>
-              <h3 class="security-card-title">Input Validation &amp; Request Protection</h3>
+              <h3 class="security-card-title">Request Protection &amp; Audit Trail</h3>
               <p class="security-card-desc">
-                State-changing forms are guarded by synchronizer CSRF tokens, server-side business rule validation, and context-aware HTML output escaping.
+                Every state-changing form is guarded by CSRF tokens, strict input validation, context-aware HTML escaping, and immutable secret-redacted activity logs.
               </p>
             </div>
           </article>
@@ -685,9 +702,9 @@
               </svg>
             </span>
             <div>
-              <h3 class="security-card-title">Transactional Database Integrity</h3>
+              <h3 class="security-card-title">Transactional &amp; Async Reliability</h3>
               <p class="security-card-desc">
-                Uses parameterized PDO prepared statements, relational foreign-key constraints, and atomic database transactions when approving leave requests and deducting balances.
+                Uses parameterized PDO prepared statements, ACID transactions for leave balance deductions, and a MySQL-backed background queue for resilient email and notification delivery.
               </p>
             </div>
           </article>
@@ -710,7 +727,7 @@
           </p>
         </div>
 
-        <ol class="workflow-steps-grid">
+        <ol class="workflow-steps-grid" role="list">
 
           <li class="workflow-step-card">
             <div class="workflow-step-top">
@@ -725,10 +742,10 @@
               </span>
             </div>
             <h3 class="workflow-step-title">
-              1. Organize Employee Information
+              Organize Employee Information
             </h3>
             <p class="workflow-step-desc">
-              HR establishes departments and positions, creates employee profiles, assigns user accounts, and initializes annual leave allocations in one centralized directory.
+              HR establishes departments and positions, registers employee profiles, provisions role-based accounts, and initializes annual leave allocations in one centralized directory.
             </p>
           </li>
 
@@ -745,10 +762,10 @@
               </span>
             </div>
             <h3 class="workflow-step-title">
-              2. Manage Leave Requests
+              Submit &amp; Validate Leave Requests
             </h3>
             <p class="workflow-step-desc">
-              Employees submit leave applications through their self-service workspace. The system validates available credits, working days, and date overlaps before queuing requests for HR.
+              Employees file leave applications from their self-service portal. The system checks remaining credits, business days, and date overlaps before queuing requests for HR review.
             </p>
           </li>
 
@@ -763,10 +780,10 @@
               </span>
             </div>
             <h3 class="workflow-step-title">
-              3. Review and Track
+              Review, Notify, and Audit
             </h3>
             <p class="workflow-step-desc">
-              HR reviews pending requests and processes approvals or rejections. Leave balances, employee notifications, operational reports, and activity records update immediately.
+              HR processes approvals or rejections in FIFO order. Leave ledgers, real-time employee notifications, operational reports, and immutable audit logs update immediately.
             </p>
           </li>
 
@@ -784,7 +801,7 @@
               Bring Your HR Operations Together.
             </h2>
             <p class="cta-desc">
-              Make employee management and leave administration more organized with NEXORA HR.
+              Manage employee records, leave workflows, and workplace governance with ledger-grade clarity in NEXORA HR.
             </p>
           </div>
 
@@ -816,9 +833,11 @@
             <img
               class="brand-symbol"
               src="<?= e(asset('img/nexora-logo-icon.png')) ?>"
-              alt="NEXORA HR emblem"
+              alt=""
               width="40"
-              height="40">
+              height="40"
+              loading="lazy"
+              decoding="async">
             <span class="brand-text-block">
               <span class="brand-title">
                 <span class="brand-title-navy">NEXORA</span>
@@ -828,7 +847,7 @@
           </a>
 
           <p class="footer-brand-desc">
-            A modern enterprise Human Resource Information System that centralizes employee information and organizes essential HR operations.
+            A centralized enterprise Human Resource Information System that organizes employee records, leave workflows, and role-based HR governance.
           </p>
 
           <p class="footer-tagline-badge">
@@ -838,7 +857,7 @@
 
         <div>
           <h3 class="footer-col-title">Navigation</h3>
-          <ul class="footer-links-list">
+          <ul class="footer-links-list" role="list">
             <li><a class="footer-link" href="#home">Home</a></li>
             <li><a class="footer-link" href="#about">About</a></li>
             <li><a class="footer-link" href="#features">Features</a></li>
@@ -848,7 +867,7 @@
 
         <div>
           <h3 class="footer-col-title">Platform</h3>
-          <ul class="footer-links-list">
+          <ul class="footer-links-list" role="list">
             <li><a class="footer-link" href="#roles">Admin, HR &amp; Employee Roles</a></li>
             <li><a class="footer-link" href="#security">Security &amp; Reliability</a></li>
             <li><a class="footer-link" href="<?= e(url('/login')) ?>">Sign In</a></li>
@@ -857,7 +876,7 @@
 
         <div>
           <h3 class="footer-col-title">System Access</h3>
-          <ul class="footer-links-list">
+          <ul class="footer-links-list" role="list">
             <li><a class="footer-link" href="<?= e(url('/login')) ?>">Account Login</a></li>
             <li><a class="footer-link" href="<?= e(url('/auth/help')) ?>">Help &amp; Support</a></li>
             <li><a class="footer-link" href="<?= e(url('/forgot-password')) ?>">Forgot Password</a></li>
@@ -885,7 +904,7 @@
     </div>
   </footer>
 
-  <script src="<?= e(asset('js/landing.js')) ?>?v=<?= e((string)$jsVer) ?>"></script>
+  <script defer src="<?= e(asset('js/landing.js')) ?>?v=<?= e((string)$jsVer) ?>"></script>
 </body>
 
 </html>
