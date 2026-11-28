@@ -257,21 +257,6 @@ button {
   padding-bottom: 5.25rem;
 }
 
-/* Defer layout/paint work on strictly below-the-fold sections with size estimates */
-.about-intro-section,
-.roles-section,
-.security-section,
-.workflow-section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto none auto 38rem;
-}
-
-.cta-section,
-.site-footer {
-  content-visibility: auto;
-  contain-intrinsic-size: auto none auto 22rem;
-}
-
 section[id] {
   scroll-margin-top: 80px;
 }
@@ -1683,39 +1668,37 @@ html[data-theme="dark"] .hero-section {
    ========================================================================== */
 
 @media (prefers-reduced-motion: no-preference) {
-  @keyframes nexoraFadeUp {
+  @keyframes nexoraSettleUp {
     0% {
-      opacity: 0;
-      transform: translateY(14px);
+      transform: translateY(10px);
     }
     100% {
-      opacity: 1;
       transform: translateY(0);
     }
   }
 
   .hero-title {
-    animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) both;
+    animation: nexoraSettleUp var(--motion-slow) var(--ease-emphasis) both;
   }
 
   .hero-paragraph {
-    animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) 70ms both;
+    animation: nexoraSettleUp var(--motion-slow) var(--ease-emphasis) 50ms both;
   }
 
   .hero-actions {
-    animation: nexoraFadeUp var(--motion-slow) var(--ease-emphasis) 140ms both;
+    animation: nexoraSettleUp var(--motion-slow) var(--ease-emphasis) 100ms both;
   }
 
   .hero-brand-pillars .pillar-pill:nth-child(1) {
-    animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 200ms both;
+    animation: nexoraSettleUp var(--motion-smooth) var(--ease-emphasis) 140ms both;
   }
 
   .hero-brand-pillars .pillar-pill:nth-child(2) {
-    animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 250ms both;
+    animation: nexoraSettleUp var(--motion-smooth) var(--ease-emphasis) 180ms both;
   }
 
   .hero-brand-pillars .pillar-pill:nth-child(3) {
-    animation: nexoraFadeUp var(--motion-smooth) var(--ease-emphasis) 300ms both;
+    animation: nexoraSettleUp var(--motion-smooth) var(--ease-emphasis) 220ms both;
   }
 
   .btn,
@@ -1804,24 +1787,20 @@ html[data-theme="dark"] .hero-section {
     transform: translateY(-2px);
   }
 
-  /* Scroll-Triggered Reveal (Safe if JS is disabled or reduced motion is active) */
+  /* Scroll-Triggered Reveal from an already-visible default (keeps all sections readable/accessible immediately) */
   html.js-motion-ready [data-reveal] {
-    opacity: 0;
-    transform: translateY(14px);
-    transition:
-      opacity var(--motion-slow) var(--ease-emphasis),
-      transform var(--motion-slow) var(--ease-emphasis);
+    transform: translateY(12px);
+    transition: transform var(--motion-slow) var(--ease-emphasis);
     transition-delay: var(--reveal-delay, 0ms);
   }
 
   html.js-motion-ready [data-reveal].is-revealed {
-    opacity: 1;
     transform: translateY(0);
   }
 
   @media (max-width: 768px) {
     html.js-motion-ready [data-reveal] {
-      transform: translateY(10px);
+      transform: translateY(8px);
       transition-duration: var(--motion-smooth);
       transition-delay: min(var(--reveal-delay, 0ms), 120ms);
     }

@@ -414,10 +414,10 @@ While authenticated dashboards run in **Operate Mode**, the public landing page 
 
 ### Performance, Motion & Accessibility Standards
 - **LCP & Resource Prioritization:** Keep the hero canvas CSS-native (no heavy hero background raster image), defer non-critical scripts (`defer`), set explicit `width`/`height` + `decoding="async"` on images, and apply `loading="lazy"` on below-the-fold images (such as footer emblems). Never lazy-load above-the-fold hero media.
-- **Below-the-Fold Rendering Containment:** Apply `content-visibility: auto` paired with `contain-intrinsic-size` strictly on below-the-fold sections (never on the hero or initial viewport) to reduce initial layout/paint cost without scrollbar jumping.
+- **Rendering Containment:** Reserve `content-visibility: auto` (paired with `contain-intrinsic-size`) strictly for large, complex lists or infinite feeds—never on compact landing sections where skipping off-screen subtrees degrades sequential accessibility or immediate DOM text visibility.
 - **Scroll & Interaction Efficiency (INP):** Throttle scroll-spy updates via `requestAnimationFrame`, avoid duplicate document/window scroll listeners, batch DOM reads before writes, and only update active indicator geometry when the active section changes.
 - **Native Browser Surface Theming:** Synchronize `<meta name="color-scheme">` and CSS `color-scheme` with `[data-theme]` (plus cross-tab `storage` event sync) so scrollbars, text selection, and carets match Light/Dark mode immediately without FOUC.
-- **Opt-In Motion (WCAG 2.3.3):** Gate spatial entrance and scroll-reveal animations inside `@media (prefers-reduced-motion: no-preference)` rather than forcing global `animation-duration: 0.01ms !important`, keeping subtle color/border hover transitions smooth and ensuring content starts visible when reduced motion is active.
+- **Opt-In Motion From Visible Default (WCAG 2.3.3):** Gate spatial entrance and scroll-reveal animations inside `@media (prefers-reduced-motion: no-preference)` starting from an already-visible state (never hiding sections at `opacity: 0` before scroll), rather than forcing global `animation-duration: 0.01ms !important`.
 - **Accessible Navigation & Drawer:** Keep `<nav>` `aria-label` concise without repeating the word "navigation" (`Primary`, `Mobile`); apply the `inert` attribute to the closed mobile drawer so hidden links are excluded from keyboard Tab order; return focus to `#mobileMenuBtn` on `Escape`; include both Sign In and Help & Support inside the mobile drawer.
 
 ## Do's and Don'ts
